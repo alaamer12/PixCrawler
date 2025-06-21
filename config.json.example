@@ -1,0 +1,25 @@
+{
+  "dataset_name": "my_dataset",
+  "categories": {
+    "animals": [
+      "dog",
+      "cat",
+      "elephant"
+    ],
+    "vehicles": [
+      "car",
+      "truck",
+      "motorcycle"
+    ],
+    "landscapes": []
+  },
+  "options": {
+    "max_images": 20,
+    "output_dir": "datasets/my_dataset",
+    "integrity": true,
+    "max_retries": 3,
+    "cache_file": "my_progress.json",
+    "generate_keywords": true,
+    "disable_keyword_generation": false
+  }
+}
