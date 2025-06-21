@@ -38,6 +38,10 @@ Create a config file following the example in `config.json.example`:
       "penguin",
       "parrot"
     ]
+  },
+  "options": {
+    "max_images": 20,
+    "generate_keywords": true
   }
 }
 ```
@@ -45,7 +49,31 @@ Create a config file following the example in `config.json.example`:
 Then run:
 
 ```bash
-python main.py -c config.json -m 20
+python main.py
+```
+
+Or with custom options:
+
+```bash
+python main.py -c my_config.json -m 30 --generate-keywords
+```
+
+### Configuration Options
+
+You can specify options either in the config file or via command-line arguments. Command-line arguments take precedence over config file options.
+
+**Config File Options:**
+
+```json
+"options": {
+  "max_images": 20,
+  "output_dir": "datasets/my_dataset",
+  "integrity": true,
+  "max_retries": 3,
+  "cache_file": "my_progress.json",
+  "generate_keywords": true,
+  "disable_keyword_generation": false
+}
 ```
 
 This will create a dataset with the following structure:
