@@ -1,6 +1,3 @@
-
-
-# Constants
 import logging
 
 

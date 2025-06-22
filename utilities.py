@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, List, Tuple, Union
 
 from PIL import Image
+from tqdm.auto import tqdm
 
 from constants import DEFAULT_CACHE_FILE, logger, IMAGE_EXTENSIONS
 
@@ -275,3 +276,58 @@ def remove_duplicate_images(directory: str) -> Tuple[int, List[str]]:
 class TimeoutException(Exception):
     """Custom exception for timeout operations"""
     pass
+
+
+
+def validate_image(image_path: str) -> bool:
+    """
+    Validate if an image file is not corrupted using Pillow.
+
+    Args:
+        image_path: Path to the image file
+
+    Returns:
+        bool: True if image is valid, False otherwise
+    """
+    try:
+        with Image.open(image_path) as img:
+            img.verify()  # Verify image integrity
+
+            # Additional check for very small or empty images
+            if img.width < 50 or img.height < 50:
+                logger.warning(f"Image too small: {image_path} ({img.width}x{img.height})")
+                return False
+
+        return True
+    except Exception as e:
+        logger.error(f"Corrupted image detected: {image_path} - {str(e)}")
+        return False
+
+
+def count_valid_images(directory: str) -> Tuple[int, int, List[str]]:
+    """
+    Count valid and invalid images in a directory.
+
+    Args:
+        directory: Directory path to check
+
+    Returns:
+        Tuple of (valid_count, total_count, corrupted_files)
+    """
+    valid_count = 0
+    total_count = 0
+    corrupted_files = []
+
+    directory_path = Path(directory)
+    if not directory_path.exists():
+        return 0, 0, []
+
+    for file_path in tqdm(directory_path.iterdir(), desc="Validating", leave=False, unit="file"):
+        if file_path.is_file() and is_valid_image_extension(file_path):
+            total_count += 1
+            if validate_image(str(file_path)):
+                valid_count += 1
+            else:
+                corrupted_files.append(str(file_path))
+
+    return valid_count, total_count, corrupted_files
