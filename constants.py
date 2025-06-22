@@ -59,3 +59,25 @@ logging.getLogger("requests").setLevel(logging.CRITICAL)
 for logger_name in ["icrawler", "PIL", "downloader", "urllib3", "requests", "chardet", "charset_normalizer"]:
     logging.getLogger(logger_name).setLevel(logging.CRITICAL)
     logging.getLogger(logger_name).propagate = False
+
+# ASCII Art for Pixcrawler
+PIXCRAWLER_ASCII = """
+    ____  _       ______                    __           
+   / __ \\(_)_  __/ ____/________ __      __/ /__  _____  
+  / /_/ / /| |/_/ /   / ___/ __ `/ | /| / / / _ \\/ ___/  
+ / ____/ / >  </ /___/ /  / /_/ /| |/ |/ / /  __/ /      
+/_/   /_/_/_/|_|\\____/_/   \\__,_/ |__/|__/_/\\___/_/       
+                                                        
+"""
+
+# ANSI Colors for terminal output
+class Colors:
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
