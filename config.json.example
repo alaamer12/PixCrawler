@@ -20,6 +20,7 @@
     "max_retries": 3,
     "cache_file": "my_progress.json",
     "generate_keywords": true,
-    "disable_keyword_generation": false
+    "disable_keyword_generation": false,
+    "generate_labels": true
   }
 }
