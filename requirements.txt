@@ -4,3 +4,4 @@ jsonschema
 icrawler
 tqdm
 requests
+g4f

@@ -1,17 +1,18 @@
 import argparse
-import hashlib
+import contextlib
 import json
 import logging
 import os
 import random
 import shutil
 import signal
+import sys
 import time
 from contextlib import contextmanager
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Optional, List, Dict, Any, Tuple, Union
+from typing import Optional, List, Dict, Any, Tuple, Union, TextIO
 
+import g4f
 import jsonschema
 import requests
 from PIL import Image
@@ -20,324 +21,11 @@ from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCra
 from jsonschema import validate
 from tqdm.auto import tqdm
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-# Constants
-DEFAULT_CACHE_FILE = "download_progress.json"
-DEFAULT_CONFIG_FILE = "config.json"
-
-# Image extensions supported
-IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff'}
-
-# JSON Schema for config validation
-CONFIG_SCHEMA = {
-    "type": "object",
-    "required": ["dataset_name", "categories"],
-    "properties": {
-        "dataset_name": {
-            "type": "string",
-            "description": "Name of the dataset"
-        },
-        "categories": {
-            "type": "object",
-            "description": "Map of category names to lists of keywords",
-            "additionalProperties": {
-                "type": "array",
-                "items": {
-                    "type": "string"
-                }
-            }
-        },
-        "options": {
-            "type": "object",
-            "description": "Optional configuration settings",
-            "properties": {
-                "max_images": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "Maximum number of images per keyword"
-                },
-                "output_dir": {
-                    "type": ["string", "null"],
-                    "description": "Custom output directory"
-                },
-                "integrity": {
-                    "type": "boolean",
-                    "description": "Whether to check image integrity"
-                },
-                "max_retries": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "description": "Maximum number of retry attempts"
-                },
-                "cache_file": {
-                    "type": "string",
-                    "description": "Path to the progress cache file"
-                },
-                "generate_keywords": {
-                    "type": "boolean",
-                    "description": "Whether to generate additional keywords"
-                },
-                "disable_keyword_generation": {
-                    "type": "boolean",
-                    "description": "Whether to disable automatic keyword generation"
-                }
-            }
-        }
-    }
-}
-
-
-class ProgressCache:
-    """
-    Tracks and manages progress for dataset generation to enable continuing from where we left off.
-    """
-
-    def __init__(self, cache_file: str = DEFAULT_CACHE_FILE):
-        self.cache_file = cache_file
-        self.completed_paths = self._load_cache()
-
-    def _load_cache(self) -> Dict[str, Dict[str, Any]]:
-        """Load progress cache from file if it exists."""
-        if os.path.exists(self.cache_file):
-            try:
-                with open(self.cache_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except Exception as e:
-                logger.warning(f"Failed to load progress cache: {e}")
-                return {}
-        return {}
-
-    def save_cache(self) -> None:
-        """Save current progress to cache file."""
-        try:
-            with open(self.cache_file, 'w', encoding='utf-8') as f:
-                json.dump(self.completed_paths, f, indent=2)
-            logger.debug(f"Progress cache saved to {self.cache_file}")
-        except Exception as e:
-            logger.error(f"Failed to save progress cache: {e}")
-
-    def is_completed(self, category: str, keyword: str) -> bool:
-        """Check if a specific path has been completed."""
-        path_key = f"{category}/{keyword}"
-        return path_key in self.completed_paths
-
-    def mark_completed(self, category: str, keyword: str,
-                       metadata: Optional[Dict[str, Any]] = None) -> None:
-        """Mark a path as completed with optional metadata."""
-        path_key = f"{category}/{keyword}"
-        self.completed_paths[path_key] = {
-            "timestamp": time.time(),
-            "category": category,
-            "keyword": keyword,
-            "metadata": metadata or {}
-        }
-        # Save after each update to ensure progress is not lost
-        self.save_cache()
-
-    def get_completion_stats(self) -> Dict[str, int]:
-        """Get statistics about completion progress."""
-        return {
-            "total_completed": len(self.completed_paths),
-            "categories": len(set(item["category"] for item in self.completed_paths.values()))
-        }
-
-
-def get_image_hash(image_path: str, hash_size: int = 8) -> Optional[str]:
-    """
-    Compute a perceptual hash for an image to find visually similar images.
-    
-    Args:
-        image_path: Path to the image file
-        hash_size: Size of the hash (larger = more sensitive)
-        
-    Returns:
-        str: Perceptual hash string or None if image can't be processed
-    """
-    try:
-        with Image.open(image_path) as img:
-            # Convert to grayscale and resize
-            img = img.convert("L").resize((hash_size, hash_size), Image.Resampling.LANCZOS)
-
-            # Calculate mean pixel value
-            # noinspection PyTypeChecker
-            pixels = list(img.getdata())
-            avg = sum(pixels) / len(pixels)
-
-            # Create hash
-            binary_hash = ''.join('1' if px >= avg else '0' for px in pixels)
-            hex_hash = hex(int(binary_hash, 2))[2:]
-
-            return hex_hash.zfill(hash_size ** 2 // 4)
-    except Exception as e:
-        logger.warning(f"Failed to compute hash for {image_path}: {e}")
-        return None
-
-
-def get_file_hash(file_path: str) -> Optional[str]:
-    """
-    Compute a regular MD5 hash of file contents.
-    
-    Args:
-        file_path: Path to the file
-        
-    Returns:
-        str: MD5 hash string or None if file can't be read
-    """
-    try:
-        with open(file_path, "rb") as f:
-            file_hash = hashlib.md5()
-            # Read in chunks in case of large files
-            for chunk in iter(lambda: f.read(4096), b""):
-                file_hash.update(chunk)
-        return file_hash.hexdigest()
-    except Exception as e:
-        logger.warning(f"Failed to compute file hash for {file_path}: {e}")
-        return None
-
-
-def _get_image_files(directory_path: Path) -> List[str]:
-    """Get all valid image files from directory."""
-    return [
-        str(f) for f in directory_path.iterdir()
-        if f.is_file() and is_valid_image_extension(f)
-    ]
-
-
-def _build_hash_maps(image_files: List[str]) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
-    """Build content and perceptual hash maps for all images."""
-    content_hash_map: Dict[str, List[str]] = {}
-    perceptual_hash_map: Dict[str, List[str]] = {}
-
-    for img_path in image_files:
-        # Get content hash (exact match)
-        content_hash = get_file_hash(img_path)
-        if content_hash:
-            content_hash_map.setdefault(content_hash, []).append(img_path)
-
-        # Get perceptual hash (similar images)
-        perceptual_hash = get_image_hash(img_path)
-        if perceptual_hash:
-            perceptual_hash_map.setdefault(perceptual_hash, []).append(img_path)
-
-    return content_hash_map, perceptual_hash_map
-
-
-def _find_exact_duplicates(content_hash_map: Dict[str, List[str]]) -> Dict[str, List[str]]:
-    """Find exact duplicates based on content hash."""
-    duplicates: Dict[str, List[str]] = {}
-
-    for file_list in content_hash_map.values():
-        if len(file_list) > 1:
-            # Keep the first as original, others as duplicates
-            original = file_list[0]
-            dups = file_list[1:]
-            duplicates[original] = dups
-
-    return duplicates
-
-
-def _is_file_duplicate(img: str, duplicates: Dict[str, List[str]]) -> bool:
-    """Check if a file is already marked as a duplicate."""
-    for dups in duplicates.values():
-        if img in dups:
-            return True
-    return False
-
-
-# noinspection t
-def _process_perceptual_duplicates(
-        perceptual_hash_map: Dict[str, List[str]],
-        existing_duplicates: Dict[str, List[str]]
-) -> Dict[str, List[str]]:
-    """Process perceptual duplicates and merge with existing duplicates."""
-    duplicates = existing_duplicates.copy()
-
-    for file_list in perceptual_hash_map.values():
-        if len(file_list) > 1:
-            kept_file = None
-
-            # Find an image not already marked as duplicate
-            for img in file_list:
-                if not _is_file_duplicate(img, duplicates):
-                    if kept_file is None:
-                        kept_file = img
-                    else:
-                        # Add to duplicates of kept_file
-                        if kept_file in duplicates:
-                            duplicates[kept_file].append(img)
-                        else:
-                            duplicates[kept_file] = [img]
-
-    return duplicates
-
-
-def detect_duplicate_images(directory: str) -> Dict[str, List[str]]:
-    """
-    Detect duplicate images in a directory using both content hash and perceptual hash.
-    
-    Args:
-        directory: Directory path to check for duplicates
-        
-    Returns:
-        Dict mapping original images to lists of their duplicates
-    """
-    directory_path = Path(directory)
-
-    # Get all image files
-    image_files = _get_image_files(directory_path)
-
-    # Build hash maps
-    content_hash_map, perceptual_hash_map = _build_hash_maps(image_files)
-
-    # Find exact duplicates first
-    duplicates = _find_exact_duplicates(content_hash_map)
-
-    # Then process perceptual duplicates
-    duplicates = _process_perceptual_duplicates(perceptual_hash_map, duplicates)
-
-    return duplicates
-
-
-def remove_duplicate_images(directory: str) -> Tuple[int, List[str]]:
-    """
-    Remove duplicate images from a directory.
-    
-    Args:
-        directory: Directory path to clean
-        
-    Returns:
-        Tuple of (number of removed duplicates, list of original images kept)
-    """
-    duplicates = detect_duplicate_images(directory)
-
-    # Flatten the dictionary to get all duplicates to remove
-    removed_count = 0
-    removed_files = []
-    originals_kept = []
-
-    for original, dups in duplicates.items():
-        # Keep track of originals we're keeping
-        originals_kept.append(original)
-
-        # Remove duplicates
-        for dup in dups:
-            try:
-                os.remove(dup)
-                removed_count += 1
-                removed_files.append(dup)
-                logger.info(f"Removed duplicate image: {dup} (duplicate of {original})")
-            except Exception as e:
-                logger.warning(f"Failed to remove duplicate {dup}: {e}")
-
-    logger.info(f"Removed {removed_count} duplicate images from {directory}")
-    return removed_count, originals_kept
-
-
-class TimeoutException(Exception):
-    """Custom exception for timeout operations"""
-    pass
+from config import DatasetGenerationConfig, CONFIG_SCHEMA
+from constants import DEFAULT_CACHE_FILE, DEFAULT_CONFIG_FILE, DEFAULT_LOG_FILE, ENGINES, IMAGE_EXTENSIONS, \
+    console_handler, file_formatter
+from constants import logger
+from helpers import remove_duplicate_images, ProgressCache, TimeoutException, detect_duplicate_images
 
 
 @contextmanager
@@ -357,6 +45,355 @@ def timeout_context(seconds: float):
         # Restore the old handler
         signal.alarm(0)
         signal.signal(signal.SIGALRM, old_handler)
+
+
+class Report:
+    """Class to track and generate a markdown report about dataset generation."""
+
+    def __init__(self, output_dir: str):
+        self.output_dir = output_dir
+        self.report_file = os.path.join(output_dir, "REPORT.md")
+        self.sections = {
+            "summary": [],
+            "keywords": {},
+            "downloads": {},
+            "integrity": {},
+            "errors": []
+        }
+        self.start_time = time.time()
+
+    def add_summary(self, message: str) -> None:
+        """Add a summary message to the report."""
+        self.sections["summary"].append(message)
+
+    def record_keyword_generation(self, category: str, original_keywords: List[str],
+                                  generated_keywords: List[str], model: str) -> None:
+        """Record information about keyword generation."""
+        if category not in self.sections["keywords"]:
+            self.sections["keywords"][category] = {
+                "original": original_keywords,
+                "generated": generated_keywords,
+                "model": model
+            }
+
+    def record_download(self, category: str, keyword: str,
+                        success: bool, count: int,
+                        attempted: int, errors: Optional[List[str]] = None) -> None:
+        """Record information about downloads."""
+        if category not in self.sections["downloads"]:
+            self.sections["downloads"][category] = {}
+
+        self.sections["downloads"][category][keyword] = {
+            "success": success,
+            "downloaded": count,
+            "attempted": attempted,
+            "errors": errors or []
+        }
+
+    def record_duplicates(self, category: str, keyword: str,
+                          total: int, duplicates: int, kept: int) -> None:
+        """Record information about duplicate detection."""
+        if category not in self.sections["downloads"]:
+            self.sections["downloads"][category] = {}
+
+        if keyword not in self.sections["downloads"][category]:
+            self.sections["downloads"][category][keyword] = {}
+
+        self.sections["downloads"][category][keyword]["duplicates"] = {
+            "total": total,
+            "duplicates_removed": duplicates,
+            "unique_kept": kept
+        }
+
+    def record_integrity(self, category: str, keyword: str,
+                         expected: int, actual: int,
+                         corrupted: Optional[List[str]] = None) -> None:
+        """Record information about integrity checks."""
+        if category not in self.sections["integrity"]:
+            self.sections["integrity"][category] = {}
+
+        self.sections["integrity"][category][keyword] = {
+            "expected": expected,
+            "valid": actual,
+            "corrupted_count": len(corrupted or []),
+            "corrupted_files": corrupted or []
+        }
+
+    def record_error(self, context: str, error: str) -> None:
+        """Record an error in the report."""
+        self.sections["errors"].append({
+            "context": context,
+            "error": error,
+            "timestamp": time.time()
+        })
+
+    def generate(self) -> None:
+        """Generate the final markdown report."""
+        duration = time.time() - self.start_time
+
+        with open(self.report_file, "w", encoding="utf-8") as f:
+            self._write_header(f, duration)
+            self._write_summary(f)
+            self._write_keyword_generation(f)
+            self._write_downloads(f)
+            self._write_integrity(f)
+            self._write_errors(f)
+
+        logger.info(f"Report generated at {self.report_file}")
+
+    @staticmethod
+    def _write_header(f: TextIO, duration: float) -> None:
+        """Write the report header with timestamp and duration."""
+        f.write("# PixCrawler Dataset Generation Report\n\n")
+        f.write(f"Generated on: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write(f"Duration: {duration:.2f} seconds ({duration / 60:.2f} minutes)\n\n")
+
+    def _write_summary(self, f: TextIO) -> None:
+        """Write the summary section."""
+        f.write("## Summary\n\n")
+        for item in self.sections["summary"]:
+            f.write(f"- {item}\n")
+        f.write("\n")
+
+    def _write_keyword_generation(self, f: TextIO) -> None:
+        """Write the keyword generation section."""
+        if not self.sections["keywords"]:
+            return
+
+        f.write("## Keyword Generation\n\n")
+        for category, data in self.sections["keywords"].items():
+            self._write_keyword_category(f, category, data)
+
+    @staticmethod
+    def _write_keyword_category(f: TextIO, category: str, data: dict) -> None:
+        """Write a single keyword category."""
+        f.write(f"### Category: {category}\n\n")
+        f.write(f"AI Model used: {data['model']}\n\n")
+
+        if data["original"]:
+            f.write("**Original Keywords:**\n")
+            for kw in data["original"]:
+                f.write(f"- {kw}\n")
+            f.write("\n")
+
+        if data["generated"]:
+            f.write("**Generated Keywords:**\n")
+            for kw in data["generated"]:
+                f.write(f"- {kw}\n")
+            f.write("\n")
+
+    def _write_downloads(self, f: TextIO) -> None:
+        """Write the downloads section."""
+        if not self.sections["downloads"]:
+            return
+
+        f.write("## Downloads\n\n")
+        total_stats = self._write_download_categories(f)
+        self._write_download_totals(f, total_stats)
+
+    def _write_download_categories(self, f: TextIO) -> dict:
+        """Write all download categories and return total statistics."""
+        total_attempted = 0
+        total_downloaded = 0
+        total_duplicates = 0
+
+        for category, keywords in self.sections["downloads"].items():
+            category_stats = self._write_download_category(f, category, keywords)
+            total_attempted += category_stats["attempted"]
+            total_downloaded += category_stats["downloaded"]
+            total_duplicates += category_stats["duplicates"]
+
+        return {
+            "attempted": total_attempted,
+            "downloaded": total_downloaded,
+            "duplicates": total_duplicates
+        }
+
+    def _write_download_category(self, f: TextIO, category: str, keywords: dict) -> dict:
+        """Write a single download category and return its statistics."""
+        f.write(f"### Category: {category}\n\n")
+
+        category_attempted = 0
+        category_downloaded = 0
+        category_duplicates = 0
+
+        for keyword, data in keywords.items():
+            keyword_stats = self._write_download_keyword(f, keyword, data)
+            category_attempted += keyword_stats["attempted"]
+            category_downloaded += keyword_stats["downloaded"]
+            category_duplicates += keyword_stats["duplicates"]
+
+        f.write(
+            f"**Category Stats:** {category_downloaded}/{category_attempted} images downloaded, {category_duplicates} duplicates removed\n\n")
+
+        return {
+            "attempted": category_attempted,
+            "downloaded": category_downloaded,
+            "duplicates": category_duplicates
+        }
+
+    @staticmethod
+    def _write_download_keyword(f: TextIO, keyword: str, data: dict) -> dict:
+        """Write a single download keyword and return its statistics."""
+        f.write(f"**Keyword: {keyword}**\n")
+
+        attempted = 0
+        downloaded = 0
+        duplicates = 0
+
+        if "attempted" in data and "downloaded" in data:
+            f.write(f"- Downloaded: {data['downloaded']} / {data['attempted']} images\n")
+            attempted = data['attempted']
+            downloaded = data['downloaded']
+
+        if "duplicates" in data:
+            dup_data = data["duplicates"]
+            f.write(
+                f"- Duplicates: {dup_data['duplicates_removed']} removed, {dup_data['unique_kept']} unique images kept\n")
+            duplicates = dup_data['duplicates_removed']
+
+        if "errors" in data and data["errors"]:
+            f.write("- Errors:\n")
+            for error in data["errors"]:
+                f.write(f"  - {error}\n")
+
+        f.write("\n")
+
+        return {
+            "attempted": attempted,
+            "downloaded": downloaded,
+            "duplicates": duplicates
+        }
+
+    @staticmethod
+    def _write_download_totals(f: TextIO, total_stats: dict) -> None:
+        """Write the overall download statistics."""
+        f.write(
+            f"**Overall Download Stats:** {total_stats['downloaded']}/{total_stats['attempted']} images downloaded, {total_stats['duplicates']} duplicates removed\n\n")
+
+    def _write_integrity(self, f: TextIO) -> None:
+        """Write the integrity checks section."""
+        if not self.sections["integrity"]:
+            return
+
+        f.write("## Integrity Checks\n\n")
+        total_stats = self._write_integrity_categories(f)
+        self._write_integrity_totals(f, total_stats)
+
+    def _write_integrity_categories(self, f: TextIO) -> dict:
+        """Write all integrity categories and return total statistics."""
+        total_expected = 0
+        total_valid = 0
+        total_corrupted = 0
+
+        for category, keywords in self.sections["integrity"].items():
+            category_stats = self._write_integrity_category(f, category, keywords)
+            total_expected += category_stats["expected"]
+            total_valid += category_stats["valid"]
+            total_corrupted += category_stats["corrupted"]
+
+        return {
+            "expected": total_expected,
+            "valid": total_valid,
+            "corrupted": total_corrupted
+        }
+
+    def _write_integrity_category(self, f: TextIO, category: str, keywords: dict) -> dict:
+        """Write a single integrity category and return its statistics."""
+        f.write(f"### Category: {category}\n\n")
+
+        category_expected = 0
+        category_valid = 0
+        category_corrupted = 0
+
+        for keyword, data in keywords.items():
+            keyword_stats = self._write_integrity_keyword(f, keyword, data)
+            category_expected += keyword_stats["expected"]
+            category_valid += keyword_stats["valid"]
+            category_corrupted += keyword_stats["corrupted"]
+
+        f.write(
+            f"**Category Integrity:** {category_valid}/{category_expected} valid images, {category_corrupted} corrupted\n\n")
+
+        return {
+            "expected": category_expected,
+            "valid": category_valid,
+            "corrupted": category_corrupted
+        }
+
+    def _write_integrity_keyword(self, f: TextIO, keyword: str, data: dict) -> dict:
+        """Write a single integrity keyword and return its statistics."""
+        f.write(f"**Keyword: {keyword}**\n")
+        f.write(f"- Expected: {data['expected']} images\n")
+        f.write(f"- Valid: {data['valid']} images\n")
+        f.write(f"- Corrupted: {data['corrupted_count']} images\n")
+
+        if data["corrupted_files"]:
+            self._write_corrupted_files(f, data["corrupted_files"])
+
+        f.write("\n")
+
+        return {
+            "expected": data['expected'],
+            "valid": data['valid'],
+            "corrupted": data['corrupted_count']
+        }
+
+    @staticmethod
+    def _write_corrupted_files(f: TextIO, corrupted_files: list) -> None:
+        """Write the list of corrupted files."""
+        f.write("- Corrupted files:\n")
+        for corrupt_file in corrupted_files[:5]:  # Show just first 5
+            f.write(f"  - {os.path.basename(corrupt_file)}\n")
+        if len(corrupted_files) > 5:
+            f.write(f"  - ... and {len(corrupted_files) - 5} more\n")
+
+    @staticmethod
+    def _write_integrity_totals(f: TextIO, total_stats: dict) -> None:
+        """Write the overall integrity statistics."""
+        f.write(
+            f"**Overall Integrity:** {total_stats['valid']}/{total_stats['expected']} valid images, {total_stats['corrupted']} corrupted\n\n")
+
+    def _write_errors(self, f: TextIO) -> None:
+        """Write the errors section."""
+        if not self.sections["errors"]:
+            return
+
+        f.write("## Errors\n\n")
+        for error in self.sections["errors"]:
+            f.write(f"**Error:** {error['context']}\n")
+            f.write(f"  - {error['error']}\n")
+            f.write(f"  - Timestamp: {error['timestamp']}\n\n")
+
+        logger.info(f"Report generated at {self.report_file}")
+
+
+def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, Any]) -> None:
+    """
+    Apply configuration options from config file to the configuration object.
+    
+    This function selectively overrides default configuration values with values
+    from the config file, but only when CLI arguments haven't explicitly set them.
+    
+    Args:
+        config: The configuration object to modify
+        options: Dictionary containing configuration options from config file
+    """
+    config_mappings = {
+        'max_images': (config.max_images == 10, lambda: options.get('max_images')),
+        'output_dir': (config.output_dir is None, lambda: options.get('output_dir')),
+        'integrity': (config.integrity is True, lambda: options.get('integrity')),
+        'max_retries': (config.max_retries == 5, lambda: options.get('max_retries')),
+        'cache_file': (config.cache_file == DEFAULT_CACHE_FILE, lambda: options.get('cache_file')),
+        'keyword_generation': (config.keyword_generation == "auto", lambda: options.get('keyword_generation')),
+        'ai_model': (config.ai_model == "gpt4-mini", lambda: options.get('ai_model'))
+    }
+
+    for option_name, (should_apply, value_getter) in config_mappings.items():
+        if should_apply and option_name in options:
+            new_value = value_getter()
+            setattr(config, option_name, new_value)
+            logger.info(f"Applied {option_name}={new_value} from config file")
 
 
 def validate_image(image_path: str) -> bool:
@@ -663,311 +700,469 @@ def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool
     return downloader.download(keyword, out_dir, max_num)
 
 
-def download_images(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
+class ImageDownloader:
     """
-    Download images using multiple image crawlers with fallbacks and random offsets.
-
-    Args:
-        keyword: Search term for images
-        out_dir: Output directory path
-        max_num: Maximum number of images to download
-
-    Returns:
-        Tuple of (success_flag, downloaded_count)
+    A class for downloading images using multiple image crawlers with fallbacks and random offsets.
     """
-    try:
-        # Ensure output directory exists
-        Path(out_dir).mkdir(parents=True, exist_ok=True)
 
-        # Define search variations to try
-        variations = [
-            keyword,
-            f"{keyword} photo",
-            f"{keyword} high resolution"
+    def __init__(self,
+                 feeder_threads: int = 1,
+                 parser_threads: int = 1,
+                 downloader_threads: int = 3,
+                 min_image_size: Tuple[int, int] = (100, 100),
+                 delay_between_searches: float = 1.0,
+                 log_level: int = logging.WARNING):
+        """
+        Initialize the ImageDownloader with configurable parameters.
+
+        Args:
+            feeder_threads: Number of feeder threads for crawlers
+            parser_threads: Number of parser threads for crawlers
+            downloader_threads: Number of downloader threads for crawlers
+            min_image_size: Minimum image size as (width, height) tuple
+            delay_between_searches: Delay in seconds between different search terms
+            log_level: Logging level for crawlers
+        """
+        self.feeder_threads = feeder_threads
+        self.parser_threads = parser_threads
+        self.downloader_threads = downloader_threads
+        self.min_image_size = min_image_size
+        self.delay_between_searches = delay_between_searches
+        self.log_level = log_level
+
+        # Define engine configurations
+        self.engines = [
+            {
+                'name': 'google',
+                'func': self._download_with_google,
+                'offset_range': (0, 20),
+                'variation_step': 20
+            },
+            {
+                'name': 'bing',
+                'func': self._download_with_bing,
+                'offset_range': (0, 30),
+                'variation_step': 10
+            },
+            {
+                'name': 'baidu',
+                'func': self._download_with_baidu,
+                'offset_range': (10, 50),
+                'variation_step': 15
+            }
         ]
 
-        total_downloaded = 0
-        per_variation_limit = max(3, max_num // len(variations))
-
-        # Define the engines to try in order of preference
-        engines = [
-            ("google", _download_with_google, random.randint(0, 20)),
-            ("bing", _download_with_bing, random.randint(0, 30)),
-            ("baidu", _download_with_baidu, random.randint(10, 50))
+        # Search variations template
+        self.search_variations = [
+            "{keyword}",
+            "{keyword} photo",
+            "{keyword} high resolution"
         ]
 
-        # Try each engine in sequence
-        for engine_name, download_func, random_offset in engines:
+    def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
+        """
+        Download images using multiple image crawlers with fallbacks and random offsets.
+
+        Args:
+            keyword: Search term for images
+            out_dir: Output directory path
+            max_num: Maximum number of images to download
+
+        Returns:
+            Tuple of (success_flag, downloaded_count)
+        """
+        try:
+            # Ensure output directory exists
+            Path(out_dir).mkdir(parents=True, exist_ok=True)
+
+            # Generate search variations
+            variations = [template.format(keyword=keyword) for template in self.search_variations]
+
+            total_downloaded = 0
+            per_variation_limit = max(3, max_num // len(variations))
+
+            # Try each engine in sequence
+            for engine_config in self.engines:
+                if total_downloaded >= max_num:
+                    break
+
+                total_downloaded = self._try_engine(
+                    engine_config=engine_config,
+                    variations=variations,
+                    out_dir=out_dir,
+                    max_num=max_num,
+                    per_variation_limit=per_variation_limit,
+                    total_downloaded=total_downloaded
+                )
+
+            # Fallback to DuckDuckGo if needed
+            if total_downloaded < max_num:
+                total_downloaded = self._try_duckduckgo_fallback(
+                    keyword=keyword,
+                    out_dir=out_dir,
+                    max_num=max_num,
+                    total_downloaded=total_downloaded
+                )
+
+            # Rename all files sequentially
+            if total_downloaded > 0:
+                rename_images_sequentially(out_dir)
+
+            return total_downloaded > 0, total_downloaded
+
+        except Exception as e:
+            # Try fallback to DuckDuckGo
+            logger.warning(f"All crawlers failed with error: {e}. Trying DuckDuckGo as fallback.")
+            return self._final_duckduckgo_fallback(keyword, out_dir, max_num)
+
+    @staticmethod
+    def _try_engine(engine_config: dict, variations: List[str],
+                    out_dir: str, max_num: int, per_variation_limit: int,
+                    total_downloaded: int) -> int:
+        """
+        Try downloading images using the specified engine.
+
+        Args:
+            engine_config: Engine configuration dictionary
+            variations: List of search term variations
+            out_dir: Output directory
+            max_num: Maximum number of images to download
+            per_variation_limit: Maximum images per variation
+            total_downloaded: Current download count
+
+        Returns:
+            Updated total downloaded count
+        """
+        engine_name = engine_config['name']
+        download_func = engine_config['func']
+        offset_min, offset_max = engine_config['offset_range']
+        random_offset = random.randint(offset_min, offset_max)
+
+        logger.info(f"Attempting download using {engine_name.capitalize()}ImageCrawler")
+        try:
+            total_downloaded = download_func(
+                variations=variations,
+                out_dir=out_dir,
+                max_num=max_num - total_downloaded,
+                per_variation_limit=per_variation_limit,
+                total_downloaded=total_downloaded,
+                offset=random_offset,
+                variation_step=engine_config['variation_step']
+            )
+        except Exception as e:
+            logger.warning(f"{engine_name.capitalize()}ImageCrawler failed: {e}")
+
+        return total_downloaded
+
+    @staticmethod
+    def _try_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int, total_downloaded: int) -> int:
+        """
+        Try DuckDuckGo as a fallback option when other engines haven't downloaded enough images.
+
+        Args:
+            keyword: Search term
+            out_dir: Output directory
+            max_num: Maximum number of images to download
+            total_downloaded: Current download count
+
+        Returns:
+            Updated total downloaded count
+        """
+        logger.info(f"Crawlers downloaded {total_downloaded}/{max_num} images. Trying DuckDuckGo as fallback.")
+        ddgs_success, ddgs_count = download_images_ddgs(
+            keyword=keyword,
+            out_dir=out_dir,
+            max_num=max_num - total_downloaded
+        )
+        if ddgs_success:
+            total_downloaded += ddgs_count
+
+        return total_downloaded
+
+    @staticmethod
+    def _final_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
+        """
+        Final fallback to DuckDuckGo when all other methods have failed.
+
+        Args:
+            keyword: Search term
+            out_dir: Output directory
+            max_num: Maximum number of images to download
+
+        Returns:
+            Tuple of (success_flag, downloaded_count)
+        """
+        success, count = download_images_ddgs(keyword, out_dir, max_num)
+        if success and count > 0:
+            rename_images_sequentially(out_dir)
+            return True, count
+        else:
+            logger.error(f"All download methods failed for '{keyword}'")
+            return False, 0
+
+    def _create_crawler(self, crawler_class, out_dir: str):
+        """
+        Create a crawler instance with the configured parameters.
+
+        Args:
+            crawler_class: The crawler class to instantiate
+            out_dir: Output directory for the crawler
+
+        Returns:
+            Configured crawler instance
+        """
+        return crawler_class(
+            storage={'root_dir': out_dir},
+            log_level=self.log_level,
+            feeder_threads=self.feeder_threads,
+            parser_threads=self.parser_threads,
+            downloader_threads=self.downloader_threads
+        )
+
+    def _download_with_crawler(self, crawler_class, variations: List[str], out_dir: str,
+                               max_num: int, per_variation_limit: int, total_downloaded: int,
+                               offset: int, variation_step: int, engine_name: str) -> int:
+        """
+        Generic helper function to download images using any crawler.
+
+        Args:
+            crawler_class: The crawler class to use
+            variations: List of search term variations
+            out_dir: Output directory
+            max_num: Maximum number of images to download
+            per_variation_limit: Maximum images per variation
+            total_downloaded: Current download count
+            offset: Random offset for search results
+            variation_step: Step size for offset between variations
+            engine_name: Name of the engine for logging
+
+        Returns:
+            Updated total downloaded count
+        """
+        for i, variation in enumerate(variations):
             if total_downloaded >= max_num:
                 break
 
-            total_downloaded = _try_engine(
-                engine_name=engine_name,
-                download_func=download_func,
-                variations=variations,
-                out_dir=out_dir,
-                max_num=max_num,
-                per_variation_limit=per_variation_limit,
-                total_downloaded=total_downloaded,
-                offset=random_offset
-            )
+            # Calculate remaining images needed
+            remaining = max_num - total_downloaded
+            current_limit = min(remaining, per_variation_limit)
+            current_offset = offset + (i * variation_step)
 
-        # Fallback to DuckDuckGo if needed
-        if total_downloaded < max_num:
-            total_downloaded = _try_duckduckgo_fallback(
-                keyword=keyword,
-                out_dir=out_dir,
-                max_num=max_num,
-                total_downloaded=total_downloaded
-            )
+            logger.info(
+                f"{engine_name}: Trying to download {current_limit} images with query: '{variation}' (offset: {current_offset})")
 
-        # Rename all files sequentially
-        if total_downloaded > 0:
-            rename_images_sequentially(out_dir)
+            try:
+                crawler = self._create_crawler(crawler_class, out_dir)
 
-        return total_downloaded > 0, total_downloaded
+                crawler.crawl(
+                    keyword=variation,
+                    max_num=current_limit,
+                    min_size=self.min_image_size,
+                    offset=current_offset,
+                    file_idx_offset=total_downloaded
+                )
 
-    except Exception as e:
-        # Try fallback to DuckDuckGo
-        logger.warning(f"All crawlers failed with error: {e}. Trying DuckDuckGo as fallback.")
-        return _final_duckduckgo_fallback(keyword, out_dir, max_num)
+                # Count valid images after this batch download
+                temp_valid_count = count_valid_images_in_latest_batch(out_dir, total_downloaded)
+                total_downloaded += temp_valid_count
 
+                logger.info(
+                    f"{engine_name} downloaded {temp_valid_count} valid images for '{variation}', total: {total_downloaded}/{max_num}")
 
-def _try_engine(engine_name: str, download_func: Callable, variations: List[str],
-                out_dir: str, max_num: int, per_variation_limit: int,
-                total_downloaded: int, offset: int) -> int:
-    """
-    Try downloading images using the specified engine.
-    
-    Args:
-        engine_name: Name of the engine for logging
-        download_func: Function to use for downloading
-        variations: List of search term variations
-        out_dir: Output directory
-        max_num: Maximum number of images to download
-        per_variation_limit: Maximum images per variation
-        total_downloaded: Current download count
-        offset: Random offset for search results
-        
-    Returns:
-        Updated total downloaded count
-    """
-    logger.info(f"Attempting download using {engine_name.capitalize()}ImageCrawler")
-    try:
-        total_downloaded = download_func(
-            variations=variations,
-            out_dir=out_dir,
-            max_num=max_num - total_downloaded,
-            per_variation_limit=per_variation_limit,
-            total_downloaded=total_downloaded,
-            offset=offset
+                # Small delay between different search terms
+                time.sleep(self.delay_between_searches)
+
+            except Exception as e:
+                logger.warning(f"{engine_name} crawler failed with query '{variation}': {e}")
+
+        return total_downloaded
+
+    def _download_with_google(self, variations: List[str], out_dir: str, max_num: int,
+                              per_variation_limit: int, total_downloaded: int = 0,
+                              offset: int = 0, variation_step: int = 20) -> int:
+        """Helper function to download images using Google Image Crawler"""
+        return self._download_with_crawler(
+            GoogleImageCrawler, variations, out_dir, max_num,
+            per_variation_limit, total_downloaded, offset, variation_step, "Google"
         )
-    except Exception as e:
-        logger.warning(f"{engine_name.capitalize()}ImageCrawler failed: {e}")
 
-    return total_downloaded
+    def _download_with_bing(self, variations: List[str], out_dir: str, max_num: int,
+                            per_variation_limit: int, total_downloaded: int = 0,
+                            offset: int = 0, variation_step: int = 10) -> int:
+        """Helper function to download images using Bing Image Crawler"""
+        return self._download_with_crawler(
+            BingImageCrawler, variations, out_dir, max_num,
+            per_variation_limit, total_downloaded, offset, variation_step, "Bing"
+        )
+
+    def _download_with_baidu(self, variations: List[str], out_dir: str, max_num: int,
+                             per_variation_limit: int, total_downloaded: int = 0,
+                             offset: int = 0, variation_step: int = 15) -> int:
+        """Helper function to download images using Baidu Image Crawler"""
+        return self._download_with_crawler(
+            BaiduImageCrawler, variations, out_dir, max_num,
+            per_variation_limit, total_downloaded, offset, variation_step, "Baidu"
+        )
+
+    def add_search_variation(self, variation_template: str):
+        """
+        Add a new search variation template.
+
+        Args:
+            variation_template: Template string with {keyword} placeholder
+        """
+        if variation_template not in self.search_variations:
+            self.search_variations.append(variation_template)
+
+    def remove_search_variation(self, variation_template: str):
+        """
+        Remove a search variation template.
+
+        Args:
+            variation_template: Template string to remove
+        """
+        if variation_template in self.search_variations:
+            self.search_variations.remove(variation_template)
+
+    def set_crawler_threads(self, feeder: int = None, parser: int = None, downloader: int = None):
+        """
+        Update crawler thread configuration.
+
+        Args:
+            feeder: Number of feeder threads
+            parser: Number of parser threads
+            downloader: Number of downloader threads
+        """
+        if feeder is not None:
+            self.feeder_threads = feeder
+        if parser is not None:
+            self.parser_threads = parser
+        if downloader is not None:
+            self.downloader_threads = downloader
 
 
-def _try_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int, total_downloaded: int) -> int:
+class FSRenamer:
     """
-    Try DuckDuckGo as a fallback option when other engines haven't downloaded enough images.
+    A self-encapsulated class for renaming image files sequentially.
     
-    Args:
-        keyword: Search term
-        out_dir: Output directory
-        max_num: Maximum number of images to download
-        total_downloaded: Current download count
+    This class handles the complete process of renaming image files in a directory
+    to a sequential, zero-padded format while maintaining data integrity through
+    temporary directory operations.
+    """
+
+    def __init__(self, directory: str):
+        """
+        Initialize the FSRenamer with a target directory.
+
+        Args:
+            directory: Directory containing images to rename
+        """
+        self.directory_path = Path(directory)
+        self.temp_dir: Optional[Path] = None
+        self.image_files: List[Path] = []
+        self.padding_width: int = 0
+
+    def rename_sequentially(self) -> int:
+        """
+        Rename all image files in the directory to a sequential, zero-padded format.
         
-    Returns:
-        Updated total downloaded count
-    """
-    logger.info(f"Crawlers downloaded {total_downloaded}/{max_num} images. Trying DuckDuckGo as fallback.")
-    ddgs_success, ddgs_count = download_images_ddgs(
-        keyword=keyword,
-        out_dir=out_dir,
-        max_num=max_num - total_downloaded
-    )
-    if ddgs_success:
-        total_downloaded += ddgs_count
+        Returns:
+            int: Number of renamed files
+        """
+        if not self._validate_directory_exists():
+            return 0
 
-    return total_downloaded
+        self.image_files = self._get_sorted_image_files()
 
+        if not self.image_files:
+            logger.warning(f"No image files found in {self.directory_path}")
+            return 0
 
-def _final_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
-    """
-    Final fallback to DuckDuckGo when all other methods have failed.
-    
-    Args:
-        keyword: Search term
-        out_dir: Output directory
-        max_num: Maximum number of images to download
-        
-    Returns:
-        Tuple of (success_flag, downloaded_count)
-    """
-    success, count = download_images_ddgs(keyword, out_dir, max_num)
-    if success and count > 0:
-        rename_images_sequentially(out_dir)
-        return True, count
-    else:
-        logger.error(f"All download methods failed for '{keyword}'")
-        return False, 0
+        self.temp_dir = self._create_temp_directory()
+        self.padding_width = self._calculate_padding_width(len(self.image_files))
 
+        renamed_count = self._copy_files_to_temp_with_new_names()
 
-def _download_with_google(variations: List[str], out_dir: str, max_num: int,
-                          per_variation_limit: int, total_downloaded: int = 0, offset: int = 0) -> int:
-    """Helper function to download images using Google Image Crawler"""
-    for i, variation in enumerate(variations):
-        if total_downloaded >= max_num:
-            break
+        self._delete_original_files()
+        self._move_files_from_temp_to_original()
+        self._cleanup_temp_directory()
 
-        # Calculate remaining images needed
-        remaining = max_num - total_downloaded
+        logger.info(f"Renamed {renamed_count} images in {self.directory_path} with sequential numbering")
+        return renamed_count
 
-        # Limit for this variation
-        current_limit = min(remaining, per_variation_limit)
+    def _validate_directory_exists(self) -> bool:
+        """Validate that the directory exists."""
+        if not self.directory_path.exists():
+            logger.warning(f"Directory {self.directory_path} does not exist")
+            return False
+        return True
 
-        # Use different offset for each variation
-        current_offset = offset + (i * 20)
+    def _get_sorted_image_files(self) -> List[Path]:
+        """Get all image files sorted by creation time."""
+        image_files = [
+            f for f in self.directory_path.iterdir()
+            if f.is_file() and is_valid_image_extension(f)
+        ]
+        image_files.sort(key=lambda x: os.path.getctime(x))
+        return image_files
 
-        logger.info(
-            f"Google: Trying to download {current_limit} images with query: '{variation}' (offset: {current_offset})")
+    def _create_temp_directory(self) -> Path:
+        """Create a temporary directory for renaming operations."""
+        temp_dir = self.directory_path / ".temp_rename"
+        temp_dir.mkdir(exist_ok=True)
+        return temp_dir
 
-        try:
-            crawler = GoogleImageCrawler(
-                storage={'root_dir': out_dir},
-                log_level=logging.WARNING,
-                feeder_threads=1,
-                parser_threads=1,
-                downloader_threads=3
-            )
+    @staticmethod
+    def _calculate_padding_width(file_count: int) -> int:
+        """Calculate the padding width for sequential numbering."""
+        return max(3, len(str(file_count)))
 
-            crawler.crawl(
-                keyword=variation,
-                max_num=current_limit,
-                min_size=(100, 100),
-                offset=current_offset,
-                file_idx_offset=total_downloaded
-            )
+    def _copy_files_to_temp_with_new_names(self) -> int:
+        """Copy files to temp directory with new sequential names."""
+        renamed_count = 0
 
-            # Count valid images after this batch download
-            temp_valid_count = count_valid_images_in_latest_batch(out_dir, total_downloaded)
-            total_downloaded += temp_valid_count
+        for i, file_path in enumerate(self.image_files, 1):
+            extension = file_path.suffix.lower()
+            new_filename = f"{i:0{self.padding_width}d}{extension}"
+            temp_path = self.temp_dir / new_filename
 
-            logger.info(
-                f"Google downloaded {temp_valid_count} valid images for '{variation}', total: {total_downloaded}/{max_num}")
+            try:
+                shutil.copy2(file_path, temp_path)
+                renamed_count += 1
+            except Exception as e:
+                logger.error(f"Failed to copy {file_path} to temp directory: {e}")
 
-            # Small delay between different search terms
-            time.sleep(1)
+        return renamed_count
 
-        except Exception as e:
-            logger.warning(f"Google crawler failed with query '{variation}': {e}")
+    def _delete_original_files(self) -> None:
+        """Delete original image files."""
+        for file_path in self.image_files:
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                logger.error(f"Failed to delete original file {file_path}: {e}")
 
-    return total_downloaded
+    def _move_files_from_temp_to_original(self) -> None:
+        """Move files from temp directory back to original directory."""
+        if not self.temp_dir:
+            return
 
+        for file_path in self.temp_dir.iterdir():
+            if file_path.is_file():
+                try:
+                    shutil.move(str(file_path), str(self.directory_path / file_path.name))
+                except Exception as e:
+                    logger.error(f"Failed to move {file_path} from temp directory: {e}")
 
-def _download_with_bing(variations: List[str], out_dir: str, max_num: int,
-                        per_variation_limit: int, total_downloaded: int = 0, offset: int = 0) -> int:
-    """Helper function to download images using Bing Image Crawler"""
-    for i, variation in enumerate(variations):
-        if total_downloaded >= max_num:
-            break
-
-        # Calculate remaining images needed
-        remaining = max_num - total_downloaded
-
-        # Limit for this variation
-        current_limit = min(remaining, per_variation_limit)
-
-        # Use different offset for each variation to get more diverse results
-        current_offset = offset + (i * 10)
-
-        logger.info(
-            f"Bing: Trying to download {current_limit} images with query: '{variation}' (offset: {current_offset})")
+    def _cleanup_temp_directory(self) -> None:
+        """Remove the temporary directory."""
+        if not self.temp_dir:
+            return
 
         try:
-            crawler = BingImageCrawler(
-                storage={'root_dir': out_dir},
-                log_level=logging.WARNING,
-                feeder_threads=1,
-                parser_threads=1,
-                downloader_threads=3
-            )
-
-            crawler.crawl(
-                keyword=variation,
-                max_num=current_limit,
-                min_size=(100, 100),
-                offset=current_offset,
-                file_idx_offset=total_downloaded
-            )
-
-            # Count valid images after this batch download
-            temp_valid_count = count_valid_images_in_latest_batch(out_dir, total_downloaded)
-            total_downloaded += temp_valid_count
-
-            logger.info(
-                f"Bing downloaded {temp_valid_count} valid images for '{variation}', total: {total_downloaded}/{max_num}")
-
-            # Small delay between different search terms
-            time.sleep(1)
-
+            shutil.rmtree(self.temp_dir)
         except Exception as e:
-            logger.warning(f"Bing crawler failed with query '{variation}': {e}")
-
-    return total_downloaded
-
-
-def _download_with_baidu(variations: List[str], out_dir: str, max_num: int,
-                         per_variation_limit: int, total_downloaded: int = 0, offset: int = 0) -> int:
-    """Helper function to download images using Baidu Image Crawler"""
-    for i, variation in enumerate(variations):
-        if total_downloaded >= max_num:
-            break
-
-        # Calculate remaining images needed
-        remaining = max_num - total_downloaded
-
-        # Limit for this variation
-        current_limit = min(remaining, per_variation_limit)
-
-        # Use different offset for each variation to get more diverse results
-        current_offset = offset + (i * 15)
-
-        logger.info(
-            f"Baidu: Trying to download {current_limit} images with query: '{variation}' (offset: {current_offset})")
-
-        try:
-            crawler = BaiduImageCrawler(
-                storage={'root_dir': out_dir},
-                log_level=logging.WARNING,
-                feeder_threads=1,
-                parser_threads=1,
-                downloader_threads=3
-            )
-
-            crawler.crawl(
-                keyword=variation,
-                max_num=current_limit,
-                min_size=(100, 100),
-                offset=current_offset,
-                file_idx_offset=total_downloaded
-            )
-
-            # Count valid images after this batch download
-            temp_valid_count = count_valid_images_in_latest_batch(out_dir, total_downloaded)
-            total_downloaded += temp_valid_count
-
-            logger.info(
-                f"Baidu downloaded {temp_valid_count} valid images for '{variation}', total: {total_downloaded}/{max_num}")
-
-            # Small delay between different search terms
-            time.sleep(1)
-
-        except Exception as e:
-            logger.warning(f"Baidu crawler failed with query '{variation}': {e}")
-
-    return total_downloaded
+            logger.error(f"Failed to remove temp directory: {e}")
 
 
 def rename_images_sequentially(directory: str) -> int:
@@ -980,107 +1175,8 @@ def rename_images_sequentially(directory: str) -> int:
     Returns:
         int: Number of renamed files
     """
-    directory_path = Path(directory)
-
-    if not _validate_directory_exists(directory_path):
-        return 0
-
-    image_files = _get_sorted_image_files(directory_path)
-
-    if not image_files:
-        logger.warning(f"No image files found in {directory}")
-        return 0
-
-    temp_dir = _create_temp_directory(directory_path)
-    padding_width = _calculate_padding_width(len(image_files))
-
-    renamed_count = _copy_files_to_temp_with_new_names(
-        image_files, temp_dir, padding_width
-    )
-
-    _delete_original_files(image_files)
-    _move_files_from_temp_to_original(temp_dir, directory_path)
-    _cleanup_temp_directory(temp_dir)
-
-    logger.info(f"Renamed {renamed_count} images in {directory} with sequential numbering")
-    return renamed_count
-
-
-def _validate_directory_exists(directory_path: Path) -> bool:
-    """Validate that the directory exists."""
-    if not directory_path.exists():
-        logger.warning(f"Directory {directory_path} does not exist")
-        return False
-    return True
-
-
-def _get_sorted_image_files(directory_path: Path) -> List[Path]:
-    """Get all image files sorted by creation time."""
-    image_files = [
-        f for f in directory_path.iterdir()
-        if f.is_file() and is_valid_image_extension(f)
-    ]
-    image_files.sort(key=lambda x: os.path.getctime(x))
-    return image_files
-
-
-def _create_temp_directory(directory_path: Path) -> Path:
-    """Create a temporary directory for renaming operations."""
-    temp_dir = directory_path / ".temp_rename"
-    temp_dir.mkdir(exist_ok=True)
-    return temp_dir
-
-
-def _calculate_padding_width(file_count: int) -> int:
-    """Calculate the padding width for sequential numbering."""
-    return max(3, len(str(file_count)))
-
-
-def _copy_files_to_temp_with_new_names(
-        image_files: List[Path], temp_dir: Path, padding_width: int
-) -> int:
-    """Copy files to temp directory with new sequential names."""
-    renamed_count = 0
-
-    for i, file_path in enumerate(image_files, 1):
-        extension = file_path.suffix.lower()
-        new_filename = f"{i:0{padding_width}d}{extension}"
-        temp_path = temp_dir / new_filename
-
-        try:
-            shutil.copy2(file_path, temp_path)
-            renamed_count += 1
-        except Exception as e:
-            logger.error(f"Failed to copy {file_path} to temp directory: {e}")
-
-    return renamed_count
-
-
-def _delete_original_files(image_files: List[Path]) -> None:
-    """Delete original image files."""
-    for file_path in image_files:
-        try:
-            os.remove(file_path)
-        except Exception as e:
-            logger.error(f"Failed to delete original file {file_path}: {e}")
-
-
-def _move_files_from_temp_to_original(temp_dir: Path, directory_path: Path) -> None:
-    """Move files from temp directory back to original directory."""
-    for file_path in temp_dir.iterdir():
-        if file_path.is_file():
-            try:
-                shutil.move(str(file_path), str(directory_path / file_path.name))
-            except Exception as e:
-                logger.error(f"Failed to move {file_path} from temp directory: {e}")
-
-
-def _cleanup_temp_directory(temp_dir: Path) -> None:
-    """Remove the temporary directory."""
-    try:
-        shutil.rmtree(temp_dir)
-    except Exception as e:
-        logger.error(f"Failed to remove temp directory: {e}")
+    renamer = FSRenamer(directory)
+    return renamer.rename_sequentially()
 
 
 def count_valid_images_in_latest_batch(directory: str, previous_count: int) -> int:
@@ -1232,7 +1328,8 @@ def retry_download_images(keyword: str, out_dir: str, max_num: int, max_retries:
         Tuple of (success_flag, downloaded_count)
     """
     # First attempt
-    success, count = download_images(keyword, out_dir, max_num)
+    downloader = ImageDownloader()
+    success, count = downloader.download(keyword, out_dir, max_num)
 
     # Remove any duplicates after initial download
     if count > 1:
@@ -1242,9 +1339,6 @@ def retry_download_images(keyword: str, out_dir: str, max_num: int, max_retries:
     # Calculate how many more images we need
     images_needed = max(0, max_num - count)
     retries = 0
-
-    # List of available engines to cycle through
-    engines = ["google", "bing", "baidu", "ddgs"]
 
     # Retry if needed and we haven't exceeded max retries
     while images_needed > 0 and retries < max_retries:
@@ -1259,8 +1353,8 @@ def retry_download_images(keyword: str, out_dir: str, max_num: int, max_retries:
         retry_term = alternative_terms[min(retries - 1, len(alternative_terms) - 1)]
 
         # Select an engine to use for this retry (cycle through available engines)
-        engine_index = (retries - 1) % len(engines)
-        current_engine = engines[engine_index]
+        engine_index = (retries - 1) % len(ENGINES)
+        current_engine = ENGINES[engine_index]
         random_offset = random.randint(20, 50 + retries * 10)  # Increasing offset with retries
 
         logger.info(f"Retry #{retries}: Using {current_engine} with random offset {random_offset}")
@@ -1358,244 +1452,98 @@ def load_config(config_path: str) -> Dict[str, Any]:
         raise
 
 
-@dataclass
-class DatasetGenerationConfig:
-    """Configuration for dataset generation."""
-    config_path: str
-    max_images: int = 10
-    output_dir: Optional[str] = None
-    integrity: bool = True
-    max_retries: int = 5
-    continue_from_last: bool = False
-    cache_file: str = DEFAULT_CACHE_FILE
-    generate_keywords: bool = False
-    disable_keyword_generation: bool = False
-
-
-def generate_dataset(config: DatasetGenerationConfig) -> None:
+def generate_keywords(category: str, ai_model: str = "gpt4-mini") -> List[str]:
     """
-    Generate image dataset based on configuration file.
+    Generate related keywords for a category using G4F (GPT-4) API.
     
     Args:
-        config: Dataset generation configuration
+        category: The category name to generate keywords for
+        ai_model: The AI model to use ("gpt4" or "gpt4-mini")
+        
+    Returns:
+        List of generated keywords related to the category
     """
-    # Load and validate config
-    dataset_config = _load_and_validate_config(config)
-    dataset_name = dataset_config['dataset_name']
-    categories = dataset_config['categories']
+    # Try using G4F to generate keywords
+    try:
+        # Select the appropriate model
+        provider = None  # Let g4f choose the best available provider
+        model = g4f.models.gpt_4 if ai_model == "gpt4" else g4f.models.gpt_4o_mini
 
-    # Set output directory
-    root_dir = _setup_output_directory(config.output_dir, dataset_name)
+        # Create the prompt
+        prompt = f"""Generate 10-15 search keywords related to "{category}" that would be useful for 
+        finding diverse, high-quality images of this concept. 
+        
+        Include variations that would work well for image search engines.
+        
+        Return ONLY the keywords as a Python list of strings, with no explanation or other text.
+        Example format: ["keyword 1", "keyword 2", "keyword 3"]
+        """
 
-    # Initialize tracker and progress cache
-    tracker, progress_cache = _initialize_tracking(config.continue_from_last, config.cache_file)
-
-    # Process each category
-    for category_name, keywords in tqdm(categories.items(), desc="Processing Categories", leave=True):
-        logger.info(f"Processing category: {category_name}")
-
-        # Create category directory
-        category_path = root_dir / category_name
-        category_path.mkdir(parents=True, exist_ok=True)
-
-        # Handle keywords based on configuration
-        keywords = _process_keywords(
-            category_name,
-            keywords,
-            config.generate_keywords,
-            config.disable_keyword_generation
+        # Make the API call
+        logger.info(f"Generating keywords for '{category}' using {ai_model}")
+        response = g4f.ChatCompletion.create(
+            model=model,
+            provider=provider,
+            messages=[{"role": "user", "content": prompt}]
         )
 
-        # Process each keyword
-        _process_keywords_for_category(
-            category_name,
-            keywords,
-            category_path,
-            config,
-            tracker,
-            progress_cache
-        )
+        # Extract keywords from response
+        keywords = _extract_keywords_from_response(response, category)
 
-    # Print comprehensive summary
-    tracker.print_summary()
+        logger.info(f"Generated {len(keywords)} keywords for '{category}' using {ai_model}")
+        return keywords
 
-    logger.info(f"Dataset generation completed. Output directory: {root_dir}")
+    except Exception as e:
+        logger.warning(f"Failed to generate keywords using {ai_model}: {str(e)}")
+        # Fall back to rule-based keyword generation
+        print(f"Try to provide keywords manually for {category} or try again!")
+        print("System will exit now...")
+        sys.exit(1)
 
 
-def _load_and_validate_config(config: DatasetGenerationConfig) -> Dict[str, Any]:
-    """Load and validate the dataset configuration, applying config file options."""
-    dataset_config = load_config(config.config_path)
+def _extract_keywords_from_response(response: str, category: str) -> List[str]:
+    """Extract keywords from the AI response."""
+    try:
+        # Try to find a list pattern in the response
+        import re
+        list_pattern = r'\[.*?\]'
+        match = re.search(list_pattern, response, re.DOTALL)
 
-    # Extract options from config if available, with CLI arguments taking precedence
-    if 'options' in dataset_config and isinstance(dataset_config['options'], dict):
-        options = dataset_config['options']
+        if match:
+            # Found a list pattern, try to parse it
+            list_str = match.group(0)
+            with contextlib.suppress(Exception):
+                # Parse as Python list
+                keywords = eval(list_str)
+                if isinstance(keywords, list) and all(isinstance(k, str) for k in keywords):
+                    return keywords
 
-        # Apply config file options if CLI arguments weren't explicitly provided
-        _apply_config_options(config, options)
+        # If we couldn't parse a proper list, try to extract keywords line by line
+        lines = [line.strip() for line in response.split('\n')]
+        keywords = []
 
-    return dataset_config
+        for line in lines:
+            # Remove common list markers and quotes
+            line = re.sub(r'^[-*•"]', '', line).strip()
+            line = re.sub(r'^[0-9]+\.', '', line).strip()
+            line = line.strip('"\'')
 
+            if line and not line.startswith('[') and not line.startswith(']'):
+                keywords.append(line)
 
-def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, Any]) -> None:
-    """Apply options from config file to the configuration object."""
-    # Only use config values if CLI arguments weren't explicitly provided
-    if config.max_images == 10 and 'max_images' in options:
-        config.max_images = options.get('max_images')
-        logger.info(f"Using max_images={config.max_images} from config file")
+        # Remove duplicates and empty strings
+        keywords = [k for k in keywords if k]
+        keywords = list(dict.fromkeys(keywords))
 
-    if config.output_dir is None and 'output_dir' in options:
-        config.output_dir = options.get('output_dir')
-        logger.info(f"Using output_dir={config.output_dir} from config file")
+        # Always include the category itself
+        if category not in keywords:
+            keywords.insert(0, category)
 
-    if config.integrity is True and 'integrity' in options:
-        config.integrity = options.get('integrity')
-        logger.info(f"Using integrity={config.integrity} from config file")
-
-    if config.max_retries == 5 and 'max_retries' in options:
-        config.max_retries = options.get('max_retries')
-        logger.info(f"Using max_retries={config.max_retries} from config file")
-
-    if config.cache_file == DEFAULT_CACHE_FILE and 'cache_file' in options:
-        config.cache_file = options.get('cache_file')
-        logger.info(f"Using cache_file={config.cache_file} from config file")
-
-    if config.generate_keywords is False and 'generate_keywords' in options:
-        config.generate_keywords = options.get('generate_keywords')
-        logger.info(f"Using generate_keywords={config.generate_keywords} from config file")
-
-    if config.disable_keyword_generation is False and 'disable_keyword_generation' in options:
-        config.disable_keyword_generation = options.get('disable_keyword_generation')
-        logger.info(f"Using disable_keyword_generation={config.disable_keyword_generation} from config file")
-
-
-def _setup_output_directory(output_dir: Optional[str], dataset_name: str) -> Path:
-    """Set up and create the output directory."""
-    root_dir = output_dir or dataset_name
-    root_path = Path(root_dir)
-    root_path.mkdir(parents=True, exist_ok=True)
-    return root_path
-
-
-def _initialize_tracking(continue_from_last: bool, cache_file: str) -> Tuple[DatasetTracker, Optional[ProgressCache]]:
-    """Initialize the dataset tracker and progress cache."""
-    tracker = DatasetTracker()
-    progress_cache = ProgressCache(cache_file) if continue_from_last else None
-
-    if continue_from_last and progress_cache:
-        stats = progress_cache.get_completion_stats()
-        logger.info(
-            f"Continuing from previous run. Already completed: {stats['total_completed']} items across {stats['categories']} categories.")
-
-    return tracker, progress_cache
-
-
-def _process_keywords(
-        category_name: str,
-        keywords: List[str],
-        generate_keywords: bool,
-        disable_keyword_generation: bool
-) -> List[str]:
-    """Process keywords based on configuration options."""
-    if not keywords and not disable_keyword_generation:
-        # No keywords provided and generation not disabled, generate keywords
-        keywords = generate_keywords_for_category(category_name)
-        logger.info(f"No keywords provided for category '{category_name}', generated {len(keywords)} keywords")
-    elif not keywords and disable_keyword_generation:
-        # No keywords and generation disabled, use category name as keyword
-        keywords = [category_name]
-        logger.info(
-            f"No keywords provided for category '{category_name}' and generation disabled, using category name as keyword")
-    elif generate_keywords and not disable_keyword_generation:
-        # Keywords provided and asked to generate more
-        generated_keywords = generate_keywords_for_category(category_name)
-        # Add generated keywords to user-provided ones, avoiding duplicates
-        original_count = len(keywords)
-        keywords = list(set(keywords + generated_keywords))
-        logger.info(
-            f"Added {len(keywords) - original_count} generated keywords to {original_count} user-provided ones")
-
-    return keywords
-
-
-def _process_keywords_for_category(
-        category_name: str,
-        keywords: List[str],
-        category_path: Path,
-        config: DatasetGenerationConfig,
-        tracker: DatasetTracker,
-        progress_cache: Optional[ProgressCache]
-) -> None:
-    """Process all keywords for a specific category."""
-    for keyword in tqdm(keywords, desc=f"Keywords in {category_name}", leave=False):
-        # Skip if already processed and continuing from last run
-        if config.continue_from_last and progress_cache and progress_cache.is_completed(category_name, keyword):
-            logger.info(f"Skipping already processed: {category_name}/{keyword}")
-            continue
-
-        # Create keyword directory
-        keyword_safe = keyword.replace('/', '_').replace('\\', '_')
-        keyword_path = category_path / keyword_safe
-        keyword_path.mkdir(parents=True, exist_ok=True)
-
-        # Download images
-        download_context = f"{category_name}/{keyword}"
-        success, count = retry_download_images(
-            keyword=keyword,
-            out_dir=str(keyword_path),
-            max_num=config.max_images,
-            max_retries=config.max_retries
-        )
-
-        # Track results
-        _track_download_results(tracker, download_context, success, count)
-
-        # Check integrity if enabled
-        if config.integrity:
-            _check_image_integrity(tracker, download_context, str(keyword_path), config.max_images)
-
-        # Update progress cache if continuing from last run
-        if config.continue_from_last and progress_cache:
-            metadata = {
-                "success": success,
-                "downloaded_count": count,
-            }
-            progress_cache.mark_completed(category_name, keyword, metadata)
-
-        # Small delay to be respectful to image services
-        time.sleep(0.5)
-
-
-def _track_download_results(
-        tracker: DatasetTracker,
-        download_context: str,
-        success: bool,
-        count: int
-) -> None:
-    """Track the results of image downloads."""
-    if success:
-        tracker.record_download_success(download_context)
-        logger.info(f"Successfully downloaded {count} images for {download_context}")
-    else:
-        error_msg = "Failed to download any valid images after retries"
-        tracker.record_download_failure(download_context, error_msg)
-        logger.warning(f"Failed to download images for: {download_context}")
-
-
-def _check_image_integrity(
-        tracker: DatasetTracker,
-        download_context: str,
-        keyword_path: str,
-        max_images: int
-) -> None:
-    """Check the integrity of downloaded images."""
-    valid_count, total_count, corrupted_files = count_valid_images(keyword_path)
-    if valid_count < max_images:
-        tracker.record_integrity_failure(
-            download_context,
-            max_images,
-            valid_count,
-            corrupted_files
-        )
+        return keywords
+    except Exception as e:
+        logger.warning(f"Error extracting keywords from AI response: {str(e)}")
+        # Return at least the category itself
+        return [category]
 
 
 def create_arg_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -1608,91 +1556,363 @@ def create_arg_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParse
     parser.add_argument("-r", "--max-retries", type=int, default=5, help="Maximum retry attempts")
     parser.add_argument("--continue", dest="continue_last", action="store_true", help="Continue from last run")
     parser.add_argument("--cache", default=DEFAULT_CACHE_FILE, help="Cache file for progress tracking")
-    parser.add_argument("--generate-keywords", action="store_true", help="Generate additional keywords for categories")
-    parser.add_argument("--no-generate-keywords", action="store_true",
-                        help="Disable keyword generation even if no keywords provided")
+
+    # Keyword generation options
+    keyword_group = parser.add_argument_group('Keyword Generation')
+    generation_mode = keyword_group.add_mutually_exclusive_group()
+    generation_mode.add_argument("--keywords-auto", action="store_const", const="auto", dest="keyword_mode",
+                                 help="Generate keywords only if none provided (default)")
+    generation_mode.add_argument("--keywords-enabled", action="store_const", const="enabled", dest="keyword_mode",
+                                 help="Always generate additional keywords")
+    generation_mode.add_argument("--keywords-disabled", action="store_const", const="disabled", dest="keyword_mode",
+                                 help="Disable keyword generation completely")
+    parser.set_defaults(keyword_mode="auto")
+
+    # AI model selection
+    keyword_group.add_argument("--ai-model", choices=["gpt4", "gpt4-mini"], default="gpt4-mini",
+                               help="AI model to use for keyword generation (default: gpt4-mini)")
+
+    # Logging options
+    log_group = parser.add_argument_group('Logging')
+    log_group.add_argument("--log-file", default=DEFAULT_LOG_FILE,
+                           help=f"Path to log file (default: {DEFAULT_LOG_FILE})")
+    log_group.add_argument("-v", "--verbose", action="store_true",
+                           help="Show detailed logs in console (not just warnings/errors)")
+
     return parser
 
 
-def generate_keywords_for_category(category: str) -> List[str]:
+class DatasetGenerator:
+    """Class responsible for generating image datasets based on configuration."""
+
+    def __init__(self, config: DatasetGenerationConfig):
+        """
+        Initialize the dataset generator.
+        
+        Args:
+            config: Dataset generation configuration
+        """
+        self.config = config
+        self.dataset_config = self._load_and_validate_config()
+        self.dataset_name = self.dataset_config['dataset_name']
+        self.categories = self.dataset_config['categories']
+        self.root_dir = self._setup_output_directory()
+        self.tracker = DatasetTracker()
+        self.progress_cache = self._initialize_progress_cache()
+        self.report = self._initialize_report()
+
+    def generate(self) -> None:
+        """Generate the dataset based on the provided configuration."""
+        # Process each category
+        for category_name, keywords in tqdm(self.categories.items(), desc="Processing Categories", leave=True):
+            logger.info(f"Processing category: {category_name}")
+            self._process_category(category_name, keywords)
+
+        # Print comprehensive summary
+        self.tracker.print_summary()
+
+        # Generate the markdown report
+        self.report.generate()
+
+        logger.info(f"Dataset generation completed. Output directory: {self.root_dir}")
+
+    def _setup_output_directory(self) -> Path:
+        """Set up and create the output directory."""
+        root_dir = self.config.output_dir or self.dataset_name
+        root_path = Path(root_dir)
+        root_path.mkdir(parents=True, exist_ok=True)
+        return root_path
+
+    def _initialize_progress_cache(self) -> Optional[ProgressCache]:
+        """Initialize the progress cache if continuing from last run."""
+        if not self.config.continue_from_last:
+            return None
+
+        progress_cache = ProgressCache(self.config.cache_file)
+        stats = progress_cache.get_completion_stats()
+        logger.info(
+            f"Continuing from previous run. Already completed: {stats['total_completed']} items across {stats['categories']} categories.")
+        return progress_cache
+
+    def _initialize_report(self) -> Report:
+        """Initialize the report generator with dataset information."""
+        report = Report(str(self.root_dir))
+        report.add_summary(f"Dataset name: {self.dataset_name}")
+        report.add_summary(f"Configuration: {self.config.config_path}")
+        report.add_summary(f"Categories: {len(self.categories)}")
+        report.add_summary(f"Max images per keyword: {self.config.max_images}")
+        report.add_summary(f"Keyword generation mode: {self.config.keyword_generation}")
+
+        if self.config.keyword_generation != "disabled":
+            report.add_summary(f"AI model for keyword generation: {self.config.ai_model}")
+
+        if self.config.continue_from_last and self.progress_cache:
+            stats = self.progress_cache.get_completion_stats()
+            report.add_summary(f"Continuing from previous run with {stats['total_completed']} completed items")
+
+        return report
+
+    def _load_and_validate_config(self) -> Dict[str, Any]:
+        """Load and validate the dataset configuration, applying config file options."""
+        dataset_config = load_config(self.config.config_path)
+
+        # Extract options from config if available, with CLI arguments taking precedence
+        if 'options' in dataset_config and isinstance(dataset_config['options'], dict):
+            options = dataset_config['options']
+            # Apply config file options if CLI arguments weren't explicitly provided
+            _apply_config_options(self.config, options)
+
+        return dataset_config
+
+    def _process_category(self, category_name: str, keywords: List[str]) -> None:
+        """Process a single category with its keywords."""
+        # Create category directory
+        category_path = self.root_dir / category_name
+        category_path.mkdir(parents=True, exist_ok=True)
+
+        # Handle keywords based on configuration
+        keywords_to_process = self._prepare_keywords(category_name, keywords)
+
+        # Process each keyword
+        self._process_keywords_for_category(category_name, keywords_to_process, category_path)
+
+    def _prepare_keywords(self, category_name: str, keywords: List[str]) -> List[str]:
+        """Prepare keywords for processing based on configuration."""
+        # Record original keywords before any potential generation
+        original_keywords = keywords.copy() if keywords else []
+        generated_keywords = []
+
+        if not keywords and self.config.keyword_generation in ["auto", "enabled"]:
+            # No keywords provided and generation enabled
+            generated_keywords = generate_keywords(category_name, self.config.ai_model)
+            keywords = generated_keywords
+            logger.info(f"No keywords provided for category '{category_name}', generated {len(keywords)} keywords")
+        elif not keywords and self.config.keyword_generation == "disabled":
+            # No keywords and generation disabled, use category name as keyword
+            keywords = [category_name]
+            logger.info(
+                f"No keywords provided for category '{category_name}' and generation disabled, using category name as keyword")
+        elif self.config.keyword_generation == "enabled" and keywords:
+            # Keywords provided and asked to generate more
+            generated_keywords = generate_keywords(category_name, self.config.ai_model)
+            # Add generated keywords to user-provided ones, avoiding duplicates
+            original_count = len(keywords)
+            keywords = list(set(keywords + generated_keywords))
+            logger.info(
+                f"Added {len(keywords) - original_count} generated keywords to {original_count} user-provided ones")
+
+        # Record keyword generation in report if any generation occurred
+        if generated_keywords:
+            self.report.record_keyword_generation(
+                category_name,
+                original_keywords,
+                generated_keywords,
+                self.config.ai_model
+            )
+
+        return keywords
+
+    def _process_keywords_for_category(self, category_name: str, keywords: List[str], category_path: Path) -> None:
+        """Process all keywords for a specific category."""
+        for keyword in tqdm(keywords, desc=f"Keywords in {category_name}", leave=False):
+            # Skip if already processed and continuing from last run
+            if self.config.continue_from_last and self.progress_cache and self.progress_cache.is_completed(
+                    category_name, keyword):
+                logger.info(f"Skipping already processed: {category_name}/{keyword}")
+                continue
+
+            # Create keyword directory
+            keyword_safe = keyword.replace('/', '_').replace('\\', '_')
+            keyword_path = category_path / keyword_safe
+            keyword_path.mkdir(parents=True, exist_ok=True)
+
+            # Download images
+            download_context = f"{category_name}/{keyword}"
+            success, count = retry_download_images(
+                keyword=keyword,
+                out_dir=str(keyword_path),
+                max_num=self.config.max_images,
+                max_retries=self.config.max_retries
+            )
+
+            # Track results and record in report
+            self._track_download_results(download_context, success, count, category_name, keyword)
+
+            # Check and record duplicates
+            check_duplicates(category_name, keyword, str(keyword_path), self.report)
+
+            # Check integrity if enabled
+            if self.config.integrity:
+                self._check_image_integrity(download_context, str(keyword_path), category_name, keyword)
+
+            # Update progress cache if continuing from last run
+            if self.config.continue_from_last and self.progress_cache:
+                metadata = {
+                    "success": success,
+                    "downloaded_count": count,
+                }
+                self.progress_cache.mark_completed(category_name, keyword, metadata)
+
+            # Small delay to be respectful to image services
+            time.sleep(0.5)
+
+    def _track_download_results(self, download_context: str, success: bool, count: int, category_name: str,
+                                keyword: str) -> None:
+        """Track the results of image downloads."""
+        if success:
+            self.tracker.record_download_success(download_context)
+            logger.info(f"Successfully downloaded {count} images for {download_context}")
+        else:
+            error_msg = "Failed to download any valid images after retries"
+            self.tracker.record_download_failure(download_context, error_msg)
+            self.report.record_error(f"{category_name}/{keyword} download", error_msg)
+
+    def _check_image_integrity(self, download_context: str, keyword_path: str, category_name: str,
+                               keyword: str) -> None:
+        """Check image integrity and record results."""
+        valid_count, total_count, corrupted_files = count_valid_images(keyword_path)
+
+        if valid_count < total_count:
+            self.tracker.record_integrity_failure(
+                download_context,
+                total_count,
+                valid_count,
+                corrupted_files
+            )
+
+        self.report.record_integrity(
+            category=category_name,
+            keyword=keyword,
+            expected=total_count,
+            actual=valid_count,
+            corrupted=total_count - valid_count
+        )
+
+
+def generate_dataset(config: DatasetGenerationConfig) -> None:
     """
-    Generate related keywords for a category using predefined patterns.
-    This is a simple implementation that doesn't use external AI services,
-    but creates meaningful variations for the given category.
+    Generate image dataset based on configuration file.
     
     Args:
-        category: The category name to generate keywords for
-    
-    Returns:
-        List of generated keywords related to the category
+        config: Dataset generation configuration
     """
-    # Basic variations that work for most categories
-    variations = [
-        category,
-        f"{category} example",
-        f"{category} in detail",
-        f"{category} high quality",
-        f"{category} closeup",
-    ]
+    generator = DatasetGenerator(config)
+    generator.generate()
 
-    # Domain-specific variations (add more based on use case)
-    domain_variations = []
 
-    # Check for specific category types and add relevant keywords
-    if any(term in category.lower() for term in ["animal", "bird", "mammal", "insect", "fish"]):
-        domain_variations.extend([
-            f"{category} in wild",
-            f"{category} natural habitat",
-            f"{category} wildlife",
-        ])
-
-    elif any(term in category.lower() for term in ["food", "dish", "meal", "fruit", "vegetable"]):
-        domain_variations.extend([
-            f"{category} meal",
-            f"{category} on plate",
-            f"{category} cuisine",
-            f"fresh {category}",
-        ])
-
-    elif any(term in category.lower() for term in ["landscape", "place", "location", "country", "city"]):
-        domain_variations.extend([
-            f"{category} view",
-            f"{category} landscape",
-            f"{category} scenic",
-            f"{category} travel",
-        ])
-
-    elif any(term in category.lower() for term in ["object", "tool", "device", "machine"]):
-        domain_variations.extend([
-            f"{category} isolated",
-            f"{category} on white background",
-            f"{category} in use",
-        ])
-
-    # Add domain-specific variations if we found any
-    variations.extend(domain_variations)
-
-    # Add some randomization to ensure diversity
-    if len(variations) > 5:
-        additional = [
-            f"{category} professional photo",
-            f"{category} detailed",
-            f"high resolution {category}",
-            f"{category} photography"
+def check_duplicates(category_name: str, keyword: str, keyword_path: str, report: Report) -> None:
+    """Check for and record duplicates in the report."""
+    try:
+        # Get all image files
+        image_files = [
+            f for f in Path(keyword_path).iterdir()
+            if f.is_file() and is_valid_image_extension(f)
         ]
-        variations.extend(random.sample(additional, min(2, len(additional))))
+        total_images = len(image_files)
 
-    # Remove any duplicates that might have been created
-    return list(set(variations))
+        # Detect duplicates
+        duplicates = detect_duplicate_images(keyword_path)
+        duplicates_count = sum(len(dups) for dups in duplicates.values())
+        unique_kept = total_images - duplicates_count
+
+        # Record in report
+        report.record_duplicates(
+            category=category_name,
+            keyword=keyword,
+            total=total_images,
+            duplicates=duplicates_count,
+            kept=unique_kept
+        )
+
+    except Exception as e:
+        logger.warning(f"Failed to check duplicates for {category_name}/{keyword}: {e}")
+        report.record_error(f"{category_name}/{keyword} duplicates check", str(e))
+
+
+def _track_download_results(
+        tracker: DatasetTracker,
+        download_context: str,
+        success: bool,
+        count: int,
+        report: Report,
+        category_name: str,
+        keyword: str,
+        max_images: int
+) -> None:
+    """Track the results of image downloads."""
+    errors = []
+
+    if success:
+        tracker.record_download_success(download_context)
+        logger.info(f"Successfully downloaded {count} images for {download_context}")
+    else:
+        error_msg = "Failed to download any valid images after retries"
+        tracker.record_download_failure(download_context, error_msg)
+        logger.warning(f"Failed to download images for: {download_context}")
+        errors.append(error_msg)
+
+    # Record in report
+    report.record_download(
+        category=category_name,
+        keyword=keyword,
+        success=success,
+        count=count,
+        attempted=max_images,
+        errors=errors
+    )
+
+
+def check_image_integrity(
+        tracker: DatasetTracker,
+        download_context: str,
+        keyword_path: str,
+        max_images: int,
+        report: Report,
+        category_name: str,
+        keyword: str
+) -> None:
+    """Check the integrity of downloaded images."""
+    valid_count, total_count, corrupted_files = count_valid_images(keyword_path)
+    if valid_count < max_images:
+        tracker.record_integrity_failure(
+            download_context,
+            max_images,
+            valid_count,
+            corrupted_files
+        )
+
+    # Record in report
+    report.record_integrity(
+        category=category_name,
+        keyword=keyword,
+        expected=max_images,
+        actual=valid_count,
+        corrupted=corrupted_files
+    )
 
 
 def main():
     """Main function to parse arguments and generate dataset"""
-
     parser = argparse.ArgumentParser(description="PixCrawler: Image Dataset Generator")
     parser = create_arg_parser(parser)
 
     args = parser.parse_args()
+
+    # Configure console log level based on verbosity
+    if args.verbose:
+        console_handler.setLevel(logging.INFO)
+
+    # Update log file if specified
+    if args.log_file != DEFAULT_LOG_FILE:
+        for handler in logger.handlers:
+            if isinstance(handler, logging.FileHandler):
+                handler.close()
+                logger.removeHandler(handler)
+
+        new_file_handler = logging.FileHandler(args.log_file, encoding='utf-8')
+        new_file_handler.setLevel(logging.INFO)
+        new_file_handler.setFormatter(file_formatter)
+        logger.addHandler(new_file_handler)
 
     config = DatasetGenerationConfig(
         config_path=args.config,
@@ -1702,8 +1922,8 @@ def main():
         max_retries=args.max_retries,
         continue_from_last=args.continue_last,
         cache_file=args.cache,
-        generate_keywords=args.generate_keywords,
-        disable_keyword_generation=args.no_generate_keywords
+        keyword_generation=args.keyword_mode,
+        ai_model=args.ai_model
     )
 
     generate_dataset(config)
