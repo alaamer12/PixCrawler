@@ -3,12 +3,27 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Any, Dict, Optional, List, Tuple, Union
 
 from PIL import Image
 
-from constants import DEFAULT_CACHE_FILE, logger
-from main import is_valid_image_extension
+from constants import DEFAULT_CACHE_FILE, logger, IMAGE_EXTENSIONS
+
+
+def is_valid_image_extension(file_path: Union[str, Path]) -> bool:
+    """
+    Check if a file has a valid image extension.
+
+    Args:
+        file_path: Path to check
+
+    Returns:
+        bool: True if valid image extension, False otherwise
+    """
+    if isinstance(file_path, str):
+        file_path = Path(file_path)
+
+    return file_path.suffix.lower() in IMAGE_EXTENSIONS
 
 
 class ProgressCache:

@@ -57,6 +57,10 @@ CONFIG_SCHEMA = {
                     "type": "string",
                     "enum": ["gpt4", "gpt4-mini"],
                     "description": "AI model to use for keyword generation"
+                },
+                "generate_labels": {
+                    "type": "boolean",
+                    "description": "Whether to generate label files for images"
                 }
             }
         }
@@ -76,3 +80,4 @@ class DatasetGenerationConfig:
     cache_file: str = DEFAULT_CACHE_FILE
     keyword_generation: Literal["disabled", "enabled", "auto"] = "auto"
     ai_model: Literal["gpt4", "gpt4-mini"] = "gpt4-mini"
+    generate_labels: bool = True

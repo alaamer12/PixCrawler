@@ -10,7 +10,7 @@ import sys
 import time
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple, Union, TextIO
+from typing import Optional, List, Dict, Any, Tuple, TextIO
 
 import g4f
 import jsonschema
@@ -21,11 +21,12 @@ from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCra
 from jsonschema import validate
 from tqdm.auto import tqdm
 
+from _helpers import remove_duplicate_images, ProgressCache, TimeoutException, detect_duplicate_images, \
+    is_valid_image_extension
 from config import DatasetGenerationConfig, CONFIG_SCHEMA
-from constants import DEFAULT_CACHE_FILE, DEFAULT_CONFIG_FILE, DEFAULT_LOG_FILE, ENGINES, IMAGE_EXTENSIONS, \
-    console_handler, file_formatter
+from constants import DEFAULT_CACHE_FILE, DEFAULT_CONFIG_FILE, DEFAULT_LOG_FILE, ENGINES, console_handler, \
+    file_formatter
 from constants import logger
-from helpers import remove_duplicate_images, ProgressCache, TimeoutException, detect_duplicate_images
 
 
 @contextmanager
@@ -368,6 +369,196 @@ class Report:
         logger.info(f"Report generated at {self.report_file}")
 
 
+class LabelGenerator:
+    """
+    Class to generate label files for images in the dataset.
+    
+    This class creates structured label files that correspond to the images,
+    which can be used for machine learning tasks like classification or object detection.
+    """
+
+    def __init__(self, format_type: str = "txt"):
+        """
+        Initialize the label generator with specified format type.
+        
+        Args:
+            format_type: The format for label files ('txt', 'json', or 'csv')
+        """
+        self.format_type = format_type
+        self.supported_formats = {"txt", "json", "csv"}
+
+        if self.format_type not in self.supported_formats:
+            logger.warning(f"Unsupported label format: {format_type}. Defaulting to 'txt'.")
+            self.format_type = "txt"
+
+    def generate_dataset_labels(self, dataset_dir: str) -> None:
+        """
+        Generate label files for all images in the dataset.
+        
+        Args:
+            dataset_dir: Root directory of the dataset
+        """
+        logger.info(f"Generating {self.format_type} labels for dataset at {dataset_dir}")
+        dataset_path = Path(dataset_dir)
+
+        # Create labels directory
+        labels_dir = dataset_path / "labels"
+        labels_dir.mkdir(parents=True, exist_ok=True)
+
+        # Process each category directory
+        for category_dir in [d for d in dataset_path.iterdir() if d.is_dir() and d.name != "labels"]:
+            category_name = category_dir.name
+            self._process_category(category_dir, category_name, labels_dir)
+
+        logger.info(f"Label generation completed. Labels stored in {labels_dir}")
+
+    def _process_category(self, category_dir: Path, category_name: str, labels_dir: Path) -> None:
+        """
+        Process a single category directory.
+        
+        Args:
+            category_dir: Directory containing the category
+            category_name: Name of the category
+            labels_dir: Directory to store label files
+        """
+        # Create category label directory
+        category_label_dir = labels_dir / category_name
+        category_label_dir.mkdir(parents=True, exist_ok=True)
+
+        # Process each keyword directory within the category
+        for keyword_dir in [d for d in category_dir.iterdir() if d.is_dir()]:
+            keyword_name = keyword_dir.name
+            self._process_keyword(keyword_dir, category_name, keyword_name, category_label_dir)
+
+    def _process_keyword(self, keyword_dir: Path, category_name: str, keyword_name: str,
+                         category_label_dir: Path) -> None:
+        """
+        Process a keyword directory and generate labels for its images.
+        
+        Args:
+            keyword_dir: Directory containing images for the keyword
+            category_name: Name of the category
+            keyword_name: Name of the keyword
+            category_label_dir: Directory to store label files for this category
+        """
+        # Create keyword label directory
+        keyword_label_dir = category_label_dir / keyword_name
+        keyword_label_dir.mkdir(parents=True, exist_ok=True)
+
+        # Get all image files
+        image_files = [
+            f for f in keyword_dir.iterdir()
+            if f.is_file() and is_valid_image_extension(f)
+        ]
+
+        # Generate label for each image
+        for image_file in image_files:
+            self._generate_label_file(
+                image_file=image_file,
+                label_dir=keyword_label_dir,
+                category=category_name,
+                keyword=keyword_name
+            )
+
+    def _generate_label_file(self, image_file: Path, label_dir: Path, category: str, keyword: str) -> None:
+        """
+        Generate a label file for a single image.
+        
+        Args:
+            image_file: Path to the image file
+            label_dir: Directory to store the label file
+            category: Category name
+            keyword: Keyword name
+        """
+        # Create a matching filename but with the appropriate extension
+        label_filename = image_file.stem + "." + self.format_type
+        label_file_path = label_dir / label_filename
+
+        try:
+            # Generate label content based on format
+            if self.format_type == "txt":
+                self._write_txt_label(label_file_path, category, keyword, image_file)
+            elif self.format_type == "json":
+                self._write_json_label(label_file_path, category, keyword, image_file)
+            elif self.format_type == "csv":
+                self._write_csv_label(label_file_path, category, keyword, image_file)
+
+        except PermissionError:
+            logger.warning(f"Permission denied when creating label file for {image_file}")
+        except IOError as e:
+            logger.warning(f"I/O error generating label for {image_file}: {e}")
+        except Exception as e:
+            logger.warning(f"Unexpected error generating label for {image_file}: {e}")
+
+    @staticmethod
+    def _write_txt_label(label_path: Path, category: str, keyword: str, image_path: Path) -> None:
+        """
+        Write label in TXT format.
+        
+        Args:
+            label_path: Path to write the label file
+            category: Category name
+            keyword: Keyword name
+            image_path: Path to the corresponding image
+        """
+        try:
+            with open(label_path, "w", encoding="utf-8") as f:
+                f.write(f"category: {category}\n")
+                f.write(f"keyword: {keyword}\n")
+                f.write(f"image_path: {image_path}\n")
+                f.write(f"timestamp: {time.time()}\n")
+            logger.debug(f"Created TXT label: {label_path}")
+        except Exception as e:
+            logger.warning(f"Failed to write TXT label {label_path}: {e}")
+            raise
+
+    @staticmethod
+    def _write_json_label(label_path: Path, category: str, keyword: str, image_path: Path) -> None:
+        """
+        Write label in JSON format.
+        
+        Args:
+            label_path: Path to write the label file
+            category: Category name
+            keyword: Keyword name
+            image_path: Path to the corresponding image
+        """
+        try:
+            label_data = {
+                "category": category,
+                "keyword": keyword,
+                "image_path": str(image_path),
+                "timestamp": time.time()
+            }
+
+            with open(label_path, "w", encoding="utf-8") as f:
+                json.dump(label_data, f, indent=2)
+            logger.debug(f"Created JSON label: {label_path}")
+        except Exception as e:
+            logger.warning(f"Failed to write JSON label {label_path}: {e}")
+            raise
+
+    @staticmethod
+    def _write_csv_label(label_path: Path, category: str, keyword: str, image_path: Path) -> None:
+        """
+        Write label in CSV format.
+        
+        Args:
+            label_path: Path to write the label file
+            category: Category name
+            keyword: Keyword name
+            image_path: Path to the corresponding image
+        """
+        try:
+            with open(label_path, "w", encoding="utf-8", newline="") as f:
+                f.write(f"category,keyword,image_path,timestamp\n")
+                f.write(f"{category},{keyword},{image_path},{time.time()}\n")
+            logger.debug(f"Created CSV label: {label_path}")
+        except Exception as e:
+            logger.warning(f"Failed to write CSV label {label_path}: {e}")
+            raise
+
+
 def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, Any]) -> None:
     """
     Apply configuration options from config file to the configuration object.
@@ -386,7 +577,8 @@ def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, An
         'max_retries': (config.max_retries == 5, lambda: options.get('max_retries')),
         'cache_file': (config.cache_file == DEFAULT_CACHE_FILE, lambda: options.get('cache_file')),
         'keyword_generation': (config.keyword_generation == "auto", lambda: options.get('keyword_generation')),
-        'ai_model': (config.ai_model == "gpt4-mini", lambda: options.get('ai_model'))
+        'ai_model': (config.ai_model == "gpt4-mini", lambda: options.get('ai_model')),
+        'generate_labels': (config.generate_labels is True, lambda: options.get('generate_labels'))
     }
 
     for option_name, (should_apply, value_getter) in config_mappings.items():
@@ -1391,22 +1583,6 @@ def retry_download_images(keyword: str, out_dir: str, max_num: int, max_retries:
     return count >= 1, count  # Consider success if at least one image was downloaded
 
 
-def is_valid_image_extension(file_path: Union[str, Path]) -> bool:
-    """
-    Check if a file has a valid image extension.
-    
-    Args:
-        file_path: Path to check
-        
-    Returns:
-        bool: True if valid image extension, False otherwise
-    """
-    if isinstance(file_path, str):
-        file_path = Path(file_path)
-
-    return file_path.suffix.lower() in IMAGE_EXTENSIONS
-
-
 def load_config(config_path: str) -> Dict[str, Any]:
     """
     Load dataset configuration from a JSON file and validate against schema.
@@ -1502,7 +1678,16 @@ def generate_keywords(category: str, ai_model: str = "gpt4-mini") -> List[str]:
 
 
 def _extract_keywords_from_response(response: str, category: str) -> List[str]:
-    """Extract keywords from the AI response."""
+    """
+    Extract keywords from the AI response.
+    
+    Args:
+        response: Raw response text from the AI model
+        category: Original category name
+        
+    Returns:
+        List of extracted keywords
+    """
     try:
         # Try to find a list pattern in the response
         import re
@@ -1556,6 +1741,7 @@ def create_arg_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParse
     parser.add_argument("-r", "--max-retries", type=int, default=5, help="Maximum retry attempts")
     parser.add_argument("--continue", dest="continue_last", action="store_true", help="Continue from last run")
     parser.add_argument("--cache", default=DEFAULT_CACHE_FILE, help="Cache file for progress tracking")
+    parser.add_argument("--no-labels", action="store_true", help="Disable label file generation")
 
     # Keyword generation options
     keyword_group = parser.add_argument_group('Keyword Generation')
@@ -1600,6 +1786,7 @@ class DatasetGenerator:
         self.tracker = DatasetTracker()
         self.progress_cache = self._initialize_progress_cache()
         self.report = self._initialize_report()
+        self.label_generator = LabelGenerator() if self.config.generate_labels else None
 
     def generate(self) -> None:
         """Generate the dataset based on the provided configuration."""
@@ -1607,6 +1794,12 @@ class DatasetGenerator:
         for category_name, keywords in tqdm(self.categories.items(), desc="Processing Categories", leave=True):
             logger.info(f"Processing category: {category_name}")
             self._process_category(category_name, keywords)
+
+        # Generate labels if enabled
+        if self.config.generate_labels and self.label_generator:
+            logger.info("Generating labels for the dataset")
+            self.label_generator.generate_dataset_labels(str(self.root_dir))
+            self.report.add_summary(f"Labels generated in '{self.root_dir}/labels' directory")
 
         # Print comprehensive summary
         self.tracker.print_summary()
@@ -1767,6 +1960,16 @@ class DatasetGenerator:
             self.tracker.record_download_failure(download_context, error_msg)
             self.report.record_error(f"{category_name}/{keyword} download", error_msg)
 
+        # # Record in report
+        # self.report.record_download(
+        #     category=category_name,
+        #     keyword=keyword,
+        #     success=success,
+        #     count=count,
+        #     attempted=self.config.max_images,
+        #     errors=[]
+        # )
+
     def _check_image_integrity(self, download_context: str, keyword_path: str, category_name: str,
                                keyword: str) -> None:
         """Check image integrity and record results."""
@@ -1785,7 +1988,7 @@ class DatasetGenerator:
             keyword=keyword,
             expected=total_count,
             actual=valid_count,
-            corrupted=total_count - valid_count
+            corrupted=corrupted_files
         )
 
 
@@ -1829,39 +2032,6 @@ def check_duplicates(category_name: str, keyword: str, keyword_path: str, report
         report.record_error(f"{category_name}/{keyword} duplicates check", str(e))
 
 
-def _track_download_results(
-        tracker: DatasetTracker,
-        download_context: str,
-        success: bool,
-        count: int,
-        report: Report,
-        category_name: str,
-        keyword: str,
-        max_images: int
-) -> None:
-    """Track the results of image downloads."""
-    errors = []
-
-    if success:
-        tracker.record_download_success(download_context)
-        logger.info(f"Successfully downloaded {count} images for {download_context}")
-    else:
-        error_msg = "Failed to download any valid images after retries"
-        tracker.record_download_failure(download_context, error_msg)
-        logger.warning(f"Failed to download images for: {download_context}")
-        errors.append(error_msg)
-
-    # Record in report
-    report.record_download(
-        category=category_name,
-        keyword=keyword,
-        success=success,
-        count=count,
-        attempted=max_images,
-        errors=errors
-    )
-
-
 def check_image_integrity(
         tracker: DatasetTracker,
         download_context: str,
@@ -1891,6 +2061,20 @@ def check_image_integrity(
     )
 
 
+def update_log_file_if_needed(log_file: str) -> None:
+    """Update the log file if it's different from the default."""
+    if log_file != DEFAULT_LOG_FILE:
+        for handler in logger.handlers:
+            if isinstance(handler, logging.FileHandler):
+                handler.close()
+                logger.removeHandler(handler)
+
+        new_file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        new_file_handler.setLevel(logging.INFO)
+        new_file_handler.setFormatter(file_formatter)
+        logger.addHandler(new_file_handler)
+
+
 def main():
     """Main function to parse arguments and generate dataset"""
     parser = argparse.ArgumentParser(description="PixCrawler: Image Dataset Generator")
@@ -1903,16 +2087,7 @@ def main():
         console_handler.setLevel(logging.INFO)
 
     # Update log file if specified
-    if args.log_file != DEFAULT_LOG_FILE:
-        for handler in logger.handlers:
-            if isinstance(handler, logging.FileHandler):
-                handler.close()
-                logger.removeHandler(handler)
-
-        new_file_handler = logging.FileHandler(args.log_file, encoding='utf-8')
-        new_file_handler.setLevel(logging.INFO)
-        new_file_handler.setFormatter(file_formatter)
-        logger.addHandler(new_file_handler)
+    update_log_file_if_needed(args.log_file)
 
     config = DatasetGenerationConfig(
         config_path=args.config,
@@ -1923,7 +2098,8 @@ def main():
         continue_from_last=args.continue_last,
         cache_file=args.cache,
         keyword_generation=args.keyword_mode,
-        ai_model=args.ai_model
+        ai_model=args.ai_model,
+        generate_labels=not args.no_labels
     )
 
     generate_dataset(config)

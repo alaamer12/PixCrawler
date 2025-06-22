@@ -19,6 +19,10 @@ PixCrawler is a customizable image dataset builder that crawls the web using pop
 * **Keyword Generation**
   * Automatically generate effective keywords when none are provided
   * Optionally augment user-provided keywords with additional generated ones
+* **Label Generation**
+  * Automatically creates corresponding label files for each image
+  * Supports multiple formats (TXT, JSON, CSV)
+  * Maintains hierarchical structure matching the image dataset
 
 ## 🔧 Usage
 
@@ -108,6 +112,7 @@ python main.py --help
 - `--cache`: Cache file for progress tracking (default: download_progress.json)
 - `--generate-keywords`: Generate additional keywords for categories (even when user-provided)
 - `--no-generate-keywords`: Disable automatic keyword generation
+- `--no-labels`: Disable automatic label file generation
 
 ## 🌟 Acknowledgements
 
