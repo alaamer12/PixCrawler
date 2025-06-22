@@ -6,6 +6,8 @@ import os
 import random
 import sys
 import time
+import threading
+import concurrent.futures
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Tuple
 
@@ -16,6 +18,7 @@ from duckduckgo_search import DDGS
 from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler
 from jsonschema import validate
 from tqdm.auto import tqdm
+from PIL import Image
 
 from utilities import remove_duplicate_images, ProgressCache, detect_duplicate_images, \
     is_valid_image_extension, validate_image, count_valid_images
@@ -33,6 +36,8 @@ class LabelGenerator:
     
     This class creates structured label files that correspond to the images,
     which can be used for machine learning tasks like classification or object detection.
+    It supports multiple output formats (txt, json, csv, yaml) and ensures proper
+    organization matching the dataset structure.
     """
 
     def __init__(self, format_type: str = "txt"):
@@ -40,10 +45,10 @@ class LabelGenerator:
         Initialize the label generator with specified format type.
         
         Args:
-            format_type: The format for label files ('txt', 'json', or 'csv')
+            format_type: The format for label files ('txt', 'json', 'csv', 'yaml')
         """
-        self.format_type = format_type
-        self.supported_formats = {"txt", "json", "csv"}
+        self.format_type = format_type.lower()
+        self.supported_formats = {"txt", "json", "csv", "yaml"}
 
         if self.format_type not in self.supported_formats:
             logger.warning(f"Unsupported label format: {format_type}. Defaulting to 'txt'.")
@@ -64,13 +69,102 @@ class LabelGenerator:
         labels_dir.mkdir(parents=True, exist_ok=True)
 
         # Process each category directory
-        for category_dir in [d for d in dataset_path.iterdir() if d.is_dir() and d.name != "labels"]:
-            category_name = category_dir.name
-            self._process_category(category_dir, category_name, labels_dir)
+        category_dirs = [d for d in dataset_path.iterdir() if d.is_dir() and d.name != "labels"]
+        
+        # Count total images for progress tracking
+        total_images = sum(
+            len([f for f in Path(keyword_dir).glob("**/*") if f.is_file() and is_valid_image_extension(f)])
+            for category_dir in category_dirs 
+            for keyword_dir in [d for d in category_dir.iterdir() if d.is_dir()]
+        )
+        
+        # Create metadata file for the dataset with overall information
+        self._generate_dataset_metadata(dataset_path, labels_dir, len(category_dirs), total_images)
+        
+        # Create category index file
+        self._generate_category_index(labels_dir, [d.name for d in category_dirs])
+        
+        with tqdm(total=total_images, desc="Generating Labels", unit="image") as progress:
+            # Process each category
+            for category_dir in category_dirs:
+                category_name = category_dir.name
+                self._process_category(category_dir, category_name, labels_dir, progress)
 
         logger.info(f"Label generation completed. Labels stored in {labels_dir}")
 
-    def _process_category(self, category_dir: Path, category_name: str, labels_dir: Path) -> None:
+    def _generate_dataset_metadata(self, dataset_path: Path, labels_dir: Path, 
+                                  category_count: int, image_count: int) -> None:
+        """
+        Generate overall dataset metadata.
+        
+        Args:
+            dataset_path: Root path of the dataset
+            labels_dir: Directory where labels are stored
+            category_count: Number of categories in the dataset
+            image_count: Total number of images in the dataset
+        """
+        dataset_name = dataset_path.name
+        
+        metadata = {
+            "dataset_name": dataset_name,
+            "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "categories_count": category_count,
+            "images_count": image_count,
+            "label_format": self.format_type
+        }
+        
+        # Write to appropriate format
+        if self.format_type == "json":
+            with open(labels_dir / "dataset_metadata.json", "w", encoding="utf-8") as f:
+                json.dump(metadata, f, indent=2)
+        elif self.format_type == "yaml":
+            try:
+                import yaml
+                with open(labels_dir / "dataset_metadata.yaml", "w", encoding="utf-8") as f:
+                    yaml.dump(metadata, f, default_flow_style=False)
+            except ImportError:
+                logger.warning("PyYAML not installed, skipping YAML metadata generation")
+        else:
+            # For txt and csv, use simple format
+            with open(labels_dir / "dataset_metadata.txt", "w", encoding="utf-8") as f:
+                for key, value in metadata.items():
+                    f.write(f"{key}: {value}\n")
+    
+    def _generate_category_index(self, labels_dir: Path, categories: List[str]) -> None:
+        """
+        Generate category index file mapping categories to numeric IDs.
+        
+        Args:
+            labels_dir: Directory where labels are stored
+            categories: List of category names
+        """
+        # Create category to ID mapping
+        category_map = {name: idx for idx, name in enumerate(sorted(categories))}
+        
+        # Write to appropriate format
+        if self.format_type == "json":
+            with open(labels_dir / "category_index.json", "w", encoding="utf-8") as f:
+                json.dump(category_map, f, indent=2)
+        elif self.format_type == "yaml":
+            try:
+                import yaml
+                with open(labels_dir / "category_index.yaml", "w", encoding="utf-8") as f:
+                    yaml.dump(category_map, f, default_flow_style=False)
+            except ImportError:
+                logger.warning("PyYAML not installed, skipping YAML category index generation")
+        elif self.format_type == "csv":
+            with open(labels_dir / "category_index.csv", "w", encoding="utf-8", newline="") as f:
+                f.write("category,id\n")
+                for name, idx in category_map.items():
+                    f.write(f"{name},{idx}\n")
+        else:
+            # For txt format
+            with open(labels_dir / "category_index.txt", "w", encoding="utf-8") as f:
+                for name, idx in category_map.items():
+                    f.write(f"{name}: {idx}\n")
+
+    def _process_category(self, category_dir: Path, category_name: str, 
+                         labels_dir: Path, progress: Optional[tqdm] = None) -> None:
         """
         Process a single category directory.
         
@@ -78,6 +172,7 @@ class LabelGenerator:
             category_dir: Directory containing the category
             category_name: Name of the category
             labels_dir: Directory to store label files
+            progress: Progress bar object
         """
         # Create category label directory
         category_label_dir = labels_dir / category_name
@@ -86,10 +181,10 @@ class LabelGenerator:
         # Process each keyword directory within the category
         for keyword_dir in [d for d in category_dir.iterdir() if d.is_dir()]:
             keyword_name = keyword_dir.name
-            self._process_keyword(keyword_dir, category_name, keyword_name, category_label_dir)
+            self._process_keyword(keyword_dir, category_name, keyword_name, category_label_dir, progress)
 
     def _process_keyword(self, keyword_dir: Path, category_name: str, keyword_name: str,
-                         category_label_dir: Path) -> None:
+                         category_label_dir: Path, progress: Optional[tqdm] = None) -> None:
         """
         Process a keyword directory and generate labels for its images.
         
@@ -98,6 +193,7 @@ class LabelGenerator:
             category_name: Name of the category
             keyword_name: Name of the keyword
             category_label_dir: Directory to store label files for this category
+            progress: Progress bar object
         """
         # Create keyword label directory
         keyword_label_dir = category_label_dir / keyword_name
@@ -117,6 +213,8 @@ class LabelGenerator:
                 category=category_name,
                 keyword=keyword_name
             )
+            if progress:
+                progress.update(1)
 
     def _generate_label_file(self, image_file: Path, label_dir: Path, category: str, keyword: str) -> None:
         """
@@ -133,13 +231,18 @@ class LabelGenerator:
         label_file_path = label_dir / label_filename
 
         try:
+            # Try to get image metadata if possible
+            image_metadata = self._extract_image_metadata(image_file)
+            
             # Generate label content based on format
             if self.format_type == "txt":
-                self._write_txt_label(label_file_path, category, keyword, image_file)
+                self._write_txt_label(label_file_path, category, keyword, image_file, image_metadata)
             elif self.format_type == "json":
-                self._write_json_label(label_file_path, category, keyword, image_file)
+                self._write_json_label(label_file_path, category, keyword, image_file, image_metadata)
             elif self.format_type == "csv":
-                self._write_csv_label(label_file_path, category, keyword, image_file)
+                self._write_csv_label(label_file_path, category, keyword, image_file, image_metadata)
+            elif self.format_type == "yaml":
+                self._write_yaml_label(label_file_path, category, keyword, image_file, image_metadata)
 
         except PermissionError:
             logger.warning(f"Permission denied when creating label file for {image_file}")
@@ -147,9 +250,37 @@ class LabelGenerator:
             logger.warning(f"I/O error generating label for {image_file}: {e}")
         except Exception as e:
             logger.warning(f"Unexpected error generating label for {image_file}: {e}")
+            
+    def _extract_image_metadata(self, image_path: Path) -> Dict[str, Any]:
+        """
+        Extract metadata from an image if possible.
+        
+        Args:
+            image_path: Path to the image
+            
+        Returns:
+            Dictionary with image metadata
+        """
+        metadata = {
+            "timestamp": time.time(),
+            "size": os.path.getsize(image_path) if image_path.exists() else None
+        }
+        
+        # Try to get image dimensions
+        try:
+            with Image.open(image_path) as img:
+                metadata["width"] = img.width
+                metadata["height"] = img.height
+                metadata["format"] = img.format
+                metadata["mode"] = img.mode
+        except Exception:
+            # If we can't open the image, just continue without dimensions
+            pass
+            
+        return metadata
 
-    @staticmethod
-    def _write_txt_label(label_path: Path, category: str, keyword: str, image_path: Path) -> None:
+    def _write_txt_label(self, label_path: Path, category: str, keyword: str, 
+                        image_path: Path, metadata: Dict[str, Any]) -> None:
         """
         Write label in TXT format.
         
@@ -158,20 +289,30 @@ class LabelGenerator:
             category: Category name
             keyword: Keyword name
             image_path: Path to the corresponding image
+            metadata: Image metadata
         """
         try:
             with open(label_path, "w", encoding="utf-8") as f:
                 f.write(f"category: {category}\n")
                 f.write(f"keyword: {keyword}\n")
                 f.write(f"image_path: {image_path}\n")
-                f.write(f"timestamp: {time.time()}\n")
+                f.write(f"timestamp: {metadata['timestamp']}\n")
+                
+                # Add image dimensions if available
+                if "width" in metadata and "height" in metadata:
+                    f.write(f"width: {metadata['width']}\n")
+                    f.write(f"height: {metadata['height']}\n")
+                    
+                if "format" in metadata:
+                    f.write(f"format: {metadata['format']}\n")
+                    
             logger.debug(f"Created TXT label: {label_path}")
         except Exception as e:
             logger.warning(f"Failed to write TXT label {label_path}: {e}")
             raise
 
-    @staticmethod
-    def _write_json_label(label_path: Path, category: str, keyword: str, image_path: Path) -> None:
+    def _write_json_label(self, label_path: Path, category: str, keyword: str, 
+                         image_path: Path, metadata: Dict[str, Any]) -> None:
         """
         Write label in JSON format.
         
@@ -180,13 +321,14 @@ class LabelGenerator:
             category: Category name
             keyword: Keyword name
             image_path: Path to the corresponding image
+            metadata: Image metadata
         """
         try:
             label_data = {
                 "category": category,
                 "keyword": keyword,
                 "image_path": str(image_path),
-                "timestamp": time.time()
+                **metadata
             }
 
             with open(label_path, "w", encoding="utf-8") as f:
@@ -196,8 +338,8 @@ class LabelGenerator:
             logger.warning(f"Failed to write JSON label {label_path}: {e}")
             raise
 
-    @staticmethod
-    def _write_csv_label(label_path: Path, category: str, keyword: str, image_path: Path) -> None:
+    def _write_csv_label(self, label_path: Path, category: str, keyword: str, 
+                        image_path: Path, metadata: Dict[str, Any]) -> None:
         """
         Write label in CSV format.
         
@@ -206,14 +348,60 @@ class LabelGenerator:
             category: Category name
             keyword: Keyword name
             image_path: Path to the corresponding image
+            metadata: Image metadata
         """
         try:
+            headers = ["category", "keyword", "image_path", "timestamp", "width", "height", "format", "size"]
+            values = [
+                category, 
+                keyword, 
+                str(image_path), 
+                metadata.get("timestamp", ""),
+                metadata.get("width", ""),
+                metadata.get("height", ""),
+                metadata.get("format", ""),
+                metadata.get("size", "")
+            ]
+            
             with open(label_path, "w", encoding="utf-8", newline="") as f:
-                f.write(f"category,keyword,image_path,timestamp\n")
-                f.write(f"{category},{keyword},{image_path},{time.time()}\n")
+                f.write(",".join(headers) + "\n")
+                f.write(",".join(str(v) for v in values) + "\n")
+                
             logger.debug(f"Created CSV label: {label_path}")
         except Exception as e:
             logger.warning(f"Failed to write CSV label {label_path}: {e}")
+            raise
+            
+    def _write_yaml_label(self, label_path: Path, category: str, keyword: str, 
+                         image_path: Path, metadata: Dict[str, Any]) -> None:
+        """
+        Write label in YAML format.
+        
+        Args:
+            label_path: Path to write the label file
+            category: Category name
+            keyword: Keyword name
+            image_path: Path to the corresponding image
+            metadata: Image metadata
+        """
+        try:
+            import yaml
+            
+            label_data = {
+                "category": category,
+                "keyword": keyword,
+                "image_path": str(image_path),
+                **metadata
+            }
+
+            with open(label_path, "w", encoding="utf-8") as f:
+                yaml.dump(label_data, f, default_flow_style=False)
+            logger.debug(f"Created YAML label: {label_path}")
+        except ImportError:
+            logger.warning("PyYAML not installed, falling back to TXT format")
+            self._write_txt_label(label_path, category, keyword, image_path, metadata)
+        except Exception as e:
+            logger.warning(f"Failed to write YAML label {label_path}: {e}")
             raise
 
 
@@ -228,6 +416,9 @@ def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, An
         config: The configuration object to modify
         options: Dictionary containing configuration options from config file
     """
+    # Dictionary of CLI argument properties and conditions for applying config values
+    # Format: option_name: (condition_to_apply_config_value, getter_function)
+    # The condition is True when the CLI argument is using its default value
     config_mappings = {
         'max_images': (config.max_images == 10, lambda: options.get('max_images')),
         'output_dir': (config.output_dir is None, lambda: options.get('output_dir')),
@@ -239,11 +430,14 @@ def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, An
         'generate_labels': (config.generate_labels is True, lambda: options.get('generate_labels'))
     }
 
-    for option_name, (should_apply, value_getter) in config_mappings.items():
-        if should_apply and option_name in options:
+    # Apply each config option if its CLI argument is using the default value
+    for option_name, (is_using_default, value_getter) in config_mappings.items():
+        if is_using_default and option_name in options and value_getter() is not None:
             new_value = value_getter()
             setattr(config, option_name, new_value)
             logger.info(f"Applied {option_name}={new_value} from config file")
+        elif not is_using_default:
+            logger.debug(f"CLI argument overriding config file for {option_name}")
 
 
 
@@ -440,15 +634,18 @@ def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool
 class ImageDownloader:
     """
     A class for downloading images using multiple image crawlers with fallbacks and random offsets.
+    
+    Supports parallel processing for faster downloads while maintaining thread safety.
     """
 
     def __init__(self,
-                 feeder_threads: int = 1,
-                 parser_threads: int = 1,
-                 downloader_threads: int = 3,
+                 feeder_threads: int = 2,
+                 parser_threads: int = 2,
+                 downloader_threads: int = 4,
                  min_image_size: Tuple[int, int] = (100, 100),
                  delay_between_searches: float = 1.0,
-                 log_level: int = logging.WARNING):
+                 log_level: int = logging.WARNING,
+                 max_parallel_engines: int = 2):
         """
         Initialize the ImageDownloader with configurable parameters.
 
@@ -459,6 +656,7 @@ class ImageDownloader:
             min_image_size: Minimum image size as (width, height) tuple
             delay_between_searches: Delay in seconds between different search terms
             log_level: Logging level for crawlers
+            max_parallel_engines: Maximum number of search engines to use in parallel
         """
         self.feeder_threads = feeder_threads
         self.parser_threads = parser_threads
@@ -466,12 +664,19 @@ class ImageDownloader:
         self.min_image_size = min_image_size
         self.delay_between_searches = delay_between_searches
         self.log_level = log_level
+        self.max_parallel_engines = max_parallel_engines
 
         # Define engine configurations
         self.engines = self._get_engines()
 
         # Search variations template
         self.search_variations = self._get_search_variations()
+        
+        # Thread synchronization
+        self.lock = threading.RLock()
+        
+        # Signal for worker threads
+        self.stop_workers = False
 
     def _get_search_variations(self) -> List[str]:
         """
@@ -483,7 +688,62 @@ class ImageDownloader:
         return [
             "{keyword}",
             "{keyword} photo",
-            "{keyword} high resolution"
+            "{keyword} image",
+            "{keyword} picture",
+            "{keyword} high resolution",
+            "{keyword} high quality",
+            "{keyword} high quality picture",
+            "{keyword} high quality image",
+            "{keyword} low quality",
+            "{keyword} low quality picture",
+            "{keyword} low quality image",
+            "{keyword} meme",
+            "{keyword} meme image",
+            "{keyword} funny {keyword}",
+            "{keyword} cute",
+            "{keyword} cute picture",
+            "{keyword} beautiful",
+            "{keyword} beautiful image",
+            "{keyword} realistic",
+            "{keyword} realistic photo",
+            "{keyword} cartoon",
+            "{keyword} cartoon image",
+            "{keyword} drawing",
+            "{keyword} sketch",
+            "{keyword} painting",
+            "{keyword} artwork",
+            "{keyword} digital art",
+            "{keyword} 3d render",
+            "{keyword} vintage",
+            "{keyword} vintage photo",
+            "{keyword} modern",
+            "{keyword} modern image",
+            "{keyword} professional",
+            "{keyword} professional photo",
+            "{keyword} amateur",
+            "{keyword} amateur photo",
+            "{keyword} close up",
+            "{keyword} close up photo",
+            "{keyword} wide shot",
+            "{keyword} wide shot photo",
+            "{keyword} macro",
+            "{keyword} macro photo",
+            "{keyword} blurry",
+            "{keyword} blurry image",
+            "{keyword} sharp",
+            "{keyword} sharp image",
+            "{keyword} colorful",
+            "{keyword} black and white",
+            "{keyword} grayscale",
+            "{keyword} bright",
+            "{keyword} dark",
+            "{keyword} sunny",
+            "{keyword} cloudy",
+            "{keyword} indoor",
+            "{keyword} outdoor",
+            "{keyword} studio",
+            "{keyword} natural light",
+            "{keyword} artificial light"
         ]
 
     def _get_engines(self) -> List[Dict[str, Any]]:
@@ -514,7 +774,6 @@ class ImageDownloader:
             }
         ]
     
-
     def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
         """
         Download images using multiple image crawlers with fallbacks and random offsets.
@@ -534,127 +793,195 @@ class ImageDownloader:
             # Generate search variations
             variations = [template.format(keyword=keyword) for template in self.search_variations]
 
-            total_downloaded = 0
-            per_variation_limit = max(3, max_num // len(variations))
-
-            # Try each engine in sequence
-            for engine_config in self.engines:
-                if total_downloaded >= max_num:
-                    break
-
-                total_downloaded = self._try_engine(
-                    engine_config=engine_config,
-                    variations=variations,
-                    out_dir=out_dir,
-                    max_num=max_num,
-                    per_variation_limit=per_variation_limit,
-                    total_downloaded=total_downloaded
-                )
-
-            # Fallback to DuckDuckGo if needed
-            if total_downloaded < max_num:
-                total_downloaded = self._try_duckduckgo_fallback(
+            # Track download progress
+            with self.lock:
+                self.total_downloaded = 0
+                self.stop_workers = False
+                
+            # Calculate per-engine targets
+            per_engine_max = max(3, max_num // len(self.engines))
+            
+            # Use parallel processing for engines
+            try:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_parallel_engines) as executor:
+                    # Submit engine tasks
+                    futures = []
+                    
+                    # Shuffle engines to randomize download order
+                    engine_indices = list(range(len(self.engines)))
+                    random.shuffle(engine_indices)
+                    
+                    for idx in engine_indices:
+                        engine_config = self.engines[idx]
+                        futures.append(executor.submit(
+                            self._process_engine,
+                            engine_config=engine_config,
+                            variations=variations,
+                            out_dir=out_dir,
+                            max_num=per_engine_max,
+                            total_max=max_num
+                        ))
+                    
+                    # Wait for all to complete or until we have enough images
+                    done, not_done = concurrent.futures.wait(
+                        futures,
+                        return_when=concurrent.futures.FIRST_COMPLETED,
+                        timeout=30  # Reasonable timeout to check progress
+                    )
+                    
+                    # Monitor progress
+                    while not_done and self.total_downloaded < max_num:
+                        # Check if we've reached our download target
+                        if self.total_downloaded >= max_num:
+                            # Signal workers to stop
+                            self.stop_workers = True
+                            # Cancel pending futures
+                            for future in not_done:
+                                future.cancel()
+                            break
+                            
+                        # Wait for more to complete
+                        done, not_done = concurrent.futures.wait(
+                            not_done, 
+                            return_when=concurrent.futures.FIRST_COMPLETED,
+                            timeout=30
+                        )
+            
+            except Exception as e:
+                logger.warning(f"Error in parallel download: {e}")
+            
+            # If we still don't have enough images, try fallback
+            if self.total_downloaded < max_num:
+                self._try_duckduckgo_fallback(
                     keyword=keyword,
                     out_dir=out_dir,
                     max_num=max_num,
-                    total_downloaded=total_downloaded
+                    total_downloaded=self.total_downloaded
                 )
 
             # Rename all files sequentially
-            if total_downloaded > 0:
+            if self.total_downloaded > 0:
                 rename_images_sequentially(out_dir)
 
-            return total_downloaded > 0, total_downloaded
+            return self.total_downloaded > 0, self.total_downloaded
 
         except Exception as e:
             # Try fallback to DuckDuckGo
             logger.warning(f"All crawlers failed with error: {e}. Trying DuckDuckGo as fallback.")
             return self._final_duckduckgo_fallback(keyword, out_dir, max_num)
-
-    @staticmethod
-    def _try_engine(engine_config: dict, variations: List[str],
-                    out_dir: str, max_num: int, per_variation_limit: int,
-                    total_downloaded: int) -> int:
+            
+    def _process_engine(self, engine_config: dict, variations: List[str],
+                        out_dir: str, max_num: int, total_max: int) -> int:
         """
-        Try downloading images using the specified engine.
-
+        Process a search engine to download images.
+        
         Args:
-            engine_config: Engine configuration dictionary
-            variations: List of search term variations
+            engine_config: Engine configuration
+            variations: List of search variations
             out_dir: Output directory
-            max_num: Maximum number of images to download
-            per_variation_limit: Maximum images per variation
-            total_downloaded: Current download count
-
+            max_num: Maximum images for this engine
+            total_max: Overall maximum images
+            
         Returns:
-            Updated total downloaded count
+            Number of images downloaded
         """
+        if self.stop_workers:
+            return 0
+            
         engine_name = engine_config['name']
         download_func = engine_config['func']
         offset_min, offset_max = engine_config['offset_range']
         random_offset = random.randint(offset_min, offset_max)
-
+        variation_step = engine_config['variation_step']
+        
         logger.info(f"Attempting download using {engine_name.capitalize()}ImageCrawler")
+        
+        # Calculate per-variation limit based on variations and max for this engine
+        per_variation_limit = max(2, max_num // len(variations))
+        
+        engine_downloaded = 0
         try:
-            total_downloaded = download_func(
-                variations=variations,
-                out_dir=out_dir,
-                max_num=max_num - total_downloaded,
-                per_variation_limit=per_variation_limit,
-                total_downloaded=total_downloaded,
-                offset=random_offset,
-                variation_step=engine_config['variation_step']
-            )
+            for i, variation in enumerate(variations):
+                # Check if we should stop
+                if self.stop_workers or self.total_downloaded >= total_max:
+                    break
+                    
+                # Calculate remaining images needed
+                with self.lock:
+                    if self.total_downloaded >= total_max:
+                        break
+                    remaining = min(max_num - engine_downloaded, total_max - self.total_downloaded)
+                
+                if remaining <= 0:
+                    break
+                    
+                # Calculate limits and offset for this variation
+                current_limit = min(remaining, per_variation_limit)
+                current_offset = random_offset + (i * variation_step)
+                
+                logger.info(
+                    f"{engine_name}: Trying to download {current_limit} images with query: '{variation}' (offset: {current_offset})"
+                )
+                
+                try:
+                    crawler = self._create_crawler(
+                        self._get_crawler_class(engine_name),
+                        out_dir
+                    )
+                    
+                    crawler.crawl(
+                        keyword=variation,
+                        max_num=current_limit,
+                        min_size=self.min_image_size,
+                        offset=current_offset,
+                        file_idx_offset=self.total_downloaded + engine_downloaded
+                    )
+                    
+                    # Count valid images after this batch download
+                    with self.lock:
+                        temp_valid_count = count_valid_images_in_latest_batch(
+                            out_dir,
+                            self.total_downloaded + engine_downloaded
+                        )
+                        engine_downloaded += temp_valid_count
+                        self.total_downloaded += temp_valid_count
+                    
+                    logger.info(
+                        f"{engine_name} downloaded {temp_valid_count} valid images for '{variation}', " 
+                        f"total: {self.total_downloaded}/{total_max}"
+                    )
+                    
+                except Exception as e:
+                    logger.warning(f"{engine_name} crawler failed for '{variation}': {e}")
+                    
+                # Break early if we've reached the target
+                if self.total_downloaded >= total_max:
+                    break
+                    
+                # Small delay between different search terms
+                time.sleep(self.delay_between_searches)
+                
         except Exception as e:
-            logger.warning(f"{engine_name.capitalize()}ImageCrawler failed: {e}")
-
-        return total_downloaded
-
-    @staticmethod
-    def _try_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int, total_downloaded: int) -> int:
+            logger.warning(f"{engine_name} engine failed: {e}")
+            
+        return engine_downloaded
+    
+    def _get_crawler_class(self, engine_name: str) -> Any:
         """
-        Try DuckDuckGo as a fallback option when other engines haven't downloaded enough images.
-
+        Get the crawler class based on engine name.
+        
         Args:
-            keyword: Search term
-            out_dir: Output directory
-            max_num: Maximum number of images to download
-            total_downloaded: Current download count
-
+            engine_name: Name of the search engine
+            
         Returns:
-            Updated total downloaded count
+            Crawler class
         """
-        logger.info(f"Crawlers downloaded {total_downloaded}/{max_num} images. Trying DuckDuckGo as fallback.")
-        ddgs_success, ddgs_count = download_images_ddgs(
-            keyword=keyword,
-            out_dir=out_dir,
-            max_num=max_num - total_downloaded
-        )
-        if ddgs_success:
-            total_downloaded += ddgs_count
-
-        return total_downloaded
-
-    @staticmethod
-    def _final_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
-        """
-        Final fallback to DuckDuckGo when all other methods have failed.
-
-        Args:
-            keyword: Search term
-            out_dir: Output directory
-            max_num: Maximum number of images to download
-
-        Returns:
-            Tuple of (success_flag, downloaded_count)
-        """
-        success, count = download_images_ddgs(keyword, out_dir, max_num)
-        if success and count > 0:
-            rename_images_sequentially(out_dir)
-            return True, count
-        else:
-            logger.error(f"All download methods failed for '{keyword}'")
-            return False, 0
+        crawler_map = {
+            "google": GoogleImageCrawler,
+            "bing": BingImageCrawler,
+            "baidu": BaiduImageCrawler
+        }
+        return crawler_map.get(engine_name)
 
     def _create_crawler(self, crawler_class, out_dir: str):
         """
@@ -695,12 +1022,15 @@ class ImageDownloader:
         Returns:
             Updated total downloaded count
         """
+        # This is now replaced by the more efficient _process_engine method
+        # Kept for backwards compatibility
+        local_downloaded = 0
         for i, variation in enumerate(variations):
-            if total_downloaded >= max_num:
+            if local_downloaded >= max_num:
                 break
 
             # Calculate remaining images needed
-            remaining = max_num - total_downloaded
+            remaining = max_num - local_downloaded
             current_limit = min(remaining, per_variation_limit)
             current_offset = offset + (i * variation_step)
 
@@ -715,15 +1045,15 @@ class ImageDownloader:
                     max_num=current_limit,
                     min_size=self.min_image_size,
                     offset=current_offset,
-                    file_idx_offset=total_downloaded
+                    file_idx_offset=total_downloaded + local_downloaded
                 )
 
                 # Count valid images after this batch download
-                temp_valid_count = count_valid_images_in_latest_batch(out_dir, total_downloaded)
-                total_downloaded += temp_valid_count
+                temp_valid_count = count_valid_images_in_latest_batch(out_dir, total_downloaded + local_downloaded)
+                local_downloaded += temp_valid_count
 
                 logger.info(
-                    f"{engine_name} downloaded {temp_valid_count} valid images for '{variation}', total: {total_downloaded}/{max_num}")
+                    f"{engine_name} downloaded {temp_valid_count} valid images for '{variation}', total: {total_downloaded + local_downloaded}/{max_num}")
 
                 # Small delay between different search terms
                 time.sleep(self.delay_between_searches)
@@ -731,7 +1061,7 @@ class ImageDownloader:
             except Exception as e:
                 logger.warning(f"{engine_name} crawler failed with query '{variation}': {e}")
 
-        return total_downloaded
+        return total_downloaded + local_downloaded
 
     def _download_with_google(self, variations: List[str], out_dir: str, max_num: int,
                               per_variation_limit: int, total_downloaded: int = 0,
@@ -760,7 +1090,55 @@ class ImageDownloader:
             per_variation_limit, total_downloaded, offset, variation_step, "Baidu"
         )
 
-    def add_search_variation(self, variation_template: str):
+    @staticmethod
+    def _try_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int, total_downloaded: int) -> int:
+        """
+        Try DuckDuckGo as a fallback option when other engines haven't downloaded enough images.
+
+        Args:
+            keyword: Search term
+            out_dir: Output directory
+            max_num: Maximum number of images to download
+            total_downloaded: Current download count
+
+        Returns:
+            Updated total downloaded count
+        """
+        if total_downloaded >= max_num:
+            return total_downloaded
+            
+        logger.info(f"Crawlers downloaded {total_downloaded}/{max_num} images. Trying DuckDuckGo as fallback.")
+        ddgs_success, ddgs_count = download_images_ddgs(
+            keyword=keyword,
+            out_dir=out_dir,
+            max_num=max_num - total_downloaded
+        )
+        if ddgs_success:
+            return total_downloaded + ddgs_count
+        return total_downloaded
+
+    @staticmethod
+    def _final_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
+        """
+        Final fallback to DuckDuckGo when all other methods have failed.
+
+        Args:
+            keyword: Search term
+            out_dir: Output directory
+            max_num: Maximum number of images to download
+
+        Returns:
+            Tuple of (success_flag, downloaded_count)
+        """
+        success, count = download_images_ddgs(keyword, out_dir, max_num)
+        if success and count > 0:
+            rename_images_sequentially(out_dir)
+            return True, count
+        else:
+            logger.error(f"All download methods failed for '{keyword}'")
+            return False, 0
+
+    def add_search_variation(self, variation_template: str) -> None:
         """
         Add a new search variation template.
 
@@ -770,7 +1148,7 @@ class ImageDownloader:
         if variation_template not in self.search_variations:
             self.search_variations.append(variation_template)
 
-    def remove_search_variation(self, variation_template: str):
+    def remove_search_variation(self, variation_template: str) -> None:
         """
         Remove a search variation template.
 
@@ -780,7 +1158,9 @@ class ImageDownloader:
         if variation_template in self.search_variations:
             self.search_variations.remove(variation_template)
 
-    def set_crawler_threads(self, feeder: int = None, parser: int = None, downloader: int = None):
+    def set_crawler_threads(self, feeder: Optional[int] = None, 
+                           parser: Optional[int] = None, 
+                           downloader: Optional[int] = None) -> None:
         """
         Update crawler thread configuration.
 
@@ -1173,40 +1553,129 @@ def _extract_keywords_from_response(response: str, category: str) -> List[str]:
 
 
 def create_arg_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-    """Create and configure argument parser"""
-    parser.add_argument("-c", "--config", default=DEFAULT_CONFIG_FILE,
-                        help=f"Path to configuration file (default: {DEFAULT_CONFIG_FILE})")
-    parser.add_argument("-m", "--max-images", type=int, default=10, help="Maximum number of images per keyword")
-    parser.add_argument("-o", "--output", help="Custom output directory")
-    parser.add_argument("--no-integrity", action="store_true", help="Skip integrity checks")
-    parser.add_argument("-r", "--max-retries", type=int, default=5, help="Maximum retry attempts")
-    parser.add_argument("--continue", dest="continue_last", action="store_true", help="Continue from last run")
-    parser.add_argument("--cache", default=DEFAULT_CACHE_FILE, help="Cache file for progress tracking")
-    parser.add_argument("--no-labels", action="store_true", help="Disable label file generation")
+    """
+    Create and configure argument parser with organized argument groups.
+    
+    Args:
+        parser: The argument parser to configure
+        
+    Returns:
+        Configured argument parser
+    """
+    # Add base configuration arguments
+    _add_config_arguments(parser)
+    
+    # Add dataset generation control arguments
+    _add_dataset_control_arguments(parser)
+    
+    # Add keyword generation options
+    _add_keyword_generation_arguments(parser)
+    
+    # Add logging options
+    _add_logging_arguments(parser)
+    
+    return parser
 
-    # Keyword generation options
+
+def _add_config_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add configuration file related arguments."""
+    parser.add_argument(
+        "-c", "--config",
+        default=DEFAULT_CONFIG_FILE,
+        help=f"Path to configuration file (default: {DEFAULT_CONFIG_FILE})"
+    )
+    parser.add_argument(
+        "--cache",
+        default=DEFAULT_CACHE_FILE,
+        help=f"Cache file for progress tracking (default: {DEFAULT_CACHE_FILE})"
+    )
+    parser.add_argument(
+        "--continue",
+        dest="continue_last",
+        action="store_true",
+        help="Continue from last run using the progress cache"
+    )
+
+
+def _add_dataset_control_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add arguments controlling dataset generation behavior."""
+    parser.add_argument(
+        "-m", "--max-images",
+        type=int,
+        default=10,
+        help="Maximum number of images per keyword (default: 10)"
+    )
+    parser.add_argument(
+        "-o", "--output",
+        help="Custom output directory (default: uses dataset_name from config)"
+    )
+    parser.add_argument(
+        "--no-integrity",
+        action="store_true",
+        help="Skip image integrity checks (faster but may include corrupt images)"
+    )
+    parser.add_argument(
+        "-r", "--max-retries",
+        type=int,
+        default=5,
+        help="Maximum retry attempts for failed downloads (default: 5)"
+    )
+    parser.add_argument(
+        "--no-labels",
+        action="store_true",
+        help="Disable automatic label file generation"
+    )
+
+
+def _add_keyword_generation_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add arguments related to keyword generation."""
     keyword_group = parser.add_argument_group('Keyword Generation')
     generation_mode = keyword_group.add_mutually_exclusive_group()
-    generation_mode.add_argument("--keywords-auto", action="store_const", const="auto", dest="keyword_mode",
-                                 help="Generate keywords only if none provided (default)")
-    generation_mode.add_argument("--keywords-enabled", action="store_const", const="enabled", dest="keyword_mode",
-                                 help="Always generate additional keywords")
-    generation_mode.add_argument("--keywords-disabled", action="store_const", const="disabled", dest="keyword_mode",
-                                 help="Disable keyword generation completely")
+    generation_mode.add_argument(
+        "--keywords-auto",
+        action="store_const",
+        const="auto",
+        dest="keyword_mode",
+        help="Generate keywords only if none provided (default)"
+    )
+    generation_mode.add_argument(
+        "--keywords-enabled",
+        action="store_const",
+        const="enabled",
+        dest="keyword_mode",
+        help="Always generate additional keywords even when some are provided"
+    )
+    generation_mode.add_argument(
+        "--keywords-disabled",
+        action="store_const",
+        const="disabled",
+        dest="keyword_mode",
+        help="Disable keyword generation completely"
+    )
     parser.set_defaults(keyword_mode="auto")
-
+    
     # AI model selection
-    keyword_group.add_argument("--ai-model", choices=["gpt4", "gpt4-mini"], default="gpt4-mini",
-                               help="AI model to use for keyword generation (default: gpt4-mini)")
+    keyword_group.add_argument(
+        "--ai-model",
+        choices=["gpt4", "gpt4-mini"],
+        default="gpt4-mini",
+        help="AI model to use for keyword generation (default: gpt4-mini)"
+    )
 
-    # Logging options
+
+def _add_logging_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add logging configuration arguments."""
     log_group = parser.add_argument_group('Logging')
-    log_group.add_argument("--log-file", default=DEFAULT_LOG_FILE,
-                           help=f"Path to log file (default: {DEFAULT_LOG_FILE})")
-    log_group.add_argument("-v", "--verbose", action="store_true",
-                           help="Show detailed logs in console (not just warnings/errors)")
-
-    return parser
+    log_group.add_argument(
+        "--log-file",
+        default=DEFAULT_LOG_FILE,
+        help=f"Path to log file (default: {DEFAULT_LOG_FILE})"
+    )
+    log_group.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Show detailed logs in console (not just warnings/errors)"
+    )
 
 
 class DatasetGenerator:

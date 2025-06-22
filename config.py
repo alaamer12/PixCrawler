@@ -1,10 +1,24 @@
+"""
+Configuration module for PixCrawler dataset generator.
+
+This module provides configuration schema definitions and data classes for
+managing application configuration. It includes JSON schema validation for 
+configuration files and defines the main configuration data structure.
+"""
+
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal, Optional, Dict, Any
+
+__all__ = [
+    'CONFIG_SCHEMA',
+    'DatasetGenerationConfig'
+]
 
 from constants import DEFAULT_CACHE_FILE
 
 
-CONFIG_SCHEMA = {
+# JSON schema for configuration file validation
+CONFIG_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "required": ["dataset_name", "categories"],
     "properties": {
@@ -70,7 +84,24 @@ CONFIG_SCHEMA = {
 
 @dataclass
 class DatasetGenerationConfig:
-    """Configuration for dataset generation."""
+    """
+    Configuration for dataset generation.
+    
+    This class holds all configuration options for the dataset generation process,
+    including paths, limits, and feature flags.
+    
+    Attributes:
+        config_path: Path to the configuration file
+        max_images: Maximum number of images to download per keyword
+        output_dir: Custom output directory (None uses dataset_name from config)
+        integrity: Whether to perform image integrity checks
+        max_retries: Maximum number of retry attempts for failed downloads
+        continue_from_last: Whether to continue from previous run
+        cache_file: Path to cache file for progress tracking
+        keyword_generation: Mode for keyword generation
+        ai_model: AI model to use for keyword generation
+        generate_labels: Whether to generate label files for images
+    """
     config_path: str
     max_images: int = 10
     output_dir: Optional[str] = None

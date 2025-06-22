@@ -1,10 +1,23 @@
+"""
+Helper classes and utilities for the PixCrawler dataset generator.
+
+This module provides helper classes for tracking dataset generation progress,
+generating reports, and handling file system operations like renaming files.
+"""
+
 import os
 from pathlib import Path
 import shutil
 import time
 
 import time
-from typing import Optional, List, TextIO
+from typing import Optional, List, TextIO, Dict, Any
+
+__all__ = [
+    'DatasetTracker',
+    'ReportGenerator',
+    'FSRenamer'
+]
 
 from constants import logger
 from utilities import is_valid_image_extension
@@ -71,9 +84,21 @@ class DatasetTracker:
         print("=" * 60)
 
 class ReportGenerator:
-    """Class to track and generate a markdown report about dataset generation."""
+    """
+    Class to track and generate a markdown report about dataset generation.
+    
+    This class collects information during the dataset generation process
+    and produces a well-structured markdown report with tables and sections
+    for better readability.
+    """
 
     def __init__(self, output_dir: str):
+        """
+        Initialize the report generator with an output directory.
+        
+        Args:
+            output_dir: Directory where the report will be saved
+        """
         self.output_dir = output_dir
         self.report_file = os.path.join(output_dir, "REPORT.md")
         self.sections = {
@@ -174,8 +199,16 @@ class ReportGenerator:
     def _write_summary(self, f: TextIO) -> None:
         """Write the summary section."""
         f.write("## Summary\n\n")
+        
+        # Create a table for summary items
+        f.write("| Parameter | Value |\n")
+        f.write("|-----------|-------|\n")
         for item in self.sections["summary"]:
-            f.write(f"- {item}\n")
+            if ":" in item:
+                param, value = item.split(":", 1)
+                f.write(f"| {param.strip()} | {value.strip()} |\n")
+            else:
+                f.write(f"| Info | {item} |\n")
         f.write("\n")
 
     def _write_keyword_generation(self, f: TextIO) -> None:
@@ -187,23 +220,25 @@ class ReportGenerator:
         for category, data in self.sections["keywords"].items():
             self._write_keyword_category(f, category, data)
 
-    @staticmethod
-    def _write_keyword_category(f: TextIO, category: str, data: dict) -> None:
+    def _write_keyword_category(self, f: TextIO, category: str, data: dict) -> None:
         """Write a single keyword category."""
         f.write(f"### Category: {category}\n\n")
         f.write(f"AI Model used: {data['model']}\n\n")
 
-        if data["original"]:
-            f.write("**Original Keywords:**\n")
-            for kw in data["original"]:
-                f.write(f"- {kw}\n")
-            f.write("\n")
-
-        if data["generated"]:
-            f.write("**Generated Keywords:**\n")
-            for kw in data["generated"]:
-                f.write(f"- {kw}\n")
-            f.write("\n")
+        # Create a table comparing original and generated keywords
+        f.write("| Original Keywords | Generated Keywords |\n")
+        f.write("|------------------|-------------------|\n")
+        
+        # Get the maximum length of both lists
+        max_length = max(len(data["original"]), len(data["generated"]))
+        
+        # Fill in the table rows
+        for i in range(max_length):
+            original = data["original"][i] if i < len(data["original"]) else ""
+            generated = data["generated"][i] if i < len(data["generated"]) else ""
+            f.write(f"| {original} | {generated} |\n")
+        
+        f.write("\n")
 
     def _write_downloads(self, f: TextIO) -> None:
         """Write the downloads section."""
@@ -236,18 +271,28 @@ class ReportGenerator:
         """Write a single download category and return its statistics."""
         f.write(f"### Category: {category}\n\n")
 
+        # Create a table for keywords in this category
+        f.write("| Keyword | Downloaded | Attempted | Success Rate | Duplicates Removed | Unique Images |\n")
+        f.write("|---------|------------|-----------|--------------|-------------------|---------------|\n")
+        
         category_attempted = 0
         category_downloaded = 0
         category_duplicates = 0
 
         for keyword, data in keywords.items():
-            keyword_stats = self._write_download_keyword(f, keyword, data)
+            keyword_stats = self._write_download_keyword_table_row(f, keyword, data)
             category_attempted += keyword_stats["attempted"]
             category_downloaded += keyword_stats["downloaded"]
             category_duplicates += keyword_stats["duplicates"]
+            
+            # Write any errors for this keyword
+            if "errors" in data and data["errors"]:
+                f.write(f"\n**Errors for {keyword}:**\n\n")
+                for error in data["errors"]:
+                    f.write(f"- {error}\n")
 
-        f.write(
-            f"**Category Stats:** {category_downloaded}/{category_attempted} images downloaded, {category_duplicates} duplicates removed\n\n")
+        f.write("\n")
+        f.write(f"**Category Stats:** {category_downloaded}/{category_attempted} images downloaded, {category_duplicates} duplicates removed\n\n")
 
         return {
             "attempted": category_attempted,
@@ -255,44 +300,42 @@ class ReportGenerator:
             "duplicates": category_duplicates
         }
 
-    @staticmethod
-    def _write_download_keyword(f: TextIO, keyword: str, data: dict) -> dict:
-        """Write a single download keyword and return its statistics."""
-        f.write(f"**Keyword: {keyword}**\n")
-
-        attempted = 0
-        downloaded = 0
-        duplicates = 0
-
-        if "attempted" in data and "downloaded" in data:
-            f.write(f"- Downloaded: {data['downloaded']} / {data['attempted']} images\n")
-            attempted = data['attempted']
-            downloaded = data['downloaded']
-
+    def _write_download_keyword_table_row(self, f: TextIO, keyword: str, data: dict) -> dict:
+        """Write a single keyword as a table row and return its statistics."""
+        attempted = data.get('attempted', 0)
+        downloaded = data.get('downloaded', 0)
+        success_rate = f"{(downloaded / attempted * 100):.1f}%" if attempted > 0 else "N/A"
+        
+        duplicates_removed = 0
+        unique_kept = 0
+        
         if "duplicates" in data:
             dup_data = data["duplicates"]
-            f.write(
-                f"- Duplicates: {dup_data['duplicates_removed']} removed, {dup_data['unique_kept']} unique images kept\n")
-            duplicates = dup_data['duplicates_removed']
-
-        if "errors" in data and data["errors"]:
-            f.write("- Errors:\n")
-            for error in data["errors"]:
-                f.write(f"  - {error}\n")
-
-        f.write("\n")
-
+            duplicates_removed = dup_data.get('duplicates_removed', 0)
+            unique_kept = dup_data.get('unique_kept', 0)
+        
+        # Write the table row
+        f.write(f"| {keyword} | {downloaded} | {attempted} | {success_rate} | {duplicates_removed} | {unique_kept} |\n")
+        
         return {
             "attempted": attempted,
             "downloaded": downloaded,
-            "duplicates": duplicates
+            "duplicates": duplicates_removed
         }
 
     @staticmethod
     def _write_download_totals(f: TextIO, total_stats: dict) -> None:
         """Write the overall download statistics."""
-        f.write(
-            f"**Overall Download Stats:** {total_stats['downloaded']}/{total_stats['attempted']} images downloaded, {total_stats['duplicates']} duplicates removed\n\n")
+        success_rate = f"{(total_stats['downloaded'] / total_stats['attempted'] * 100):.1f}%" if total_stats['attempted'] > 0 else "N/A"
+        
+        f.write("### Overall Download Statistics\n\n")
+        f.write("| Metric | Value |\n")
+        f.write("|--------|-------|\n")
+        f.write(f"| Total Attempted | {total_stats['attempted']} |\n")
+        f.write(f"| Total Downloaded | {total_stats['downloaded']} |\n")
+        f.write(f"| Success Rate | {success_rate} |\n")
+        f.write(f"| Duplicates Removed | {total_stats['duplicates']} |\n")
+        f.write("\n")
 
     def _write_integrity(self, f: TextIO) -> None:
         """Write the integrity checks section."""
@@ -324,19 +367,28 @@ class ReportGenerator:
     def _write_integrity_category(self, f: TextIO, category: str, keywords: dict) -> dict:
         """Write a single integrity category and return its statistics."""
         f.write(f"### Category: {category}\n\n")
+        
+        # Create a table for integrity results
+        f.write("| Keyword | Expected Images | Valid Images | Corrupted Images | Integrity Rate |\n")
+        f.write("|---------|-----------------|--------------|------------------|---------------|\n")
 
         category_expected = 0
         category_valid = 0
         category_corrupted = 0
 
         for keyword, data in keywords.items():
-            keyword_stats = self._write_integrity_keyword(f, keyword, data)
+            keyword_stats = self._write_integrity_keyword_table_row(f, keyword, data)
             category_expected += keyword_stats["expected"]
             category_valid += keyword_stats["valid"]
             category_corrupted += keyword_stats["corrupted"]
+            
+            # List corrupted files if any
+            if data["corrupted_files"]:
+                self._write_corrupted_files(f, data["corrupted_files"])
 
-        f.write(
-            f"**Category Integrity:** {category_valid}/{category_expected} valid images, {category_corrupted} corrupted\n\n")
+        f.write("\n")
+        integrity_rate = f"{(category_valid / category_expected * 100):.1f}%" if category_expected > 0 else "N/A"
+        f.write(f"**Category Integrity:** {category_valid}/{category_expected} valid images ({integrity_rate}), {category_corrupted} corrupted\n\n")
 
         return {
             "expected": category_expected,
@@ -344,38 +396,50 @@ class ReportGenerator:
             "corrupted": category_corrupted
         }
 
-    def _write_integrity_keyword(self, f: TextIO, keyword: str, data: dict) -> dict:
-        """Write a single integrity keyword and return its statistics."""
-        f.write(f"**Keyword: {keyword}**\n")
-        f.write(f"- Expected: {data['expected']} images\n")
-        f.write(f"- Valid: {data['valid']} images\n")
-        f.write(f"- Corrupted: {data['corrupted_count']} images\n")
-
-        if data["corrupted_files"]:
-            self._write_corrupted_files(f, data["corrupted_files"])
-
-        f.write("\n")
-
+    def _write_integrity_keyword_table_row(self, f: TextIO, keyword: str, data: dict) -> dict:
+        """Write a single keyword integrity as a table row and return its statistics."""
+        expected = data['expected']
+        valid = data['valid']
+        corrupted = data['corrupted_count']
+        integrity_rate = f"{(valid / expected * 100):.1f}%" if expected > 0 else "N/A"
+        
+        # Write the table row
+        f.write(f"| {keyword} | {expected} | {valid} | {corrupted} | {integrity_rate} |\n")
+        
         return {
-            "expected": data['expected'],
-            "valid": data['valid'],
-            "corrupted": data['corrupted_count']
+            "expected": expected,
+            "valid": valid,
+            "corrupted": corrupted
         }
 
     @staticmethod
     def _write_corrupted_files(f: TextIO, corrupted_files: list) -> None:
         """Write the list of corrupted files."""
-        f.write("- Corrupted files:\n")
-        for corrupt_file in corrupted_files[:5]:  # Show just first 5
-            f.write(f"  - {os.path.basename(corrupt_file)}\n")
-        if len(corrupted_files) > 5:
-            f.write(f"  - ... and {len(corrupted_files) - 5} more\n")
+        if not corrupted_files:
+            return
+            
+        f.write("\n<details>\n")
+        f.write("<summary>Corrupted Files (Click to expand)</summary>\n\n")
+        
+        for corrupt_file in corrupted_files[:10]:  # Show just first 10
+            f.write(f"- {os.path.basename(corrupt_file)}\n")
+        if len(corrupted_files) > 10:
+            f.write(f"- ... and {len(corrupted_files) - 10} more\n")
+            
+        f.write("</details>\n\n")
 
-    @staticmethod
-    def _write_integrity_totals(f: TextIO, total_stats: dict) -> None:
+    def _write_integrity_totals(self, f: TextIO, total_stats: dict) -> None:
         """Write the overall integrity statistics."""
-        f.write(
-            f"**Overall Integrity:** {total_stats['valid']}/{total_stats['expected']} valid images, {total_stats['corrupted']} corrupted\n\n")
+        integrity_rate = f"{(total_stats['valid'] / total_stats['expected'] * 100):.1f}%" if total_stats['expected'] > 0 else "N/A"
+        
+        f.write("### Overall Integrity Statistics\n\n")
+        f.write("| Metric | Value |\n")
+        f.write("|--------|-------|\n")
+        f.write(f"| Total Expected | {total_stats['expected']} |\n")
+        f.write(f"| Total Valid | {total_stats['valid']} |\n")
+        f.write(f"| Integrity Rate | {integrity_rate} |\n")
+        f.write(f"| Total Corrupted | {total_stats['corrupted']} |\n")
+        f.write("\n")
 
     def _write_errors(self, f: TextIO) -> None:
         """Write the errors section."""
@@ -383,11 +447,16 @@ class ReportGenerator:
             return
 
         f.write("## Errors\n\n")
+        
+        # Create a table for errors
+        f.write("| Context | Error | Timestamp |\n")
+        f.write("|---------|-------|----------|\n")
+        
         for error in self.sections["errors"]:
-            f.write(f"**Error:** {error['context']}\n")
-            f.write(f"  - {error['error']}\n")
-            f.write(f"  - Timestamp: {error['timestamp']}\n\n")
-
+            timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(error['timestamp']))
+            f.write(f"| {error['context']} | {error['error']} | {timestamp_str} |\n")
+            
+        f.write("\n")
         logger.info(f"Report generated at {self.report_file}")
 
 

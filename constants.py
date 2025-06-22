@@ -1,13 +1,35 @@
+"""
+Constants and logging configuration for the PixCrawler dataset generator.
+
+This module defines constants, configurations and sets up logging for the PixCrawler
+application. It configures both file and console logging handlers with appropriate
+formatting and log levels.
+"""
+
 import logging
+from typing import Set, List
 
+__all__ = [
+    'DEFAULT_CACHE_FILE',
+    'DEFAULT_CONFIG_FILE',
+    'DEFAULT_LOG_FILE',
+    'ENGINES',
+    'IMAGE_EXTENSIONS',
+    'logger',
+    'file_formatter',
+    'console_handler'
+]
 
-DEFAULT_CACHE_FILE = "download_progress.json"
-DEFAULT_CONFIG_FILE = "config.json"
-DEFAULT_LOG_FILE = "pixcrawler.log"
-ENGINES = ["google", "bing", "baidu", "ddgs"]
+# Default file paths for application data
+DEFAULT_CACHE_FILE: str = "download_progress.json"
+DEFAULT_CONFIG_FILE: str = "config.json"
+DEFAULT_LOG_FILE: str = "pixcrawler.log"
 
-# Image extensions supported
-IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff'}
+# Supported search engines
+ENGINES: List[str] = ["google", "bing", "baidu", "ddgs"]
+
+# Image extensions supported by the application
+IMAGE_EXTENSIONS: Set[str] = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff'}
 
 # Configure logging to file and console
 logger = logging.getLogger(__name__)
