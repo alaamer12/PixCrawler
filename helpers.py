@@ -11,12 +11,13 @@ import shutil
 import time
 
 import time
-from typing import Optional, List, TextIO, Dict, Any
+from typing import Optional, List, TextIO, Dict, Any, Callable, Union
 
 __all__ = [
     'DatasetTracker',
     'ReportGenerator',
-    'FSRenamer'
+    'FSRenamer',
+    'ProgressManager'
 ]
 
 from constants import logger
@@ -49,39 +50,39 @@ class DatasetTracker:
 
     def print_summary(self):
         """Print comprehensive summary of dataset generation"""
-        print("\n" + "=" * 60)
-        print("DATASET GENERATION SUMMARY")
-        print("=" * 60)
+        logger.info("\n" + "=" * 60)
+        logger.info("DATASET GENERATION SUMMARY")
+        logger.info("=" * 60)
 
         # Download statistics
-        print(f"\n📥 IMAGE DOWNLOAD STATISTICS:")
-        print(f"  ✅ Successful downloads: {self.download_successes}")
-        print(f"  ❌ Failed downloads: {self.download_failures}")
+        logger.info(f"\n📥 IMAGE DOWNLOAD STATISTICS:")
+        logger.info(f"  ✅ Successful downloads: {self.download_successes}")
+        logger.info(f"  ❌ Failed downloads: {self.download_failures}")
 
         if self.failed_downloads:
-            print(f"\n  📋 Download Failures:")
+            logger.info(f"\n  📋 Download Failures:")
             for failure in self.failed_downloads:
-                print(f"    • {failure}")
+                logger.info(f"    • {failure}")
 
         # Integrity check results
         if self.integrity_failures:
-            print(f"\n🔍 INTEGRITY CHECK FAILURES:")
+            logger.info(f"\n🔍 INTEGRITY CHECK FAILURES:")
             for failure in self.integrity_failures:
-                print(f"  📁 {failure['context']}:")
-                print(f"    Expected: {failure['expected']} images")
-                print(f"    Valid: {failure['actual']} images")
+                logger.info(f"  📁 {failure['context']}:")
+                logger.info(f"    Expected: {failure['expected']} images")
+                logger.info(f"    Valid: {failure['actual']} images")
                 if failure['corrupted_files']:
-                    print(f"    Corrupted files:")
+                    logger.info(f"    Corrupted files:")
                     for corrupted in failure['corrupted_files']:
-                        print(f"      • {corrupted}")
+                        logger.info(f"      • {corrupted}")
 
         # Overall success rate
         total_operations = self.download_successes + self.download_failures
         if total_operations > 0:
             success_rate = (self.download_successes / total_operations) * 100
-            print(f"\n📊 OVERALL SUCCESS RATE: {success_rate:.1f}%")
+            logger.info(f"\n📊 OVERALL SUCCESS RATE: {success_rate:.1f}%")
 
-        print("=" * 60)
+        logger.info("=" * 60)
 
 class ReportGenerator:
     """
@@ -549,6 +550,9 @@ class FSRenamer:
             try:
                 shutil.copy2(file_path, temp_path)
                 renamed_count += 1
+                # Log progress every 10 files
+                if renamed_count % 10 == 0 or renamed_count == len(self.image_files):
+                    logger.debug(f"Renamed {renamed_count}/{len(self.image_files)} images")
             except Exception as e:
                 logger.error(f"Failed to copy {file_path} to temp directory: {e}")
 
@@ -583,3 +587,240 @@ class FSRenamer:
             shutil.rmtree(self.temp_dir)
         except Exception as e:
             logger.error(f"Failed to remove temp directory: {e}")
+
+
+class ProgressManager:
+    """
+    Centralized progress bar manager for the dataset generation process.
+    
+    This class provides a consistent interface for displaying progress bars
+    across different steps of the dataset generation pipeline, ensuring clear
+    visibility of the current stage while removing terminal logging.
+    """
+    
+    def __init__(self):
+        """Initialize the progress manager."""
+        try:
+            # Import here to handle potential import errors gracefully
+            from tqdm.auto import tqdm
+            self.tqdm = tqdm
+        except ImportError:
+            # Fallback to a simple progress indicator if tqdm is not available
+            self.tqdm = self._dummy_tqdm
+            logger.warning("tqdm not available, using simple progress indicators")
+            
+        self.current_progress = None
+        self.nested_progress = None
+        
+        # Step definitions with descriptions
+        self.steps = {
+            "init": "Initializing PixCrawler",
+            "download": "Downloading Images",
+            "integrity": "Checking integrity",
+            "labels": "Generating labels",
+            "report": "Generating report",
+            "finalizing": "Finalizing"
+        }
+        
+        # Step colors (if terminal supports it)
+        self.colors = {
+            "init": "blue",
+            "download": "green",
+            "integrity": "yellow",
+            "labels": "magenta",
+            "report": "cyan",
+            "finalizing": "white"
+        }
+
+    def start_step(self, step: str, total: Optional[int] = None) -> None:
+        """
+        Start a new main progress step.
+        
+        Args:
+            step: Step identifier (must be one of the predefined steps)
+            total: Total units for this step (if applicable)
+        """
+        if step not in self.steps:
+            logger.warning(f"Unknown progress step: {step}")
+            desc = f"Processing {step}"
+        else:
+            desc = f"[{step.upper()}] {self.steps[step]}"
+        
+        # Close any existing progress bars
+        self.close()
+        
+        # Ensure we have a valid total (use 1 as default if None is provided)
+        # This prevents the TypeError when checking if self.current_progress evaluates to True
+        if total is None:
+            total = 1
+        
+        # Create new progress bar
+        self.current_progress = self.tqdm(
+            total=total,
+            desc=desc,
+            colour=self.colors.get(step, "white"),
+            leave=True,
+            position=0,
+            dynamic_ncols=True
+        )
+
+    def update_step(self, n: int = 1) -> None:
+        """
+        Update the current main progress step.
+        
+        Args:
+            n: Number of units to increment by
+        """
+        if self.current_progress is not None and hasattr(self.current_progress, 'update'):
+            self.current_progress.update(n)
+            
+    def set_step_description(self, desc: str) -> None:
+        """
+        Update the description of the current main step.
+        
+        Args:
+            desc: New description text
+        """
+        if self.current_progress is not None and hasattr(self.current_progress, 'set_description_str'):
+            self.current_progress.set_description_str(desc)
+            
+    def set_step_postfix(self, **kwargs) -> None:
+        """
+        Update postfix text of the current main step.
+        
+        Args:
+            **kwargs: Key-value pairs to display
+        """
+        if self.current_progress is not None and hasattr(self.current_progress, 'set_postfix'):
+            self.current_progress.set_postfix(**kwargs)
+            
+    def start_subtask(self, desc: str, total: Optional[int] = None) -> None:
+        """
+        Start a nested progress bar for subtasks.
+        
+        Args:
+            desc: Description of the subtask
+            total: Total units for this subtask
+        """
+        # Close any existing nested progress bar
+        if self.nested_progress:
+            self.nested_progress.close()
+            
+        # Ensure we have a valid total (use 1 as default if None is provided)
+        if total is None:
+            total = 1
+            
+        # Create new nested progress bar
+        self.nested_progress = self.tqdm(
+            total=total,
+            desc=f"  └─ {desc}",
+            leave=False,
+            position=1,
+            dynamic_ncols=True
+        )
+        
+    def update_subtask(self, n: int = 1) -> None:
+        """
+        Update the current subtask progress.
+        
+        Args:
+            n: Number of units to increment by
+        """
+        if self.nested_progress is not None and hasattr(self.nested_progress, 'update'):
+            self.nested_progress.update(n)
+            
+    def set_subtask_description(self, desc: str) -> None:
+        """
+        Update the description of the current subtask.
+        
+        Args:
+            desc: New description text
+        """
+        if self.nested_progress is not None and hasattr(self.nested_progress, 'set_description_str'):
+            self.nested_progress.set_description_str(f"  └─ {desc}")
+            
+    def set_subtask_postfix(self, **kwargs) -> None:
+        """
+        Update postfix text of the current subtask.
+        
+        Args:
+            **kwargs: Key-value pairs to display
+        """
+        if self.nested_progress is not None and hasattr(self.nested_progress, 'set_postfix'):
+            self.nested_progress.set_postfix(**kwargs)
+            
+    def close_subtask(self) -> None:
+        """Close the current subtask progress bar."""
+        if self.nested_progress is not None and hasattr(self.nested_progress, 'close'):
+            self.nested_progress.close()
+            self.nested_progress = None
+            
+    def close(self) -> None:
+        """Close all progress bars."""
+        self.close_subtask()
+        if self.current_progress is not None and hasattr(self.current_progress, 'close'):
+            self.current_progress.close()
+            self.current_progress = None
+            
+    def _dummy_tqdm(self, *args, **kwargs):
+        """Simple progress indicator for fallback if tqdm not available."""
+        class DummyTqdm:
+            def __init__(self):
+                self.n = 0
+                self.total = kwargs.get('total', 100)  # Default total
+                
+            def update(self, n=1):
+                self.n += n
+                print(f"\r{kwargs.get('desc', 'Progress')}: {self.n}/{self.total}", end="")
+                
+            def set_description_str(self, desc):
+                print(f"\r{desc}", end="")
+                
+            def set_postfix(self, **kwargs):
+                postfix = ' '.join(f"{k}={v}" for k, v in kwargs.items())
+                print(f"\r{kwargs.get('desc', 'Progress')}: {self.n}/{self.total} {postfix}", end="")
+                
+            def close(self):
+                print()
+                
+            def __bool__(self):
+                # Always return True to avoid TypeError in bool() check
+                return True
+                
+        return DummyTqdm()
+        
+    def iterate(self, iterable: Any, desc: str = None, total: Optional[int] = None, 
+                subtask: bool = False, unit: str = "it") -> Any:
+        """
+        Iterate over an iterable with a progress bar.
+        
+        Args:
+            iterable: Any iterable object
+            desc: Description for the progress bar
+            total: Total number of items (inferred if not provided)
+            subtask: Whether this is a subtask or main task
+            unit: Unit label for the progress bar
+            
+        Returns:
+            Iterator with progress tracking
+        """
+        progress_method = self.update_subtask if subtask else self.update_step
+        tqdm_instance = self.nested_progress if subtask else self.current_progress
+        
+        # If we have an active progress bar, use it
+        if tqdm_instance:
+            if desc:
+                if subtask:
+                    self.set_subtask_description(desc)
+                else:
+                    self.set_step_description(desc)
+            
+            # Yield from the iterable and update progress
+            for item in iterable:
+                yield item
+                progress_method(1)
+        else:
+            # Create a new progress bar for this iteration
+            with self.tqdm(iterable, desc=desc, total=total, unit=unit) as pbar:
+                for item in pbar:
+                    yield item

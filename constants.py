@@ -7,6 +7,7 @@ formatting and log levels.
 """
 
 import logging
+import warnings
 from typing import Set, List
 
 __all__ = [
@@ -16,8 +17,7 @@ __all__ = [
     'ENGINES',
     'IMAGE_EXTENSIONS',
     'logger',
-    'file_formatter',
-    'console_handler'
+    'file_formatter'
 ]
 
 # Default file paths for application data
@@ -31,20 +31,31 @@ ENGINES: List[str] = ["google", "bing", "baidu", "ddgs"]
 # Image extensions supported by the application
 IMAGE_EXTENSIONS: Set[str] = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff'}
 
-# Configure logging to file and console
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+# Suppress all warnings to prevent them from appearing in the console
+warnings.filterwarnings("ignore")
 
-# Create file handler for detailed logs
+# Configure logging to file only, no console output
+logging.basicConfig(level=logging.CRITICAL)  # Set root logger to CRITICAL to suppress most messages
+
+# Create our application logger
+logger = logging.getLogger("pixcrawler")
+logger.setLevel(logging.INFO)
+logger.propagate = False  # Prevent propagation to root logger
+
+# Create formatters
+file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# Create file handler
 file_handler = logging.FileHandler(DEFAULT_LOG_FILE, encoding='utf-8')
 file_handler.setLevel(logging.INFO)
-file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 file_handler.setFormatter(file_formatter)
 logger.addHandler(file_handler)
 
-# Create console handler for minimal output
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.WARNING)  # Only warnings and errors to console
-console_formatter = logging.Formatter('%(levelname)s: %(message)s')
-console_handler.setFormatter(console_formatter)
-logger.addHandler(console_handler)
+# Suppress urllib3 warnings specifically
+logging.getLogger("urllib3").setLevel(logging.CRITICAL)
+logging.getLogger("requests").setLevel(logging.CRITICAL)
+
+# Silence other common noisy loggers
+for logger_name in ["icrawler", "PIL", "downloader", "urllib3", "requests", "chardet", "charset_normalizer"]:
+    logging.getLogger(logger_name).setLevel(logging.CRITICAL)
+    logging.getLogger(logger_name).propagate = False
