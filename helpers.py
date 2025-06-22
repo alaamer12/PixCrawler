@@ -1,10 +1,13 @@
 import os
+from pathlib import Path
+import shutil
 import time
 
 import time
 from typing import Optional, List, TextIO
 
 from constants import logger
+from utilities import is_valid_image_extension
 
 
 class DatasetTracker:
@@ -387,3 +390,127 @@ class ReportGenerator:
 
         logger.info(f"Report generated at {self.report_file}")
 
+
+
+class FSRenamer:
+    """
+    A self-encapsulated class for renaming image files sequentially.
+    
+    This class handles the complete process of renaming image files in a directory
+    to a sequential, zero-padded format while maintaining data integrity through
+    temporary directory operations.
+    """
+
+    def __init__(self, directory: str):
+        """
+        Initialize the FSRenamer with a target directory.
+
+        Args:
+            directory: Directory containing images to rename
+        """
+        self.directory_path = Path(directory)
+        self.temp_dir: Optional[Path] = None
+        self.image_files: List[Path] = []
+        self.padding_width: int = 0
+
+    def rename_sequentially(self) -> int:
+        """
+        Rename all image files in the directory to a sequential, zero-padded format.
+        
+        Returns:
+            int: Number of renamed files
+        """
+        if not self._validate_directory_exists():
+            return 0
+
+        self.image_files = self._get_sorted_image_files()
+
+        if not self.image_files:
+            logger.warning(f"No image files found in {self.directory_path}")
+            return 0
+
+        self.temp_dir = self._create_temp_directory()
+        self.padding_width = self._calculate_padding_width(len(self.image_files))
+
+        renamed_count = self._copy_files_to_temp_with_new_names()
+
+        self._delete_original_files()
+        self._move_files_from_temp_to_original()
+        self._cleanup_temp_directory()
+
+        logger.info(f"Renamed {renamed_count} images in {self.directory_path} with sequential numbering")
+        return renamed_count
+
+    def _validate_directory_exists(self) -> bool:
+        """Validate that the directory exists."""
+        if not self.directory_path.exists():
+            logger.warning(f"Directory {self.directory_path} does not exist")
+            return False
+        return True
+
+    def _get_sorted_image_files(self) -> List[Path]:
+        """Get all image files sorted by creation time."""
+        image_files = [
+            f for f in self.directory_path.iterdir()
+            if f.is_file() and is_valid_image_extension(f)
+        ]
+        image_files.sort(key=lambda x: os.path.getctime(x))
+        return image_files
+
+    def _create_temp_directory(self) -> Path:
+        """Create a temporary directory for renaming operations."""
+        temp_dir = self.directory_path / ".temp_rename"
+        temp_dir.mkdir(exist_ok=True)
+        return temp_dir
+
+    @staticmethod
+    def _calculate_padding_width(file_count: int) -> int:
+        """Calculate the padding width for sequential numbering."""
+        return max(3, len(str(file_count)))
+
+    def _copy_files_to_temp_with_new_names(self) -> int:
+        """Copy files to temp directory with new sequential names."""
+        renamed_count = 0
+
+        for i, file_path in enumerate(self.image_files, 1):
+            extension = file_path.suffix.lower()
+            new_filename = f"{i:0{self.padding_width}d}{extension}"
+            temp_path = self.temp_dir / new_filename
+
+            try:
+                shutil.copy2(file_path, temp_path)
+                renamed_count += 1
+            except Exception as e:
+                logger.error(f"Failed to copy {file_path} to temp directory: {e}")
+
+        return renamed_count
+
+    def _delete_original_files(self) -> None:
+        """Delete original image files."""
+        for file_path in self.image_files:
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                logger.error(f"Failed to delete original file {file_path}: {e}")
+
+    def _move_files_from_temp_to_original(self) -> None:
+        """Move files from temp directory back to original directory."""
+        if not self.temp_dir:
+            return
+
+        for file_path in self.temp_dir.iterdir():
+            if file_path.is_file():
+                try:
+                    shutil.move(str(file_path), str(self.directory_path / file_path.name))
+                except Exception as e:
+                    logger.error(f"Failed to move {file_path} from temp directory: {e}")
+
+    def _cleanup_temp_directory(self) -> None:
+        """Remove the temporary directory."""
+        if not self.temp_dir:
+            return
+
+        try:
+            shutil.rmtree(self.temp_dir)
+        except Exception as e:
+            logger.error(f"Failed to remove temp directory: {e}")
