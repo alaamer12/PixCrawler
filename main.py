@@ -9,7 +9,7 @@ import time
 import threading
 import concurrent.futures
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any, Tuple, Set, Union, Callable
 
 import g4f
 import jsonschema
@@ -19,8 +19,9 @@ from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCra
 from jsonschema import validate
 from tqdm.auto import tqdm
 from PIL import Image
+import imagehash
 
-from utilities import remove_duplicate_images, ProgressCache, detect_duplicate_images, \
+from utilities import ProgressCache, detect_duplicate_images, \
     is_valid_image_extension, validate_image, count_valid_images
 from config import DatasetGenerationConfig, CONFIG_SCHEMA
 from constants import DEFAULT_CACHE_FILE, DEFAULT_CONFIG_FILE, DEFAULT_LOG_FILE, ENGINES, console_handler, \
@@ -199,7 +200,7 @@ class LabelGenerator:
         keyword_label_dir = category_label_dir / keyword_name
         keyword_label_dir.mkdir(parents=True, exist_ok=True)
 
-        # Get all image files
+        # Get all image files regardless of naming pattern
         image_files = [
             f for f in keyword_dir.iterdir()
             if f.is_file() and is_valid_image_extension(f)
@@ -227,6 +228,7 @@ class LabelGenerator:
             keyword: Keyword name
         """
         # Create a matching filename but with the appropriate extension
+        # Handle any naming pattern by using the stem of the original filename
         label_filename = image_file.stem + "." + self.format_type
         label_file_path = label_dir / label_filename
 
@@ -263,7 +265,9 @@ class LabelGenerator:
         """
         metadata = {
             "timestamp": time.time(),
-            "size": os.path.getsize(image_path) if image_path.exists() else None
+            "size": os.path.getsize(image_path) if image_path.exists() else None,
+            "filename": image_path.name,
+            "parent_dir": image_path.parent.name  # Store parent directory name for context
         }
         
         # Try to get image dimensions
@@ -297,6 +301,7 @@ class LabelGenerator:
                 f.write(f"keyword: {keyword}\n")
                 f.write(f"image_path: {image_path}\n")
                 f.write(f"timestamp: {metadata['timestamp']}\n")
+                f.write(f"filename: {metadata['filename']}\n")
                 
                 # Add image dimensions if available
                 if "width" in metadata and "height" in metadata:
@@ -351,12 +356,13 @@ class LabelGenerator:
             metadata: Image metadata
         """
         try:
-            headers = ["category", "keyword", "image_path", "timestamp", "width", "height", "format", "size"]
+            headers = ["category", "keyword", "image_path", "timestamp", "filename", "width", "height", "format", "size"]
             values = [
                 category, 
                 keyword, 
                 str(image_path), 
                 metadata.get("timestamp", ""),
+                metadata.get("filename", ""),
                 metadata.get("width", ""),
                 metadata.get("height", ""),
                 metadata.get("format", ""),
@@ -445,14 +451,23 @@ def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, An
 class DuckDuckGoImageDownloader:
     """
     A class to download images using DuckDuckGo search as a fallback mechanism.
+    
+    Uses parallel processing for faster downloads.
     """
 
-    def __init__(self):
-        """Initialize the downloader with default settings."""
+    def __init__(self, max_workers: int = 4):
+        """
+        Initialize the downloader with default settings.
+        
+        Args:
+            max_workers: Maximum number of parallel download workers
+        """
         self.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         self.timeout = 20
         self.min_file_size = 1000  # bytes
-        self.delay = 0.5  # seconds between downloads
+        self.delay = 0.2  # seconds between downloads
+        self.max_workers = max_workers
+        self.lock = threading.RLock()
 
     def _get_image(self, image_url: str, file_path: str) -> bool:
         """
@@ -516,21 +531,48 @@ class DuckDuckGoImageDownloader:
             logger.warning(f"Failed to download {image_url}: {e}")
             return False
 
-    def _search_and_download(self, keyword: str, out_dir: str, max_count: int, current_count: int = 0) -> int:
+    def _download_single_image(self, result: dict, out_dir: str, index: int) -> bool:
         """
-        Search for images with a keyword and download them.
+        Download a single image from a search result.
+        
+        Args:
+            result: Search result dictionary
+            out_dir: Output directory
+            index: Image index for filename
+            
+        Returns:
+            bool: True if download was successful, False otherwise
+        """
+        image_url = result.get("image")
+        if not image_url:
+            return False
+            
+        # Create a unique filename based on the index
+        filename = f"ddgs_{index:03d}.jpg"
+        file_path = os.path.join(out_dir, filename)
+        
+        # Download the image
+        success = self._get_image(image_url, file_path)
+        
+        # Add small delay between downloads
+        time.sleep(self.delay)
+        
+        return success
+
+    def _search_and_download_parallel(self, keyword: str, out_dir: str, max_count: int) -> int:
+        """
+        Search for images with a keyword and download them in parallel.
         
         Args:
             keyword: Search term
             out_dir: Output directory
             max_count: Maximum number of images to download
-            current_count: Current count of downloaded images
             
         Returns:
             int: Number of successfully downloaded images
         """
-        downloaded = current_count
-
+        downloaded = 0
+        
         try:
             with DDGS() as ddgs:
                 # Request more images than needed to account for failures
@@ -540,23 +582,42 @@ class DuckDuckGoImageDownloader:
                 if not results:
                     return downloaded
 
-                for i, result in enumerate(results):
-                    if downloaded >= max_count:
-                        break
-
-                    image_url = result.get("image")
-                    if not image_url:
-                        continue
-
-                    filename = f"{keyword.replace(' ', '_')}_{i + 1}.jpg"
-                    file_path = os.path.join(out_dir, filename)
-
-                    if self._get_image(image_url, file_path):
-                        downloaded += 1
-                        logger.info(f"Downloaded: {file_path} [{downloaded}/{max_count}]")
-
-                    # Add small delay between downloads
-                    time.sleep(self.delay)
+                # Create a thread pool for parallel downloads
+                with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                    # Submit download tasks
+                    futures = []
+                    for i, result in enumerate(results):
+                        if downloaded >= max_count:
+                            break
+                            
+                        futures.append(executor.submit(
+                            self._download_single_image,
+                            result=result,
+                            out_dir=out_dir,
+                            index=i + 1
+                        ))
+                    
+                    # Process completed downloads
+                    for future in concurrent.futures.as_completed(futures):
+                        if downloaded >= max_count:
+                            # Cancel remaining futures
+                            for f in futures:
+                                if not f.done():
+                                    f.cancel()
+                            break
+                            
+                        try:
+                            success = future.result()
+                            if success:
+                                with self.lock:
+                                    downloaded += 1
+                                    logger.info(f"Downloaded image from DuckDuckGo [{downloaded}/{max_count}]")
+                                    
+                                if downloaded >= max_count:
+                                    break
+                        except Exception as e:
+                            logger.warning(f"Error downloading image: {e}")
+                            
         except Exception as e:
             logger.warning(f"Failed to search for keyword '{keyword}': {e}")
 
@@ -574,14 +635,14 @@ class DuckDuckGoImageDownloader:
         Returns:
             Tuple of (success_flag, downloaded_count)
         """
-        logger.warning("GoogleImageCrawler not available or had an error. Using DuckDuckGo image search instead.")
+        logger.warning("Using DuckDuckGo image search with parallel downloading")
 
         try:
             Path(out_dir).mkdir(parents=True, exist_ok=True)
             downloaded_count = 0
 
             # Try with the original keyword first
-            downloaded_count = self._search_and_download(keyword, out_dir, max_num)
+            downloaded_count = self._search_and_download_parallel(keyword, out_dir, max_num)
 
             # Try additional search terms if we still don't have enough images
             if downloaded_count < max_num:
@@ -600,13 +661,13 @@ class DuckDuckGoImageDownloader:
                     logger.info(f"Trying alternate keyword: '{alt_keyword}'")
                     remaining = max_num - downloaded_count
 
-                    # The _search_and_download function will update our count
-                    downloaded_count = self._search_and_download(
+                    # The _search_and_download_parallel function will update our count
+                    additional_count = self._search_and_download_parallel(
                         alt_keyword,
                         out_dir,
-                        remaining,
-                        downloaded_count
+                        remaining
                     )
+                    downloaded_count += additional_count
 
             return downloaded_count > 0, downloaded_count
 
@@ -617,25 +678,49 @@ class DuckDuckGoImageDownloader:
 
 def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
     """
-    Download images using DuckDuckGo search as fallback if GoogleImageCrawler is not available.
-
+    Download images directly using DuckDuckGo search engine.
+    
     Args:
         keyword: Search term for images
         out_dir: Output directory path
         max_num: Maximum number of images to download
-
+        
     Returns:
         Tuple of (success_flag, downloaded_count)
     """
-    downloader = DuckDuckGoImageDownloader()
-    return downloader.download(keyword, out_dir, max_num)
+    try:
+        # Create the output directory if it doesn't exist
+        os.makedirs(out_dir, exist_ok=True)
+        
+        # Initialize the DuckDuckGo downloader with parallel processing
+        ddg_downloader = DuckDuckGoImageDownloader(max_workers=6)
+        
+        # Get the current count of images in the directory
+        initial_count = len([f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
+        
+        logger.info(f"Using DuckDuckGo to download up to {max_num} images for '{keyword}'")
+        
+        # Download images
+        downloaded = ddg_downloader.download(keyword, out_dir, max_num)
+        
+        # Get the new count of images
+        final_count = len([f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
+        actual_downloaded = final_count - initial_count
+        
+        logger.info(f"DuckDuckGo download complete: {actual_downloaded} new images")
+        
+        return True, actual_downloaded
+    except Exception as e:
+        logger.error(f"Error downloading images from DuckDuckGo: {str(e)}")
+        return False, 0
 
 
 class ImageDownloader:
     """
-    A class for downloading images using multiple image crawlers with fallbacks and random offsets.
+    A class for downloading images using multiple image crawlers in parallel.
     
-    Supports parallel processing for faster downloads while maintaining thread safety.
+    Supports true parallel processing across all search engines simultaneously
+    for maximum speed while maintaining thread safety.
     """
 
     def __init__(self,
@@ -643,9 +728,11 @@ class ImageDownloader:
                  parser_threads: int = 2,
                  downloader_threads: int = 4,
                  min_image_size: Tuple[int, int] = (100, 100),
-                 delay_between_searches: float = 1.0,
+                 delay_between_searches: float = 0.5,
                  log_level: int = logging.WARNING,
-                 max_parallel_engines: int = 2):
+                 max_parallel_engines: int = 4,
+                 max_parallel_variations: int = 3,
+                 use_all_engines: bool = True):
         """
         Initialize the ImageDownloader with configurable parameters.
 
@@ -657,6 +744,8 @@ class ImageDownloader:
             delay_between_searches: Delay in seconds between different search terms
             log_level: Logging level for crawlers
             max_parallel_engines: Maximum number of search engines to use in parallel
+            max_parallel_variations: Maximum number of search variations to run in parallel per engine
+            use_all_engines: Whether to use all engines in parallel (True) or fallback mode (False)
         """
         self.feeder_threads = feeder_threads
         self.parser_threads = parser_threads
@@ -665,6 +754,8 @@ class ImageDownloader:
         self.delay_between_searches = delay_between_searches
         self.log_level = log_level
         self.max_parallel_engines = max_parallel_engines
+        self.max_parallel_variations = max_parallel_variations
+        self.use_all_engines = use_all_engines
 
         # Define engine configurations
         self.engines = self._get_engines()
@@ -677,6 +768,411 @@ class ImageDownloader:
         
         # Signal for worker threads
         self.stop_workers = False
+        
+        # Shared counter for downloaded images
+        self.total_downloaded = 0
+        
+        # Track successful downloads by engine
+        self.engine_stats = {}
+        
+    def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
+        """
+        Download images using multiple image crawlers in parallel.
+
+        Args:
+            keyword: Search term for images
+            out_dir: Output directory path
+            max_num: Maximum number of images to download
+
+        Returns:
+            Tuple of (success_flag, downloaded_count)
+        """
+        try:
+            # Ensure output directory exists
+            Path(out_dir).mkdir(parents=True, exist_ok=True)
+
+            # Reset counters and flags
+            with self.lock:
+                self.total_downloaded = 0
+                self.stop_workers = False
+                self.engine_stats = {}
+                
+            # Generate search variations
+            variations = [template.format(keyword=keyword) for template in self.search_variations]
+            
+            # Shuffle variations to get more diverse results
+            random.shuffle(variations)
+            
+            if self.use_all_engines:
+                # Use all engines in parallel for maximum speed
+                self._download_with_parallel_engines(keyword, variations, out_dir, max_num)
+            else:
+                # Use engines in sequence with fallbacks (original approach)
+                self._download_with_sequential_engines(keyword, variations, out_dir, max_num)
+
+            # If we still don't have enough images, try DuckDuckGo as final fallback
+            if self.total_downloaded < max_num:
+                self._try_duckduckgo_fallback(
+                    keyword=keyword,
+                    out_dir=out_dir,
+                    max_num=max_num,
+                    total_downloaded=self.total_downloaded
+                )
+
+            # Rename all files sequentially
+            if self.total_downloaded > 0:
+                rename_images_sequentially(out_dir)
+                
+            # Log engine statistics
+            self._log_engine_stats()
+
+            return self.total_downloaded > 0, self.total_downloaded
+
+        except Exception as e:
+            logger.warning(f"All crawlers failed with error: {e}. Trying DuckDuckGo as fallback.")
+            return self._final_duckduckgo_fallback(keyword, out_dir, max_num)
+            
+    def _download_with_parallel_engines(self, keyword: str, variations: List[str], 
+                                       out_dir: str, max_num: int) -> None:
+        """
+        Download images using all search engines in parallel.
+        
+        Args:
+            keyword: Search term
+            variations: List of search variations
+            out_dir: Output directory
+            max_num: Maximum number of images to download
+        """
+        # Create a thread pool for all engines
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_parallel_engines) as executor:
+            # Submit tasks for each engine
+            futures = []
+            
+            # Calculate per-engine target (with some overlap to ensure we get enough images)
+            per_engine_target = max(5, int(max_num / len(self.engines) * 1.5))
+            
+            # Submit tasks for each engine
+            for engine_config in self.engines:
+                # Get a subset of variations for this engine
+                engine_variations = variations.copy()
+                random.shuffle(engine_variations)  # Shuffle again for diversity
+                
+                futures.append(executor.submit(
+                    self._process_engine_with_parallel_variations,
+                    engine_config=engine_config,
+                    variations=engine_variations,
+                    out_dir=out_dir,
+                    max_num=per_engine_target,
+                    total_max=max_num
+                ))
+            
+            # Monitor progress
+            completed = 0
+            while completed < len(futures) and self.total_downloaded < max_num:
+                # Check if we've reached our download target
+                if self.total_downloaded >= max_num:
+                    # Signal workers to stop
+                    self.stop_workers = True
+                    # Cancel pending futures
+                    for future in futures:
+                        if not future.done():
+                            future.cancel()
+                    break
+                
+                # Wait for some futures to complete
+                done, not_done = concurrent.futures.wait(
+                    futures, 
+                    timeout=1.0,
+                    return_when=concurrent.futures.FIRST_COMPLETED
+                )
+                
+                # Update completed count
+                completed += len(done)
+                
+                # Replace futures list with not_done
+                futures = list(not_done)
+                
+                # Log progress
+                logger.info(f"Downloaded {self.total_downloaded}/{max_num} images so far")
+                
+    def _process_engine_with_parallel_variations(self, engine_config: dict, variations: List[str],
+                                               out_dir: str, max_num: int, total_max: int) -> int:
+        """
+        Process a search engine with parallel variations.
+        
+        Args:
+            engine_config: Engine configuration
+            variations: List of search variations
+            out_dir: Output directory
+            max_num: Maximum images for this engine
+            total_max: Overall maximum images
+            
+        Returns:
+            Number of images downloaded
+        """
+        if self.stop_workers:
+            return 0
+            
+        engine_name = engine_config['name']
+        offset_min, offset_max = engine_config['offset_range']
+        variation_step = engine_config['variation_step']
+        
+        logger.info(f"Starting parallel download using {engine_name.capitalize()}ImageCrawler")
+        
+        # Track engine downloads
+        engine_downloaded = 0
+        
+        # Use a thread pool for variations
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_parallel_variations) as variation_executor:
+            variation_futures = []
+            
+            # Calculate how many variations to use
+            variations_to_use = min(len(variations), max(3, int(max_num / 3)))
+            selected_variations = variations[:variations_to_use]
+            
+            # Submit tasks for each variation
+            for i, variation in enumerate(selected_variations):
+                if self.stop_workers:
+                    break
+                    
+                # Calculate random offset for this variation
+                random_offset = random.randint(offset_min, offset_max) + (i * variation_step)
+                
+                # Calculate per-variation limit
+                per_variation_limit = max(3, int(max_num / variations_to_use))
+                
+                variation_futures.append(variation_executor.submit(
+                    self._process_single_variation,
+                    engine_name=engine_name,
+                    variation=variation,
+                    out_dir=out_dir,
+                    max_num=per_variation_limit,
+                    offset=random_offset,
+                    engine_downloaded=engine_downloaded
+                ))
+                
+                # Small delay to avoid overwhelming the search engines
+                time.sleep(0.1)
+            
+            # Wait for variations to complete
+            for future in concurrent.futures.as_completed(variation_futures):
+                if self.stop_workers:
+                    break
+                    
+                try:
+                    # Get the number of images downloaded by this variation
+                    variation_count = future.result()
+                    
+                    # Update engine downloaded count
+                    with self.lock:
+                        engine_downloaded += variation_count
+                        self.total_downloaded += variation_count
+                        
+                        # Update engine stats
+                        if engine_name not in self.engine_stats:
+                            self.engine_stats[engine_name] = 0
+                        self.engine_stats[engine_name] += variation_count
+                        
+                        # Check if we've reached the target
+                        if self.total_downloaded >= total_max:
+                            self.stop_workers = True
+                            break
+                            
+                except Exception as e:
+                    logger.warning(f"Error processing variation for {engine_name}: {e}")
+        
+        logger.info(f"{engine_name.capitalize()} engine downloaded {engine_downloaded} images")
+        return engine_downloaded
+        
+    def _process_single_variation(self, engine_name: str, variation: str, 
+                                 out_dir: str, max_num: int, offset: int,
+                                 engine_downloaded: int) -> int:
+        """
+        Process a single search variation.
+        
+        Args:
+            engine_name: Name of the search engine
+            variation: Search variation
+            out_dir: Output directory
+            max_num: Maximum images to download
+            offset: Search offset
+            engine_downloaded: Current engine download count
+            
+        Returns:
+            Number of images downloaded
+        """
+        if self.stop_workers:
+            return 0
+            
+        logger.info(f"{engine_name}: Downloading up to {max_num} images for '{variation}' (offset: {offset})")
+        
+        try:
+            # Get crawler class
+            crawler_class = self._get_crawler_class(engine_name)
+            if not crawler_class:
+                return 0
+                
+            # Create crawler
+            crawler = self._create_crawler(crawler_class, out_dir)
+            
+            # Calculate file index offset
+            with self.lock:
+                file_idx_offset = self.total_downloaded + engine_downloaded
+                
+            # Crawl for images
+            crawler.crawl(
+                keyword=variation,
+                max_num=max_num,
+                min_size=self.min_image_size,
+                offset=offset,
+                file_idx_offset=file_idx_offset
+            )
+            
+            # Count valid images
+            with self.lock:
+                temp_valid_count = count_valid_images_in_latest_batch(
+                    out_dir,
+                    file_idx_offset
+                )
+                
+            logger.info(f"{engine_name} downloaded {temp_valid_count} valid images for '{variation}'")
+            return temp_valid_count
+            
+        except Exception as e:
+            logger.warning(f"{engine_name} crawler failed for '{variation}': {e}")
+            return 0
+            
+    def _download_with_sequential_engines(self, keyword: str, variations: List[str], 
+                                         out_dir: str, max_num: int) -> None:
+        """
+        Download images using engines in sequence with fallbacks.
+        
+        Args:
+            keyword: Search term
+            variations: List of search variations
+            out_dir: Output directory
+            max_num: Maximum number of images to download
+        """
+        # Calculate per-variation limit
+        per_variation_limit = max(3, max_num // len(variations))
+        
+        # Try each engine in sequence
+        for engine_config in self.engines:
+            if self.total_downloaded >= max_num:
+                break
+                
+            # Process this engine
+            engine_count = self._process_engine(
+                engine_config=engine_config,
+                variations=variations,
+                out_dir=out_dir,
+                max_num=max_num - self.total_downloaded,
+                total_max=max_num
+            )
+            
+            # Update total downloaded
+            with self.lock:
+                self.total_downloaded += engine_count
+                
+                # Update engine stats
+                engine_name = engine_config['name']
+                if engine_name not in self.engine_stats:
+                    self.engine_stats[engine_name] = 0
+                self.engine_stats[engine_name] += engine_count
+    
+    def _log_engine_stats(self) -> None:
+        """Log statistics about downloads from each engine."""
+        if not self.engine_stats:
+            return
+            
+        logger.info("Download statistics by engine:")
+        for engine, count in self.engine_stats.items():
+            percentage = (count / self.total_downloaded * 100) if self.total_downloaded > 0 else 0
+            logger.info(f"  {engine.capitalize()}: {count} images ({percentage:.1f}%)")
+            
+    def _get_crawler_class(self, engine_name: str) -> Any:
+        """
+        Get the crawler class based on engine name.
+        
+        Args:
+            engine_name: Name of the search engine
+            
+        Returns:
+            Crawler class
+        """
+        crawler_map = {
+            "google": GoogleImageCrawler,
+            "bing": BingImageCrawler,
+            "baidu": BaiduImageCrawler
+        }
+        return crawler_map.get(engine_name)
+
+    def _create_crawler(self, crawler_class, out_dir: str):
+        """
+        Create a crawler instance with the configured parameters.
+
+        Args:
+            crawler_class: The crawler class to instantiate
+            out_dir: Output directory for the crawler
+
+        Returns:
+            Configured crawler instance
+        """
+        return crawler_class(
+            storage={'root_dir': out_dir},
+            log_level=self.log_level,
+            feeder_threads=self.feeder_threads,
+            parser_threads=self.parser_threads,
+            downloader_threads=self.downloader_threads
+        )
+        
+    @staticmethod
+    def _try_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int, total_downloaded: int) -> int:
+        """
+        Try DuckDuckGo as a fallback option when other engines haven't downloaded enough images.
+
+        Args:
+            keyword: Search term
+            out_dir: Output directory
+            max_num: Maximum number of images to download
+            total_downloaded: Current download count
+
+        Returns:
+            Updated total downloaded count
+        """
+        if total_downloaded >= max_num:
+            return total_downloaded
+            
+        logger.info(f"Crawlers downloaded {total_downloaded}/{max_num} images. Trying DuckDuckGo as fallback.")
+        ddgs_success, ddgs_count = download_images_ddgs(
+            keyword=keyword,
+            out_dir=out_dir,
+            max_num=max_num - total_downloaded
+        )
+        if ddgs_success:
+            return total_downloaded + ddgs_count
+        return total_downloaded
+
+    @staticmethod
+    def _final_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
+        """
+        Final fallback to DuckDuckGo when all other methods have failed.
+
+        Args:
+            keyword: Search term
+            out_dir: Output directory
+            max_num: Maximum number of images to download
+
+        Returns:
+            Tuple of (success_flag, downloaded_count)
+        """
+        success, count = download_images_ddgs(keyword, out_dir, max_num)
+        if success and count > 0:
+            rename_images_sequentially(out_dir)
+            return True, count
+        else:
+            logger.error(f"All download methods failed for '{keyword}'")
+            return False, 0
 
     def _get_search_variations(self) -> List[str]:
         """
@@ -756,124 +1252,25 @@ class ImageDownloader:
         return [
             {
                 'name': 'google',
-                'func': self._download_with_google,
                 'offset_range': (0, 20),
                 'variation_step': 20
             },
             {
                 'name': 'bing',
-                'func': self._download_with_bing,
                 'offset_range': (0, 30),
                 'variation_step': 10
             },
             {
                 'name': 'baidu',
-                'func': self._download_with_baidu,
                 'offset_range': (10, 50),
                 'variation_step': 15
             }
         ]
-    
-    def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
-        """
-        Download images using multiple image crawlers with fallbacks and random offsets.
-
-        Args:
-            keyword: Search term for images
-            out_dir: Output directory path
-            max_num: Maximum number of images to download
-
-        Returns:
-            Tuple of (success_flag, downloaded_count)
-        """
-        try:
-            # Ensure output directory exists
-            Path(out_dir).mkdir(parents=True, exist_ok=True)
-
-            # Generate search variations
-            variations = [template.format(keyword=keyword) for template in self.search_variations]
-
-            # Track download progress
-            with self.lock:
-                self.total_downloaded = 0
-                self.stop_workers = False
-                
-            # Calculate per-engine targets
-            per_engine_max = max(3, max_num // len(self.engines))
-            
-            # Use parallel processing for engines
-            try:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_parallel_engines) as executor:
-                    # Submit engine tasks
-                    futures = []
-                    
-                    # Shuffle engines to randomize download order
-                    engine_indices = list(range(len(self.engines)))
-                    random.shuffle(engine_indices)
-                    
-                    for idx in engine_indices:
-                        engine_config = self.engines[idx]
-                        futures.append(executor.submit(
-                            self._process_engine,
-                            engine_config=engine_config,
-                            variations=variations,
-                            out_dir=out_dir,
-                            max_num=per_engine_max,
-                            total_max=max_num
-                        ))
-                    
-                    # Wait for all to complete or until we have enough images
-                    done, not_done = concurrent.futures.wait(
-                        futures,
-                        return_when=concurrent.futures.FIRST_COMPLETED,
-                        timeout=30  # Reasonable timeout to check progress
-                    )
-                    
-                    # Monitor progress
-                    while not_done and self.total_downloaded < max_num:
-                        # Check if we've reached our download target
-                        if self.total_downloaded >= max_num:
-                            # Signal workers to stop
-                            self.stop_workers = True
-                            # Cancel pending futures
-                            for future in not_done:
-                                future.cancel()
-                            break
-                            
-                        # Wait for more to complete
-                        done, not_done = concurrent.futures.wait(
-                            not_done, 
-                            return_when=concurrent.futures.FIRST_COMPLETED,
-                            timeout=30
-                        )
-            
-            except Exception as e:
-                logger.warning(f"Error in parallel download: {e}")
-            
-            # If we still don't have enough images, try fallback
-            if self.total_downloaded < max_num:
-                self._try_duckduckgo_fallback(
-                    keyword=keyword,
-                    out_dir=out_dir,
-                    max_num=max_num,
-                    total_downloaded=self.total_downloaded
-                )
-
-            # Rename all files sequentially
-            if self.total_downloaded > 0:
-                rename_images_sequentially(out_dir)
-
-            return self.total_downloaded > 0, self.total_downloaded
-
-        except Exception as e:
-            # Try fallback to DuckDuckGo
-            logger.warning(f"All crawlers failed with error: {e}. Trying DuckDuckGo as fallback.")
-            return self._final_duckduckgo_fallback(keyword, out_dir, max_num)
-            
+        
     def _process_engine(self, engine_config: dict, variations: List[str],
-                        out_dir: str, max_num: int, total_max: int) -> int:
+                       out_dir: str, max_num: int, total_max: int) -> int:
         """
-        Process a search engine to download images.
+        Process a search engine to download images (sequential version).
         
         Args:
             engine_config: Engine configuration
@@ -889,7 +1286,6 @@ class ImageDownloader:
             return 0
             
         engine_name = engine_config['name']
-        download_func = engine_config['func']
         offset_min, offset_max = engine_config['offset_range']
         random_offset = random.randint(offset_min, offset_max)
         variation_step = engine_config['variation_step']
@@ -944,18 +1340,17 @@ class ImageDownloader:
                             self.total_downloaded + engine_downloaded
                         )
                         engine_downloaded += temp_valid_count
-                        self.total_downloaded += temp_valid_count
                     
                     logger.info(
                         f"{engine_name} downloaded {temp_valid_count} valid images for '{variation}', " 
-                        f"total: {self.total_downloaded}/{total_max}"
+                        f"total: {self.total_downloaded + engine_downloaded}/{total_max}"
                     )
                     
                 except Exception as e:
                     logger.warning(f"{engine_name} crawler failed for '{variation}': {e}")
                     
                 # Break early if we've reached the target
-                if self.total_downloaded >= total_max:
+                if self.total_downloaded + engine_downloaded >= total_max:
                     break
                     
                 # Small delay between different search terms
@@ -965,179 +1360,7 @@ class ImageDownloader:
             logger.warning(f"{engine_name} engine failed: {e}")
             
         return engine_downloaded
-    
-    def _get_crawler_class(self, engine_name: str) -> Any:
-        """
-        Get the crawler class based on engine name.
         
-        Args:
-            engine_name: Name of the search engine
-            
-        Returns:
-            Crawler class
-        """
-        crawler_map = {
-            "google": GoogleImageCrawler,
-            "bing": BingImageCrawler,
-            "baidu": BaiduImageCrawler
-        }
-        return crawler_map.get(engine_name)
-
-    def _create_crawler(self, crawler_class, out_dir: str):
-        """
-        Create a crawler instance with the configured parameters.
-
-        Args:
-            crawler_class: The crawler class to instantiate
-            out_dir: Output directory for the crawler
-
-        Returns:
-            Configured crawler instance
-        """
-        return crawler_class(
-            storage={'root_dir': out_dir},
-            log_level=self.log_level,
-            feeder_threads=self.feeder_threads,
-            parser_threads=self.parser_threads,
-            downloader_threads=self.downloader_threads
-        )
-
-    def _download_with_crawler(self, crawler_class, variations: List[str], out_dir: str,
-                               max_num: int, per_variation_limit: int, total_downloaded: int,
-                               offset: int, variation_step: int, engine_name: str) -> int:
-        """
-        Generic helper function to download images using any crawler.
-
-        Args:
-            crawler_class: The crawler class to use
-            variations: List of search term variations
-            out_dir: Output directory
-            max_num: Maximum number of images to download
-            per_variation_limit: Maximum images per variation
-            total_downloaded: Current download count
-            offset: Random offset for search results
-            variation_step: Step size for offset between variations
-            engine_name: Name of the engine for logging
-
-        Returns:
-            Updated total downloaded count
-        """
-        # This is now replaced by the more efficient _process_engine method
-        # Kept for backwards compatibility
-        local_downloaded = 0
-        for i, variation in enumerate(variations):
-            if local_downloaded >= max_num:
-                break
-
-            # Calculate remaining images needed
-            remaining = max_num - local_downloaded
-            current_limit = min(remaining, per_variation_limit)
-            current_offset = offset + (i * variation_step)
-
-            logger.info(
-                f"{engine_name}: Trying to download {current_limit} images with query: '{variation}' (offset: {current_offset})")
-
-            try:
-                crawler = self._create_crawler(crawler_class, out_dir)
-
-                crawler.crawl(
-                    keyword=variation,
-                    max_num=current_limit,
-                    min_size=self.min_image_size,
-                    offset=current_offset,
-                    file_idx_offset=total_downloaded + local_downloaded
-                )
-
-                # Count valid images after this batch download
-                temp_valid_count = count_valid_images_in_latest_batch(out_dir, total_downloaded + local_downloaded)
-                local_downloaded += temp_valid_count
-
-                logger.info(
-                    f"{engine_name} downloaded {temp_valid_count} valid images for '{variation}', total: {total_downloaded + local_downloaded}/{max_num}")
-
-                # Small delay between different search terms
-                time.sleep(self.delay_between_searches)
-
-            except Exception as e:
-                logger.warning(f"{engine_name} crawler failed with query '{variation}': {e}")
-
-        return total_downloaded + local_downloaded
-
-    def _download_with_google(self, variations: List[str], out_dir: str, max_num: int,
-                              per_variation_limit: int, total_downloaded: int = 0,
-                              offset: int = 0, variation_step: int = 20) -> int:
-        """Helper function to download images using Google Image Crawler"""
-        return self._download_with_crawler(
-            GoogleImageCrawler, variations, out_dir, max_num,
-            per_variation_limit, total_downloaded, offset, variation_step, "Google"
-        )
-
-    def _download_with_bing(self, variations: List[str], out_dir: str, max_num: int,
-                            per_variation_limit: int, total_downloaded: int = 0,
-                            offset: int = 0, variation_step: int = 10) -> int:
-        """Helper function to download images using Bing Image Crawler"""
-        return self._download_with_crawler(
-            BingImageCrawler, variations, out_dir, max_num,
-            per_variation_limit, total_downloaded, offset, variation_step, "Bing"
-        )
-
-    def _download_with_baidu(self, variations: List[str], out_dir: str, max_num: int,
-                             per_variation_limit: int, total_downloaded: int = 0,
-                             offset: int = 0, variation_step: int = 15) -> int:
-        """Helper function to download images using Baidu Image Crawler"""
-        return self._download_with_crawler(
-            BaiduImageCrawler, variations, out_dir, max_num,
-            per_variation_limit, total_downloaded, offset, variation_step, "Baidu"
-        )
-
-    @staticmethod
-    def _try_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int, total_downloaded: int) -> int:
-        """
-        Try DuckDuckGo as a fallback option when other engines haven't downloaded enough images.
-
-        Args:
-            keyword: Search term
-            out_dir: Output directory
-            max_num: Maximum number of images to download
-            total_downloaded: Current download count
-
-        Returns:
-            Updated total downloaded count
-        """
-        if total_downloaded >= max_num:
-            return total_downloaded
-            
-        logger.info(f"Crawlers downloaded {total_downloaded}/{max_num} images. Trying DuckDuckGo as fallback.")
-        ddgs_success, ddgs_count = download_images_ddgs(
-            keyword=keyword,
-            out_dir=out_dir,
-            max_num=max_num - total_downloaded
-        )
-        if ddgs_success:
-            return total_downloaded + ddgs_count
-        return total_downloaded
-
-    @staticmethod
-    def _final_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
-        """
-        Final fallback to DuckDuckGo when all other methods have failed.
-
-        Args:
-            keyword: Search term
-            out_dir: Output directory
-            max_num: Maximum number of images to download
-
-        Returns:
-            Tuple of (success_flag, downloaded_count)
-        """
-        success, count = download_images_ddgs(keyword, out_dir, max_num)
-        if success and count > 0:
-            rename_images_sequentially(out_dir)
-            return True, count
-        else:
-            logger.error(f"All download methods failed for '{keyword}'")
-            return False, 0
-
     def add_search_variation(self, variation_template: str) -> None:
         """
         Add a new search variation template.
@@ -1175,7 +1398,6 @@ class ImageDownloader:
             self.parser_threads = parser
         if downloader is not None:
             self.downloader_threads = downloader
-
 
 
 def rename_images_sequentially(directory: str) -> int:
@@ -1288,46 +1510,83 @@ def _download_with_engine(engine_name: str, keyword: str, out_dir: str, max_num:
         return False
 
 
-def _generate_alternative_terms(keyword: str, retry_num: int) -> List[str]:
+def _generate_alternative_terms(keyword: str, retry_count: int) -> List[str]:
     """
-    Generate alternative search terms for better results.
+    Generate alternative search terms for retry attempts.
     
     Args:
-        keyword: Base keyword to generate alternatives for
-        retry_num: Current retry number
+        keyword: Original search keyword
+        retry_count: Current retry count
         
     Returns:
         List of alternative search terms
     """
-    alternative_terms = [
-        f"{keyword} {retry_num}",
-        f"{keyword} example {retry_num}",
-        f"{keyword} illustration",
-        f"what is {keyword}",
-        f"{keyword} image",
+    # Base variations
+    variations = [
+        f"{keyword} high resolution",
+        f"{keyword} hd image",
         f"{keyword} photo",
-        f"{keyword} example",
-        f"{keyword} best"
+        f"{keyword} picture",
+        f"{keyword} clear image",
+        f"{keyword} best quality",
+        f"{keyword} professional",
+        f"{keyword} detailed",
+        f"{keyword} close-up",
+        f"{keyword} high quality"
     ]
-    return alternative_terms
+    
+    # Add more specific variations for higher retry counts
+    if retry_count > 5:
+        variations.extend([
+            f"{keyword} 4k",
+            f"{keyword} ultra hd",
+            f"{keyword} stock photo",
+            f"{keyword} official image",
+            f"{keyword} professional photo"
+        ])
+    
+    # Shuffle the list to add randomness
+    random.shuffle(variations)
+    
+    # Always include the original keyword at the beginning
+    return [keyword] + variations
 
 
 def _update_image_count(out_dir: str) -> int:
     """
-    Remove duplicates and return the updated count of valid images.
+    Update the count of images in a directory after removing duplicates.
     
     Args:
         out_dir: Directory containing images
         
     Returns:
-        int: Updated count of valid images
+        Updated count of unique images
     """
-    remove_duplicate_images(out_dir)
-    valid_count, _, _ = count_valid_images(out_dir)
-    return valid_count
+    # Get all image files
+    image_files = [f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    
+    # If there are no images, return 0
+    if not image_files:
+        return 0
+    
+    # If there's only one image, no need to check for duplicates
+    if len(image_files) == 1:
+        return 1
+    
+    # Remove duplicates
+    try:
+        removed = remove_duplicate_images(out_dir)
+        if removed > 0:
+            logger.info(f"Removed {removed} duplicate images")
+    except Exception as e:
+        logger.warning(f"Error removing duplicates: {str(e)}")
+    
+    # Count remaining images
+    remaining_images = [f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    return len(remaining_images)
 
 
-def retry_download_images(keyword: str, out_dir: str, max_num: int, max_retries: int = 10) -> Tuple[bool, int]:
+def retry_download_images(keyword: str, out_dir: str, max_num: int, max_retries: int = 5) -> Tuple[bool, int]:
     """
     Retry downloading images until reaching the desired count or max retries.
     
@@ -1340,8 +1599,17 @@ def retry_download_images(keyword: str, out_dir: str, max_num: int, max_retries:
     Returns:
         Tuple of (success_flag, downloaded_count)
     """
-    # First attempt
-    downloader = ImageDownloader()
+    # First attempt with parallel downloading
+    downloader = ImageDownloader(
+        feeder_threads=2,
+        parser_threads=2,
+        downloader_threads=4,
+        max_parallel_engines=3,
+        max_parallel_variations=3,
+        use_all_engines=True  # Use all engines in parallel for maximum speed
+    )
+    
+    logger.info(f"Attempting to download {max_num} images for '{keyword}' using parallel processing")
     success, count = downloader.download(keyword, out_dir, max_num)
 
     # Remove any duplicates after initial download
@@ -1365,25 +1633,22 @@ def retry_download_images(keyword: str, out_dir: str, max_num: int, max_retries:
         alternative_terms = _generate_alternative_terms(keyword, retries)
         retry_term = alternative_terms[min(retries - 1, len(alternative_terms) - 1)]
 
-        # Select an engine to use for this retry (cycle through available engines)
-        engine_index = (retries - 1) % len(ENGINES)
-        current_engine = ENGINES[engine_index]
-        random_offset = random.randint(20, 50 + retries * 10)  # Increasing offset with retries
-
-        logger.info(f"Retry #{retries}: Using {current_engine} with random offset {random_offset}")
-
-        # Try to download more images with the selected engine
-        retry_success = _download_with_engine(
-            engine_name=current_engine,
-            keyword=retry_term,
-            out_dir=out_dir,
-            max_num=images_needed,
-            offset=random_offset,
-            file_idx_offset=count
-        )
+        # For retries, use a different approach based on retry number
+        if retries % 2 == 0:
+            # Even retries: Use sequential mode with specific engines
+            retry_engine = ENGINES[retries % len(ENGINES)]
+            logger.info(f"Retry #{retries}: Using {retry_engine} sequentially with term '{retry_term}'")
+            
+            # Create a sequential downloader
+            sequential_downloader = ImageDownloader(use_all_engines=False)
+            retry_success, retry_count = sequential_downloader.download(retry_term, out_dir, images_needed)
+        else:
+            # Odd retries: Use DuckDuckGo directly
+            logger.info(f"Retry #{retries}: Using DuckDuckGo directly with term '{retry_term}'")
+            retry_success, retry_count = download_images_ddgs(retry_term, out_dir, images_needed)
 
         # Update count and calculate remaining needed
-        if retry_success:
+        if retry_success and retry_count > 0:
             count = _update_image_count(out_dir)
             images_needed = max(0, max_num - count)
             logger.info(f"After retry #{retries}: {count}/{max_num} unique images")
@@ -2017,3 +2282,94 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def is_valid_image(file_path: str) -> bool:
+    """
+    Check if a file is a valid image.
+    
+    Args:
+        file_path: Path to the image file
+        
+    Returns:
+        True if the file is a valid image, False otherwise
+    """
+    try:
+        # Check if file exists and is not empty
+        if not os.path.isfile(file_path) or os.path.getsize(file_path) == 0:
+            return False
+            
+        # Try to open and verify the image
+        with Image.open(file_path) as img:
+            img.verify()  # Verify that it's an image
+            return True
+    except Exception:
+        return False
+
+def remove_duplicate_images(directory: str) -> int:
+    """
+    Remove duplicate images from a directory using perceptual hashing.
+    
+    Args:
+        directory: Directory containing images
+        
+    Returns:
+        Number of duplicates removed
+    """
+    # Get all image files
+    image_files = [f for f in os.listdir(directory) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    
+    # If there are no images or only one image, return 0
+    if len(image_files) <= 1:
+        return 0
+    
+    # Dictionary to store image hashes
+    image_hashes = {}
+    removed_count = 0
+    
+    # Process each image
+    for filename in image_files:
+        file_path = os.path.join(directory, filename)
+        
+        try:
+            # Skip invalid or corrupted images
+            if not is_valid_image(file_path):
+                logger.debug(f"Skipping invalid image: {filename}")
+                continue
+                
+            # Calculate image hash
+            img = Image.open(file_path)
+            img_hash = imagehash.phash(img)
+            
+            # Check if this hash already exists
+            if img_hash in image_hashes:
+                # This is a duplicate, decide which one to keep based on file size
+                existing_file = image_hashes[img_hash]
+                existing_size = os.path.getsize(os.path.join(directory, existing_file))
+                current_size = os.path.getsize(file_path)
+                
+                # Keep the larger file (likely better quality)
+                if current_size > existing_size:
+                    # Remove the existing file and keep this one
+                    try:
+                        os.remove(os.path.join(directory, existing_file))
+                        image_hashes[img_hash] = filename
+                        removed_count += 1
+                        logger.debug(f"Removed duplicate: {existing_file} (kept {filename})")
+                    except Exception as e:
+                        logger.warning(f"Error removing duplicate {existing_file}: {str(e)}")
+                else:
+                    # Remove the current file
+                    try:
+                        os.remove(file_path)
+                        removed_count += 1
+                        logger.debug(f"Removed duplicate: {filename} (kept {existing_file})")
+                    except Exception as e:
+                        logger.warning(f"Error removing duplicate {filename}: {str(e)}")
+            else:
+                # New unique image
+                image_hashes[img_hash] = filename
+                
+        except Exception as e:
+            logger.warning(f"Error processing {filename}: {str(e)}")
+    
+    return removed_count
