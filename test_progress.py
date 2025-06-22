@@ -68,32 +68,22 @@ def simulate_dataset_generation():
     # Step 3: Generate Labels
     progress.start_step("labels", total=100)
     
-    # Fix: Ensure we don't exceed the number of categories
-    num_categories = len(categories)
-    
-    for i in range(100):
-        # Calculate category index safely
-        if i % 25 == 0:  # Changed from 20 to 25 to match 4 categories
-            category_idx = (i // 25) % num_categories
-            category = categories[category_idx]
-            progress.start_subtask(f"Category: {category}")
+    # Generate labels for each category
+    for i in range(4):  # 4 categories
+        category = categories[i]
+        progress.start_subtask(f"Category: {category}")
         
-        if i % 5 == 0:  # Changed from 4 to 5 to match 5 keywords per category
-            # Get the current category and its keywords
-            current_category = categories[category_idx]
-            keywords = keywords_per_category[current_category]
-            
-            # Calculate keyword index safely
-            keyword_idx = (i % 25) // 5 % len(keywords)
-            keyword = keywords[keyword_idx]
-            
+        # Process each keyword in this category
+        for j in range(5):  # 5 keywords per category
+            keyword = keywords_per_category[category][j]
             progress.set_subtask_description(f"Keyword: {keyword}")
             
-        progress.update_step(1)
-        time.sleep(0.05)
+            # Simulate processing 5 images per keyword
+            for k in range(5):
+                progress.update_step(1)
+                time.sleep(0.05)
         
-        if (i + 1) % 25 == 0:  # Changed from 20 to 25
-            progress.close_subtask()
+        progress.close_subtask()
     
     progress.close()
     
