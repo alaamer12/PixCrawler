@@ -99,6 +99,8 @@ class DatasetGenerationConfig:
         keyword_generation: Mode for keyword generation
         ai_model: AI model to use for keyword generation
         generate_labels: Whether to generate label files for images
+        dataset_name: Name of the dataset (loaded from config file)
+        search_variations: List of search variation templates for image searches
     """
     config_path: str
     max_images: int = 10
@@ -110,3 +112,5 @@ class DatasetGenerationConfig:
     keyword_generation: KEYWORD_MODE = "auto"
     ai_model: AI_MODELS = "gpt4-mini"
     generate_labels: bool = True
+    dataset_name: str = ""
+    search_variations: list = None

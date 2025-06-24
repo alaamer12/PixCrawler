@@ -1081,6 +1081,26 @@ class ImageDownloader:
             with self.lock:
                 file_idx_offset = self.total_downloaded + engine_downloaded
 
+            try:
+                # Patch the crawler's parser to handle None gracefully
+                original_parse = crawler.parser.parse
+
+                def safe_parse_wrapper(*args, **kwargs):
+                    try:
+                        result = original_parse(*args, **kwargs)
+                        # Ensure parse always returns an iterable
+                        if result is None:
+                            logger.warning(f"Parser for {engine_name} returned None, using empty list")
+                            return []
+                        return result
+                    except Exception as e:
+                        logger.warning(f"Parser exception in {engine_name}: {e}")
+                        return []
+
+                crawler.parser.parse = safe_parse_wrapper
+            except Exception as e:
+                logger.warning(f"Failed to patch parser for {engine_name}: {e}")
+
             # Crawl for images
             crawler.crawl(
                 keyword=variation,
@@ -1108,7 +1128,7 @@ class ImageDownloader:
                                           out_dir: str, max_num: int) -> None:
         """
         Download images using engines in sequence with fallbacks.
-        
+
         Args:
             keyword: Search term
             variations: List of search variations
@@ -1156,10 +1176,10 @@ class ImageDownloader:
     def _get_crawler_class(engine_name: str) -> Any:
         """
         Get the crawler class based on engine name.
-        
+
         Args:
             engine_name: Name of the search engine
-            
+
         Returns:
             Crawler class
         """
@@ -1336,14 +1356,14 @@ class ImageDownloader:
                         out_dir: str, max_num: int, total_max: int) -> int:
         """
         Process a search engine to download images (sequential version).
-        
+
         Args:
             engine_config: Engine configuration
             variations: List of search variations
             out_dir: Output directory
             max_num: Maximum images for this engine
             total_max: Overall maximum images
-            
+
         Returns:
             Number of images downloaded
         """
@@ -1389,6 +1409,26 @@ class ImageDownloader:
                         self._get_crawler_class(engine_name),
                         out_dir
                     )
+
+                    try:
+                        # Patch the crawler's parser to handle None gracefully
+                        original_parse = crawler.parser.parse
+
+                        def safe_parse_wrapper(*args, **kwargs):
+                            try:
+                                result = original_parse(*args, **kwargs)
+                                # Ensure parse always returns an iterable
+                                if result is None:
+                                    logger.warning(f"Parser for {engine_name} returned None, using empty list")
+                                    return []
+                                return result
+                            except Exception as e:
+                                logger.warning(f"Parser exception in {engine_name}: {e}")
+                                return []
+
+                        crawler.parser.parse = safe_parse_wrapper
+                    except Exception as e:
+                        logger.warning(f"Failed to patch parser for {engine_name}: {e}")
 
                     crawler.crawl(
                         keyword=variation,
@@ -1468,10 +1508,10 @@ class ImageDownloader:
 def rename_images_sequentially(directory: str) -> int:
     """
     Rename all image files in a directory to a sequential, zero-padded format.
-    
+
     Args:
         directory: Directory containing images to rename
-        
+
     Returns:
         int: Number of renamed files
     """
@@ -1482,11 +1522,11 @@ def rename_images_sequentially(directory: str) -> int:
 def count_valid_images_in_latest_batch(directory: str, previous_count: int) -> int:
     """
     Count valid images in the latest batch, starting from previous_count index.
-    
+
     Args:
         directory: Directory path to check
         previous_count: Number of images that existed before this batch
-        
+
     Returns:
         int: Number of valid images in the latest batch
     """
@@ -1526,7 +1566,7 @@ def _download_with_engine(engine_name: str, keyword: str, out_dir: str, max_num:
                           offset: int = 0, file_idx_offset: int = 0) -> bool:
     """
     Download images using a specific search engine.
-    
+
     Args:
         engine_name: Name of the search engine to use ("google", "bing", "baidu", "ddgs")
         keyword: Search term for images
@@ -1534,7 +1574,7 @@ def _download_with_engine(engine_name: str, keyword: str, out_dir: str, max_num:
         max_num: Maximum number of images to download
         offset: Search offset to avoid duplicate results
         file_idx_offset: Starting index for file naming
-        
+
     Returns:
         bool: True if download was successful, False otherwise
     """
@@ -1578,11 +1618,11 @@ def _download_with_engine(engine_name: str, keyword: str, out_dir: str, max_num:
 def _generate_alternative_terms(keyword: str, retry_count: int) -> List[str]:
     """
     Generate alternative search terms for retry attempts.
-    
+
     Args:
         keyword: Original search keyword
         retry_count: Current retry count
-        
+
     Returns:
         List of alternative search terms
     """
@@ -1620,10 +1660,10 @@ def _generate_alternative_terms(keyword: str, retry_count: int) -> List[str]:
 def _update_image_count(out_dir: str) -> int:
     """
     Update the count of images in a directory after removing duplicates.
-    
+
     Args:
         out_dir: Directory containing images
-        
+
     Returns:
         Updated count of unique images
     """
@@ -1654,13 +1694,13 @@ def _update_image_count(out_dir: str) -> int:
 def retry_download_images(keyword: str, out_dir: str, max_num: int, max_retries: int = 5) -> Tuple[bool, int]:
     """
     Retry downloading images until reaching the desired count or max retries.
-    
+
     Args:
         keyword: Search term for images
         out_dir: Output directory path
         max_num: Maximum number of images to download
         max_retries: Maximum number of retry attempts
-        
+
     Returns:
         Tuple of (success_flag, downloaded_count)
     """
@@ -1737,10 +1777,10 @@ def retry_download_images(keyword: str, out_dir: str, max_num: int, max_retries:
 def load_config(config_path: str) -> Dict[str, Any]:
     """
     Load dataset configuration from a JSON file and validate against schema.
-    
+
     Args:
         config_path: Path to the configuration file
-        
+
     Returns:
         Dict containing dataset configuration
     """
@@ -1782,11 +1822,11 @@ def load_config(config_path: str) -> Dict[str, Any]:
 def generate_keywords(category: str, ai_model: str = "gpt4-mini") -> List[str]:
     """
     Generate related keywords for a category using G4F (GPT-4) API.
-    
+
     Args:
         category: The category name to generate keywords for
         ai_model: The AI model to use ("gpt4" or "gpt4-mini")
-        
+
     Returns:
         List of generated keywords related to the category
     """
@@ -1831,11 +1871,11 @@ def generate_keywords(category: str, ai_model: str = "gpt4-mini") -> List[str]:
 def _extract_keywords_from_response(response: str, category: str) -> List[str]:
     """
     Extract keywords from the AI response.
-    
+
     Args:
         response: Raw response text from the AI model
         category: Original category name
-        
+
     Returns:
         List of extracted keywords
     """
@@ -1885,10 +1925,10 @@ def _extract_keywords_from_response(response: str, category: str) -> List[str]:
 def create_arg_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     """
     Create and configure argument parser with organized argument groups.
-    
+
     Args:
         parser: The argument parser to configure
-        
+
     Returns:
         Configured argument parser
     """
@@ -2015,7 +2055,7 @@ class DatasetGenerator:
     def __init__(self, config: DatasetGenerationConfig):
         """
         Initialize the dataset generator.
-        
+
         Args:
             config: Dataset generation configuration
         """
@@ -2028,13 +2068,30 @@ class DatasetGenerator:
 
         self.config = config
         self.dataset_config = self._load_and_validate_config()
-        self.dataset_name = self.dataset_config['dataset_name']
+        
+        # Set dataset_name from the loaded config
+        self.config.dataset_name = self.dataset_config['dataset_name']
+        self.dataset_name = self.config.dataset_name
+        
         self.categories = self.dataset_config['categories']
         self.root_dir = self._setup_output_directory()
         self.tracker = DatasetTracker()
         self.progress_cache = self._initialize_progress_cache()
         self.report = self._initialize_report()
         self.label_generator = LabelGenerator() if self.config.generate_labels else None
+
+        # Add missing attributes that are referenced in methods but not initialized
+        self.engine_stats = {}
+        self.total_downloaded = 0
+        self.stop_workers = False
+        self.log_level = logging.WARNING
+        self.lock = threading.RLock()
+        self.min_image_size = (100, 100)
+        self.delay_between_searches = 0.5
+        
+        # Initialize search_variations
+        self.config.search_variations = self._get_search_variations()
+        self.search_variations = self.config.search_variations
 
         # Update initialization progress
         self.progress.update_step(1)
@@ -2295,10 +2352,10 @@ class DatasetGenerator:
     def _get_crawler_class(engine_name: str) -> Any:
         """
         Get the crawler class based on engine name.
-        
+
         Args:
             engine_name: Name of the search engine
-            
+
         Returns:
             Crawler class
         """
@@ -2475,14 +2532,14 @@ class DatasetGenerator:
                         out_dir: str, max_num: int, total_max: int) -> int:
         """
         Process a search engine to download images (sequential version).
-        
+
         Args:
             engine_config: Engine configuration
             variations: List of search variations
             out_dir: Output directory
             max_num: Maximum images for this engine
             total_max: Overall maximum images
-            
+
         Returns:
             Number of images downloaded
         """
@@ -2528,6 +2585,26 @@ class DatasetGenerator:
                         self._get_crawler_class(engine_name),
                         out_dir
                     )
+
+                    try:
+                        # Patch the crawler's parser to handle None gracefully
+                        original_parse = crawler.parser.parse
+
+                        def safe_parse_wrapper(*args, **kwargs):
+                            try:
+                                result = original_parse(*args, **kwargs)
+                                # Ensure parse always returns an iterable
+                                if result is None:
+                                    logger.warning(f"Parser for {engine_name} returned None, using empty list")
+                                    return []
+                                return result
+                            except Exception as e:
+                                logger.warning(f"Parser exception in {engine_name}: {e}")
+                                return []
+
+                        crawler.parser.parse = safe_parse_wrapper
+                    except Exception as e:
+                        logger.warning(f"Failed to patch parser for {engine_name}: {e}")
 
                     crawler.crawl(
                         keyword=variation,
@@ -2607,7 +2684,7 @@ class DatasetGenerator:
 def generate_dataset(config: DatasetGenerationConfig) -> None:
     """
     Generate image dataset based on configuration file.
-    
+
     Args:
         config: Dataset generation configuration
     """
