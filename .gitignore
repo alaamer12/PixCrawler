@@ -2,4 +2,4 @@
 **/.venv/*
 **/datasets/*
 **/idea/*
-
+config.json
