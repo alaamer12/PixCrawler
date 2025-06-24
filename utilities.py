@@ -11,6 +11,11 @@ from tqdm.auto import tqdm
 from constants import DEFAULT_CACHE_FILE, logger, IMAGE_EXTENSIONS
 
 
+class TimeoutException(Exception):
+    """Custom exception for timeout operations"""
+    pass
+
+
 def is_valid_image_extension(file_path: Union[str, Path]) -> bool:
     """
     Check if a file has a valid image extension.
@@ -271,12 +276,6 @@ def remove_duplicate_images(directory: str) -> Tuple[int, List[str]]:
 
     logger.info(f"Removed {removed_count} duplicate images from {directory}")
     return removed_count, originals_kept
-
-
-class TimeoutException(Exception):
-    """Custom exception for timeout operations"""
-    pass
-
 
 
 def validate_image(image_path: str) -> bool:

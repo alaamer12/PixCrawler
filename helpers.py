@@ -6,12 +6,12 @@ generating reports, and handling file system operations like renaming files.
 """
 
 import os
-from pathlib import Path
 import shutil
 import time
+from pathlib import Path
+from typing import Optional, List, TextIO, Any, Union, Callable
+from tqdm.auto import tqdm
 
-import time
-from typing import Optional, List, TextIO, Dict, Any, Callable, Union
 
 __all__ = [
     'DatasetTracker',
@@ -83,6 +83,7 @@ class DatasetTracker:
             logger.info(f"\n📊 OVERALL SUCCESS RATE: {success_rate:.1f}%")
 
         logger.info("=" * 60)
+
 
 class ReportGenerator:
     """
@@ -200,7 +201,7 @@ class ReportGenerator:
     def _write_summary(self, f: TextIO) -> None:
         """Write the summary section."""
         f.write("## Summary\n\n")
-        
+
         # Create a table for summary items
         f.write("| Parameter | Value |\n")
         f.write("|-----------|-------|\n")
@@ -221,7 +222,8 @@ class ReportGenerator:
         for category, data in self.sections["keywords"].items():
             self._write_keyword_category(f, category, data)
 
-    def _write_keyword_category(self, f: TextIO, category: str, data: dict) -> None:
+    @staticmethod
+    def _write_keyword_category(f: TextIO, category: str, data: dict) -> None:
         """Write a single keyword category."""
         f.write(f"### Category: {category}\n\n")
         f.write(f"AI Model used: {data['model']}\n\n")
@@ -229,16 +231,16 @@ class ReportGenerator:
         # Create a table comparing original and generated keywords
         f.write("| Original Keywords | Generated Keywords |\n")
         f.write("|------------------|-------------------|\n")
-        
+
         # Get the maximum length of both lists
         max_length = max(len(data["original"]), len(data["generated"]))
-        
+
         # Fill in the table rows
         for i in range(max_length):
             original = data["original"][i] if i < len(data["original"]) else ""
             generated = data["generated"][i] if i < len(data["generated"]) else ""
             f.write(f"| {original} | {generated} |\n")
-        
+
         f.write("\n")
 
     def _write_downloads(self, f: TextIO) -> None:
@@ -275,7 +277,7 @@ class ReportGenerator:
         # Create a table for keywords in this category
         f.write("| Keyword | Downloaded | Attempted | Success Rate | Duplicates Removed | Unique Images |\n")
         f.write("|---------|------------|-----------|--------------|-------------------|---------------|\n")
-        
+
         category_attempted = 0
         category_downloaded = 0
         category_duplicates = 0
@@ -285,7 +287,7 @@ class ReportGenerator:
             category_attempted += keyword_stats["attempted"]
             category_downloaded += keyword_stats["downloaded"]
             category_duplicates += keyword_stats["duplicates"]
-            
+
             # Write any errors for this keyword
             if "errors" in data and data["errors"]:
                 f.write(f"\n**Errors for {keyword}:**\n\n")
@@ -293,7 +295,8 @@ class ReportGenerator:
                     f.write(f"- {error}\n")
 
         f.write("\n")
-        f.write(f"**Category Stats:** {category_downloaded}/{category_attempted} images downloaded, {category_duplicates} duplicates removed\n\n")
+        f.write(
+            f"**Category Stats:** {category_downloaded}/{category_attempted} images downloaded, {category_duplicates} duplicates removed\n\n")
 
         return {
             "attempted": category_attempted,
@@ -301,23 +304,24 @@ class ReportGenerator:
             "duplicates": category_duplicates
         }
 
-    def _write_download_keyword_table_row(self, f: TextIO, keyword: str, data: dict) -> dict:
+    @staticmethod
+    def _write_download_keyword_table_row(f: TextIO, keyword: str, data: dict) -> dict:
         """Write a single keyword as a table row and return its statistics."""
         attempted = data.get('attempted', 0)
         downloaded = data.get('downloaded', 0)
         success_rate = f"{(downloaded / attempted * 100):.1f}%" if attempted > 0 else "N/A"
-        
+
         duplicates_removed = 0
         unique_kept = 0
-        
+
         if "duplicates" in data:
             dup_data = data["duplicates"]
             duplicates_removed = dup_data.get('duplicates_removed', 0)
             unique_kept = dup_data.get('unique_kept', 0)
-        
+
         # Write the table row
         f.write(f"| {keyword} | {downloaded} | {attempted} | {success_rate} | {duplicates_removed} | {unique_kept} |\n")
-        
+
         return {
             "attempted": attempted,
             "downloaded": downloaded,
@@ -327,8 +331,9 @@ class ReportGenerator:
     @staticmethod
     def _write_download_totals(f: TextIO, total_stats: dict) -> None:
         """Write the overall download statistics."""
-        success_rate = f"{(total_stats['downloaded'] / total_stats['attempted'] * 100):.1f}%" if total_stats['attempted'] > 0 else "N/A"
-        
+        success_rate = f"{(total_stats['downloaded'] / total_stats['attempted'] * 100):.1f}%" if total_stats[
+                                                                                                     'attempted'] > 0 else "N/A"
+
         f.write("### Overall Download Statistics\n\n")
         f.write("| Metric | Value |\n")
         f.write("|--------|-------|\n")
@@ -368,7 +373,7 @@ class ReportGenerator:
     def _write_integrity_category(self, f: TextIO, category: str, keywords: dict) -> dict:
         """Write a single integrity category and return its statistics."""
         f.write(f"### Category: {category}\n\n")
-        
+
         # Create a table for integrity results
         f.write("| Keyword | Expected Images | Valid Images | Corrupted Images | Integrity Rate |\n")
         f.write("|---------|-----------------|--------------|------------------|---------------|\n")
@@ -382,14 +387,15 @@ class ReportGenerator:
             category_expected += keyword_stats["expected"]
             category_valid += keyword_stats["valid"]
             category_corrupted += keyword_stats["corrupted"]
-            
+
             # List corrupted files if any
             if data["corrupted_files"]:
                 self._write_corrupted_files(f, data["corrupted_files"])
 
         f.write("\n")
         integrity_rate = f"{(category_valid / category_expected * 100):.1f}%" if category_expected > 0 else "N/A"
-        f.write(f"**Category Integrity:** {category_valid}/{category_expected} valid images ({integrity_rate}), {category_corrupted} corrupted\n\n")
+        f.write(
+            f"**Category Integrity:** {category_valid}/{category_expected} valid images ({integrity_rate}), {category_corrupted} corrupted\n\n")
 
         return {
             "expected": category_expected,
@@ -397,16 +403,17 @@ class ReportGenerator:
             "corrupted": category_corrupted
         }
 
-    def _write_integrity_keyword_table_row(self, f: TextIO, keyword: str, data: dict) -> dict:
+    @staticmethod
+    def _write_integrity_keyword_table_row(f: TextIO, keyword: str, data: dict) -> dict:
         """Write a single keyword integrity as a table row and return its statistics."""
         expected = data['expected']
         valid = data['valid']
         corrupted = data['corrupted_count']
         integrity_rate = f"{(valid / expected * 100):.1f}%" if expected > 0 else "N/A"
-        
+
         # Write the table row
         f.write(f"| {keyword} | {expected} | {valid} | {corrupted} | {integrity_rate} |\n")
-        
+
         return {
             "expected": expected,
             "valid": valid,
@@ -418,21 +425,23 @@ class ReportGenerator:
         """Write the list of corrupted files."""
         if not corrupted_files:
             return
-            
+
         f.write("\n<details>\n")
         f.write("<summary>Corrupted Files (Click to expand)</summary>\n\n")
-        
+
         for corrupt_file in corrupted_files[:10]:  # Show just first 10
             f.write(f"- {os.path.basename(corrupt_file)}\n")
         if len(corrupted_files) > 10:
             f.write(f"- ... and {len(corrupted_files) - 10} more\n")
-            
+
         f.write("</details>\n\n")
 
-    def _write_integrity_totals(self, f: TextIO, total_stats: dict) -> None:
+    @staticmethod
+    def _write_integrity_totals(f: TextIO, total_stats: dict) -> None:
         """Write the overall integrity statistics."""
-        integrity_rate = f"{(total_stats['valid'] / total_stats['expected'] * 100):.1f}%" if total_stats['expected'] > 0 else "N/A"
-        
+        integrity_rate = f"{(total_stats['valid'] / total_stats['expected'] * 100):.1f}%" if total_stats[
+                                                                                                 'expected'] > 0 else "N/A"
+
         f.write("### Overall Integrity Statistics\n\n")
         f.write("| Metric | Value |\n")
         f.write("|--------|-------|\n")
@@ -448,18 +457,17 @@ class ReportGenerator:
             return
 
         f.write("## Errors\n\n")
-        
+
         # Create a table for errors
         f.write("| Context | Error | Timestamp |\n")
         f.write("|---------|-------|----------|\n")
-        
+
         for error in self.sections["errors"]:
             timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(error['timestamp']))
             f.write(f"| {error['context']} | {error['error']} | {timestamp_str} |\n")
-            
+
         f.write("\n")
         logger.info(f"Report generated at {self.report_file}")
-
 
 
 class FSRenamer:
@@ -597,21 +605,20 @@ class ProgressManager:
     across different steps of the dataset generation pipeline, ensuring clear
     visibility of the current stage while removing terminal logging.
     """
-    
+
     def __init__(self):
         """Initialize the progress manager."""
         try:
             # Import here to handle potential import errors gracefully
-            from tqdm.auto import tqdm
             self.tqdm = tqdm
         except ImportError:
             # Fallback to a simple progress indicator if tqdm is not available
             self.tqdm = self._dummy_tqdm
             logger.warning("tqdm not available, using simple progress indicators")
-            
+
         self.current_progress = None
         self.nested_progress = None
-        
+
         # Step definitions with descriptions
         self.steps = {
             "init": "Initializing PixCrawler",
@@ -621,7 +628,7 @@ class ProgressManager:
             "report": "Generating report",
             "finalizing": "Finalizing"
         }
-        
+
         # Step colors (if terminal supports it)
         self.colors = {
             "init": "blue",
@@ -645,15 +652,15 @@ class ProgressManager:
             desc = f"Processing {step}"
         else:
             desc = f"[{step.upper()}] {self.steps[step]}"
-        
+
         # Close any existing progress bars
         self.close()
-        
+
         # Ensure we have a valid total (use 1 as default if None is provided)
         # This prevents the TypeError when checking if self.current_progress evaluates to True
         if total is None:
             total = 1
-        
+
         # Create new progress bar
         self.current_progress = self.tqdm(
             total=total,
@@ -673,7 +680,7 @@ class ProgressManager:
         """
         if self.current_progress is not None and hasattr(self.current_progress, 'update'):
             self.current_progress.update(n)
-            
+
     def set_step_description(self, desc: str) -> None:
         """
         Update the description of the current main step.
@@ -683,7 +690,7 @@ class ProgressManager:
         """
         if self.current_progress is not None and hasattr(self.current_progress, 'set_description_str'):
             self.current_progress.set_description_str(desc)
-            
+
     def set_step_postfix(self, **kwargs) -> None:
         """
         Update postfix text of the current main step.
@@ -693,7 +700,7 @@ class ProgressManager:
         """
         if self.current_progress is not None and hasattr(self.current_progress, 'set_postfix'):
             self.current_progress.set_postfix(**kwargs)
-            
+
     def start_subtask(self, desc: str, total: Optional[int] = None) -> None:
         """
         Start a nested progress bar for subtasks.
@@ -705,11 +712,11 @@ class ProgressManager:
         # Close any existing nested progress bar
         if self.nested_progress:
             self.nested_progress.close()
-            
+
         # Ensure we have a valid total (use 1 as default if None is provided)
         if total is None:
             total = 1
-            
+
         # Create new nested progress bar
         self.nested_progress = self.tqdm(
             total=total,
@@ -718,7 +725,7 @@ class ProgressManager:
             position=1,
             dynamic_ncols=True
         )
-        
+
     def update_subtask(self, n: int = 1) -> None:
         """
         Update the current subtask progress.
@@ -728,7 +735,7 @@ class ProgressManager:
         """
         if self.nested_progress is not None and hasattr(self.nested_progress, 'update'):
             self.nested_progress.update(n)
-            
+
     def set_subtask_description(self, desc: str) -> None:
         """
         Update the description of the current subtask.
@@ -738,7 +745,7 @@ class ProgressManager:
         """
         if self.nested_progress is not None and hasattr(self.nested_progress, 'set_description_str'):
             self.nested_progress.set_description_str(f"  └─ {desc}")
-            
+
     def set_subtask_postfix(self, **kwargs) -> None:
         """
         Update postfix text of the current subtask.
@@ -748,48 +755,51 @@ class ProgressManager:
         """
         if self.nested_progress is not None and hasattr(self.nested_progress, 'set_postfix'):
             self.nested_progress.set_postfix(**kwargs)
-            
+
     def close_subtask(self) -> None:
         """Close the current subtask progress bar."""
         if self.nested_progress is not None and hasattr(self.nested_progress, 'close'):
             self.nested_progress.close()
             self.nested_progress = None
-            
+
     def close(self) -> None:
         """Close all progress bars."""
         self.close_subtask()
         if self.current_progress is not None and hasattr(self.current_progress, 'close'):
             self.current_progress.close()
             self.current_progress = None
-            
+
     def _dummy_tqdm(self, *args, **kwargs):
         """Simple progress indicator for fallback if tqdm not available."""
+
         class DummyTqdm:
             def __init__(self):
                 self.n = 0
                 self.total = kwargs.get('total', 100)  # Default total
-                
+
             def update(self, n=1):
                 self.n += n
                 print(f"\r{kwargs.get('desc', 'Progress')}: {self.n}/{self.total}", end="")
-                
-            def set_description_str(self, desc):
+
+            @staticmethod
+            def set_description_str(desc):
                 print(f"\r{desc}", end="")
-                
+
             def set_postfix(self, **kwargs):
                 postfix = ' '.join(f"{k}={v}" for k, v in kwargs.items())
                 print(f"\r{kwargs.get('desc', 'Progress')}: {self.n}/{self.total} {postfix}", end="")
-                
-            def close(self):
+
+            @staticmethod
+            def close():
                 print()
-                
+
             def __bool__(self):
                 # Always return True to avoid TypeError in bool() check
                 return True
-                
+
         return DummyTqdm()
-        
-    def iterate(self, iterable: Any, desc: str = None, total: Optional[int] = None, 
+
+    def iterate(self, iterable: Any, desc: str = None, total: Optional[int] = None,
                 subtask: bool = False, unit: str = "it") -> Any:
         """
         Iterate over an iterable with a progress bar.
@@ -804,9 +814,9 @@ class ProgressManager:
         Returns:
             Iterator with progress tracking
         """
-        progress_method = self.update_subtask if subtask else self.update_step
+        progress_method: Union[Callable[[int], None], bool] = self.update_subtask if subtask else self.update_step
         tqdm_instance = self.nested_progress if subtask else self.current_progress
-        
+
         # If we have an active progress bar, use it
         if tqdm_instance:
             if desc:
@@ -814,7 +824,7 @@ class ProgressManager:
                     self.set_subtask_description(desc)
                 else:
                     self.set_step_description(desc)
-            
+
             # Yield from the iterable and update progress
             for item in iterable:
                 yield item

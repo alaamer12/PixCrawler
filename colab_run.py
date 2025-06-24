@@ -26,6 +26,8 @@ Usage in Colab:
 from main import run_from_jupyter as _run_from_jupyter
 from jupyter_support import Colors, PIXCRAWLER_ASCII
 
+
+# noinspection PyIncorrectDocstring
 def run_pixcrawler(**kwargs):
     """
     Run PixCrawler with the specified parameters.
@@ -43,6 +45,7 @@ def run_pixcrawler(**kwargs):
         no_labels: Disable automatic label generation (default: False)
     """
     _run_from_jupyter(**kwargs)
+
 
 if __name__ == "__main__":
     # If run as a script, show usage information
@@ -62,4 +65,4 @@ if __name__ == "__main__":
         max_images=10,              # Max images per keyword
         output_dir=None,            # Custom output directory (optional)
     )
-    """) 
+    """)

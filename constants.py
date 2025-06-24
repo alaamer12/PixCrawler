@@ -8,7 +8,7 @@ formatting and log levels.
 
 import logging
 import warnings
-from typing import Set, List
+from typing import Set, List, Literal
 
 __all__ = [
     'DEFAULT_CACHE_FILE',
@@ -70,6 +70,7 @@ PIXCRAWLER_ASCII = """
                                                         
 """
 
+
 # ANSI Colors for terminal output
 class Colors:
     HEADER = '\033[95m'
@@ -81,3 +82,7 @@ class Colors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
+
+KEYWORD_MODE = Literal["auto", "disabled", "enabled"]
+AI_MODELS = Literal["gpt4", "gpt4-mini"]

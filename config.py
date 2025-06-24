@@ -7,15 +7,13 @@ configuration files and defines the main configuration data structure.
 """
 
 from dataclasses import dataclass
-from typing import Literal, Optional, Dict, Any
+from typing import Optional, Dict, Any
+from constants import DEFAULT_CACHE_FILE, KEYWORD_MODE, AI_MODELS
 
 __all__ = [
     'CONFIG_SCHEMA',
     'DatasetGenerationConfig'
 ]
-
-from constants import DEFAULT_CACHE_FILE
-
 
 # JSON schema for configuration file validation
 CONFIG_SCHEMA: Dict[str, Any] = {
@@ -109,6 +107,6 @@ class DatasetGenerationConfig:
     max_retries: int = 5
     continue_from_last: bool = False
     cache_file: str = DEFAULT_CACHE_FILE
-    keyword_generation: Literal["disabled", "enabled", "auto"] = "auto"
-    ai_model: Literal["gpt4", "gpt4-mini"] = "gpt4-mini"
+    keyword_generation: KEYWORD_MODE = "auto"
+    ai_model: AI_MODELS = "gpt4-mini"
     generate_labels: bool = True
