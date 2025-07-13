@@ -53,13 +53,13 @@ Create a config file following the example in `config.json.example`:
 Then run:
 
 ```bash
-python main.py
+python generator.py
 ```
 
 Or with custom options:
 
 ```bash
-python main.py -c my_config.json -m 30 --generate-keywords
+python generator.py -c my_config.json -m 30 --generate-keywords
 ```
 
 ### Configuration Options
