@@ -3,33 +3,18 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, List, Tuple, Union
+from typing import Any, Dict, Optional, List, Tuple
 
 from PIL import Image
 from tqdm.auto import tqdm
 
-from constants import DEFAULT_CACHE_FILE, logger, IMAGE_EXTENSIONS
+from constants import DEFAULT_CACHE_FILE, logger
+from helpers import FSRenamer, is_valid_image_extension
 
 
 class TimeoutException(Exception):
     """Custom exception for timeout operations"""
     pass
-
-
-def is_valid_image_extension(file_path: Union[str, Path]) -> bool:
-    """
-    Check if a file has a valid image extension.
-
-    Args:
-        file_path: Path to check
-
-    Returns:
-        bool: True if valid image extension, False otherwise
-    """
-    if isinstance(file_path, str):
-        file_path = Path(file_path)
-
-    return file_path.suffix.lower() in IMAGE_EXTENSIONS
 
 
 class ProgressCache:
@@ -330,3 +315,60 @@ def count_valid_images(directory: str) -> Tuple[int, int, List[str]]:
                 corrupted_files.append(str(file_path))
 
     return valid_count, total_count, corrupted_files
+
+
+def rename_images_sequentially(directory: str) -> int:
+    """
+    Rename all image files in a directory to a sequential, zero-padded format.
+
+    Args:
+        directory: Directory containing images to rename
+
+    Returns:
+        int: Number of renamed files
+    """
+    renamer = FSRenamer(directory)
+    return renamer.rename_sequentially()
+
+
+def count_valid_images_in_latest_batch(directory: str, previous_count: int) -> int:
+    """
+    Count valid images in the latest batch, starting from previous_count index.
+
+    Args:
+        directory: Directory path to check
+        previous_count: Number of images that existed before this batch
+
+    Returns:
+        int: Number of valid images in the latest batch
+    """
+    valid_count = 0
+
+    directory_path = Path(directory)
+    if not directory_path.exists():
+        return 0
+
+    # Get all image files
+    image_files = [
+        f for f in directory_path.iterdir()
+        if f.is_file() and is_valid_image_extension(f)
+    ]
+
+    # Sort by creation time to get the latest batch
+    image_files.sort(key=lambda x: os.path.getctime(x))
+
+    # Take only files that were likely created in this batch
+    latest_batch = image_files[previous_count:]
+
+    for file_path in latest_batch:
+        if validate_image(str(file_path)):
+            valid_count += 1
+        else:
+            # Remove corrupted image
+            try:
+                os.remove(file_path)
+                logger.warning(f"Removed corrupted image: {file_path}")
+            except Exception:
+                pass
+
+    return valid_count
