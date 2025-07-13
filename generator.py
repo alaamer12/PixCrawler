@@ -420,6 +420,82 @@ def _extract_keywords_from_response(response: str, category: str) -> List[str]:
         return [category]
 
 
+def check_duplicates(category_name: str, keyword: str, keyword_path: str, report: ReportGenerator) -> None:
+    """Check for and record duplicates in the report."""
+    try:
+        # Get all image files
+        image_files = [
+            f for f in Path(keyword_path).iterdir()
+            if f.is_file() and is_valid_image_extension(f)
+        ]
+        total_images = len(image_files)
+
+        logger.info(f"Checking for duplicates in {len(image_files)} images for {category_name}/{keyword}")
+
+        # Detect duplicates
+        duplicates = detect_duplicate_images(keyword_path)
+        duplicates_count = sum(len(dups) for dups in duplicates.values())
+        unique_kept = total_images - duplicates_count
+
+        # Record in report
+        report.record_duplicates(
+            category=category_name,
+            keyword=keyword,
+            total=total_images,
+            duplicates=duplicates_count,
+            kept=unique_kept
+        )
+
+        logger.info(f"Found and removed {duplicates_count} duplicates out of {total_images} images")
+
+    except Exception as e:
+        logger.warning(f"Failed to check duplicates for {category_name}/{keyword}: {e}")
+        report.record_error(f"{category_name}/{keyword} duplicates check", str(e))
+
+
+def check_image_integrity(
+        tracker: DatasetTracker,
+        download_context: str,
+        keyword_path: str,
+        max_images: int,
+        report: ReportGenerator,
+        category_name: str,
+        keyword: str
+) -> None:
+    """Check the integrity of downloaded images."""
+    valid_count, total_count, corrupted_files = count_valid_images(keyword_path)
+    if valid_count < max_images:
+        tracker.record_integrity_failure(
+            download_context,
+            max_images,
+            valid_count,
+            corrupted_files
+        )
+
+    # Record in report
+    report.record_integrity(
+        category=category_name,
+        keyword=keyword,
+        expected=max_images,
+        actual=valid_count,
+        corrupted=corrupted_files
+    )
+
+
+def update_logfile(log_file: str) -> None:
+    """Update the log file if it's different from the default."""
+    if log_file != DEFAULT_LOG_FILE:
+        for handler in logger.handlers:
+            if isinstance(handler, logging.FileHandler):
+                handler.close()
+                logger.removeHandler(handler)
+
+        new_file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        new_file_handler.setLevel(logging.INFO)
+        new_file_handler.setFormatter(file_formatter)
+        logger.addHandler(new_file_handler)
+
+
 class LabelGenerator:
     """
     Class to generate label files for images in the dataset.
@@ -810,82 +886,6 @@ class LabelGenerator:
         except Exception as e:
             logger.warning(f"Failed to write YAML label {label_path}: {e}")
             raise
-
-
-def check_duplicates(category_name: str, keyword: str, keyword_path: str, report: ReportGenerator) -> None:
-    """Check for and record duplicates in the report."""
-    try:
-        # Get all image files
-        image_files = [
-            f for f in Path(keyword_path).iterdir()
-            if f.is_file() and is_valid_image_extension(f)
-        ]
-        total_images = len(image_files)
-
-        logger.info(f"Checking for duplicates in {len(image_files)} images for {category_name}/{keyword}")
-
-        # Detect duplicates
-        duplicates = detect_duplicate_images(keyword_path)
-        duplicates_count = sum(len(dups) for dups in duplicates.values())
-        unique_kept = total_images - duplicates_count
-
-        # Record in report
-        report.record_duplicates(
-            category=category_name,
-            keyword=keyword,
-            total=total_images,
-            duplicates=duplicates_count,
-            kept=unique_kept
-        )
-
-        logger.info(f"Found and removed {duplicates_count} duplicates out of {total_images} images")
-
-    except Exception as e:
-        logger.warning(f"Failed to check duplicates for {category_name}/{keyword}: {e}")
-        report.record_error(f"{category_name}/{keyword} duplicates check", str(e))
-
-
-def check_image_integrity(
-        tracker: DatasetTracker,
-        download_context: str,
-        keyword_path: str,
-        max_images: int,
-        report: ReportGenerator,
-        category_name: str,
-        keyword: str
-) -> None:
-    """Check the integrity of downloaded images."""
-    valid_count, total_count, corrupted_files = count_valid_images(keyword_path)
-    if valid_count < max_images:
-        tracker.record_integrity_failure(
-            download_context,
-            max_images,
-            valid_count,
-            corrupted_files
-        )
-
-    # Record in report
-    report.record_integrity(
-        category=category_name,
-        keyword=keyword,
-        expected=max_images,
-        actual=valid_count,
-        corrupted=corrupted_files
-    )
-
-
-def update_logfile(log_file: str) -> None:
-    """Update the log file if it's different from the default."""
-    if log_file != DEFAULT_LOG_FILE:
-        for handler in logger.handlers:
-            if isinstance(handler, logging.FileHandler):
-                handler.close()
-                logger.removeHandler(handler)
-
-        new_file_handler = logging.FileHandler(log_file, encoding='utf-8')
-        new_file_handler.setLevel(logging.INFO)
-        new_file_handler.setFormatter(file_formatter)
-        logger.addHandler(new_file_handler)
 
 
 class DatasetGenerator:

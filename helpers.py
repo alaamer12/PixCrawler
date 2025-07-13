@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 from typing import Optional, List, TextIO, Any, Union, Callable
 from tqdm.auto import tqdm
+from constants import logger, IMAGE_EXTENSIONS
 
 __all__ = [
     'DatasetTracker',
@@ -18,8 +19,6 @@ __all__ = [
     'FSRenamer',
     'ProgressManager'
 ]
-
-from constants import logger, IMAGE_EXTENSIONS
 
 
 class DatasetTracker:
