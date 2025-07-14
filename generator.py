@@ -1,7 +1,34 @@
-"""
-This module is responsible for generating image datasets based on a given configuration.
-It orchestrates the entire process, including loading configurations, generating keywords,
-downloading images, performing integrity checks, and generating reports.
+"""Module for generating image datasets.
+
+This module orchestrates the entire process of generating image datasets, including:
+- Loading configurations
+- Generating keywords (with AI assistance)
+- Downloading images from various search engines
+- Performing integrity checks on downloaded images
+- Generating comprehensive reports
+- Creating label files for machine learning tasks
+
+Classes:
+    LabelGenerator: Generates label files for images in various formats (TXT, JSON, CSV, YAML).
+    DatasetGenerator: Manages the end-to-end dataset generation process.
+
+Functions:
+    retry_download_images: Attempts to download images with retries and alternative terms.
+    load_config: Loads and validates dataset configuration from a JSON file.
+    generate_keywords: Generates search keywords using an AI model.
+    check_duplicates: Checks for and removes duplicate images.
+    check_image_integrity: Verifies the integrity of downloaded images.
+    update_logfile: Updates the logging configuration to a specified file.
+    generate_dataset: Main entry point to start the dataset generation process.
+
+Features:
+- Multi-engine image downloading (Google, Bing, Baidu, DuckDuckGo)
+- AI-powered keyword generation for diverse image collection
+- Duplicate image detection and removal
+- Image integrity checking
+- Progress tracking and caching for resuming interrupted runs
+- Automatic label file generation in multiple formats (TXT, JSON, CSV, YAML)
+- Comprehensive report generation for dataset overview
 """
 
 import contextlib

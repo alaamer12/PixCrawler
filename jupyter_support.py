@@ -1,5 +1,18 @@
-"""
-Support functions for running PixCrawler in Jupyter/Colab environments.
+"""Support functions for running PixCrawler in Jupyter/Colab environments.
+
+This module provides utilities specifically designed to enhance the user experience
+when PixCrawler is run within interactive notebook environments like Jupyter or Google Colab.
+It includes functions for detecting the notebook environment and for colorizing output.
+
+Functions:
+    is_running_in_notebook: Checks if the current execution environment is a Jupyter notebook.
+    print_help_colored: Prints formatted and colorized help text for argument parsers.
+    colorize_output: Applies ANSI color styling to text output.
+
+Features:
+- Environment detection for Jupyter/Colab.
+- Enhanced, colorized CLI output for better readability in notebooks.
+- Utility for applying various color styles to text.
 """
 
 import argparse

@@ -1,9 +1,15 @@
 """
-Constants and logging configuration for the PixCrawler dataset generator.
+This module defines constants and sets up the logging configuration for the PixCrawler application. It includes default file paths, supported search engines, image extensions, and ASCII art for the application banner. It also configures logging to a file and provides ANSI color codes for terminal output.
 
-This module defines constants, configurations and sets up logging for the PixCrawler
-application. It configures both file and console logging handlers with appropriate
-formatting and log levels.
+Classes:
+    Colors: Provides ANSI escape codes for colored terminal output.
+
+Features:
+    - Defines core application constants such as default file paths and supported engines.
+    - Configures file-based logging for the application.
+    - Suppresses noisy warnings from external libraries.
+    - Includes ASCII art for the application's visual branding.
+    - Provides utility classes for colored console output.
 """
 
 import logging

@@ -4,25 +4,21 @@ PixCrawler is a customizable image dataset builder that crawls the web using pop
 
 ## 📚 Features
 
-* **JSON-driven configuration**
-  * Define dataset name, categories, and keywords for search
-* **Multi-engine support**
-  * Uses Google, Bing, Baidu, and DuckDuckGo as fallback
-* **Fast concurrent crawling**
-  * Efficient image scraping using parallel downloads
-* **Organized dataset structure**
-  * Images are grouped by category and keyword
-* **Duplicate detection**
-  * Automatically removes duplicates using content and perceptual hashing
-* **Progress tracking**
-  * Continue from where you left off with progress caching
-* **Keyword Generation**
-  * Automatically generate effective keywords when none are provided
-  * Optionally augment user-provided keywords with additional generated ones
-* **Label Generation**
-  * Automatically creates corresponding label files for each image
-  * Supports multiple formats (TXT, JSON, CSV)
-  * Maintains hierarchical structure matching the image dataset
+* **JSON-driven Configuration**: Define dataset name, categories, and keywords for search.
+* **Multi-Engine Support**: Utilizes Google, Bing, Baidu, and DuckDuckGo for comprehensive image crawling.
+* **Fast Concurrent Crawling**: Efficient image scraping through parallel downloads.
+* **Organized Dataset Structure**: Images are automatically grouped by category and keyword for easy management.
+* **Duplicate Detection**: Employs content and perceptual hashing to automatically remove duplicate images.
+* **Progress Tracking**: Features progress caching, allowing you to resume interrupted downloads seamlessly.
+* **AI-Powered Keyword Generation**:
+  * Automatically generates effective keywords when none are provided.
+  * Optionally augments user-provided keywords with additional AI-generated terms for broader searches.
+* **Automated Label Generation**:
+  * Creates corresponding label files for each image.
+  * Supports multiple formats: TXT, JSON, CSV, and YAML.
+  * Maintains a hierarchical structure that mirrors the image dataset for machine learning readiness.
+* **Image Integrity Checks**: Verifies the validity and integrity of downloaded images.
+* **Comprehensive Reporting**: Generates detailed reports on the dataset generation process, including download statistics, duplicate findings, and integrity check results.
 
 ## 🔧 Usage
 

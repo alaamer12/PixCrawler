@@ -1,8 +1,20 @@
 """
-This module provides helper classes and utilities for the PixCrawler dataset generator.
-It includes functionalities for tracking dataset generation progress, generating comprehensive
-reports, handling file system operations like sequential renaming of images, and managing
-interactive progress bars for a better user experience.
+This module provides helper classes and utilities for the PixCrawler dataset generator. It includes functionalities for tracking dataset generation progress, generating comprehensive reports, handling file system operations like sequential renaming of images, and managing interactive progress bars for a better user experience.
+
+Classes:
+    DatasetTracker: Tracks the progress and various outcomes of the dataset generation process.
+    ReportGenerator: Tracks and generates a markdown report about dataset generation.
+    FSRenamer: Renames image files sequentially within a specified directory.
+    ProgressManager: Manages centralized progress bars for the dataset generation process.
+
+Functions:
+    is_valid_image_extension: Checks if a file has a valid image extension.
+
+Features:
+    - Comprehensive tracking of download successes, failures, and integrity issues.
+    - Generation of detailed markdown reports for dataset generation summaries.
+    - Robust file system operations for renaming and organizing image files.
+    - Interactive progress bars for real-time feedback during long-running operations.
 """
 
 import os

@@ -1,26 +1,13 @@
-#!/usr/bin/env python3
 """
-PixCrawler for Google Colab
+This module provides an easy interface for running PixCrawler in Google Colab or other Jupyter notebook environments. It re-exports the `run_from_jupyter` function from the `main` module, allowing users to interact with PixCrawler programmatically within their notebooks.
 
-This script provides an easy interface for running PixCrawler in Google Colab
-or other Jupyter notebook environments.
+Functions:
+    run_pixcrawler: A wrapper function to run PixCrawler with specified parameters, designed for notebook environments.
 
-Usage in Colab:
-    # Install dependencies
-    !pip install g4f duckduckgo_search icrawler
-    
-    # Copy files to Colab
-    !git clone https://github.com/yourusername/pixcrawler.git
-    %cd pixcrawler
-    
-    # Import and run
-    from colab_run import run_pixcrawler
-    
-    run_pixcrawler(
-        config_path="config.json",  # Path to your configuration file
-        max_images=10,              # Max images per keyword
-        output_dir=None,            # Custom output directory (optional)
-    )
+Features:
+    - Simplified API for Colab/Jupyter integration.
+    - Abstracts command-line argument parsing for notebook users.
+    - Provides a direct way to initiate dataset generation from interactive environments.
 """
 
 from main import run_from_jupyter as _run_from_jupyter

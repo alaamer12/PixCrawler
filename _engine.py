@@ -1,7 +1,25 @@
 """
-This module provides the core logic for processing search engines and downloading images.
-It includes classes for managing engine configurations, tracking statistics,
-and orchestrating parallel and sequential image downloads.
+This module provides the core logic for processing search engines and downloading images. It includes classes for managing engine configurations, tracking statistics, and orchestrating parallel and sequential image downloads.
+
+Classes:
+    EngineMode: Enumeration for different engine processing modes (parallel, sequential).
+    EngineConfig: Configuration for a search engine, including offset range and variation step.
+    VariationResult: Represents the outcome of processing a single search variation.
+    EngineResult: Represents the aggregated result of processing a single search engine.
+    EngineStats: Tracks performance statistics for individual search engines.
+    EngineProcessor: Manages and orchestrates image downloads across multiple search engines, supporting parallel and sequential modes.
+    SingleEngineProcessor: Handles the detailed processing of a single search engine, including its variations.
+
+Functions:
+    load_engine_configs: Loads and converts raw engine configurations into EngineConfig objects.
+    select_variations: Selects an optimal number of search variations based on download targets.
+
+Features:
+    - Centralized management of search engine configurations.
+    - Detailed tracking and logging of engine performance and download statistics.
+    - Support for parallel and sequential image downloading across various search engines.
+    - Intelligent selection and processing of search variations to optimize image retrieval.
+    - Robust error handling and monitoring during the download process.
 """
 
 import concurrent.futures

@@ -1,7 +1,20 @@
 """
-This module provides various image downloading functionalities, including
-DuckDuckGo search integration and a multi-threaded image downloader
-that leverages different search engines.
+This module provides various image downloading functionalities, including DuckDuckGo search integration and a multi-threaded image downloader that leverages different search engines.
+
+Classes:
+    IDownloader: A protocol defining the interface for image downloaders.
+    DuckDuckGoImageDownloader: A class to download images using DuckDuckGo search.
+    ImageDownloader: A class for downloading images using multiple image crawlers in parallel.
+
+Functions:
+    download_images_ddgs: Downloads images directly using the DuckDuckGo search engine.
+
+Features:
+    - DuckDuckGo image search integration.
+    - Multi-threaded image downloading.
+    - Support for various search engines.
+    - Parallel and sequential download processing.
+    - Fallback mechanisms for robust image retrieval.
 """
 
 import concurrent.futures

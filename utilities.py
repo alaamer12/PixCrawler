@@ -1,7 +1,34 @@
 """
-This module provides various utility functions and classes for the PixCrawler project.
-It includes functionalities for managing download progress caching, image hashing,
-duplicate detection and removal, image integrity validation, and sequential file renaming.
+Overview:
+    This module provides various utility functions and classes for the PixCrawler project.
+    It includes functionalities for managing download progress caching, image hashing,
+    duplicate detection and removal, image integrity validation, and sequential file renaming.
+
+Classes:
+    TimeoutException: Custom exception for operation timeouts.
+    ProgressCache: Manages the caching of progress for dataset generation.
+
+Functions:
+    get_image_hash: Computes a perceptual hash for an image.
+    get_file_hash: Computes the MD5 hash of a file's contents.
+    _get_image_files: Retrieves a list of all valid image files within a directory.
+    _build_hash_maps: Builds content hash and perceptual hash maps for image files.
+    _find_exact_duplicates: Identifies exact duplicate images based on content hashes.
+    _is_file_duplicate: Checks if a file is already marked as a duplicate.
+    _process_perceptual_duplicates: Processes perceptual duplicates and merges them with exact duplicates.
+    detect_duplicate_images: Detects duplicate images within a directory.
+    remove_duplicate_images: Removes duplicate images from a directory.
+    validate_image: Validates if an image file is not corrupted.
+    count_valid_images: Counts valid and invalid images in a directory.
+    rename_images_sequentially: Renames all image files in a directory to a sequential format.
+    count_valid_images_in_latest_batch: Counts valid images in the latest batch.
+
+Features:
+    - Progress caching for resuming interrupted dataset generation.
+    - Image hashing (perceptual and content) for duplicate detection.
+    - Robust duplicate image detection and removal.
+    - Image integrity validation using Pillow.
+    - Sequential renaming of image files.
 """
 
 import hashlib

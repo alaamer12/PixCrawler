@@ -1,9 +1,17 @@
 """
-Configuration module for PixCrawler dataset generator.
+This module provides configuration schema definitions and data classes for managing PixCrawler application configuration. It includes JSON schema validation for configuration files and defines the main configuration data structure.
 
-This module provides configuration schema definitions and data classes for
-managing application configuration. It includes JSON schema validation for 
-configuration files and defines the main configuration data structure.
+Classes:
+    DatasetGenerationConfig: Holds all configuration options for the dataset generation process.
+
+Functions:
+    get_search_variations: Returns a list of search variation templates.
+    get_engines: Returns a list of engine configurations.
+
+Features:
+    - Defines a JSON schema for validating configuration files.
+    - Provides a dataclass for structured access to configuration parameters.
+    - Manages predefined search variations and engine configurations.
 """
 
 from dataclasses import dataclass

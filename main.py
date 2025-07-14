@@ -1,8 +1,20 @@
 """
-This module serves as the main entry point for the PixCrawler application.
-It handles command-line argument parsing, configuration loading, and orchestrates
-the dataset generation process. It also provides a function for running PixCrawler
-directly from Jupyter notebooks or Google Colab.
+This module serves as the main entry point for the PixCrawler application. It handles command-line argument parsing, configuration loading, and orchestrates the dataset generation process. It also provides a function for running PixCrawler directly from Jupyter notebooks or Google Colab.
+
+Classes:
+    None
+
+Functions:
+    parse_args_safely: Parses command-line arguments safely for different environments.
+    run_from_jupyter: Runs PixCrawler directly from a Jupyter notebook or Google Colab environment.
+    create_arg_parser: Creates and configures an argument parser for PixCrawler's CLI.
+    main: Main function to parse command-line arguments and initiate the dataset generation process.
+
+Features:
+    - Command-line interface for configuring and running dataset generation.
+    - Jupyter/Colab compatibility for interactive use.
+    - Flexible configuration loading.
+    - Integration with the core dataset generation logic.
 """
 
 import argparse
