@@ -795,12 +795,15 @@ class LabelGenerator:
             elif self.format_type == "yaml":
                 self._write_yaml_label(label_file_path, category, keyword, image_file, image_metadata)
 
-        except PermissionError:
-            logger.warning(f"Permission denied when creating label file for {image_file}")
-        except IOError as e:
-            logger.warning(f"I/O error generating label for {image_file}: {e}")
+        except PermissionError as pe:
+            logger.warning(f"Permission denied when creating label file for {image_file}: {pe}")
+            raise GenerationError(f"Permission denied creating label for {image_file}: {pe}") from pe
+        except IOError as ioe:
+            logger.warning(f"I/O error generating label for {image_file}: {ioe}")
+            raise GenerationError(f"I/O error generating label for {image_file}: {ioe}") from ioe
         except Exception as e:
             logger.warning(f"Unexpected error generating label for {image_file}: {e}")
+            raise GenerationError(f"Unexpected error generating label for {image_file}: {e}") from e
 
     @staticmethod
     def _extract_image_metadata(image_path: Path) -> Dict[str, Any]:

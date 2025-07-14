@@ -810,9 +810,12 @@ class FSRenamer:
                 # Log progress every 10 files
                 if renamed_count % 10 == 0 or renamed_count == len(self.image_files):
                     logger.debug(f"Renamed {renamed_count}/{len(self.image_files)} images")
+            except IOError as ioe:
+                logger.error(f"Failed to copy {file_path} to temp directory: {ioe}")
+                raise PixCrawlerError(f"Failed to copy {file_path} to temp directory: {ioe}") from ioe
             except Exception as e:
-                logger.error(f"Failed to copy {file_path} to temp directory: {e}")
-                raise PixCrawlerError(f"Failed to copy {file_path} to temp directory: {e}") from e
+                logger.error(f"An unexpected error occurred while copying {file_path} to temp directory: {e}")
+                raise PixCrawlerError(f"Unexpected error copying {file_path} to temp directory: {e}") from e
 
         return renamed_count
 
@@ -823,8 +826,10 @@ class FSRenamer:
         for file_path in self.image_files:
             try:
                 os.remove(file_path)
+            except OSError as ose:
+                logger.error(f"Failed to delete original file {file_path}: {ose}")
             except Exception as e:
-                logger.error(f"Failed to delete original file {file_path}: {e}")
+                logger.error(f"An unexpected error occurred while deleting original file {file_path}: {e}")
 
     def _move_files_from_temp_to_original(self) -> None:
         """
@@ -837,8 +842,10 @@ class FSRenamer:
             if file_path.is_file():
                 try:
                     shutil.move(str(file_path), str(self.directory_path / file_path.name))
+                except IOError as ioe:
+                    logger.error(f"Failed to move {file_path} from temp directory: {ioe}")
                 except Exception as e:
-                    logger.error(f"Failed to move {file_path} from temp directory: {e}")
+                    logger.error(f"An unexpected error occurred while moving {file_path} from temp directory: {e}")
 
     def _cleanup_temp_directory(self) -> None:
         """
@@ -849,8 +856,10 @@ class FSRenamer:
 
         try:
             shutil.rmtree(self.temp_dir)
+        except OSError as ose:
+            logger.error(f"Failed to remove temp directory: {ose}")
         except Exception as e:
-            logger.error(f"Failed to remove temp directory: {e}")
+            logger.error(f"An unexpected error occurred while removing temp directory: {e}")
 
 
 class ProgressManager:

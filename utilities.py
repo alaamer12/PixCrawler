@@ -107,8 +107,10 @@ class ProgressCache:
             with open(self.cache_file, 'w', encoding='utf-8') as f:
                 json.dump(self.completed_paths, f, indent=2)
             logger.debug(f"Progress cache saved to {self.cache_file}")
+        except IOError as ioe:
+            logger.error(f"Failed to save progress cache: {ioe}")
         except Exception as e:
-            logger.error(f"Failed to save progress cache: {e}")
+            logger.error(f"An unexpected error occurred while saving progress cache: {e}")
 
     def is_completed(self, category: str, keyword: str) -> bool:
         """
@@ -402,8 +404,10 @@ def remove_duplicate_images(directory: str) -> Tuple[int, List[str]]:
                 removed_count += 1
                 removed_files.append(dup)
                 logger.info(f"Removed duplicate image: {dup} (duplicate of {original})")
+            except OSError as ose:
+                logger.warning(f"Failed to remove duplicate {dup}: {ose}")
             except Exception as e:
-                logger.warning(f"Failed to remove duplicate {dup}: {e}")
+                logger.warning(f"An unexpected error occurred while removing duplicate {dup}: {e}")
 
     logger.info(f"Removed {removed_count} duplicate images from {directory}")
     return removed_count, originals_kept
@@ -429,8 +433,11 @@ def validate_image(image_path: str) -> bool:
                 return False
 
         return True
-    except Exception as e:
+    except (Image.UnidentifiedImageError, IOError) as e:
         logger.error(f"Corrupted image detected: {image_path} - {str(e)}")
+        return False
+    except Exception as e:
+        logger.error(f"An unexpected error occurred during image validation: {image_path} - {str(e)}")
         return False
 
 
@@ -514,7 +521,9 @@ def count_valid_images_in_latest_batch(directory: str, previous_count: int) -> i
             try:
                 os.remove(file_path)
                 logger.warning(f"Removed corrupted image: {file_path}")
-            except Exception:
-                pass
+            except OSError as ose:
+                logger.warning(f"Error removing corrupted image {file_path}: {ose}")
+            except Exception as e:
+                logger.warning(f"An unexpected error occurred while removing corrupted image {file_path}: {e}")
 
     return valid_count

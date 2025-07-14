@@ -34,7 +34,7 @@ from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCra
 
 from config import get_engines
 from constants import logger
-from _exceptions import DownloadError
+from _exceptions import DownloadError, CrawlerError, CrawlerInitializationError, CrawlerExecutionError
 from utilities import count_valid_images_in_latest_batch
 
 __all__ = [
@@ -332,9 +332,21 @@ class EngineProcessor:
                 except concurrent.futures.TimeoutError:
                     config = engine_futures[future]
                     logger.warning(f"Engine {config.name} timed out")
+                    results.append(EngineResult(
+                        engine_name=config.name,
+                        total_downloaded=0,
+                        variations_processed=0,
+                        success_rate=0.0,
+                        processing_time=0.0,
+                        variations=[]
+                    ))
+                except CrawlerError as ce:
+                    config = engine_futures[future]
+                    logger.error(f"Engine {config.name} failed with crawler error: {ce}")
+                    raise ce
                 except Exception as e:
                     config = engine_futures[future]
-                    logger.error(f"Engine {config.name} failed: {e}")
+                    logger.error(f"Engine {config.name} failed with unexpected error: {e}")
                     raise DownloadError(f"Engine {config.name} failed during parallel download: {e}") from e
 
         return results
@@ -530,8 +542,16 @@ class SingleEngineProcessor:
             # Calculate totals
             downloaded_count = sum(result.downloaded_count for result in variation_results)
 
+        except (CrawlerInitializationError, CrawlerExecutionError) as ce:
+            logger.error(f"Engine {config.name} failed with crawler error: {ce}")
+            variation_results.append(VariationResult(
+                variation="engine_failure",
+                downloaded_count=0,
+                success=False,
+                error=str(ce)
+            ))
         except Exception as e:
-            logger.error(f"Engine {config.name} failed with error: {e}")
+            logger.error(f"Engine {config.name} failed with unexpected error: {e}")
             variation_results.append(VariationResult(
                 variation="engine_failure",
                 downloaded_count=0,
@@ -600,9 +620,18 @@ class SingleEngineProcessor:
                         success=False,
                         error="Timeout"
                     ))
+                except (CrawlerInitializationError, CrawlerExecutionError) as ce:
+                    variation = variation_futures[future]
+                    logger.error(f"Crawler error for variation '{variation}' in {config.name}: {ce}")
+                    results.append(VariationResult(
+                        variation=variation,
+                        downloaded_count=0,
+                        success=False,
+                        error=str(ce)
+                    ))
                 except Exception as e:
                     variation = variation_futures[future]
-                    logger.error(f"Variation '{variation}' failed for {config.name}: {e}")
+                    logger.error(f"Unexpected error for variation '{variation}' in {config.name}: {e}")
                     results.append(VariationResult(
                         variation=variation,
                         downloaded_count=0,
@@ -747,11 +776,14 @@ class SingleEngineProcessor:
         """
         crawler_class = self.engine_processor.get_crawler_class(engine_name)
         if not crawler_class:
-            raise ValueError(f"No crawler class found for engine: {engine_name}")
+            raise CrawlerInitializationError(f"No crawler class found for engine: {engine_name}")
 
-        crawler = self.engine_processor.create_crawler(crawler_class, out_dir)
-        self._apply_safe_parser_wrapper(crawler, engine_name)
-        return crawler
+        try:
+            crawler = self.engine_processor.create_crawler(crawler_class, out_dir)
+            self._apply_safe_parser_wrapper(crawler, engine_name)
+            return crawler
+        except Exception as e:
+            raise CrawlerInitializationError(f"Failed to initialize crawler for {engine_name}: {e}") from e
 
     @staticmethod
     def _apply_safe_parser_wrapper(crawler: Any, engine_name: str) -> None:

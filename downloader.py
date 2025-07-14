@@ -34,7 +34,7 @@ from config import get_search_variations
 from constants import logger
 from helpers import progress
 from utilities import validate_image, rename_images_sequentially
-from _exceptions import DownloadError
+from _exceptions import DownloadError, ImageValidationError
 
 __all__ = [
     'IDownloader',
@@ -111,31 +111,34 @@ class DuckDuckGoImageDownloader(IDownloader):
             # Check content type and file size before saving
             content_type = response.headers.get('Content-Type', '')
             if not content_type.startswith('image/'):
-                logger.warning(f"Skipping non-image content type: {content_type}")
-                return False
+                raise ImageValidationError(f"Skipping non-image content type: {content_type}")
 
             if len(response.content) < self.min_file_size:
-                logger.warning(f"Skipping too small image ({len(response.content)} bytes)")
-                return False
+                raise ImageValidationError(f"Skipping too small image ({len(response.content)} bytes)")
 
             with open(file_path, "wb") as f:
                 f.write(response.content)
 
             # Validate the downloaded image
-            if validate_image(file_path):
-                return True
-            else:
+            if not validate_image(file_path):
                 # Remove corrupted image
                 try:
                     os.remove(file_path)
                     logger.warning(f"Removed corrupted image: {file_path}")
-                except Exception:
-                    pass
-                return False
+                except OSError as ose:
+                    logger.error(f"Error removing corrupted image {file_path}: {ose}")
+                raise ImageValidationError(f"Downloaded image failed validation: {file_path}")
+            return True
 
+        except requests.exceptions.RequestException as req_e:
+            logger.warning(f"Network or request error downloading {image_url}: {req_e}")
+            raise DownloadError(f"Network or request error downloading {image_url}: {req_e}") from req_e
+        except ImageValidationError as ive:
+            logger.warning(f"Image validation error for {image_url}: {ive}")
+            raise ive
         except Exception as e:
-            logger.warning(f"Failed to download {image_url}: {e}")
-            raise DownloadError(f"Failed to download {image_url}: {e}") from e
+            logger.warning(f"An unexpected error occurred while downloading {image_url}: {e}")
+            raise DownloadError(f"Unexpected error downloading {image_url}: {e}") from e
 
     def _download_single_image(self, result: dict, out_dir: str, index: int) -> bool:
         """
@@ -251,8 +254,10 @@ class DuckDuckGoImageDownloader(IDownloader):
                         with self.lock:
                             downloaded += 1
                             logger.info(f"Downloaded image from DuckDuckGo [{downloaded}/{max_count}]")
-                except Exception as e:
+                except (DownloadError, ImageValidationError) as e:
                     logger.warning(f"Error downloading image: {e}")
+                except Exception as e:
+                    logger.error(f"An unexpected error occurred during parallel download: {e}")
 
         return downloaded
 
@@ -317,9 +322,12 @@ class DuckDuckGoImageDownloader(IDownloader):
 
             return downloaded_count > 0, downloaded_count
 
+        except DownloadError as de:
+            logger.error(f"A download-specific error occurred for '{keyword}': {de}")
+            raise de
         except Exception as e:
-            logger.error(f"Failed to download images for '{keyword}': {str(e)}")
-            raise DownloadError(f"Failed to download images for '{keyword}': {e}") from e
+            logger.error(f"An unexpected error occurred while downloading images for '{keyword}': {e}")
+            raise DownloadError(f"Unexpected error during download for '{keyword}': {e}") from e
 
 
 def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
@@ -338,7 +346,7 @@ def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool
     """
     try:
         # Create the output directory if it doesn't exist
-        os.makedirs(out_dir, exist_ok=True)
+        Path(out_dir).mkdir(parents=True, exist_ok=True)
 
         # Initialize the DuckDuckGo downloader with parallel processing
         ddg_downloader = DuckDuckGoImageDownloader(max_workers=6)
@@ -358,8 +366,11 @@ def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool
         logger.info(f"DuckDuckGo download complete: {actual_downloaded} new images")
 
         return True, actual_downloaded
+    except DownloadError as de:
+        logger.error(f"DuckDuckGo download failed for '{keyword}': {de}")
+        return False, 0
     except Exception as e:
-        logger.error(f"Error downloading images from DuckDuckGo: {str(e)}")
+        logger.error(f"An unexpected error occurred during DuckDuckGo download for '{keyword}': {e}")
         return False, 0
 
 
