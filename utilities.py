@@ -470,17 +470,18 @@ def count_valid_images(directory: str) -> Tuple[int, int, List[str]]:
     return valid_count, total_count, corrupted_files
 
 
-def rename_images_sequentially(directory: str) -> int:
+def rename_images_sequentially(directory: str, padding_width: Optional[int] = 4) -> int:
     """
     Rename all image files in a directory to a sequential, zero-padded format.
 
     Args:
         directory: Directory containing images to rename
+        padding_width: The desired width for zero-padding sequential filenames. Defaults to 4.
 
     Returns:
         int: Number of renamed files
     """
-    renamer = FSRenamer(directory)
+    renamer = FSRenamer(directory, padding_width)
     return renamer.rename_sequentially()
 
 

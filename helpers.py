@@ -697,16 +697,19 @@ class FSRenamer:
     while maintaining data integrity through temporary directory operations.
     """
 
-    def __init__(self, directory: str):
+    def __init__(self, directory: str, padding_width: Optional[int] = None):
         """
         Initializes the FSRenamer with the target directory.
 
         Args:
             directory (str): The path to the directory containing images to rename.
+            padding_width (Optional[int]): The desired width for zero-padding sequential filenames.
+                                          If None, it will be calculated based on the number of files (min 3).
         """
         self.directory_path = Path(directory)
         self.temp_dir: Optional[Path] = None
         self.image_files: List[Path] = []
+        self._user_defined_padding_width = padding_width
         self.padding_width: int = 0
 
     def rename_sequentially(self) -> int:
@@ -728,7 +731,7 @@ class FSRenamer:
             return 0
 
         self.temp_dir = self._create_temp_directory()
-        self.padding_width = self._calculate_padding_width(len(self.image_files))
+        self.padding_width = self._user_defined_padding_width if self._user_defined_padding_width is not None else self._calculate_padding_width(len(self.image_files))
 
         renamed_count = self._copy_files_to_temp_with_new_names()
 
@@ -763,7 +766,8 @@ class FSRenamer:
             f for f in self.directory_path.iterdir()
             if f.is_file() and is_valid_image_extension(f)
         ]
-        image_files.sort(key=lambda x: os.path.getctime(x))
+        # Sort by filename to maintain any existing sequential order
+        image_files.sort(key=lambda x: x.name)
         return image_files
 
     def _create_temp_directory(self) -> Path:
