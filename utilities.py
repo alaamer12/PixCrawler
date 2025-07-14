@@ -1,3 +1,9 @@
+"""
+This module provides various utility functions and classes for the PixCrawler project.
+It includes functionalities for managing download progress caching, image hashing,
+duplicate detection and removal, image integrity validation, and sequential file renaming.
+"""
+
 import hashlib
 import json
 import os
@@ -9,25 +15,53 @@ from PIL import Image
 from tqdm.auto import tqdm
 
 from constants import DEFAULT_CACHE_FILE, logger
-from helpers import FSRenamer, is_valid_image_extension
+from helpers import is_valid_image_extension, FSRenamer
+
+__all__ = [
+    'TimeoutException',
+    'ProgressCache',
+    'get_image_hash',
+    'get_file_hash',
+    'detect_duplicate_images',
+    'remove_duplicate_images',
+    'validate_image',
+    'count_valid_images',
+    'rename_images_sequentially',
+    'count_valid_images_in_latest_batch'
+]
 
 
 class TimeoutException(Exception):
-    """Custom exception for timeout operations"""
+    """
+    Custom exception raised when a timeout occurs during an operation.
+    """
     pass
 
 
 class ProgressCache:
     """
-    Tracks and manages progress for dataset generation to enable continuing from where we left off.
+    Manages the caching of progress for dataset generation, allowing the process
+    to be resumed from where it left off in case of interruption.
     """
 
     def __init__(self, cache_file: str = DEFAULT_CACHE_FILE):
-        self.cache_file = cache_file
-        self.completed_paths = self._load_cache()
+        """
+        Initializes the ProgressCache.
+
+        Args:
+            cache_file (str): The path to the JSON file used for caching progress.
+        """
+        self.cache_file: str = cache_file
+        self.completed_paths: Dict[str, Dict[str, Any]] = self._load_cache()
 
     def _load_cache(self) -> Dict[str, Dict[str, Any]]:
-        """Load progress cache from file if it exists."""
+        """
+        Loads the progress cache from the specified cache file.
+        If the file does not exist or an error occurs during loading, an empty dictionary is returned.
+
+        Returns:
+            Dict[str, Dict[str, Any]]: A dictionary representing the loaded cache.
+        """
         if os.path.exists(self.cache_file):
             try:
                 with open(self.cache_file, 'r', encoding='utf-8') as f:
@@ -38,7 +72,9 @@ class ProgressCache:
         return {}
 
     def save_cache(self) -> None:
-        """Save current progress to cache file."""
+        """
+        Saves the current progress cache to the cache file.
+        """
         try:
             with open(self.cache_file, 'w', encoding='utf-8') as f:
                 json.dump(self.completed_paths, f, indent=2)
@@ -47,13 +83,30 @@ class ProgressCache:
             logger.error(f"Failed to save progress cache: {e}")
 
     def is_completed(self, category: str, keyword: str) -> bool:
-        """Check if a specific path has been completed."""
+        """
+        Checks if a specific category/keyword combination has already been marked as completed.
+
+        Args:
+            category (str): The category name.
+            keyword (str): The keyword name.
+
+        Returns:
+            bool: True if the combination is found in the completed paths, False otherwise.
+        """
         path_key = f"{category}/{keyword}"
         return path_key in self.completed_paths
 
     def mark_completed(self, category: str, keyword: str,
                        metadata: Optional[Dict[str, Any]] = None) -> None:
-        """Mark a path as completed with optional metadata."""
+        """
+        Marks a specific category/keyword combination as completed and stores optional metadata.
+        The cache is saved immediately after marking to ensure persistence.
+
+        Args:
+            category (str): The category name.
+            keyword (str): The keyword name.
+            metadata (Optional[Dict[str, Any]]): Optional dictionary of metadata to store with the completion record.
+        """
         path_key = f"{category}/{keyword}"
         self.completed_paths[path_key] = {
             "timestamp": time.time(),
@@ -65,7 +118,13 @@ class ProgressCache:
         self.save_cache()
 
     def get_completion_stats(self) -> Dict[str, int]:
-        """Get statistics about completion progress."""
+        """
+        Retrieves statistics about the completion progress.
+
+        Returns:
+            Dict[str, int]: A dictionary containing 'total_completed' (number of completed items)
+                            and 'categories' (number of unique categories completed).
+        """
         return {
             "total_completed": len(self.completed_paths),
             "categories": len(set(item["category"] for item in self.completed_paths.values()))
@@ -74,14 +133,14 @@ class ProgressCache:
 
 def get_image_hash(image_path: str, hash_size: int = 8) -> Optional[str]:
     """
-    Compute a perceptual hash for an image to find visually similar images.
-    
+    Computes a perceptual hash for an image, which can be used to find visually similar images.
+
     Args:
-        image_path: Path to the image file
-        hash_size: Size of the hash (larger = more sensitive)
-        
+        image_path (str): The path to the image file.
+        hash_size (int): The size of the hash (e.g., 8, 16). A larger size results in more sensitivity.
+
     Returns:
-        str: Perceptual hash string or None if image can't be processed
+        Optional[str]: The hexadecimal string representation of the perceptual hash, or None if the image cannot be processed.
     """
     try:
         with Image.open(image_path) as img:
@@ -105,13 +164,13 @@ def get_image_hash(image_path: str, hash_size: int = 8) -> Optional[str]:
 
 def get_file_hash(file_path: str) -> Optional[str]:
     """
-    Compute a regular MD5 hash of file contents.
-    
+    Computes the MD5 hash of a file's contents.
+
     Args:
-        file_path: Path to the file
-        
+        file_path (str): The path to the file.
+
     Returns:
-        str: MD5 hash string or None if file can't be read
+        Optional[str]: The hexadecimal string representation of the MD5 hash, or None if the file cannot be read.
     """
     try:
         with open(file_path, "rb") as f:
@@ -126,7 +185,15 @@ def get_file_hash(file_path: str) -> Optional[str]:
 
 
 def _get_image_files(directory_path: Path) -> List[str]:
-    """Get all valid image files from directory."""
+    """
+    Retrieves a list of all valid image files within a specified directory.
+
+    Args:
+        directory_path (Path): The path to the directory to scan.
+
+    Returns:
+        List[str]: A list of absolute paths to the image files.
+    """
     return [
         str(f) for f in directory_path.iterdir()
         if f.is_file() and is_valid_image_extension(f)
@@ -134,7 +201,17 @@ def _get_image_files(directory_path: Path) -> List[str]:
 
 
 def _build_hash_maps(image_files: List[str]) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
-    """Build content and perceptual hash maps for all images."""
+    """
+    Builds content hash and perceptual hash maps for a list of image files.
+
+    Args:
+        image_files (List[str]): A list of absolute paths to image files.
+
+    Returns:
+        Tuple[Dict[str, List[str]], Dict[str, List[str]]]: A tuple containing two dictionaries:
+            - The first dictionary maps content hashes to a list of file paths with that hash.
+            - The second dictionary maps perceptual hashes to a list of file paths with that hash.
+    """
     content_hash_map: Dict[str, List[str]] = {}
     perceptual_hash_map: Dict[str, List[str]] = {}
 
@@ -153,7 +230,16 @@ def _build_hash_maps(image_files: List[str]) -> Tuple[Dict[str, List[str]], Dict
 
 
 def _find_exact_duplicates(content_hash_map: Dict[str, List[str]]) -> Dict[str, List[str]]:
-    """Find exact duplicates based on content hash."""
+    """
+    Identifies exact duplicate images based on their content hashes.
+
+    Args:
+        content_hash_map (Dict[str, List[str]]): A dictionary mapping content hashes to lists of file paths.
+
+    Returns:
+        Dict[str, List[str]]: A dictionary where keys are the paths to original images
+                              and values are lists of their exact duplicate file paths.
+    """
     duplicates: Dict[str, List[str]] = {}
 
     for file_list in content_hash_map.values():
@@ -167,7 +253,16 @@ def _find_exact_duplicates(content_hash_map: Dict[str, List[str]]) -> Dict[str, 
 
 
 def _is_file_duplicate(img: str, duplicates: Dict[str, List[str]]) -> bool:
-    """Check if a file is already marked as a duplicate."""
+    """
+    Checks if a given image file path is already marked as a duplicate in the provided dictionary.
+
+    Args:
+        img (str): The path to the image file.
+        duplicates (Dict[str, List[str]]): A dictionary of duplicate image mappings.
+
+    Returns:
+        bool: True if the file is a duplicate, False otherwise.
+    """
     for dups in duplicates.values():
         if img in dups:
             return True
@@ -179,7 +274,18 @@ def _process_perceptual_duplicates(
         perceptual_hash_map: Dict[str, List[str]],
         existing_duplicates: Dict[str, List[str]]
 ) -> Dict[str, List[str]]:
-    """Process perceptual duplicates and merge with existing duplicates."""
+    """
+    Processes perceptual duplicates and merges them with a dictionary of existing exact duplicates.
+    It identifies visually similar images and adds them to the duplicates list, ensuring that
+    already marked exact duplicates are not re-processed.
+
+    Args:
+        perceptual_hash_map (Dict[str, List[str]]): A dictionary mapping perceptual hashes to lists of file paths.
+        existing_duplicates (Dict[str, List[str]]): A dictionary of already identified exact duplicates.
+
+    Returns:
+        Dict[str, List[str]]: An updated dictionary of duplicates, including both exact and perceptual duplicates.
+    """
     duplicates = existing_duplicates.copy()
 
     for file_list in perceptual_hash_map.values():
@@ -203,13 +309,15 @@ def _process_perceptual_duplicates(
 
 def detect_duplicate_images(directory: str) -> Dict[str, List[str]]:
     """
-    Detect duplicate images in a directory using both content hash and perceptual hash.
-    
+    Detects duplicate images within a specified directory using both content hashing for exact matches
+    and perceptual hashing for visually similar images.
+
     Args:
-        directory: Directory path to check for duplicates
-        
+        directory (str): The path to the directory to check for duplicates.
+
     Returns:
-        Dict mapping original images to lists of their duplicates
+        Dict[str, List[str]]: A dictionary where keys are the paths to original images
+                              and values are lists of their duplicate file paths.
     """
     directory_path = Path(directory)
 
@@ -230,13 +338,17 @@ def detect_duplicate_images(directory: str) -> Dict[str, List[str]]:
 
 def remove_duplicate_images(directory: str) -> Tuple[int, List[str]]:
     """
-    Remove duplicate images from a directory.
-    
+    Removes duplicate images from a specified directory.
+    It identifies duplicates using both content and perceptual hashing and deletes them,
+    keeping one original copy.
+
     Args:
-        directory: Directory path to clean
-        
+        directory (str): The path to the directory to clean.
+
     Returns:
-        Tuple of (number of removed duplicates, list of original images kept)
+        Tuple[int, List[str]]: A tuple containing:
+            - The number of duplicate images removed.
+            - A list of paths to the original images that were kept.
     """
     duplicates = detect_duplicate_images(directory)
 

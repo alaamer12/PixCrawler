@@ -1,8 +1,8 @@
 """
-Helper classes and utilities for the PixCrawler dataset generator.
-
-This module provides helper classes for tracking dataset generation progress,
-generating reports, and handling file system operations like renaming files.
+This module provides helper classes and utilities for the PixCrawler dataset generator.
+It includes functionalities for tracking dataset generation progress, generating comprehensive
+reports, handling file system operations like sequential renaming of images, and managing
+interactive progress bars for a better user experience.
 """
 
 import os
@@ -17,27 +17,72 @@ __all__ = [
     'DatasetTracker',
     'ReportGenerator',
     'FSRenamer',
-    'ProgressManager'
+    'ProgressManager',
+    'is_valid_image_extension'
 ]
 
 
+def is_valid_image_extension(file_path: Union[str, Path]) -> bool:
+    """
+    Check if a file has a valid image extension.
+
+    Args:
+        file_path: Path to check
+
+    Returns:
+        bool: True if valid image extension, False otherwise
+    """
+    if isinstance(file_path, str):
+        file_path = Path(file_path)
+
+    return file_path.suffix.lower() in IMAGE_EXTENSIONS
+
+
 class DatasetTracker:
-    """Class to track dataset generation progress and issues"""
+    """
+    A class to track the progress and various outcomes of the dataset generation process.
+    It records successful and failed downloads, as well as image integrity issues.
+    """
 
     def __init__(self):
-        self.download_successes = 0
-        self.download_failures = 0
-        self.integrity_failures = []
-        self.failed_downloads = []
+        """
+        Initializes the DatasetTracker with counters for download successes and failures,
+        and lists to store details of integrity failures and failed downloads.
+        """
+        self.download_successes: int = 0
+        self.download_failures: int = 0
+        self.integrity_failures: List[dict] = []
+        self.failed_downloads: List[str] = []
 
-    def record_download_success(self, context: str):
-        self.download_successes += 1
+    def record_download_success(self, context: str) -> None:
+        """
+        Records a successful image download.
 
-    def record_download_failure(self, context: str, error: str):
+        Args:
+            context (str): A string describing the context of the successful download (e.g., keyword).
+        """
+
+    def record_download_failure(self, context: str, error: str) -> None:
+        """
+        Records a failed image download.
+
+        Args:
+            context (str): A string describing the context of the failed download.
+            error (str): The error message associated with the failure.
+        """
         self.download_failures += 1
         self.failed_downloads.append(f"{context}: {error}")
 
-    def record_integrity_failure(self, context: str, expected: int, actual: int, corrupted: List[str]):
+    def record_integrity_failure(self, context: str, expected: int, actual: int, corrupted: List[str]) -> None:
+        """
+        Records an image integrity check failure.
+
+        Args:
+            context (str): A string describing the context of the integrity check.
+            expected (int): The number of images expected to be valid.
+            actual (int): The number of images actually found to be valid.
+            corrupted (List[str]): A list of file paths of corrupted images.
+        """
         self.integrity_failures.append({
             'context': context,
             'expected': expected,
@@ -45,8 +90,11 @@ class DatasetTracker:
             'corrupted_files': corrupted
         })
 
-    def print_summary(self):
-        """Print comprehensive summary of dataset generation"""
+    def print_summary(self) -> None:
+        """
+        Prints a comprehensive summary of the dataset generation process,
+        including download statistics and integrity check results.
+        """
         logger.info("\n" + "=" * 60)
         logger.info("DATASET GENERATION SUMMARY")
         logger.info("=" * 60)
@@ -93,10 +141,10 @@ class ReportGenerator:
 
     def __init__(self, output_dir: str):
         """
-        Initialize the report generator with an output directory.
-        
+        Initializes the ReportGenerator.
+
         Args:
-            output_dir: Directory where the report will be saved
+            output_dir (str): The directory where the report will be saved.
         """
         self.output_dir = output_dir
         self.report_file = os.path.join(output_dir, "REPORT.md")
@@ -110,12 +158,25 @@ class ReportGenerator:
         self.start_time = time.time()
 
     def add_summary(self, message: str) -> None:
-        """Add a summary message to the report."""
+        """
+        Adds a summary message to the report.
+
+        Args:
+            message (str): The summary message to add.
+        """
         self.sections["summary"].append(message)
 
     def record_keyword_generation(self, category: str, original_keywords: List[str],
                                   generated_keywords: List[str], model: str) -> None:
-        """Record information about keyword generation."""
+        """
+        Records information about keyword generation.
+
+        Args:
+            category (str): The category of keyword generation (e.g., 'initial', 'expanded').
+            original_keywords (List[str]): A list of original keywords.
+            generated_keywords (List[str]): A list of newly generated keywords.
+            model (str): The AI model used for generation.
+        """
         if category not in self.sections["keywords"]:
             self.sections["keywords"][category] = {
                 "original": original_keywords,
@@ -126,7 +187,17 @@ class ReportGenerator:
     def record_download(self, category: str, keyword: str,
                         success: bool, count: int,
                         attempted: int, errors: Optional[List[str]] = None) -> None:
-        """Record information about downloads."""
+        """
+        Records information about image downloads for a specific keyword and category.
+
+        Args:
+            category (str): The category of the download (e.g., 'main', 'fallback').
+            keyword (str): The keyword associated with the download.
+            success (bool): True if the download was successful, False otherwise.
+            count (int): The number of images downloaded.
+            attempted (int): The number of images attempted to download.
+            errors (Optional[List[str]]): A list of error messages, if any.
+        """
         if category not in self.sections["downloads"]:
             self.sections["downloads"][category] = {}
 
@@ -139,7 +210,16 @@ class ReportGenerator:
 
     def record_duplicates(self, category: str, keyword: str,
                           total: int, duplicates: int, kept: int) -> None:
-        """Record information about duplicate detection."""
+        """
+        Records information about duplicate image detection and removal.
+
+        Args:
+            category (str): The category of the download (e.g., 'main', 'fallback').
+            keyword (str): The keyword associated with the images.
+            total (int): The total number of images before duplicate removal.
+            duplicates (int): The number of duplicate images removed.
+            kept (int): The number of unique images kept.
+        """
         if category not in self.sections["downloads"]:
             self.sections["downloads"][category] = {}
 
@@ -155,7 +235,16 @@ class ReportGenerator:
     def record_integrity(self, category: str, keyword: str,
                          expected: int, actual: int,
                          corrupted: Optional[List[str]] = None) -> None:
-        """Record information about integrity checks."""
+        """
+        Records information about image integrity checks.
+
+        Args:
+            category (str): The category of the integrity check.
+            keyword (str): The keyword associated with the images.
+            expected (int): The number of images expected to be valid.
+            actual (int): The number of images actually found to be valid.
+            corrupted (Optional[List[str]]): A list of corrupted file paths, if any.
+        """
         if category not in self.sections["integrity"]:
             self.sections["integrity"][category] = {}
 
@@ -167,7 +256,13 @@ class ReportGenerator:
         }
 
     def record_error(self, context: str, error: str) -> None:
-        """Record an error in the report."""
+        """
+        Records an error that occurred during the dataset generation process.
+
+        Args:
+            context (str): The context in which the error occurred.
+            error (str): The error message.
+        """
         self.sections["errors"].append({
             "context": context,
             "error": error,
@@ -175,7 +270,10 @@ class ReportGenerator:
         })
 
     def generate(self) -> None:
-        """Generate the final markdown report."""
+        """
+        Generates the final markdown report and saves it to the specified output directory.
+        This method orchestrates the writing of all sections of the report.
+        """
         duration = time.time() - self.start_time
 
         with open(self.report_file, "w", encoding="utf-8") as f:
@@ -190,13 +288,24 @@ class ReportGenerator:
 
     @staticmethod
     def _write_header(f: TextIO, duration: float) -> None:
-        """Write the report header with timestamp and duration."""
+        """
+        Writes the header section of the markdown report, including generation timestamp and duration.
+
+        Args:
+            f (TextIO): The file object to write to.
+            duration (float): The total duration of the dataset generation process in seconds.
+        """
         f.write("# PixCrawler Dataset Generation Report\n\n")
         f.write(f"Generated on: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write(f"Duration: {duration:.2f} seconds ({duration / 60:.2f} minutes)\n\n")
 
     def _write_summary(self, f: TextIO) -> None:
-        """Write the summary section."""
+        """
+        Writes the summary section of the markdown report.
+
+        Args:
+            f (TextIO): The file object to write to.
+        """
         f.write("## Summary\n\n")
 
         # Create a table for summary items
@@ -211,7 +320,12 @@ class ReportGenerator:
         f.write("\n")
 
     def _write_keyword_generation(self, f: TextIO) -> None:
-        """Write the keyword generation section."""
+        """
+        Writes the keyword generation section of the markdown report.
+
+        Args:
+            f (TextIO): The file object to write to.
+        """
         if not self.sections["keywords"]:
             return
 
@@ -221,7 +335,14 @@ class ReportGenerator:
 
     @staticmethod
     def _write_keyword_category(f: TextIO, category: str, data: dict) -> None:
-        """Write a single keyword category."""
+        """
+        Writes a single keyword category's details to the report, including original and generated keywords.
+
+        Args:
+            f (TextIO): The file object to write to.
+            category (str): The category name (e.g., 'initial', 'expanded').
+            data (dict): A dictionary containing keyword generation data for the category.
+        """
         f.write(f"### Category: {category}\n\n")
         f.write(f"AI Model used: {data['model']}\n\n")
 
@@ -241,7 +362,12 @@ class ReportGenerator:
         f.write("\n")
 
     def _write_downloads(self, f: TextIO) -> None:
-        """Write the downloads section."""
+        """
+        Writes the downloads section of the markdown report, including detailed statistics for each category.
+
+        Args:
+            f (TextIO): The file object to write to.
+        """
         if not self.sections["downloads"]:
             return
 
@@ -250,7 +376,15 @@ class ReportGenerator:
         self._write_download_totals(f, total_stats)
 
     def _write_download_categories(self, f: TextIO) -> dict:
-        """Write all download categories and return total statistics."""
+        """
+        Writes all download categories to the report and calculates total download statistics.
+
+        Args:
+            f (TextIO): The file object to write to.
+
+        Returns:
+            dict: A dictionary containing total attempted, downloaded, and duplicate counts.
+        """
         total_attempted = 0
         total_downloaded = 0
         total_duplicates = 0
@@ -268,7 +402,17 @@ class ReportGenerator:
         }
 
     def _write_download_category(self, f: TextIO, category: str, keywords: dict) -> dict:
-        """Write a single download category and return its statistics."""
+        """
+        Writes a single download category's details to the report, including keyword-specific statistics.
+
+        Args:
+            f (TextIO): The file object to write to.
+            category (str): The name of the download category.
+            keywords (dict): A dictionary where keys are keywords and values are their download data.
+
+        Returns:
+            dict: A dictionary containing attempted, downloaded, and duplicate counts for the category.
+        """
         f.write(f"### Category: {category}\n\n")
 
         # Create a table for keywords in this category
@@ -303,7 +447,17 @@ class ReportGenerator:
 
     @staticmethod
     def _write_download_keyword_table_row(f: TextIO, keyword: str, data: dict) -> dict:
-        """Write a single keyword as a table row and return its statistics."""
+        """
+        Writes a single keyword's download statistics as a table row in the report.
+
+        Args:
+            f (TextIO): The file object to write to.
+            keyword (str): The keyword for which to write statistics.
+            data (dict): A dictionary containing download data for the keyword.
+
+        Returns:
+            dict: A dictionary containing attempted, downloaded, and duplicate counts for the keyword.
+        """
         attempted = data.get('attempted', 0)
         downloaded = data.get('downloaded', 0)
         success_rate = f"{(downloaded / attempted * 100):.1f}%" if attempted > 0 else "N/A"
@@ -327,7 +481,13 @@ class ReportGenerator:
 
     @staticmethod
     def _write_download_totals(f: TextIO, total_stats: dict) -> None:
-        """Write the overall download statistics."""
+        """
+        Writes the overall download statistics to the report.
+
+        Args:
+            f (TextIO): The file object to write to.
+            total_stats (dict): A dictionary containing overall download statistics.
+        """
         success_rate = f"{(total_stats['downloaded'] / total_stats['attempted'] * 100):.1f}%" if total_stats[
                                                                                                      'attempted'] > 0 else "N/A"
 
@@ -341,7 +501,12 @@ class ReportGenerator:
         f.write("\n")
 
     def _write_integrity(self, f: TextIO) -> None:
-        """Write the integrity checks section."""
+        """
+        Writes the integrity checks section of the markdown report.
+
+        Args:
+            f (TextIO): The file object to write to.
+        """
         if not self.sections["integrity"]:
             return
 
@@ -350,7 +515,15 @@ class ReportGenerator:
         self._write_integrity_totals(f, total_stats)
 
     def _write_integrity_categories(self, f: TextIO) -> dict:
-        """Write all integrity categories and return total statistics."""
+        """
+        Writes all integrity categories to the report and calculates total integrity statistics.
+
+        Args:
+            f (TextIO): The file object to write to.
+
+        Returns:
+            dict: A dictionary containing total expected, valid, and corrupted image counts.
+        """
         total_expected = 0
         total_valid = 0
         total_corrupted = 0
@@ -368,7 +541,17 @@ class ReportGenerator:
         }
 
     def _write_integrity_category(self, f: TextIO, category: str, keywords: dict) -> dict:
-        """Write a single integrity category and return its statistics."""
+        """
+        Writes a single integrity category's details to the report, including keyword-specific statistics.
+
+        Args:
+            f (TextIO): The file object to write to.
+            category (str): The name of the integrity category.
+            keywords (dict): A dictionary where keys are keywords and values are their integrity data.
+
+        Returns:
+            dict: A dictionary containing expected, valid, and corrupted counts for the category.
+        """
         f.write(f"### Category: {category}\n\n")
 
         # Create a table for integrity results
@@ -402,7 +585,17 @@ class ReportGenerator:
 
     @staticmethod
     def _write_integrity_keyword_table_row(f: TextIO, keyword: str, data: dict) -> dict:
-        """Write a single keyword integrity as a table row and return its statistics."""
+        """
+        Writes a single keyword's integrity statistics as a table row in the report.
+
+        Args:
+            f (TextIO): The file object to write to.
+            keyword (str): The keyword for which to write statistics.
+            data (dict): A dictionary containing integrity data for the keyword.
+
+        Returns:
+            dict: A dictionary containing expected, valid, and corrupted counts for the keyword.
+        """
         expected = data['expected']
         valid = data['valid']
         corrupted = data['corrupted_count']
@@ -418,8 +611,14 @@ class ReportGenerator:
         }
 
     @staticmethod
-    def _write_corrupted_files(f: TextIO, corrupted_files: list) -> None:
-        """Write the list of corrupted files."""
+    def _write_corrupted_files(f: TextIO, corrupted_files: List[str]) -> None:
+        """
+        Writes a collapsible list of corrupted files to the report.
+
+        Args:
+            f (TextIO): The file object to write to.
+            corrupted_files (List[str]): A list of file paths of corrupted images.
+        """
         if not corrupted_files:
             return
 
@@ -435,7 +634,13 @@ class ReportGenerator:
 
     @staticmethod
     def _write_integrity_totals(f: TextIO, total_stats: dict) -> None:
-        """Write the overall integrity statistics."""
+        """
+        Writes the overall integrity statistics to the report.
+
+        Args:
+            f (TextIO): The file object to write to.
+            total_stats (dict): A dictionary containing overall integrity statistics.
+        """
         integrity_rate = f"{(total_stats['valid'] / total_stats['expected'] * 100):.1f}%" if total_stats[
                                                                                                  'expected'] > 0 else "N/A"
 
@@ -449,7 +654,12 @@ class ReportGenerator:
         f.write("\n")
 
     def _write_errors(self, f: TextIO) -> None:
-        """Write the errors section."""
+        """
+        Writes the errors section of the markdown report.
+
+        Args:
+            f (TextIO): The file object to write to.
+        """
         if not self.sections["errors"]:
             return
 
@@ -469,19 +679,17 @@ class ReportGenerator:
 
 class FSRenamer:
     """
-    A self-encapsulated class for renaming image files sequentially.
-    
-    This class handles the complete process of renaming image files in a directory
-    to a sequential, zero-padded format while maintaining data integrity through
-    temporary directory operations.
+    A self-encapsulated class for renaming image files sequentially within a specified directory.
+    It handles the complete process of renaming image files to a sequential, zero-padded format
+    while maintaining data integrity through temporary directory operations.
     """
 
     def __init__(self, directory: str):
         """
-        Initialize the FSRenamer with a target directory.
+        Initializes the FSRenamer with the target directory.
 
         Args:
-            directory: Directory containing images to rename
+            directory (str): The path to the directory containing images to rename.
         """
         self.directory_path = Path(directory)
         self.temp_dir: Optional[Path] = None
@@ -490,10 +698,12 @@ class FSRenamer:
 
     def rename_sequentially(self) -> int:
         """
-        Rename all image files in the directory to a sequential, zero-padded format.
-        
+        Renames all image files in the initialized directory to a sequential, zero-padded format.
+        This process involves copying files to a temporary directory with new names, deleting
+        original files, moving the renamed files back, and cleaning up the temporary directory.
+
         Returns:
-            int: Number of renamed files
+            int: The number of files successfully renamed.
         """
         if not self._validate_directory_exists():
             return 0
@@ -517,14 +727,25 @@ class FSRenamer:
         return renamed_count
 
     def _validate_directory_exists(self) -> bool:
-        """Validate that the directory exists."""
+        """
+        Validates that the target directory for renaming exists.
+
+        Returns:
+            bool: True if the directory exists, False otherwise.
+        """
         if not self.directory_path.exists():
             logger.warning(f"Directory {self.directory_path} does not exist")
             return False
         return True
 
     def _get_sorted_image_files(self) -> List[Path]:
-        """Get all image files sorted by creation time."""
+        """
+        Retrieves a sorted list of image files within the target directory.
+        Files are sorted by their creation time.
+
+        Returns:
+            List[Path]: A list of Path objects representing the image files.
+        """
         image_files = [
             f for f in self.directory_path.iterdir()
             if f.is_file() and is_valid_image_extension(f)
@@ -533,18 +754,36 @@ class FSRenamer:
         return image_files
 
     def _create_temp_directory(self) -> Path:
-        """Create a temporary directory for renaming operations."""
+        """
+        Creates a temporary directory within the target directory for renaming operations.
+
+        Returns:
+            Path: The path to the created temporary directory.
+        """
         temp_dir = self.directory_path / ".temp_rename"
         temp_dir.mkdir(exist_ok=True)
         return temp_dir
 
     @staticmethod
     def _calculate_padding_width(file_count: int) -> int:
-        """Calculate the padding width for sequential numbering."""
+        """
+        Calculates the necessary padding width for sequential numbering based on the total file count.
+
+        Args:
+            file_count (int): The total number of files to be renamed.
+
+        Returns:
+            int: The calculated padding width (e.g., 3 for up to 999 files, 4 for up to 9999 files).
+        """
         return max(3, len(str(file_count)))
 
     def _copy_files_to_temp_with_new_names(self) -> int:
-        """Copy files to temp directory with new sequential names."""
+        """
+        Copies image files from the original directory to the temporary directory with new sequential names.
+
+        Returns:
+            int: The number of files successfully copied and renamed.
+        """
         renamed_count = 0
 
         for i, file_path in enumerate(self.image_files, 1):
@@ -564,7 +803,9 @@ class FSRenamer:
         return renamed_count
 
     def _delete_original_files(self) -> None:
-        """Delete original image files."""
+        """
+        Deletes the original image files from the target directory after they have been copied and renamed.
+        """
         for file_path in self.image_files:
             try:
                 os.remove(file_path)
@@ -572,7 +813,9 @@ class FSRenamer:
                 logger.error(f"Failed to delete original file {file_path}: {e}")
 
     def _move_files_from_temp_to_original(self) -> None:
-        """Move files from temp directory back to original directory."""
+        """
+        Moves the sequentially renamed files from the temporary directory back to the original directory.
+        """
         if not self.temp_dir:
             return
 
@@ -584,7 +827,9 @@ class FSRenamer:
                     logger.error(f"Failed to move {file_path} from temp directory: {e}")
 
     def _cleanup_temp_directory(self) -> None:
-        """Remove the temporary directory."""
+        """
+        Removes the temporary directory created during the renaming process.
+        """
         if not self.temp_dir:
             return
 
@@ -597,14 +842,16 @@ class FSRenamer:
 class ProgressManager:
     """
     Centralized progress bar manager for the dataset generation process.
-    
     This class provides a consistent interface for displaying progress bars
     across different steps of the dataset generation pipeline, ensuring clear
     visibility of the current stage while removing terminal logging.
     """
 
     def __init__(self):
-        """Initialize the progress manager."""
+        """
+        Initializes the ProgressManager, setting up tqdm for progress bars
+        or a dummy fallback if tqdm is not available. Defines main steps and their colors.
+        """
         try:
             # Import here to handle potential import errors gracefully
             self.tqdm = tqdm
@@ -638,11 +885,11 @@ class ProgressManager:
 
     def start_step(self, step: str, total: Optional[int] = None) -> None:
         """
-        Start a new main progress step.
-        
+        Starts a new main progress step with a description and an optional total count.
+
         Args:
-            step: Step identifier (must be one of the predefined steps)
-            total: Total units for this step (if applicable)
+            step (str): The identifier for the current step (e.g., 'download', 'integrity').
+            total (Optional[int]): The total number of units for this step. If None, defaults to 1.
         """
         if step not in self.steps:
             logger.warning(f"Unknown progress step: {step}")
@@ -670,41 +917,41 @@ class ProgressManager:
 
     def update_step(self, n: int = 1) -> None:
         """
-        Update the current main progress step.
-        
+        Updates the current main progress step by incrementing its progress.
+
         Args:
-            n: Number of units to increment by
+            n (int): The number of units to increment the progress by (default is 1).
         """
         if self.current_progress is not None and hasattr(self.current_progress, 'update'):
             self.current_progress.update(n)
 
     def set_step_description(self, desc: str) -> None:
         """
-        Update the description of the current main step.
-        
+        Updates the description of the current main progress step.
+
         Args:
-            desc: New description text
+            desc (str): The new description text for the step.
         """
         if self.current_progress is not None and hasattr(self.current_progress, 'set_description_str'):
             self.current_progress.set_description_str(desc)
 
-    def set_step_postfix(self, **kwargs) -> None:
+    def set_step_postfix(self, **kwargs: Any) -> None:
         """
-        Update postfix text of the current main step.
-        
+        Updates the postfix text of the current main progress step.
+
         Args:
-            **kwargs: Key-value pairs to display
+            **kwargs (Any): Arbitrary keyword arguments to display as postfix (e.g., count=10, total=100).
         """
         if self.current_progress is not None and hasattr(self.current_progress, 'set_postfix'):
             self.current_progress.set_postfix(**kwargs)
 
     def start_subtask(self, desc: str, total: Optional[int] = None) -> None:
         """
-        Start a nested progress bar for subtasks.
-        
+        Starts a nested progress bar for subtasks, displayed below the main progress bar.
+
         Args:
-            desc: Description of the subtask
-            total: Total units for this subtask
+            desc (str): The description of the subtask.
+            total (Optional[int]): The total number of units for this subtask. If None, defaults to 1.
         """
         # Close any existing nested progress bar
         if self.nested_progress:
@@ -725,91 +972,137 @@ class ProgressManager:
 
     def update_subtask(self, n: int = 1) -> None:
         """
-        Update the current subtask progress.
-        
+        Updates the current subtask progress by incrementing its progress.
+
         Args:
-            n: Number of units to increment by
+            n (int): The number of units to increment the progress by (default is 1).
         """
         if self.nested_progress is not None and hasattr(self.nested_progress, 'update'):
             self.nested_progress.update(n)
 
     def set_subtask_description(self, desc: str) -> None:
         """
-        Update the description of the current subtask.
-        
+        Updates the description of the current subtask.
+
         Args:
-            desc: New description text
+            desc (str): The new description text for the subtask.
         """
         if self.nested_progress is not None and hasattr(self.nested_progress, 'set_description_str'):
             self.nested_progress.set_description_str(f"  └─ {desc}")
 
-    def set_subtask_postfix(self, **kwargs) -> None:
+    def set_subtask_postfix(self, **kwargs: Any) -> None:
         """
-        Update postfix text of the current subtask.
-        
+        Updates the postfix text of the current subtask.
+
         Args:
-            **kwargs: Key-value pairs to display
+            **kwargs (Any): Arbitrary keyword arguments to display as postfix.
         """
         if self.nested_progress is not None and hasattr(self.nested_progress, 'set_postfix'):
             self.nested_progress.set_postfix(**kwargs)
 
     def close_subtask(self) -> None:
-        """Close the current subtask progress bar."""
+        """
+        Closes the current subtask progress bar.
+        """
         if self.nested_progress is not None and hasattr(self.nested_progress, 'close'):
             self.nested_progress.close()
             self.nested_progress = None
 
     def close(self) -> None:
-        """Close all progress bars."""
+        """
+        Closes all active progress bars (both main and nested).
+        """
         self.close_subtask()
         if self.current_progress is not None and hasattr(self.current_progress, 'close'):
             self.current_progress.close()
             self.current_progress = None
 
-    def _dummy_tqdm(self, *args, **kwargs):
-        """Simple progress indicator for fallback if tqdm not available."""
+    def _dummy_tqdm(self, *args: Any, **kwargs: Any) -> Any:
+        """
+        A dummy tqdm implementation used as a fallback when the `tqdm` library is not available.
+        It provides basic progress indication to the console.
+
+        Args:
+            *args (Any): Positional arguments passed to tqdm.
+            **kwargs (Any): Keyword arguments passed to tqdm.
+
+        Returns:
+            Any: An instance of DummyTqdm that mimics tqdm's behavior.
+        """
 
         class DummyTqdm:
+            """
+            A simple dummy class that mimics the behavior of tqdm for basic progress indication.
+            Used when the `tqdm` library is not installed.
+            """
+
             def __init__(self):
+                """
+                Initializes the DummyTqdm instance.
+                """
                 self.n = 0
                 self.total = kwargs.get('total', 100)  # Default total
 
-            def update(self, n=1):
+            def update(self, n: int = 1) -> None:
+                """
+                Updates the progress by incrementing the counter.
+
+                Args:
+                    n (int): The number of units to increment by (default is 1).
+                """
                 self.n += n
-                print(f"\r{kwargs.get('desc', 'Progress')}: {self.n}/{self.total}", end="")
+                print(f"{kwargs.get('desc', 'Progress')}: {self.n}/{self.total}", end="")
 
             @staticmethod
-            def set_description_str(desc):
-                print(f"\r{desc}", end="")
+            def set_description_str(desc: str) -> None:
+                """
+                Sets the description string for the progress indicator.
 
-            def set_postfix(self, **kwargs):
+                Args:
+                    desc (str): The description text.
+                """
+                print(f"{desc}", end="")
+
+            def set_postfix(self, **kwargs: Any) -> None:
+                """
+                Sets the postfix text for the progress indicator.
+
+                Args:
+                    **kwargs (Any): Arbitrary keyword arguments to display as postfix.
+                """
                 postfix = ' '.join(f"{k}={v}" for k, v in kwargs.items())
-                print(f"\r{kwargs.get('desc', 'Progress')}: {self.n}/{self.total} {postfix}", end="")
+                print(f"{kwargs.get('desc', 'Progress')}: {self.n}/{self.total} {postfix}", end="")
 
             @staticmethod
-            def close():
+            def close() -> None:
+                """
+                Closes the progress indicator, printing a newline.
+                """
                 print()
 
-            def __bool__(self):
+            def __bool__(self) -> bool:
+                """
+                Returns True to ensure the DummyTqdm instance is treated as truthy.
+                """
                 # Always return True to avoid TypeError in bool() check
                 return True
 
         return DummyTqdm()
 
-    def iterate(self, iterable: Any, desc: str = None, total: Optional[int] = None,
+    def iterate(self, iterable: Any, desc: Optional[str] = None, total: Optional[int] = None,
                 subtask: bool = False, unit: str = "it") -> Any:
         """
-        Iterate over an iterable with a progress bar.
-        
+        Iterates over an iterable while displaying a progress bar.
+
         Args:
-            iterable: Any iterable object
-            desc: Description for the progress bar
-            total: Total number of items (inferred if not provided)
-            subtask: Whether this is a subtask or main task
-            unit: Unit label for the progress bar
-            
+            iterable (Any): The iterable object to iterate over.
+            desc (Optional[str]): A description for the progress bar.
+            total (Optional[int]): The total number of items in the iterable. If None, it's inferred.
+            subtask (bool): If True, uses a nested progress bar for a subtask.
+            unit (str): The unit label for the progress bar (e.g., "it", "files").
+
         Returns:
-            Iterator with progress tracking
+            Any: An iterator that yields items from the iterable while updating the progress bar.
         """
         progress_method: Union[Callable[[int], None], bool] = self.update_subtask if subtask else self.update_step
         tqdm_instance = self.nested_progress if subtask else self.current_progress
@@ -835,19 +1128,3 @@ class ProgressManager:
 
 # Create a global progress manager
 progress = ProgressManager()
-
-
-def is_valid_image_extension(file_path: Union[str, Path]) -> bool:
-    """
-    Check if a file has a valid image extension.
-
-    Args:
-        file_path: Path to check
-
-    Returns:
-        bool: True if valid image extension, False otherwise
-    """
-    if isinstance(file_path, str):
-        file_path = Path(file_path)
-
-    return file_path.suffix.lower() in IMAGE_EXTENSIONS

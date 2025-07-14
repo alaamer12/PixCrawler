@@ -1,3 +1,10 @@
+"""
+This module serves as the main entry point for the PixCrawler application.
+It handles command-line argument parsing, configuration loading, and orchestrates
+the dataset generation process. It also provides a function for running PixCrawler
+directly from Jupyter notebooks or Google Colab.
+"""
+
 import argparse
 import sys
 from typing import Optional
@@ -8,13 +15,24 @@ from constants import DEFAULT_CACHE_FILE, DEFAULT_CONFIG_FILE, KEYWORD_MODE, AI_
 from generator import generate_dataset, update_logfile
 from jupyter_support import is_running_in_notebook, print_help_colored
 
+__all__ = [
+    'parse_args_safely',
+    'run_from_jupyter',
+    'create_arg_parser',
+    'main'
+]
+
 
 def parse_args_safely(parser: argparse.ArgumentParser) -> Optional[argparse.Namespace]:
     """
-    Parse command line arguments safely, compatible with Jupyter environments.
+    Parses command-line arguments safely, ensuring compatibility with both
+    standard terminal environments and Jupyter/Colab notebooks.
+
+    Args:
+        parser (argparse.ArgumentParser): The argument parser instance to use.
 
     Returns:
-        argparse.Namespace: Parsed arguments
+        Optional[argparse.Namespace]: Parsed arguments as a Namespace object, or None if help was requested.
     """
     # Add help argument manually
     parser.add_argument('-h', '--help', action='store_true', help='Show this help message and exit')
@@ -58,22 +76,22 @@ def run_from_jupyter(config_path: str = DEFAULT_CONFIG_FILE,
                      ai_model: AI_MODELS = "gpt4-mini",
                      no_labels: bool = False) -> None:
     """
-    Run PixCrawler directly from a Jupyter notebook or Google Colab.
-
-    This function provides an easy way to use PixCrawler in notebook environments
-    without dealing with command-line arguments.
+    Runs PixCrawler directly from a Jupyter notebook or Google Colab environment.
+    This function provides a convenient interface for notebook users, abstracting
+    away command-line argument parsing.
 
     Args:
-        config_path: Path to configuration file (default: config.json)
-        max_images: Maximum images per keyword (default: 10)
-        output_dir: Custom output directory (default: derived from config)
-        no_integrity: Skip image integrity checks (default: False)
-        max_retries: Maximum retry attempts (default: 5)
-        continue_last: Continue from last run (default: False)
-        cache_file: Path to cache file (default: download_progress.json)
-        keyword_mode: Keyword generation mode (auto, enabled, disabled) (default: auto)
-        ai_model: AI model for keyword generation (gpt4, gpt4-mini) (default: gpt4-mini)
-        no_labels: Disable automatic label generation (default: False)
+        config_path (str): Path to the configuration file (default: config.json).
+        max_images (int): Maximum number of images to download per keyword (default: 10).
+        output_dir (Optional[str]): Custom output directory for the dataset.
+                                    If None, the directory is derived from the configuration.
+        no_integrity (bool): If True, skips image integrity checks (default: False).
+        max_retries (int): Maximum number of retry attempts for failed downloads (default: 5).
+        continue_last (bool): If True, continues from the last run using the progress cache (default: False).
+        cache_file (str): Path to the cache file for progress tracking (default: download_progress.json).
+        keyword_mode (KEYWORD_MODE): Keyword generation mode ('auto', 'enabled', 'disabled') (default: 'auto').
+        ai_model (AI_MODELS): AI model to use for keyword generation ('gpt4', 'gpt4-mini') (default: 'gpt4-mini').
+        no_labels (bool): If True, disables automatic label file generation (default: False).
     """
     # Print ASCII art banner
     print(f"{Colors.CYAN}{PIXCRAWLER_ASCII}{Colors.ENDC}")
@@ -120,13 +138,14 @@ def run_from_jupyter(config_path: str = DEFAULT_CONFIG_FILE,
 
 def create_arg_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     """
-    Create and configure argument parser with organized argument groups.
+    Creates and configures an argument parser with organized argument groups
+    for PixCrawler's command-line interface.
 
     Args:
-        parser: The argument parser to configure
+        parser (argparse.ArgumentParser): The argument parser instance to configure.
 
     Returns:
-        Configured argument parser
+        argparse.ArgumentParser: The configured argument parser.
     """
     # Add base configuration arguments
     _add_config_arguments(parser)
@@ -144,7 +163,12 @@ def create_arg_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParse
 
 
 def _add_config_arguments(parser: argparse.ArgumentParser) -> None:
-    """Add configuration file related arguments."""
+    """
+    Adds arguments related to configuration files to the argument parser.
+
+    Args:
+        parser (argparse.ArgumentParser): The argument parser to which arguments will be added.
+    """
     parser.add_argument(
         "-c", "--config",
         default=DEFAULT_CONFIG_FILE,
@@ -164,7 +188,12 @@ def _add_config_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def _add_dataset_control_arguments(parser: argparse.ArgumentParser) -> None:
-    """Add arguments controlling dataset generation behavior."""
+    """
+    Adds arguments controlling dataset generation behavior to the argument parser.
+
+    Args:
+        parser (argparse.ArgumentParser): The argument parser to which arguments will be added.
+    """
     parser.add_argument(
         "-m", "--max-images",
         type=int,
@@ -194,7 +223,12 @@ def _add_dataset_control_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def _add_keyword_generation_arguments(parser: argparse.ArgumentParser) -> None:
-    """Add arguments related to keyword generation."""
+    """
+    Adds arguments related to keyword generation options to the argument parser.
+
+    Args:
+        parser (argparse.ArgumentParser): The argument parser to which arguments will be added.
+    """
     keyword_group = parser.add_argument_group('Keyword Generation')
     generation_mode = keyword_group.add_mutually_exclusive_group()
     generation_mode.add_argument(
@@ -230,7 +264,12 @@ def _add_keyword_generation_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def _add_logging_arguments(parser: argparse.ArgumentParser) -> None:
-    """Add logging configuration arguments."""
+    """
+    Adds arguments for configuring logging options to the argument parser.
+
+    Args:
+        parser (argparse.ArgumentParser): The argument parser to which arguments will be added.
+    """
     log_group = parser.add_argument_group('Logging')
     log_group.add_argument(
         "--log-file",
@@ -239,8 +278,12 @@ def _add_logging_arguments(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def main():
-    """Main function to parse arguments and generate dataset"""
+def main() -> None:
+    """
+    Main function to parse command-line arguments and initiate the dataset generation process.
+    It sets up the argument parser, handles safe argument parsing for different environments,
+    and calls the core dataset generation logic.
+    """
     # Print ASCII art banner
     print(f"{Colors.CYAN}{PIXCRAWLER_ASCII}{Colors.ENDC}")
 

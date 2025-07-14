@@ -1,3 +1,9 @@
+"""
+This module is responsible for generating image datasets based on a given configuration.
+It orchestrates the entire process, including loading configurations, generating keywords,
+downloading images, performing integrity checks, and generating reports.
+"""
+
 import contextlib
 import json
 import logging
@@ -7,11 +13,12 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any, Tuple, Union, Type
 
 import g4f
 import jsonschema
 from PIL import Image
+from icrawler import Crawler
 from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler
 from jsonschema import validate
 
@@ -24,17 +31,33 @@ from helpers import ReportGenerator, DatasetTracker, ProgressManager, progress, 
 from utilities import ProgressCache, detect_duplicate_images, \
     count_valid_images, remove_duplicate_images, rename_images_sequentially
 
+__all__ = [
+    '_apply_config_options',
+    '_download_with_engine',
+    '_generate_alternative_terms',
+    '_update_image_count',
+    'retry_download_images',
+    'load_config',
+    'generate_keywords',
+    '_extract_keywords_from_response',
+    'check_duplicates',
+    'check_image_integrity',
+    'update_logfile',
+    'LabelGenerator',
+    'DatasetGenerator',
+    'generate_dataset'
+]
+
 
 def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, Any]) -> None:
     """
-    Apply configuration options from config file to the configuration object.
-
-    This function selectively overrides default configuration values with values
-    from the config file, but only when CLI arguments haven't explicitly set them.
+    Applies configuration options from a loaded config file to the DatasetGenerationConfig object.
+    This function selectively overrides default configuration values with values from the config file,
+    but only when CLI arguments haven't explicitly set them.
 
     Args:
-        config: The configuration object to modify
-        options: Dictionary containing configuration options from config file
+        config (DatasetGenerationConfig): The configuration object to modify.
+        options (Dict[str, Any]): A dictionary containing configuration options from the config file.
     """
     # Dictionary of CLI argument properties and conditions for applying config values
     # Format: option_name: (condition_to_apply_config_value, getter_function)
@@ -63,18 +86,18 @@ def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, An
 def _download_with_engine(engine_name: str, keyword: str, out_dir: str, max_num: int,
                           offset: int = 0, file_idx_offset: int = 0) -> bool:
     """
-    Download images using a specific search engine.
+    Downloads images using a specific search engine.
 
     Args:
-        engine_name: Name of the search engine to use ("google", "bing", "baidu", "ddgs")
-        keyword: Search term for images
-        out_dir: Output directory path
-        max_num: Maximum number of images to download
-        offset: Search offset to avoid duplicate results
-        file_idx_offset: Starting index for file naming
+        engine_name (str): Name of the search engine to use ("google", "bing", "baidu", "ddgs").
+        keyword (str): Search term for images.
+        out_dir (str): Output directory path.
+        max_num (int): Maximum number of images to download.
+        offset (int): Search offset to avoid duplicate results (default is 0).
+        file_idx_offset (int): Starting index for file naming (default is 0).
 
     Returns:
-        bool: True if download was successful, False otherwise
+        bool: True if download was successful, False otherwise.
     """
     try:
         if engine_name == "ddgs":
@@ -115,14 +138,15 @@ def _download_with_engine(engine_name: str, keyword: str, out_dir: str, max_num:
 
 def _generate_alternative_terms(keyword: str, retry_count: int) -> List[str]:
     """
-    Generate alternative search terms for retry attempts.
+    Generates alternative search terms for retry attempts based on the original keyword and retry count.
+    This helps in finding more diverse images if initial attempts are not successful.
 
     Args:
-        keyword: Original search keyword
-        retry_count: Current retry count
+        keyword (str): The original search keyword.
+        retry_count (int): The current retry count, which influences the diversity of generated terms.
 
     Returns:
-        List of alternative search terms
+        List[str]: A list of alternative search terms, with the original keyword included at the beginning.
     """
     # Base variations
     variations = [
@@ -157,13 +181,13 @@ def _generate_alternative_terms(keyword: str, retry_count: int) -> List[str]:
 
 def _update_image_count(out_dir: str) -> int:
     """
-    Update the count of images in a directory after removing duplicates.
+    Updates the count of images in a directory after removing duplicates.
 
     Args:
-        out_dir: Directory containing images
+        out_dir (str): The directory containing images.
 
     Returns:
-        Updated count of unique images
+        int: The updated count of unique images remaining in the directory.
     """
     # Get all image files
     image_files = [f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
@@ -191,16 +215,18 @@ def _update_image_count(out_dir: str) -> int:
 
 def retry_download_images(keyword: str, out_dir: str, max_num: int, max_retries: int = 5) -> Tuple[bool, int]:
     """
-    Retry downloading images until reaching the desired count or max retries.
+    Attempts to download images for a given keyword, retrying with alternative search terms and engines
+    until the desired image count is reached or the maximum number of retries is exceeded.
 
     Args:
-        keyword: Search term for images
-        out_dir: Output directory path
-        max_num: Maximum number of images to download
-        max_retries: Maximum number of retry attempts
+        keyword (str): The primary search term for images.
+        out_dir (str): The output directory path where images will be downloaded.
+        max_num (int): The maximum number of images to download.
+        max_retries (int): The maximum number of retry attempts (default is 5).
 
     Returns:
-        Tuple of (success_flag, downloaded_count)
+        Tuple[bool, int]: A tuple where the first element is True if at least one image was downloaded,
+                         and the second element is the total count of unique images downloaded.
     """
     # First attempt with parallel downloading
     downloader = ImageDownloader(
@@ -274,13 +300,18 @@ def retry_download_images(keyword: str, out_dir: str, max_num: int, max_retries:
 
 def load_config(config_path: str) -> Dict[str, Any]:
     """
-    Load dataset configuration from a JSON file and validate against schema.
+    Loads dataset configuration from a JSON file and validates it against a predefined schema.
 
     Args:
-        config_path: Path to the configuration file
+        config_path (str): The absolute path to the configuration file.
 
     Returns:
-        Dict containing dataset configuration
+        Dict[str, Any]: A dictionary containing the validated dataset configuration.
+
+    Raises:
+        ValueError: If the configuration file is invalid or missing required fields.
+        jsonschema.exceptions.ValidationError: If the configuration does not conform to the schema.
+        Exception: For other file loading or parsing errors.
     """
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
@@ -319,14 +350,18 @@ def load_config(config_path: str) -> Dict[str, Any]:
 
 def generate_keywords(category: str, ai_model: str = "gpt4-mini") -> List[str]:
     """
-    Generate related keywords for a category using G4F (GPT-4) API.
+    Generates related keywords for a given category using the G4F (GPT-4) API.
+    This function attempts to generate diverse and high-quality search terms.
 
     Args:
-        category: The category name to generate keywords for
-        ai_model: The AI model to use ("gpt4" or "gpt4-mini")
+        category (str): The category name for which to generate keywords.
+        ai_model (str): The AI model to use for keyword generation (e.g., "gpt4", "gpt4-mini").
 
     Returns:
-        List of generated keywords related to the category
+        List[str]: A list of generated keywords related to the category.
+
+    Raises:
+        SystemExit: If keyword generation fails after retries, the system will exit.
     """
     # Try using G4F to generate keywords
     try:
@@ -368,14 +403,15 @@ def generate_keywords(category: str, ai_model: str = "gpt4-mini") -> List[str]:
 
 def _extract_keywords_from_response(response: str, category: str) -> List[str]:
     """
-    Extract keywords from the AI response.
+    Extracts a list of keywords from the raw AI model response string.
+    It attempts to parse a Python list structure first, then falls back to line-by-line extraction.
 
     Args:
-        response: Raw response text from the AI model
-        category: Original category name
+        response (str): The raw response text received from the AI model.
+        category (str): The original category name, which is always included in the returned list.
 
     Returns:
-        List of extracted keywords
+        List[str]: A cleaned and deduplicated list of extracted keywords.
     """
     try:
         # Try to find a list pattern in the response
@@ -421,7 +457,16 @@ def _extract_keywords_from_response(response: str, category: str) -> List[str]:
 
 
 def check_duplicates(category_name: str, keyword: str, keyword_path: str, report: ReportGenerator) -> None:
-    """Check for and record duplicates in the report."""
+    """
+    Checks for and records duplicate images within a specified keyword directory.
+    Duplicate images are removed, and the process is logged in the report.
+
+    Args:
+        category_name (str): The name of the category the keyword belongs to.
+        keyword (str): The specific keyword being processed.
+        keyword_path (str): The absolute path to the directory containing images for the keyword.
+        report (ReportGenerator): An instance of the ReportGenerator to record findings.
+    """
     try:
         # Get all image files
         image_files = [
@@ -462,7 +507,19 @@ def check_image_integrity(
         category_name: str,
         keyword: str
 ) -> None:
-    """Check the integrity of downloaded images."""
+    """
+    Checks the integrity of downloaded images within a specified keyword directory.
+    It counts valid and corrupted images and records the results in the dataset tracker and report.
+
+    Args:
+        tracker (DatasetTracker): An instance of the DatasetTracker to record integrity failures.
+        download_context (str): A string describing the context of the download (e.g., "category/keyword").
+        keyword_path (str): The absolute path to the directory containing images for the keyword.
+        max_images (int): The maximum number of images expected for this keyword.
+        report (ReportGenerator): An instance of the ReportGenerator to record integrity results.
+        category_name (str): The name of the category the keyword belongs to.
+        keyword (str): The specific keyword being processed.
+    """
     valid_count, total_count, corrupted_files = count_valid_images(keyword_path)
     if valid_count < max_images:
         tracker.record_integrity_failure(
@@ -483,7 +540,14 @@ def check_image_integrity(
 
 
 def update_logfile(log_file: str) -> None:
-    """Update the log file if it's different from the default."""
+    """
+    Updates the logging configuration to direct output to a specified log file.
+    If the provided log file path is different from the default, the existing file handler
+    is removed and a new one is added.
+
+    Args:
+        log_file (str): The absolute path to the desired log file.
+    """
     if log_file != DEFAULT_LOG_FILE:
         for handler in logger.handlers:
             if isinstance(handler, logging.FileHandler):
@@ -508,10 +572,11 @@ class LabelGenerator:
 
     def __init__(self, format_type: str = "txt"):
         """
-        Initialize the label generator with specified format type.
+        Initializes the LabelGenerator with a specified output format for label files.
 
         Args:
-            format_type: The format for label files ('txt', 'json', 'csv', 'yaml')
+            format_type (str): The desired format for label files ('txt', 'json', 'csv', 'yaml').
+                                If an unsupported format is provided, it defaults to 'txt'.
         """
         self.format_type = format_type.lower()
         self.supported_formats = {"txt", "json", "csv", "yaml"}
@@ -522,10 +587,11 @@ class LabelGenerator:
 
     def generate_dataset_labels(self, dataset_dir: str) -> None:
         """
-        Generate label files for all images in the dataset.
+        Generates label files for all images within the specified dataset directory.
+        It organizes labels by category and keyword, and creates metadata files for the dataset.
 
         Args:
-            dataset_dir: Root directory of the dataset
+            dataset_dir (str): The root directory of the dataset.
         """
         logger.info(f"Generating {self.format_type} labels for dataset at {dataset_dir}")
         dataset_path = Path(dataset_dir)
@@ -567,13 +633,13 @@ class LabelGenerator:
     def _generate_dataset_metadata(self, dataset_path: Path, labels_dir: Path,
                                    category_count: int, image_count: int) -> None:
         """
-        Generate overall dataset metadata.
+        Generates an overall metadata file for the dataset.
 
         Args:
-            dataset_path: Root path of the dataset
-            labels_dir: Directory where labels are stored
-            category_count: Number of categories in the dataset
-            image_count: Total number of images in the dataset
+            dataset_path (Path): The root path of the dataset.
+            labels_dir (Path): The directory where label files are stored.
+            category_count (int): The number of categories in the dataset.
+            image_count (int): The total number of images in the dataset.
         """
         dataset_name = dataset_path.name
 
@@ -604,11 +670,11 @@ class LabelGenerator:
 
     def _generate_category_index(self, labels_dir: Path, categories: List[str]) -> None:
         """
-        Generate category index file mapping categories to numeric IDs.
+        Generates a category index file that maps category names to numeric IDs.
 
         Args:
-            labels_dir: Directory where labels are stored
-            categories: List of category names
+            labels_dir (Path): The directory where label files are stored.
+            categories (List[str]): A list of category names in the dataset.
         """
         # Create category to ID mapping
         category_map = {name: idx for idx, name in enumerate(sorted(categories))}
@@ -638,13 +704,14 @@ class LabelGenerator:
     def _process_category(self, category_dir: Path, category_name: str,
                           labels_dir: Path, progress: ProgressManager) -> None:
         """
-        Process a single category directory.
+        Processes a single category directory, iterating through its keyword subdirectories
+        to generate labels for images within them.
 
         Args:
-            category_dir: Directory containing the category
-            category_name: Name of the category
-            labels_dir: Directory to store label files
-            progress: Progress manager object
+            category_dir (Path): The directory containing the category's images and keywords.
+            category_name (str): The name of the category.
+            labels_dir (Path): The base directory where all label files are stored.
+            progress (ProgressManager): An instance of the ProgressManager for updating progress bars.
         """
         # Create category label directory
         category_label_dir = labels_dir / category_name
@@ -660,14 +727,14 @@ class LabelGenerator:
     def _process_keyword(self, keyword_dir: Path, category_name: str, keyword_name: str,
                          category_label_dir: Path, progress: ProgressManager) -> None:
         """
-        Process a keyword directory and generate labels for its images.
+        Processes a keyword directory, generating label files for each image within it.
 
         Args:
-            keyword_dir: Directory containing images for the keyword
-            category_name: Name of the category
-            keyword_name: Name of the keyword
-            category_label_dir: Directory to store label files for this category
-            progress: Progress manager object
+            keyword_dir (Path): The directory containing images for the keyword.
+            category_name (str): The name of the category.
+            keyword_name (str): The name of the keyword.
+            category_label_dir (Path): The directory to store label files for this category.
+            progress (ProgressManager): An instance of the ProgressManager for updating progress bars.
         """
         # Create keyword label directory
         keyword_label_dir = category_label_dir / keyword_name
@@ -691,13 +758,14 @@ class LabelGenerator:
 
     def _generate_label_file(self, image_file: Path, label_dir: Path, category: str, keyword: str) -> None:
         """
-        Generate a label file for a single image.
+        Generates a label file for a single image based on the configured format.
+        It extracts image metadata and writes the label content to the specified directory.
 
         Args:
-            image_file: Path to the image file
-            label_dir: Directory to store the label file
-            category: Category name
-            keyword: Keyword name
+            image_file (Path): The path to the image file for which to generate a label.
+            label_dir (Path): The directory where the label file will be stored.
+            category (str): The category name associated with the image.
+            keyword (str): The keyword name associated with the image.
         """
         # Create a matching filename but with the appropriate extension
         # Handle any naming pattern by using the stem of the original filename
@@ -728,13 +796,13 @@ class LabelGenerator:
     @staticmethod
     def _extract_image_metadata(image_path: Path) -> Dict[str, Any]:
         """
-        Extract metadata from an image if possible.
+        Extracts metadata (e.g., dimensions, size, format) from an image file.
 
         Args:
-            image_path: Path to the image
+            image_path (Path): The path to the image file.
 
         Returns:
-            Dictionary with image metadata
+            Dict[str, Any]: A dictionary containing extracted image metadata.
         """
         metadata = {
             "timestamp": time.time(),
@@ -760,14 +828,17 @@ class LabelGenerator:
     def _write_txt_label(label_path: Path, category: str, keyword: str,
                          image_path: Path, metadata: Dict[str, Any]) -> None:
         """
-        Write label in TXT format.
+        Writes a label file in plain text (TXT) format.
 
         Args:
-            label_path: Path to write the label file
-            category: Category name
-            keyword: Keyword name
-            image_path: Path to the corresponding image
-            metadata: Image metadata
+            label_path (Path): The path to write the label file.
+            category (str): The category name.
+            keyword (str): The keyword name.
+            image_path (Path): The path to the corresponding image.
+            metadata (Dict[str, Any]): A dictionary containing image metadata.
+
+        Raises:
+            Exception: If there is an error writing the file.
         """
         try:
             with open(label_path, "w", encoding="utf-8") as f:
@@ -794,14 +865,17 @@ class LabelGenerator:
     def _write_json_label(label_path: Path, category: str, keyword: str,
                           image_path: Path, metadata: Dict[str, Any]) -> None:
         """
-        Write label in JSON format.
+        Writes a label file in JSON format.
 
         Args:
-            label_path: Path to write the label file
-            category: Category name
-            keyword: Keyword name
-            image_path: Path to the corresponding image
-            metadata: Image metadata
+            label_path (Path): The path to write the label file.
+            category (str): The category name.
+            keyword (str): The keyword name.
+            image_path (Path): The path to the corresponding image.
+            metadata (Dict[str, Any]): A dictionary containing image metadata.
+
+        Raises:
+            Exception: If there is an error writing the file.
         """
         try:
             label_data = {
@@ -822,14 +896,17 @@ class LabelGenerator:
     def _write_csv_label(label_path: Path, category: str, keyword: str,
                          image_path: Path, metadata: Dict[str, Any]) -> None:
         """
-        Write label in CSV format.
+        Writes a label file in CSV format.
 
         Args:
-            label_path: Path to write the label file
-            category: Category name
-            keyword: Keyword name
-            image_path: Path to the corresponding image
-            metadata: Image metadata
+            label_path (Path): The path to write the label file.
+            category (str): The category name.
+            keyword (str): The keyword name.
+            image_path (Path): The path to the corresponding image.
+            metadata (Dict[str, Any]): A dictionary containing image metadata.
+
+        Raises:
+            Exception: If there is an error writing the file.
         """
         try:
             headers = ["category", "keyword", "image_path", "timestamp", "filename", "width", "height", "format",
@@ -858,14 +935,17 @@ class LabelGenerator:
     def _write_yaml_label(self, label_path: Path, category: str, keyword: str,
                           image_path: Path, metadata: Dict[str, Any]) -> None:
         """
-        Write label in YAML format.
+        Writes a label file in YAML format.
 
         Args:
-            label_path: Path to write the label file
-            category: Category name
-            keyword: Keyword name
-            image_path: Path to the corresponding image
-            metadata: Image metadata
+            label_path (Path): The path to write the label file.
+            category (str): The category name.
+            keyword (str): The keyword name.
+            image_path (Path): The path to the corresponding image.
+            metadata (Dict[str, Any]): A dictionary containing image metadata.
+
+        Raises:
+            Exception: If there is an error writing the file (other than ImportError for PyYAML).
         """
         try:
             import yaml
@@ -889,14 +969,18 @@ class LabelGenerator:
 
 
 class DatasetGenerator:
-    """Class responsible for generating image datasets based on configuration."""
+    """
+    Class responsible for generating image datasets based on a provided configuration.
+    It orchestrates the entire process, including setting up directories, managing
+    progress, downloading images, checking integrity, and generating reports and labels.
+    """
 
     def __init__(self, config: DatasetGenerationConfig):
         """
-        Initialize the dataset generator.
+        Initializes the DatasetGenerator.
 
         Args:
-            config: Dataset generation configuration
+            config (DatasetGenerationConfig): The configuration object for dataset generation.
         """
         # Create a progress manager instance
         self.downloader_threads: Optional[threading.Thread] = None
@@ -937,7 +1021,12 @@ class DatasetGenerator:
         self.progress.close()
 
     def generate(self) -> None:
-        """Generate the dataset based on the provided configuration."""
+        """
+        Generates the dataset based on the provided configuration.
+        This is the main entry point for the dataset generation process,
+        orchestrating keyword processing, image downloading, integrity checks,
+        label generation, and report creation.
+        """
         # Calculate total work items for progress tracking
         total_keywords = sum(len(keywords) for keywords in self.categories.values())
 
@@ -977,14 +1066,25 @@ class DatasetGenerator:
         self.progress.close()
 
     def _setup_output_directory(self) -> Path:
-        """Set up and create the output directory."""
+        """
+        Sets up and creates the root output directory for the dataset.
+
+        Returns:
+            Path: The Path object representing the created root directory.
+        """
         root_dir = self.config.output_dir or self.dataset_name
         root_path = Path(root_dir)
         root_path.mkdir(parents=True, exist_ok=True)
         return root_path
 
     def _initialize_progress_cache(self) -> Optional[ProgressCache]:
-        """Initialize the progress cache if continuing from last run."""
+        """
+        Initializes the progress cache if the `continue_from_last` option is enabled.
+        This allows the generator to resume from a previous incomplete run.
+
+        Returns:
+            Optional[ProgressCache]: An instance of ProgressCache if enabled, otherwise None.
+        """
         if not self.config.continue_from_last:
             return None
 
@@ -995,7 +1095,12 @@ class DatasetGenerator:
         return progress_cache
 
     def _initialize_report(self) -> ReportGenerator:
-        """Initialize the report generator with dataset information."""
+        """
+        Initializes the ReportGenerator and populates it with initial dataset information.
+
+        Returns:
+            ReportGenerator: An instance of the ReportGenerator.
+        """
         report = ReportGenerator(str(self.root_dir))
         report.add_summary(f"Dataset name: {self.dataset_name}")
         report.add_summary(f"Configuration: {self.config.config_path}")
@@ -1013,7 +1118,13 @@ class DatasetGenerator:
         return report
 
     def _load_and_validate_config(self) -> Dict[str, Any]:
-        """Load and validate the dataset configuration, applying config file options."""
+        """
+        Loads and validates the dataset configuration from the specified config file.
+        It also applies configuration options from the file, giving precedence to CLI arguments.
+
+        Returns:
+            Dict[str, Any]: The loaded and validated dataset configuration.
+        """
         dataset_config = load_config(self.config.config_path)
 
         # Extract options from config if available, with CLI arguments taking precedence
@@ -1025,7 +1136,13 @@ class DatasetGenerator:
         return dataset_config
 
     def _process_category(self, category_name: str, keywords: List[str]) -> None:
-        """Process a single category with its keywords."""
+        """
+        Processes a single category, creating its directory and handling its keywords.
+
+        Args:
+            category_name (str): The name of the category.
+            keywords (List[str]): A list of keywords associated with this category.
+        """
         # Create category directory
         category_path = self.root_dir / category_name
         category_path.mkdir(parents=True, exist_ok=True)
@@ -1043,7 +1160,17 @@ class DatasetGenerator:
                 f"Category: {category_name} ({keywords_to_process.index(keyword) + 1}/{len(keywords_to_process)})")
 
     def _prepare_keywords(self, category_name: str, keywords: List[str]) -> List[str]:
-        """Prepare keywords for processing based on configuration."""
+        """
+        Prepares keywords for processing based on the configuration.
+        This includes generating new keywords using an AI model if enabled and necessary.
+
+        Args:
+            category_name (str): The name of the category.
+            keywords (List[str]): The initial list of keywords provided for the category.
+
+        Returns:
+            List[str]: The final list of keywords to be processed for the category.
+        """
         # Record original keywords before any potential generation
         original_keywords = keywords.copy() if keywords else []
         generated_keywords = []
@@ -1079,7 +1206,15 @@ class DatasetGenerator:
         return keywords
 
     def _process_keyword(self, category_name: str, keyword: str, category_path: Path) -> None:
-        """Process a single keyword, downloading images and checking integrity."""
+        """
+        Processes a single keyword, including downloading images, checking for duplicates,
+        and performing integrity checks.
+
+        Args:
+            category_name (str): The name of the category the keyword belongs to.
+            keyword (str): The specific keyword to process.
+            category_path (Path): The path to the category's directory.
+        """
         # Update subtask postfix to show current keyword
         self.progress.set_subtask_postfix(keyword=keyword)
 
@@ -1132,7 +1267,16 @@ class DatasetGenerator:
 
     def _track_download_results(self, download_context: str, success: bool, count: int, category_name: str,
                                 keyword: str) -> None:
-        """Track the results of image downloads."""
+        """
+        Tracks the results of image downloads, updating the dataset tracker and report.
+
+        Args:
+            download_context (str): A string describing the context of the download (e.g., "category/keyword").
+            success (bool): True if the download was successful, False otherwise.
+            count (int): The number of images downloaded.
+            category_name (str): The name of the category.
+            keyword (str): The keyword associated with the download.
+        """
         if success:
             self.tracker.record_download_success(download_context)
             logger.info(f"Successfully downloaded {count} images for {download_context}")
@@ -1143,7 +1287,15 @@ class DatasetGenerator:
 
     def _check_image_integrity(self, download_context: str, keyword_path: str, category_name: str,
                                keyword: str) -> None:
-        """Check image integrity and record results."""
+        """
+        Checks image integrity for a given keyword directory and records the results.
+
+        Args:
+            download_context (str): A string describing the context of the download.
+            keyword_path (str): The path to the keyword's image directory.
+            category_name (str): The name of the category.
+            keyword (str): The keyword being processed.
+        """
         self.progress.set_subtask_description(f"Checking image integrity: {keyword}")
 
         valid_count, total_count, corrupted_files = count_valid_images(keyword_path)
@@ -1168,7 +1320,9 @@ class DatasetGenerator:
         )
 
     def _log_engine_stats(self) -> None:
-        """Log statistics about downloads from each engine."""
+        """
+        Logs statistics about image downloads from each engine.
+        """
         if not self.engine_stats:
             return
 
@@ -1178,15 +1332,15 @@ class DatasetGenerator:
             logger.info(f"  {engine.capitalize()}: {count} images ({percentage:.1f}%)")
 
     @staticmethod
-    def _get_crawler_class(engine_name: str) -> Any:
+    def _get_crawler_class(engine_name: str) -> Type[Crawler]:
         """
-        Get the crawler class based on engine name.
+        Retrieves the appropriate iCrawler class based on the engine name.
 
         Args:
-            engine_name: Name of the search engine
+            engine_name (str): The name of the search engine.
 
         Returns:
-            Crawler class
+            Type[Union[GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler, Any]]: The iCrawler class.
         """
         crawler_map = {
             "google": GoogleImageCrawler,
@@ -1195,16 +1349,16 @@ class DatasetGenerator:
         }
         return crawler_map.get(engine_name)
 
-    def _create_crawler(self, crawler_class, out_dir: str):
+    def _create_crawler(self, crawler_class: Type[Any], out_dir: str) -> Any:
         """
-        Create a crawler instance with the configured parameters.
+        Creates an instance of a crawler with the configured parameters.
 
         Args:
-            crawler_class: The crawler class to instantiate
-            out_dir: Output directory for the crawler
+            crawler_class (Type[Any]): The class of the crawler to instantiate.
+            out_dir (str): The output directory for the crawler.
 
         Returns:
-            Configured crawler instance
+            Any: A configured crawler instance.
         """
         return crawler_class(
             storage={'root_dir': out_dir},

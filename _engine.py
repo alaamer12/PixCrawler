@@ -1,10 +1,16 @@
+"""
+This module provides the core logic for processing search engines and downloading images.
+It includes classes for managing engine configurations, tracking statistics,
+and orchestrating parallel and sequential image downloads.
+"""
+
 import concurrent.futures
 import random
 import threading
 import time
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Tuple, Optional, List, Dict, Any
+from typing import Tuple, Optional, List, Dict, Any, Union, Type
 
 from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler
 
@@ -12,9 +18,24 @@ from config import get_engines
 from constants import logger
 from utilities import count_valid_images_in_latest_batch
 
+__all__ = [
+    'EngineMode',
+    'EngineConfig',
+    'VariationResult',
+    'EngineResult',
+    'EngineStats',
+    'EngineProcessor',
+    'SingleEngineProcessor'
+]
+
 
 def load_engine_configs() -> List["EngineConfig"]:
-    """Load and convert engine configurations."""
+    """
+    Loads engine configurations from the system and converts them into a list of EngineConfig objects.
+
+    Returns:
+        List[EngineConfig]: A list of configured engine objects.
+    """
     raw_engines = get_engines()
     return [
         EngineConfig(
@@ -27,7 +48,17 @@ def load_engine_configs() -> List["EngineConfig"]:
 
 
 def select_variations(variations: List[str], max_num: int) -> List[str]:
-    """Select optimal number of variations based on target."""
+    """
+    Selects an optimal number of variations based on the target maximum number of images.
+    Prioritizes using more variations for higher targets, up to a certain limit.
+
+    Args:
+        variations (List[str]): A list of available search variations.
+        max_num (int): The maximum number of images to download.
+
+    Returns:
+        List[str]: A shuffled list of selected variations.
+    """
     # Use more variations for higher targets
     max_variations = min(len(variations), max(3, max_num // 5))
     selected = variations[:max_variations]
@@ -36,34 +67,67 @@ def select_variations(variations: List[str], max_num: int) -> List[str]:
 
 
 class EngineMode(StrEnum):
-    """Enumeration for different engine processing modes."""
+    """
+    Enumeration for different engine processing modes.
+
+    Attributes:
+        PARALLEL (str): Indicates that engines should be processed in parallel.
+        SEQUENTIAL (str): Indicates that engines should be processed sequentially.
+    """
     PARALLEL = "parallel"
     SEQUENTIAL = "sequential"
 
 
 @dataclass
 class EngineConfig:
-    """Configuration for a search engine."""
+    """
+    Configuration for a search engine.
+
+    Attributes:
+        name (str): The name of the search engine (e.g., "google", "bing").
+        offset_range (Tuple[int, int]): A tuple specifying the minimum and maximum offset for searches.
+        variation_step (int): The step size to increment the offset for each variation.
+    """
     name: str
     offset_range: Tuple[int, int]
     variation_step: int
 
     @property
     def random_offset(self) -> int:
-        """Generate a random offset within the engine's range."""
+        """
+        Generates a random offset within the engine's configured offset range.
+
+        Returns:
+            int: A random integer representing the offset.
+        """
         return random.randint(*self.offset_range)
 
 
 @dataclass
 class VariationResult:
-    """Result of processing a single search variation."""
+    """
+    Represents the result of processing a single search variation.
+
+    Attributes:
+        variation (str): The search variation string.
+        downloaded_count (int): The number of images successfully downloaded for this variation.
+        success (bool): True if the variation processing was successful, False otherwise.
+        error (Optional[str]): An error message if the processing failed, otherwise None.
+        processing_time (float): The time taken to process this variation in seconds.
+    """
     variation: str
     downloaded_count: int
     success: bool
     error: Optional[str] = None
     processing_time: float = 0.0
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """
+        Returns a string representation of the VariationResult object.
+
+        Returns:
+            str: A string representation including variation, downloaded count, success status, error, and processing time.
+        """
         return (f"VariationResult(variation='{self.variation}', "
                 f"downloaded={self.downloaded_count}, "
                 f"success={self.success})"
@@ -73,7 +137,17 @@ class VariationResult:
 
 @dataclass
 class EngineResult:
-    """Result of processing a single engine."""
+    """
+    Represents the result of processing a single engine.
+
+    Attributes:
+        engine_name (str): The name of the engine.
+        total_downloaded (int): The total number of images downloaded by this engine.
+        variations_processed (int): The number of variations processed by this engine.
+        success_rate (float): The overall success rate of variations processed by this engine.
+        processing_time (float): The total time taken to process this engine in seconds.
+        variations (List[VariationResult]): A list of results for each variation processed by this engine.
+    """
     engine_name: str
     total_downloaded: int
     variations_processed: int
@@ -84,7 +158,15 @@ class EngineResult:
 
 @dataclass
 class EngineStats:
-    """Statistics tracking for engine performance."""
+    """
+    Statistics tracking for engine performance.
+
+    Attributes:
+        download_count (int): Total number of images downloaded.
+        success_count (int): Number of successful variation processes.
+        failure_count (int): Number of failed variation processes.
+        total_processing_time (float): Total time spent processing.
+    """
     download_count: int = 0
     success_count: int = 0
     failure_count: int = 0
@@ -92,7 +174,12 @@ class EngineStats:
 
     @property
     def success_rate(self) -> float:
-        """Calculate success rate percentage."""
+        """
+        Calculates the success rate percentage based on successful and failed attempts.
+
+        Returns:
+            float: The success rate as a percentage (0.0 to 100.0).
+        """
         total_attempts = self.success_count + self.failure_count
         return (self.success_count / total_attempts * 100) if total_attempts > 0 else 0.0
 
@@ -103,26 +190,47 @@ class EngineProcessor:
     Provides both parallel and sequential processing modes with improved error handling.
     """
 
-    def __init__(self, image_downloader):
-        """Initialize the EngineProcessor."""
+    def __init__(self, image_downloader: Any):
+        """
+        Initializes the EngineProcessor.
+
+        Args:
+            image_downloader (Any): An instance of the image downloader, providing download-related functionalities.
+        """
         self.image_downloader = image_downloader
         self.engine_configs = load_engine_configs()
         self.engine_stats: Dict[str, EngineStats] = {}
         self.processing_lock = threading.Lock()
 
     def reset_stats(self) -> None:
-        """Reset all engine statistics."""
+        """
+        Resets all accumulated engine statistics.
+        """
         with self.processing_lock:
             self.engine_stats.clear()
 
     def _get_or_create_stats(self, engine_name: str) -> EngineStats:
-        """Get or create statistics for an engine."""
+        """
+        Retrieves existing statistics for a given engine or creates a new EngineStats object if none exists.
+
+        Args:
+            engine_name (str): The name of the engine.
+
+        Returns:
+            EngineStats: The statistics object for the specified engine.
+        """
         if engine_name not in self.engine_stats:
             self.engine_stats[engine_name] = EngineStats()
         return self.engine_stats[engine_name]
 
     def update_stats(self, engine_name: str, result: VariationResult) -> None:
-        """Update statistics for a specific engine."""
+        """
+        Updates the statistics for a specific engine based on the result of a variation.
+
+        Args:
+            engine_name (str): The name of the engine to update.
+            result (VariationResult): The result object from a processed variation.
+        """
         with self.processing_lock:
             stats = self._get_or_create_stats(engine_name)
             stats.download_count += result.downloaded_count
@@ -134,7 +242,10 @@ class EngineProcessor:
                 stats.failure_count += 1
 
     def log_engine_stats(self) -> None:
-        """Log comprehensive statistics about downloads from each engine."""
+        """
+        Logs comprehensive statistics about image downloads from each engine.
+        If no statistics are available, it logs a corresponding message.
+        """
         if not self.engine_stats:
             logger.info("No engine statistics available")
             return
@@ -160,7 +271,16 @@ class EngineProcessor:
     def download_with_parallel_engines(self, keyword: str, variations: List[str],
                                        out_dir: str, max_num: int) -> List[EngineResult]:
         """
-        Download images using all search engines in parallel with improved resource management.
+        Downloads images using all configured search engines in parallel.
+
+        Args:
+            keyword (str): The main search keyword.
+            variations (List[str]): A list of search variations for the keyword.
+            out_dir (str): The output directory for downloaded images.
+            max_num (int): The maximum number of images to download in total.
+
+        Returns:
+            List[EngineResult]: A list of results from each processed engine.
         """
         logger.info(f"Starting parallel engine processing for '{keyword}' (target: {max_num} images)")
 
@@ -202,7 +322,16 @@ class EngineProcessor:
     def download_with_sequential_engines(self, keyword: str, variations: List[str],
                                          out_dir: str, max_num: int) -> List[EngineResult]:
         """
-        Download images using engines in sequence with enhanced fallback handling.
+        Downloads images using configured search engines sequentially.
+
+        Args:
+            keyword (str): The main search keyword.
+            variations (List[str]): A list of search variations for the keyword.
+            out_dir (str): The output directory for downloaded images.
+            max_num (int): The maximum number of images to download in total.
+
+        Returns:
+            List[EngineResult]: A list of results from each processed engine.
         """
         logger.info(f"Starting sequential engine processing for '{keyword}' (target: {max_num} images)")
 
@@ -234,14 +363,34 @@ class EngineProcessor:
         return results
 
     def _calculate_per_engine_target(self, max_num: int) -> int:
-        """Calculate target images per engine for parallel processing."""
+        """
+        Calculates the target number of images per engine for parallel processing.
+
+        Args:
+            max_num (int): The total maximum number of images to download.
+
+        Returns:
+            int: The calculated target number of images for each engine.
+        """
         base_target = max_num // len(self.engine_configs)
         # Add buffer to ensure we get enough images
         return max(5, int(base_target * 1.3))
 
     def _process_engine_parallel(self, config: EngineConfig, variations: List[str],
                                  out_dir: str, per_engine_target: int, total_max: int) -> EngineResult:
-        """Process a single engine in parallel mode."""
+        """
+        Processes a single engine in parallel mode.
+
+        Args:
+            config (EngineConfig): The configuration for the engine to process.
+            variations (List[str]): A list of search variations.
+            out_dir (str): The output directory for downloaded images.
+            per_engine_target (int): The target number of images for this specific engine.
+            total_max (int): The overall maximum number of images to download.
+
+        Returns:
+            EngineResult: The result of processing the engine.
+        """
         engine_processor = SingleEngineProcessor(self.image_downloader, self)
         result = engine_processor.process_engine(config, variations, out_dir, per_engine_target, total_max)
 
@@ -252,20 +401,41 @@ class EngineProcessor:
         return result
 
     def _should_stop_processing(self, max_num: int) -> bool:
-        """Check if processing should stop."""
+        """
+        Checks if the image downloading process should be stopped.
+
+        Args:
+            max_num (int): The maximum number of images targeted for download.
+
+        Returns:
+            bool: True if processing should stop, False otherwise.
+        """
         return (self.image_downloader.stop_workers or
                 self.image_downloader.total_downloaded >= max_num)
 
     @staticmethod
     def _cancel_remaining_futures(futures_dict: Dict) -> None:
-        """Cancel all remaining futures."""
+        """
+        Cancels all futures that have not yet completed.
+
+        Args:
+            futures_dict (Dict): A dictionary of futures, typically from a ThreadPoolExecutor.
+        """
         for future in futures_dict.keys():
             if not future.done():
                 future.cancel()
 
     @staticmethod
-    def get_crawler_class(engine_name: str) -> Any:
-        """Get the crawler class based on engine name."""
+    def get_crawler_class(engine_name: str) -> Type[Union[GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler, Any]]:
+        """
+        Retrieves the appropriate iCrawler class based on the engine name.
+
+        Args:
+            engine_name (str): The name of the search engine (e.g., "google", "bing", "baidu").
+
+        Returns:
+            Type[Union[GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler, Any]]: The iCrawler class corresponding to the engine name.
+        """
         crawler_map = {
             "google": GoogleImageCrawler,
             "bing": BingImageCrawler,
@@ -273,8 +443,17 @@ class EngineProcessor:
         }
         return crawler_map.get(engine_name)
 
-    def create_crawler(self, crawler_class, out_dir: str):
-        """Create a crawler instance with optimized configuration."""
+    def create_crawler(self, crawler_class: Type[Any], out_dir: str) -> Any:
+        """
+        Creates an instance of a crawler with optimized configuration.
+
+        Args:
+            crawler_class (Type[Any]): The class of the crawler to instantiate (e.g., GoogleImageCrawler).
+            out_dir (str): The output directory for downloaded images.
+
+        Returns:
+            Any: An instance of the configured crawler.
+        """
         return crawler_class(
             storage={'root_dir': out_dir},
             log_level=self.image_downloader.log_level,
@@ -296,7 +475,17 @@ class SingleEngineProcessor:
     def process_engine(self, config: EngineConfig, variations: List[str],
                        out_dir: str, max_num: int, total_max: int) -> EngineResult:
         """
-        Process a single search engine with comprehensive error handling and monitoring.
+        Processes a single search engine with comprehensive error handling and monitoring.
+
+        Args:
+            config (EngineConfig): The configuration for the engine to process.
+            variations (List[str]): A list of search variations for the engine.
+            out_dir (str): The output directory for downloaded images.
+            max_num (int): The maximum number of images to download for this engine.
+            total_max (int): The overall maximum number of images to download across all engines.
+
+        Returns:
+            EngineResult: The result of processing the engine.
         """
         start_time = time.time()
         downloaded_count = 0
@@ -344,7 +533,19 @@ class SingleEngineProcessor:
 
     def _process_variations_parallel(self, config: EngineConfig, variations: List[str],
                                      out_dir: str, max_num: int, total_max: int) -> List[VariationResult]:
-        """Process variations in parallel."""
+        """
+        Processes multiple search variations in parallel for a given engine.
+
+        Args:
+            config (EngineConfig): The configuration for the engine.
+            variations (List[str]): A list of search variations to process.
+            out_dir (str): The output directory for downloaded images.
+            max_num (int): The maximum number of images to download for this engine.
+            total_max (int): The overall maximum number of images to download across all engines.
+
+        Returns:
+            List[VariationResult]: A list of results for each processed variation.
+        """
         results = []
         per_variation_limit = max(2, max_num // len(variations))
 
@@ -393,7 +594,19 @@ class SingleEngineProcessor:
 
     def _process_variations_sequential(self, config: EngineConfig, variations: List[str],
                                        out_dir: str, max_num: int, total_max: int) -> List[VariationResult]:
-        """Process variations sequentially."""
+        """
+        Processes multiple search variations sequentially for a given engine.
+
+        Args:
+            config (EngineConfig): The configuration for the engine.
+            variations (List[str]): A list of search variations to process.
+            out_dir (str): The output directory for downloaded images.
+            max_num (int): The maximum number of images to download for this engine.
+            total_max (int): The overall maximum number of images to download across all engines.
+
+        Returns:
+            List[VariationResult]: A list of results for each processed variation.
+        """
         results = []
         downloaded_so_far = 0
 
@@ -421,7 +634,20 @@ class SingleEngineProcessor:
     def _process_single_variation(self, config: EngineConfig, variation: str,
                                   variation_index: int, out_dir: str,
                                   max_num: int, total_max: int) -> VariationResult:
-        """Process a single search variation with enhanced error handling."""
+        """
+        Processes a single search variation, including crawling and counting downloaded images.
+
+        Args:
+            config (EngineConfig): The configuration for the engine.
+            variation (str): The specific search variation string.
+            variation_index (int): The index of the current variation, used for offset calculation.
+            out_dir (str): The output directory for downloaded images.
+            max_num (int): The maximum number of images to download for this variation.
+            total_max (int): The overall maximum number of images to download across all engines.
+
+        Returns:
+            VariationResult: The result of processing this single variation.
+        """
         start_time = time.time()
 
         if self._should_stop_processing(total_max):
@@ -485,8 +711,20 @@ class SingleEngineProcessor:
                 processing_time=processing_time
             )
 
-    def _create_enhanced_crawler(self, engine_name: str, out_dir: str):
-        """Create crawler with enhanced error handling."""
+    def _create_enhanced_crawler(self, engine_name: str, out_dir: str) -> Any:
+        """
+        Creates a crawler instance with enhanced error handling and applies a safe parser wrapper.
+
+        Args:
+            engine_name (str): The name of the engine for which to create the crawler.
+            out_dir (str): The output directory for downloaded images.
+
+        Returns:
+            Any: An instance of the configured and wrapped crawler.
+
+        Raises:
+            ValueError: If no crawler class is found for the given engine name.
+        """
         crawler_class = self.engine_processor.get_crawler_class(engine_name)
         if not crawler_class:
             raise ValueError(f"No crawler class found for engine: {engine_name}")
@@ -496,8 +734,14 @@ class SingleEngineProcessor:
         return crawler
 
     @staticmethod
-    def _apply_safe_parser_wrapper(crawler, engine_name: str):
-        """Apply enhanced parser wrapper with better error handling."""
+    def _apply_safe_parser_wrapper(crawler: Any, engine_name: str) -> None:
+        """
+        Applies an enhanced parser wrapper to the crawler to improve error handling and result validation.
+
+        Args:
+            crawler (Any): The crawler instance to wrap.
+            engine_name (str): The name of the engine associated with the crawler.
+        """
         try:
             original_parse = crawler.parser.parse
 
@@ -527,33 +771,76 @@ class SingleEngineProcessor:
             logger.error(f"Failed to apply parser wrapper for {engine_name}: {e}")
 
     def _should_stop_processing(self, total_max: int) -> bool:
-        """Check if processing should stop."""
+        """
+        Checks if the image downloading process should be stopped based on global flags or total downloaded count.
+
+        Args:
+            total_max (int): The overall maximum number of images to download.
+
+        Returns:
+            bool: True if processing should stop, False otherwise.
+        """
         return (self.image_downloader.stop_workers or
                 self.image_downloader.total_downloaded >= total_max)
 
     def _calculate_remaining_capacity(self, total_max: int) -> int:
-        """Calculate remaining download capacity."""
+        """
+        Calculates the remaining download capacity based on the total maximum and already downloaded images.
+
+        Args:
+            total_max (int): The overall maximum number of images to download.
+
+        Returns:
+            int: The remaining capacity for downloads.
+        """
         with self.image_downloader.lock:
             return max(0, total_max - self.image_downloader.total_downloaded)
 
     def _get_current_file_offset(self) -> int:
-        """Get current file index offset for naming."""
+        """
+        Retrieves the current file index offset for naming downloaded images.
+
+        Returns:
+            int: The current total number of downloaded images, used as an offset.
+        """
         with self.image_downloader.lock:
             return self.image_downloader.total_downloaded
 
     def _count_variation_results(self, out_dir: str, file_idx_offset: int) -> int:
-        """Count valid images from the latest batch."""
+        """
+        Counts the number of valid images downloaded in the latest batch for a specific variation.
+
+        Args:
+            out_dir (str): The output directory where images are downloaded.
+            file_idx_offset (int): The starting file index offset for counting.
+
+        Returns:
+            int: The number of valid images found.
+        """
         with self.image_downloader.lock:
             return count_valid_images_in_latest_batch(out_dir, file_idx_offset)
 
     def _update_global_counters(self, result: VariationResult) -> None:
-        """Update global download counters."""
+        """
+        Updates the global download counters based on the results of a variation.
+
+        Args:
+            result (VariationResult): The result object from a processed variation.
+        """
         with self.image_downloader.lock:
             self.image_downloader.total_downloaded += result.downloaded_count
 
     @staticmethod
     def _calculate_success_rate(results: List[VariationResult]) -> float:
-        """Calculate success rate from variation results."""
+        """
+        Calculates the success rate from a list of variation results.
+
+        Args:
+            results (List[VariationResult]): A list of VariationResult objects.
+
+        Returns:
+            float: The success rate as a percentage (0.0 to 100.0).
+        """
         if not results:
             return 0.0
 

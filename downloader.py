@@ -1,14 +1,17 @@
-import concurrent.futures
+"""
+This module provides various image downloading functionalities, including
+DuckDuckGo search integration and a multi-threaded image downloader
+that leverages different search engines.
+"""
+
 import concurrent.futures
 import logging
 import os
 import random
 import threading
 import time
-from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Tuple, Optional
-from typing import Protocol
+from typing import List, Tuple, Optional, Protocol
 
 import requests
 from duckduckgo_search import DDGS
@@ -19,8 +22,19 @@ from constants import logger
 from helpers import progress
 from utilities import validate_image, rename_images_sequentially
 
+__all__ = [
+    'IDownloader',
+    'DuckDuckGoImageDownloader',
+    'download_images_ddgs',
+    'ImageDownloader'
+]
+
 
 class IDownloader(Protocol):
+    """
+    A protocol defining the interface for image downloaders.
+    Any class implementing this protocol must provide a `download` method.
+    """
     def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
         ...
 
@@ -34,10 +48,10 @@ class DuckDuckGoImageDownloader(IDownloader):
 
     def __init__(self, max_workers: int = 4):
         """
-        Initialize the downloader with default settings.
+        Initializes the DuckDuckGoImageDownloader with default settings.
 
         Args:
-            max_workers: Maximum number of parallel download workers
+            max_workers (int): The maximum number of parallel download workers.
         """
         self.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         self.timeout = 20
@@ -48,14 +62,15 @@ class DuckDuckGoImageDownloader(IDownloader):
 
     def _get_image(self, image_url: str, file_path: str) -> bool:
         """
-        Download a single image from URL and save it to file path.
+        Downloads a single image from a given URL and saves it to the specified file path.
+        Includes retry logic for SSL verification and checks for content type and file size.
 
         Args:
-            image_url: URL of the image to download
-            file_path: Path where to save the image
+            image_url (str): The URL of the image to download.
+            file_path (str): The absolute path where the image should be saved.
 
         Returns:
-            bool: True if download was successful, False otherwise
+            bool: True if the download and validation were successful, False otherwise.
         """
         try:
             # First try with verification
@@ -110,15 +125,15 @@ class DuckDuckGoImageDownloader(IDownloader):
 
     def _download_single_image(self, result: dict, out_dir: str, index: int) -> bool:
         """
-        Download a single image from a search result.
+        Downloads a single image from a search result dictionary.
 
         Args:
-            result: Search result dictionary
-            out_dir: Output directory
-            index: Image index for filename
+            result (dict): A dictionary containing image information, including its URL.
+            out_dir (str): The output directory where the image will be saved.
+            index (int): The index of the image, used for generating a unique filename.
 
         Returns:
-            bool: True if download was successful, False otherwise
+            bool: True if the image was successfully downloaded, False otherwise.
         """
         image_url = result.get("image")
         if not image_url:
@@ -138,15 +153,15 @@ class DuckDuckGoImageDownloader(IDownloader):
 
     def _search_and_download_parallel(self, keyword: str, out_dir: str, max_count: int) -> int:
         """
-        Search for images with a keyword and download them in parallel.
+        Searches for images using a keyword and downloads them in parallel.
 
         Args:
-            keyword: Search term
-            out_dir: Output directory
-            max_count: Maximum number of images to download
+            keyword (str): The search term for images.
+            out_dir (str): The output directory where images will be saved.
+            max_count (int): The maximum number of images to download.
 
         Returns:
-            int: Number of successfully downloaded images
+            int: The number of successfully downloaded images.
         """
         downloaded = 0
 
@@ -167,14 +182,14 @@ class DuckDuckGoImageDownloader(IDownloader):
     @staticmethod
     def _fetch_search_results(keyword: str, max_count: int) -> List[dict]:
         """
-        Fetch image search results from DuckDuckGo.
+        Fetches image search results from DuckDuckGo.
 
         Args:
-            keyword: Search term
-            max_count: Maximum number of images needed
+            keyword (str): The search term.
+            max_count (int): The maximum number of images needed.
 
         Returns:
-            List of search result dictionaries
+            List[dict]: A list of search result dictionaries.
         """
         with DDGS() as ddgs:
             # Request more images than needed to account for failures
@@ -184,15 +199,15 @@ class DuckDuckGoImageDownloader(IDownloader):
 
     def _execute_parallel_downloads(self, results: List[dict], out_dir: str, max_count: int) -> int:
         """
-        Execute parallel downloads of images from search results.
+        Executes parallel downloads of images from a list of search results.
 
         Args:
-            results: List of search result dictionaries
-            out_dir: Output directory
-            max_count: Maximum number of images to download
+            results (List[dict]): A list of search result dictionaries.
+            out_dir (str): The output directory for downloaded images.
+            max_count (int): The maximum number of images to download.
 
         Returns:
-            Number of successfully downloaded images
+            int: The number of successfully downloaded images.
         """
         downloaded = 0
 
@@ -230,10 +245,10 @@ class DuckDuckGoImageDownloader(IDownloader):
     @staticmethod
     def _cancel_pending_futures(futures: List[concurrent.futures.Future]) -> None:
         """
-        Cancel any pending futures to avoid unnecessary downloads.
+        Cancels any pending futures in a list to prevent unnecessary downloads.
 
         Args:
-            futures: List of futures to check and potentially cancel
+            futures (List[concurrent.futures.Future]): A list of Future objects to check and potentially cancel.
         """
         for future in futures:
             if not future.done():
@@ -241,15 +256,16 @@ class DuckDuckGoImageDownloader(IDownloader):
 
     def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
         """
-        Download images using DuckDuckGo search.
+        Downloads images using DuckDuckGo search, including fallback mechanisms with alternate keywords.
 
         Args:
-            keyword: Search term for images
-            out_dir: Output directory path
-            max_num: Maximum number of images to download
+            keyword (str): The primary search term for images.
+            out_dir (str): The output directory path where images will be saved.
+            max_num (int): The maximum number of images to download.
 
         Returns:
-            Tuple of (success_flag, downloaded_count)
+            Tuple[bool, int]: A tuple where the first element is True if any images were downloaded,
+                             and the second element is the total count of downloaded images.
         """
         logger.warning("Using DuckDuckGo image search with parallel downloading")
 
@@ -294,15 +310,17 @@ class DuckDuckGoImageDownloader(IDownloader):
 
 def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
     """
-    Download images directly using DuckDuckGo search engine.
+    Downloads images directly using the DuckDuckGo search engine.
+    This function serves as a wrapper for the `DuckDuckGoImageDownloader` class.
 
     Args:
-        keyword: Search term for images
-        out_dir: Output directory path
-        max_num: Maximum number of images to download
+        keyword (str): The search term for images.
+        out_dir (str): The output directory path where images will be saved.
+        max_num (int): The maximum number of images to download.
 
     Returns:
-        Tuple of (success_flag, downloaded_count)
+        Tuple[bool, int]: A tuple where the first element is True if any images were downloaded,
+                         and the second element is the total count of downloaded images.
     """
     try:
         # Create the output directory if it doesn't exist
@@ -350,18 +368,18 @@ class ImageDownloader(IDownloader):
                  max_parallel_variations: int = 3,
                  use_all_engines: bool = True):
         """
-        Initialize the ImageDownloader with configurable parameters.
+        Initializes the ImageDownloader with configurable parameters.
 
         Args:
-            feeder_threads: Number of feeder threads for crawlers
-            parser_threads: Number of parser threads for crawlers
-            downloader_threads: Number of downloader threads for crawlers
-            min_image_size: Minimum image size as (width, height) tuple
-            delay_between_searches: Delay in seconds between different search terms
-            log_level: Logging level for crawlers
-            max_parallel_engines: Maximum number of search engines to use in parallel
-            max_parallel_variations: Maximum number of search variations to run in parallel per engine
-            use_all_engines: Whether to use all engines in parallel (True) or fallback mode (False)
+            feeder_threads (int): Number of feeder threads for crawlers.
+            parser_threads (int): Number of parser threads for crawlers.
+            downloader_threads (int): Number of downloader threads for crawlers.
+            min_image_size (Tuple[int, int]): Minimum image size as (width, height) tuple.
+            delay_between_searches (float): Delay in seconds between different search terms.
+            log_level (int): Logging level for crawlers (e.g., logging.INFO, logging.WARNING).
+            max_parallel_engines (int): Maximum number of search engines to use in parallel.
+            max_parallel_variations (int): Maximum number of search variations to run in parallel per engine.
+            use_all_engines (bool): Whether to use all engines in parallel (True) or fallback mode (False).
         """
         self.feeder_threads = feeder_threads
         self.parser_threads = parser_threads
@@ -390,15 +408,17 @@ class ImageDownloader(IDownloader):
 
     def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
         """
-        Download images using multiple image crawlers in parallel.
+        Downloads images using multiple image crawlers, supporting both parallel and sequential processing.
+        Includes fallback to DuckDuckGo if primary crawlers do not meet the download target.
 
         Args:
-            keyword: Search term for images
-            out_dir: Output directory path
-            max_num: Maximum number of images to download
+            keyword (str): The search term for images.
+            out_dir (str): The output directory path where images will be saved.
+            max_num (int): The maximum number of images to download.
 
         Returns:
-            Tuple of (success_flag, downloaded_count)
+            Tuple[bool, int]: A tuple where the first element is True if any images were downloaded,
+                             and the second element is the total count of downloaded images.
         """
         try:
             # Ensure output directory exists
@@ -460,16 +480,16 @@ class ImageDownloader(IDownloader):
     @staticmethod
     def _try_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int, total_downloaded: int) -> int:
         """
-        Try DuckDuckGo as a fallback option when other engines haven't downloaded enough images.
+        Attempts to use DuckDuckGo as a fallback option if other engines haven't downloaded enough images.
 
         Args:
-            keyword: Search term
-            out_dir: Output directory
-            max_num: Maximum number of images to download
-            total_downloaded: Current download count
+            keyword (str): The search term.
+            out_dir (str): The output directory.
+            max_num (int): The maximum number of images to download.
+            total_downloaded (int): The current count of downloaded images.
 
         Returns:
-            Updated total downloaded count
+            int: The updated total downloaded count after the fallback attempt.
         """
         if total_downloaded >= max_num:
             return total_downloaded
@@ -487,15 +507,15 @@ class ImageDownloader(IDownloader):
     @staticmethod
     def _final_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
         """
-        Final fallback to DuckDuckGo when all other methods have failed.
+        Performs a final fallback to DuckDuckGo when all other download methods have failed.
 
         Args:
-            keyword: Search term
-            out_dir: Output directory
-            max_num: Maximum number of images to download
+            keyword (str): The search term.
+            out_dir (str): The output directory.
+            max_num (int): The maximum number of images to download.
 
         Returns:
-            Tuple of (success_flag, downloaded_count)
+            Tuple[bool, int]: A tuple indicating success (True/False) and the number of images downloaded.
         """
         success, count = download_images_ddgs(keyword, out_dir, max_num)
         if success and count > 0:
