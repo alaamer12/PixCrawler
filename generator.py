@@ -39,7 +39,7 @@ import random
 import threading
 import time
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple, Union, Type
+from typing import Optional, List, Dict, Any, Tuple, Union, Type, Final
 
 import g4f
 import jsonschema
@@ -49,7 +49,7 @@ from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCra
 from jsonschema import validate
 
 from _exceptions import PixCrawlerError, ConfigurationError, DownloadError, GenerationError
-from config import DatasetGenerationConfig, CONFIG_SCHEMA, get_search_variations
+from config import DatasetGenerationConfig, CONFIG_SCHEMA
 from constants import DEFAULT_CACHE_FILE, DEFAULT_LOG_FILE, ENGINES, \
     file_formatter
 from constants import logger
@@ -57,12 +57,14 @@ from downloader import ImageDownloader, download_images_ddgs
 from helpers import ReportGenerator, DatasetTracker, ProgressManager, progress, is_valid_image_extension
 from utilities import ProgressCache, detect_duplicate_images, \
     count_valid_images, remove_duplicate_images, rename_images_sequentially
+from config import get_basic_variations, get_quality_variations, get_generic_quality_variations, get_search_variations, \
+    get_lighting_variations, get_location_variations, get_background_variations, get_professional_variations, \
+    get_color_variations, get_style_variations, get_meme_culture_variations, get_size_format_variations, \
+    get_time_period_variations, get_condition_age_variations, get_emotional_aesthetic_variations, \
+    get_quantity_arrangement_variations, get_camera_technique_variations, get_focus_sharpness_variations, \
+    get_texture_material_variations
 
 __all__ = [
-    '_apply_config_options',
-    '_download_with_engine',
-    '_generate_alternative_terms',
-    '_update_image_count',
     'retry_download',
     'load_config',
     'generate_keywords',
@@ -74,6 +76,8 @@ __all__ = [
     'DatasetGenerator',
     'generate_dataset'
 ]
+
+BACKOFF_DELAY: Final[float] = 0.5
 
 
 def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, Any]) -> None:
@@ -167,47 +171,277 @@ def _download_with_engine(engine_name: str, keyword: str, out_dir: str, max_num:
         raise DownloadError(f"{engine_name.capitalize()}ImageCrawler failed for {keyword}: {e}") from e
 
 
-def _generate_alternative_terms(keyword: str, retry_count: int) -> List[str]:
+# noinspection PyArgumentList
+class AlternativeTermsGenerator:
     """
-    Generates alternative search terms for retry attempts based on the original keyword and retry count.
-    This helps in finding more diverse images if initial attempts are not successful.
-
-    Args:
-        keyword (str): The original search keyword.
-        retry_count (int): The current retry count, which influences the diversity of generated terms.
-
-    Returns:
-        List[str]: A list of alternative search terms, with the original keyword included at the beginning.
+    Generates alternative search terms using predefined keywords from config.
+    Intelligently combines multiple variations to create more effective search terms.
     """
-    # Base variations
-    variations = [
-        f"{keyword} high resolution",
-        f"{keyword} hd image",
-        f"{keyword} photo",
-        f"{keyword} picture",
-        f"{keyword} clear image",
-        f"{keyword} best quality",
-        f"{keyword} professional",
-        f"{keyword} detailed",
-        f"{keyword} close-up",
-        f"{keyword} high quality"
-    ]
 
-    # Add more specific variations for higher retry counts
-    if retry_count > 5:
-        variations.extend([
-            f"{keyword} 4k",
-            f"{keyword} ultra hd",
-            f"{keyword} stock photo",
-            f"{keyword} official image",
-            f"{keyword} professional photo"
-        ])
+    def __init__(self):
+        """
+        Initialize the generator with configuration keywords.
+        """
 
-    # Shuffle the list to add randomness
-    random.shuffle(variations)
+        self.category_functions = self._get_categories()
 
-    # Always include the original keyword at the beginning
-    return [keyword] + variations
+        # Extract clean terms from each category (remove {keyword} placeholder)
+        self.clean_terms = self._extract_clean_terms()
+
+    @staticmethod
+    def _get_categories() -> dict:
+        return {
+            'basic': get_basic_variations,
+            'quality': get_quality_variations,
+            'style': get_style_variations,
+            'time_period': get_time_period_variations,
+            'emotional_aesthetic': get_emotional_aesthetic_variations,
+            'meme_culture': get_meme_culture_variations,
+            'professional': get_professional_variations,
+            'camera_technique': get_camera_technique_variations,
+            'focus_sharpness': get_focus_sharpness_variations,
+            'color': get_color_variations,
+            'lighting': get_lighting_variations,
+            'location': get_location_variations,
+            'background': get_background_variations,
+            'size_format': get_size_format_variations,
+            'texture_material': get_texture_material_variations,
+            'condition_age': get_condition_age_variations,
+            'quantity_arrangement': get_quantity_arrangement_variations,
+            'generic_quality': get_generic_quality_variations
+        }
+
+    def _extract_clean_terms(self) -> Dict[str, List[str]]:
+        """Extract clean terms from each category by removing {keyword} placeholder"""
+        clean_terms = {}
+
+        for category, func in self.category_functions.items():
+            variations = func()
+            clean_terms[category] = []
+
+            for variation in variations:
+                # Remove {keyword} and clean up the remaining text
+                clean_term = variation.replace("{keyword} ", "").replace("{keyword}", "").strip()
+                if clean_term and clean_term not in clean_terms[category]:
+                    clean_terms[category].append(clean_term)
+
+        return clean_terms
+
+    def _smart_combination_strategy_1(self, keyword: str, retry_count: int) -> str:
+        """
+        Strategy 1: Quality + Style combination
+        Example: "professional 4K realistic cat photo"
+        """
+        quality_term = random.choice(self.clean_terms['quality'])
+        style_term = random.choice(self.clean_terms['style'])
+
+        if retry_count <= 3:
+            return f"{style_term} {quality_term} {keyword}"
+        else:
+            basic_term = random.choice(self.clean_terms['basic'])
+            return f"{style_term} {quality_term} {keyword} {basic_term}"
+
+    def _smart_combination_strategy_2(self, keyword: str, retry_count: int) -> str:
+        """
+        Strategy 2: Multiple quality terms + emotional
+        Example: "stunning high resolution 4K detailed cat"
+        """
+        quality_terms = random.sample(self.clean_terms['quality'], min(2, len(self.clean_terms['quality'])))
+        emotional_term = random.choice(self.clean_terms['emotional_aesthetic'])
+
+        if retry_count <= 5:
+            return f"{emotional_term} {' '.join(quality_terms)} {keyword}"
+        else:
+            professional_term = random.choice(self.clean_terms['professional'])
+            return f"{emotional_term} {professional_term} {' '.join(quality_terms)} {keyword}"
+
+    def _smart_combination_strategy_3(self, keyword: str, retry_count: int) -> str:
+        """
+        Strategy 3: Camera technique + lighting + style
+        Example: "close up dramatic lighting realistic cat"
+        """
+        camera_term = random.choice(self.clean_terms['camera_technique'])
+        lighting_term = random.choice(self.clean_terms['lighting'])
+        style_term = random.choice(self.clean_terms['style'])
+
+        return f"{camera_term} {lighting_term} {style_term} {keyword}"
+
+    def _smart_combination_strategy_4(self, keyword: str, retry_count: int) -> str:
+        """
+        Strategy 4: Background + color + quality
+        Example: "white background colorful high quality cat photo"
+        """
+        background_term = random.choice(self.clean_terms['background'])
+        color_term = random.choice(self.clean_terms['color'])
+        quality_term = random.choice(self.clean_terms['quality'])
+        basic_term = random.choice(self.clean_terms['basic'])
+
+        return f"{background_term} {color_term} {quality_term} {keyword} {basic_term}"
+
+    def _smart_combination_strategy_5(self, keyword: str, retry_count: int) -> str:
+        """
+        Strategy 5: Complex multi-category combination
+        Example: "professional studio lighting high resolution beautiful detailed cat photograph"
+        """
+        professional_term = random.choice(self.clean_terms['professional'])
+        lighting_term = random.choice(self.clean_terms['lighting'])
+        quality_term = random.choice(self.clean_terms['quality'])
+        emotional_term = random.choice(self.clean_terms['emotional_aesthetic'])
+        focus_term = random.choice(self.clean_terms['focus_sharpness'])
+        basic_term = random.choice(self.clean_terms['basic'])
+
+        return f"{professional_term} {lighting_term} {quality_term} {emotional_term} {focus_term} {keyword} {basic_term}"
+
+    def _smart_combination_strategy_6(self, keyword: str, retry_count: int) -> str:
+        """
+        Strategy 6: Location + time period + style
+        Example: "indoor vintage artistic cat"
+        """
+        location_term = random.choice(self.clean_terms['location'])
+        time_term = random.choice(self.clean_terms['time_period'])
+        style_term = random.choice(self.clean_terms['style'])
+
+        return f"{location_term} {time_term} {style_term} {keyword}"
+
+    def _smart_combination_strategy_7(self, keyword: str, retry_count: int) -> str:
+        """
+        Strategy 7: Size + texture + color
+        Example: "large textured colorful cat"
+        """
+        size_term = random.choice(self.clean_terms['size_format'])
+        texture_term = random.choice(self.clean_terms['texture_material'])
+        color_term = random.choice(self.clean_terms['color'])
+
+        return f"{size_term} {texture_term} {color_term} {keyword}"
+
+    def _smart_combination_strategy_8(self, keyword: str, retry_count: int) -> str:
+        """
+        Strategy 8: Condition + arrangement + generic quality
+        Example: "new organized excellent cat"
+        """
+        condition_term = random.choice(self.clean_terms['condition_age'])
+        arrangement_term = random.choice(self.clean_terms['quantity_arrangement'])
+        quality_term = random.choice(self.clean_terms['generic_quality'])
+
+        return f"{condition_term} {arrangement_term} {quality_term} {keyword}"
+
+    @staticmethod
+    def _progressive_strategy_selection(retry_count: int) -> int:
+        """
+        Progressively select more complex strategies as retry count increases
+        """
+        if retry_count <= 2:
+            return random.choice([1, 2])
+        elif retry_count <= 4:
+            return random.choice([1, 2, 3])
+        elif retry_count <= 6:
+            return random.choice([2, 3, 4])
+        elif retry_count <= 8:
+            return random.choice([3, 4, 5])
+        elif retry_count <= 10:
+            return random.choice([4, 5, 6])
+        elif retry_count <= 12:
+            return random.choice([5, 6, 7])
+        else:
+            return random.choice([6, 7, 8])
+
+    def generate(self, keyword: str, retry_count: int = 0) -> List[str]:
+        """
+        Generate alternative search terms using intelligent combination strategies.
+
+        Args:
+            keyword: The original search keyword
+            retry_count: Current retry count (influences strategy complexity)
+
+        Returns:
+            List of intelligently generated alternative search terms
+        """
+        if not keyword:
+            return []
+
+        # Always start with the original keyword
+        alternatives = [keyword]
+
+        # Generate variations using different smart strategies
+        strategies = self._get_strategies()
+
+        # Generate multiple alternatives using different strategies
+        num_alternatives = min(15, 3 + retry_count)  # More alternatives for higher retry counts
+
+        for i in range(num_alternatives):
+            strategy_num = self._progressive_strategy_selection(retry_count + i)
+            strategy_func = strategies[strategy_num]
+
+            try:
+                alternative = strategy_func(keyword, retry_count + i)
+                if alternative and alternative not in alternatives:
+                    alternatives.append(alternative)
+            except Exception as e:
+                logger.warning(f"Strategy {strategy_num} failed: {e}")
+                # Fallback to simple combination
+                quality_term = random.choice(self.clean_terms['quality'])
+                alternatives.append(f"{quality_term} {keyword}")
+
+        # Add some simple fallbacks if we don't have enough alternatives
+        if len(alternatives) < 8:
+            self._generate_simple_fallback(keyword, alternatives)
+
+        # Shuffle to add randomness while keeping original keyword first
+        alternatives_to_shuffle = alternatives[1:]
+        random.shuffle(alternatives_to_shuffle)
+
+        return [alternatives[0]] + alternatives_to_shuffle
+
+    def _generate_simple_fallback(self, keyword: str, alternatives: list) -> None:
+        simple_combinations = [
+            f"{keyword} {random.choice(self.clean_terms['quality'])}",
+            f"{random.choice(self.clean_terms['style'])} {keyword}",
+            f"{keyword} {random.choice(self.clean_terms['basic'])}",
+            f"{random.choice(self.clean_terms['emotional_aesthetic'])} {keyword}",
+            f"{random.choice(self.clean_terms['professional'])} {keyword}",
+        ]
+
+        for combo in simple_combinations:
+            if combo not in alternatives:
+                alternatives.append(combo)
+                if len(alternatives) >= 15:
+                    break
+
+    def _get_strategies(self):
+        return {
+            1: self._smart_combination_strategy_1,
+            2: self._smart_combination_strategy_2,
+            3: self._smart_combination_strategy_3,
+            4: self._smart_combination_strategy_4,
+            5: self._smart_combination_strategy_5,
+            6: self._smart_combination_strategy_6,
+            7: self._smart_combination_strategy_7,
+            8: self._smart_combination_strategy_8
+        }
+
+    def next_term(self, keyword: str, retry_count: int) -> str:
+        """
+        Get the next search term for a specific retry attempt.
+
+        Args:
+            keyword: Original keyword
+            retry_count: Current retry count
+
+        Returns:
+            Next search term to try
+        """
+        alternatives = self.generate(keyword, retry_count)
+
+        # Return the term at the retry index, or cycle through if we exceed the list
+        if retry_count < len(alternatives):
+            return alternatives[retry_count]
+        else:
+            # Cycle through alternatives for very high retry counts
+            return alternatives[retry_count % len(alternatives)]
+
+
+# Global variable
+generator = AlternativeTermsGenerator()
 
 
 def _update_image_count(out_dir: str) -> int:
@@ -259,18 +493,19 @@ def _initial_download(max_num: int, keyword: str, out_dir: str) -> int:
 
 
 def _attempt_retry(retries: int, keyword: str, out_dir: str, images_needed: int) -> int:
-    time.sleep(0.5)  # slight backoff delay
-    alternative_terms = _generate_alternative_terms(keyword, retries)
-    retry_term = alternative_terms[min(retries - 1, len(alternative_terms) - 1)]
+    time.sleep(BACKOFF_DELAY)  # slight backoff delay
+
+    # Get the next intelligent term combination
+    retry_term = generator.next_term(keyword, retries)
 
     try:
         if retries % 2 == 0:
             retry_engine = ENGINES[retries % len(ENGINES)]
-            logger.info(f"Retry #{retries}: Using {retry_engine} sequentially with term '{retry_term}'")
+            logger.info(f"Retry #{retries}: Using {retry_engine} with term '{retry_term}'")
             downloader = ImageDownloader(use_all_engines=False)
             success, _ = downloader.download(retry_term, out_dir, images_needed)
         else:
-            logger.info(f"Retry #{retries}: Using DuckDuckGo directly with term '{retry_term}'")
+            logger.info(f"Retry #{retries}: Using DuckDuckGo with term '{retry_term}'")
             success, _ = download_images_ddgs(retry_term, out_dir, images_needed)
 
         return _update_image_count(out_dir) if success else 0

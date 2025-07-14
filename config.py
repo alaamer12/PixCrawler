@@ -88,15 +88,9 @@ CONFIG_SCHEMA: Dict[str, Any] = {
 }
 
 
-def get_search_variations() -> List[str]:
-    """
-    Get the list of search variations.
-
-    Returns:
-        List of search variations
-    """
+def get_basic_variations() -> List[str]:
+    """Basic keyword variations"""
     return [
-        # Basic variations
         "{keyword}",
         "{keyword} photo",
         "{keyword} image",
@@ -107,8 +101,12 @@ def get_search_variations() -> List[str]:
         "{keyword} stock photo",
         "{keyword} wallpaper",
         "{keyword} background",
+    ]
 
-        # Quality variations
+
+def get_quality_variations() -> List[str]:
+    """Quality-related variations"""
+    return [
         "{keyword} high resolution",
         "{keyword} high quality",
         "{keyword} high quality picture",
@@ -124,8 +122,12 @@ def get_search_variations() -> List[str]:
         "{keyword} pixelated",
         "{keyword} grainy",
         "{keyword} compressed",
+    ]
 
-        # Style variations
+
+def get_style_variations() -> List[str]:
+    """Style and artistic variations"""
+    return [
         "{keyword} realistic",
         "{keyword} realistic photo",
         "{keyword} photorealistic",
@@ -153,8 +155,12 @@ def get_search_variations() -> List[str]:
         "{keyword} oil painting",
         "{keyword} pencil drawing",
         "{keyword} ink drawing",
+    ]
 
-        # Time period variations
+
+def get_time_period_variations() -> List[str]:
+    """Time period variations"""
+    return [
         "{keyword} vintage",
         "{keyword} vintage photo",
         "{keyword} retro",
@@ -168,8 +174,12 @@ def get_search_variations() -> List[str]:
         "{keyword} recent",
         "{keyword} new",
         "{keyword} current",
+    ]
 
-        # Emotional/aesthetic variations
+
+def get_emotional_aesthetic_variations() -> List[str]:
+    """Emotional and aesthetic variations"""
+    return [
         "{keyword} beautiful",
         "{keyword} beautiful image",
         "{keyword} stunning",
@@ -200,8 +210,12 @@ def get_search_variations() -> List[str]:
         "{keyword} mysterious",
         "{keyword} romantic",
         "{keyword} dreamy",
+    ]
 
-        # Meme and internet culture
+
+def get_meme_culture_variations() -> List[str]:
+    """Meme and internet culture variations"""
+    return [
         "{keyword} meme",
         "{keyword} meme image",
         "{keyword} viral",
@@ -210,8 +224,12 @@ def get_search_variations() -> List[str]:
         "{keyword} famous",
         "{keyword} iconic",
         "{keyword} legendary",
+    ]
 
-        # Professional/technical variations
+
+def get_professional_variations() -> List[str]:
+    """Professional and technical variations"""
+    return [
         "{keyword} professional",
         "{keyword} professional photo",
         "{keyword} commercial",
@@ -231,8 +249,12 @@ def get_search_variations() -> List[str]:
         "{keyword} promotional",
         "{keyword} marketing",
         "{keyword} advertising",
+    ]
 
-        # Camera/photography techniques
+
+def get_camera_technique_variations() -> List[str]:
+    """Camera and photography technique variations"""
+    return [
         "{keyword} close up",
         "{keyword} close up photo",
         "{keyword} closeup",
@@ -262,8 +284,12 @@ def get_search_variations() -> List[str]:
         "{keyword} perspective",
         "{keyword} low angle",
         "{keyword} high angle",
+    ]
 
-        # Focus and sharpness
+
+def get_focus_sharpness_variations() -> List[str]:
+    """Focus and sharpness variations"""
+    return [
         "{keyword} sharp",
         "{keyword} sharp image",
         "{keyword} focused",
@@ -278,8 +304,12 @@ def get_search_variations() -> List[str]:
         "{keyword} motion blur",
         "{keyword} crisp",
         "{keyword} detailed",
+    ]
 
-        # Color variations
+
+def get_color_variations() -> List[str]:
+    """Color variations"""
+    return [
         "{keyword} colorful",
         "{keyword} vibrant colors",
         "{keyword} bright colors",
@@ -303,8 +333,12 @@ def get_search_variations() -> List[str]:
         "{keyword} silver",
         "{keyword} bronze",
         "{keyword} metallic",
+    ]
 
-        # Lighting variations
+
+def get_lighting_variations() -> List[str]:
+    """Lighting variations"""
+    return [
         "{keyword} bright",
         "{keyword} well lit",
         "{keyword} illuminated",
@@ -338,8 +372,12 @@ def get_search_variations() -> List[str]:
         "{keyword} harsh lighting",
         "{keyword} rim lighting",
         "{keyword} ambient light",
+    ]
 
-        # Location/setting variations
+
+def get_location_variations() -> List[str]:
+    """Location and setting variations"""
+    return [
         "{keyword} indoor",
         "{keyword} inside",
         "{keyword} interior",
@@ -380,8 +418,12 @@ def get_search_variations() -> List[str]:
         "{keyword} wall",
         "{keyword} floor",
         "{keyword} ceiling",
+    ]
 
-        # Background variations
+
+def get_background_variations() -> List[str]:
+    """Background variations"""
+    return [
         "{keyword} white background",
         "{keyword} black background",
         "{keyword} gray background",
@@ -408,8 +450,12 @@ def get_search_variations() -> List[str]:
         "{keyword} isolated",
         "{keyword} cutout",
         "{keyword} no background",
+    ]
 
-        # Size and format variations
+
+def get_size_format_variations() -> List[str]:
+    """Size and format variations"""
+    return [
         "{keyword} small",
         "{keyword} large",
         "{keyword} tiny",
@@ -434,8 +480,12 @@ def get_search_variations() -> List[str]:
         "{keyword} card",
         "{keyword} stamp",
         "{keyword} sticker",
+    ]
 
-        # Texture and material variations
+
+def get_texture_material_variations() -> List[str]:
+    """Texture and material variations"""
+    return [
         "{keyword} smooth",
         "{keyword} rough",
         "{keyword} textured",
@@ -459,8 +509,12 @@ def get_search_variations() -> List[str]:
         "{keyword} fur",
         "{keyword} skin",
         "{keyword} hair",
+    ]
 
-        # Condition and age variations
+
+def get_condition_age_variations() -> List[str]:
+    """Condition and age variations"""
+    return [
         "{keyword} new",
         "{keyword} old",
         "{keyword} used",
@@ -481,8 +535,12 @@ def get_search_variations() -> List[str]:
         "{keyword} imperfect",
         "{keyword} weathered",
         "{keyword} aged",
+    ]
 
-        # Quantity and arrangement variations
+
+def get_quantity_arrangement_variations() -> List[str]:
+    """Quantity and arrangement variations"""
+    return [
         "{keyword} single",
         "{keyword} one",
         "{keyword} multiple",
@@ -506,8 +564,12 @@ def get_search_variations() -> List[str]:
         "{keyword} random",
         "{keyword} symmetrical",
         "{keyword} asymmetrical",
+    ]
 
-        # Generic quality descriptors
+
+def get_generic_quality_variations() -> List[str]:
+    """Generic quality descriptors"""
+    return [
         "{keyword} best",
         "{keyword} worst",
         "{keyword} perfect",
@@ -565,6 +627,35 @@ def get_search_variations() -> List[str]:
         "{keyword} rough",
         "{keyword} smooth"
     ]
+
+
+def get_search_variations() -> List[str]:
+    """
+    Get the list of search variations.
+
+    Returns:
+        List of search variations
+    """
+    return (
+            get_basic_variations() +
+            get_quality_variations() +
+            get_style_variations() +
+            get_time_period_variations() +
+            get_emotional_aesthetic_variations() +
+            get_meme_culture_variations() +
+            get_professional_variations() +
+            get_camera_technique_variations() +
+            get_focus_sharpness_variations() +
+            get_color_variations() +
+            get_lighting_variations() +
+            get_location_variations() +
+            get_background_variations() +
+            get_size_format_variations() +
+            get_texture_material_variations() +
+            get_condition_age_variations() +
+            get_quantity_arrangement_variations() +
+            get_generic_quality_variations()
+    )
 
 
 def get_engines() -> List[Dict[str, Any]]:
