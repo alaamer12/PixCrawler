@@ -34,6 +34,7 @@ from config import get_search_variations
 from constants import logger
 from helpers import progress
 from utilities import validate_image, rename_images_sequentially
+from _exceptions import DownloadError
 
 __all__ = [
     'IDownloader',
@@ -134,7 +135,7 @@ class DuckDuckGoImageDownloader(IDownloader):
 
         except Exception as e:
             logger.warning(f"Failed to download {image_url}: {e}")
-            return False
+            raise DownloadError(f"Failed to download {image_url}: {e}") from e
 
     def _download_single_image(self, result: dict, out_dir: str, index: int) -> bool:
         """
@@ -318,7 +319,7 @@ class DuckDuckGoImageDownloader(IDownloader):
 
         except Exception as e:
             logger.error(f"Failed to download images for '{keyword}': {str(e)}")
-            return False, 0
+            raise DownloadError(f"Failed to download images for '{keyword}': {e}") from e
 
 
 def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:

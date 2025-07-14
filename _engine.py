@@ -34,6 +34,7 @@ from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCra
 
 from config import get_engines
 from constants import logger
+from _exceptions import DownloadError
 from utilities import count_valid_images_in_latest_batch
 
 __all__ = [
@@ -334,6 +335,7 @@ class EngineProcessor:
                 except Exception as e:
                     config = engine_futures[future]
                     logger.error(f"Engine {config.name} failed: {e}")
+                    raise DownloadError(f"Engine {config.name} failed during parallel download: {e}") from e
 
         return results
 

@@ -43,6 +43,7 @@ from tqdm.auto import tqdm
 
 from constants import DEFAULT_CACHE_FILE, logger
 from helpers import is_valid_image_extension, FSRenamer
+from _exceptions import PixCrawlerError, DownloadError, GenerationError
 
 __all__ = [
     'TimeoutException',
@@ -93,9 +94,9 @@ class ProgressCache:
             try:
                 with open(self.cache_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
-            except Exception as e:
+            except (IOError, json.JSONDecodeError) as e:
                 logger.warning(f"Failed to load progress cache: {e}")
-                return {}
+                raise PixCrawlerError(f"Failed to load progress cache: {e}") from e
         return {}
 
     def save_cache(self) -> None:
@@ -168,6 +169,9 @@ def get_image_hash(image_path: str, hash_size: int = 8) -> Optional[str]:
 
     Returns:
         Optional[str]: The hexadecimal string representation of the perceptual hash, or None if the image cannot be processed.
+
+    Raises:
+        GenerationError: If the image cannot be processed.
     """
     try:
         with Image.open(image_path) as img:
@@ -186,7 +190,7 @@ def get_image_hash(image_path: str, hash_size: int = 8) -> Optional[str]:
             return hex_hash.zfill(hash_size ** 2 // 4)
     except Exception as e:
         logger.warning(f"Failed to compute hash for {image_path}: {e}")
-        return None
+        raise GenerationError(f"Failed to compute hash for {image_path}: {e}") from e
 
 
 def get_file_hash(file_path: str) -> Optional[str]:
@@ -198,6 +202,9 @@ def get_file_hash(file_path: str) -> Optional[str]:
 
     Returns:
         Optional[str]: The hexadecimal string representation of the MD5 hash, or None if the file cannot be read.
+
+    Raises:
+        PixCrawlerError: If the file cannot be read.
     """
     try:
         with open(file_path, "rb") as f:
@@ -208,7 +215,7 @@ def get_file_hash(file_path: str) -> Optional[str]:
         return file_hash.hexdigest()
     except Exception as e:
         logger.warning(f"Failed to compute file hash for {file_path}: {e}")
-        return None
+        raise PixCrawlerError(f"Failed to compute file hash for {file_path}: {e}") from e
 
 
 def _get_image_files(directory_path: Path) -> List[str]:

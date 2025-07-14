@@ -26,6 +26,7 @@ from constants import Colors, PIXCRAWLER_ASCII, DEFAULT_LOG_FILE
 from constants import DEFAULT_CACHE_FILE, DEFAULT_CONFIG_FILE, KEYWORD_MODE, AI_MODELS
 from generator import generate_dataset, update_logfile
 from jupyter_support import is_running_in_notebook, print_help_colored
+from _exceptions import PixCrawlerError
 
 __all__ = [
     'parse_args_safely',
@@ -329,7 +330,14 @@ def main() -> None:
     )
 
     # Generate the dataset
-    generate_dataset(config)
+    try:
+        generate_dataset(config)
+    except PixCrawlerError as e:
+        print(f"\n{Colors.RED}❌ Error during dataset generation: {e}{Colors.ENDC}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n{Colors.RED}❌ An unexpected error occurred: {e}{Colors.ENDC}")
+        sys.exit(1)
 
     # Print final message to indicate completion
     output_dir = config.output_dir or config.dataset_name

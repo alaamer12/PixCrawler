@@ -36,7 +36,6 @@ import json
 import logging
 import os
 import random
-import sys
 import threading
 import time
 from pathlib import Path
@@ -49,6 +48,7 @@ from icrawler import Crawler
 from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler
 from jsonschema import validate
 
+from _exceptions import PixCrawlerError, ConfigurationError, DownloadError, GenerationError
 from config import DatasetGenerationConfig, CONFIG_SCHEMA, get_search_variations
 from constants import DEFAULT_CACHE_FILE, DEFAULT_LOG_FILE, ENGINES, \
     file_formatter
@@ -63,12 +63,12 @@ __all__ = [
     '_download_with_engine',
     '_generate_alternative_terms',
     '_update_image_count',
-    'retry_download_images',
+    'retry_download',
     'load_config',
     'generate_keywords',
     '_extract_keywords_from_response',
     'check_duplicates',
-    'check_image_integrity',
+    'check_integrity',
     'update_logfile',
     'LabelGenerator',
     'DatasetGenerator',
@@ -125,10 +125,15 @@ def _download_with_engine(engine_name: str, keyword: str, out_dir: str, max_num:
 
     Returns:
         bool: True if download was successful, False otherwise.
+
+    Raises:
+        DownloadError: If the download fails for any reason.
     """
     try:
         if engine_name == "ddgs":
             success, _ = download_images_ddgs(keyword=keyword, out_dir=out_dir, max_num=max_num)
+            if not success:
+                raise DownloadError(f"DuckDuckGo download failed for {keyword}")
             return success
 
         # Configure crawler based on engine
@@ -139,8 +144,7 @@ def _download_with_engine(engine_name: str, keyword: str, out_dir: str, max_num:
         }.get(engine_name)
 
         if not crawler_class:
-            logger.warning(f"Unknown engine: {engine_name}")
-            return False
+            raise DownloadError(f"Unknown engine: {engine_name}")
 
         crawler = crawler_class(
             storage={'root_dir': out_dir},
@@ -160,7 +164,7 @@ def _download_with_engine(engine_name: str, keyword: str, out_dir: str, max_num:
         return True
     except Exception as e:
         logger.warning(f"{engine_name.capitalize()}ImageCrawler failed: {e}")
-        return False
+        raise DownloadError(f"{engine_name.capitalize()}ImageCrawler failed for {keyword}: {e}") from e
 
 
 def _generate_alternative_terms(keyword: str, retry_count: int) -> List[str]:
@@ -240,89 +244,81 @@ def _update_image_count(out_dir: str) -> int:
     return len(remaining_images)
 
 
-def retry_download_images(keyword: str, out_dir: str, max_num: int, max_retries: int = 5) -> Tuple[bool, int]:
-    """
-    Attempts to download images for a given keyword, retrying with alternative search terms and engines
-    until the desired image count is reached or the maximum number of retries is exceeded.
-
-    Args:
-        keyword (str): The primary search term for images.
-        out_dir (str): The output directory path where images will be downloaded.
-        max_num (int): The maximum number of images to download.
-        max_retries (int): The maximum number of retry attempts (default is 5).
-
-    Returns:
-        Tuple[bool, int]: A tuple where the first element is True if at least one image was downloaded,
-                         and the second element is the total count of unique images downloaded.
-    """
-    # First attempt with parallel downloading
+def _initial_download(max_num: int, keyword: str, out_dir: str) -> int:
+    logger.info(f"Attempting to download {max_num} images for '{keyword}' using parallel processing")
     downloader = ImageDownloader(
         feeder_threads=2,
         parser_threads=2,
         downloader_threads=4,
         max_parallel_engines=3,
         max_parallel_variations=3,
-        use_all_engines=True  # Use all engines in parallel for maximum speed
+        use_all_engines=True
     )
-
-    logger.info(f"Attempting to download {max_num} images for '{keyword}' using parallel processing")
     success, count = downloader.download(keyword, out_dir, max_num)
+    return _update_image_count(out_dir) if success and count > 1 else count
 
-    # Remove any duplicates after initial download
-    if count > 1:
-        count = _update_image_count(out_dir)
-        logger.info(f"After removing duplicates: {count} unique images remain")
 
-    # Calculate how many more images we need
-    images_needed = max(0, max_num - count)
-    retries = 0
+def _attempt_retry(retries: int, keyword: str, out_dir: str, images_needed: int) -> int:
+    time.sleep(0.5)  # slight backoff delay
+    alternative_terms = _generate_alternative_terms(keyword, retries)
+    retry_term = alternative_terms[min(retries - 1, len(alternative_terms) - 1)]
 
-    # Retry if needed and we haven't exceeded max retries
-    while images_needed > 0 and retries < max_retries:
-        retries += 1
-        logger.info(f"Retry #{retries}: Attempting to download {images_needed} more images for '{keyword}'")
-
-        # Slight delay before retry
-        time.sleep(0.5)
-
-        # Generate alternative search terms and select one based on retry number
-        alternative_terms = _generate_alternative_terms(keyword, retries)
-        retry_term = alternative_terms[min(retries - 1, len(alternative_terms) - 1)]
-
-        # For retries, use a different approach based on retry number
+    try:
         if retries % 2 == 0:
-            # Even retries: Use sequential mode with specific engines
             retry_engine = ENGINES[retries % len(ENGINES)]
             logger.info(f"Retry #{retries}: Using {retry_engine} sequentially with term '{retry_term}'")
-
-            # Create a sequential downloader
-            sequential_downloader = ImageDownloader(use_all_engines=False)
-            retry_success, retry_count = sequential_downloader.download(retry_term, out_dir, images_needed)
+            downloader = ImageDownloader(use_all_engines=False)
+            success, _ = downloader.download(retry_term, out_dir, images_needed)
         else:
-            # Odd retries: Use DuckDuckGo directly
             logger.info(f"Retry #{retries}: Using DuckDuckGo directly with term '{retry_term}'")
-            retry_success, retry_count = download_images_ddgs(retry_term, out_dir, images_needed)
+            success, _ = download_images_ddgs(retry_term, out_dir, images_needed)
 
-        # Update count and calculate remaining needed
-        if retry_success and retry_count > 0:
-            count = _update_image_count(out_dir)
-            images_needed = max(0, max_num - count)
+        return _update_image_count(out_dir) if success else 0
+    except DownloadError as e:
+        logger.warning(f"Retry #{retries} failed: {e}")
+        return 0
+
+
+def retry_download(keyword: str, out_dir: str, max_num: int, max_retries: int = 5) -> Tuple[bool, int]:
+    """
+    Attempts to download images for a given keyword, retrying with alternative search terms and engines
+    until the desired image count is reached or the maximum number of retries is exceeded.
+
+    Returns:
+        Tuple[bool, int]: (success_flag, unique_images_count)
+    Raises:
+        DownloadError: If no images are successfully downloaded after all retries.
+    """
+
+    # --- Initial Download Phase ---
+    count = _initial_download(max_num, keyword, out_dir)
+    if count:
+        logger.info(f"After removing duplicates: {count} unique images remain")
+
+    # --- Retry Phase ---
+    retries = 0
+    while count < max_num and retries < max_retries:
+        retries += 1
+        images_needed = max(0, max_num - count)
+        logger.info(f"Retry #{retries}: Need {images_needed} more images")
+        new_count = _attempt_retry(retries, keyword, out_dir, images_needed)
+
+        if new_count > count:
+            count = new_count
             logger.info(f"After retry #{retries}: {count}/{max_num} unique images")
 
-        if images_needed == 0:
-            logger.info(f"Successfully downloaded {count}/{max_num} unique images after {retries} retries")
+        if count >= max_num:
             break
 
-    # Final deduplication pass
-    if count > 1:
-        count = _update_image_count(out_dir)
+    # --- Finalization Phase ---
+    count = _update_image_count(out_dir) if count > 1 else count
 
-    # Ensure all images are renamed sequentially regardless of which engine downloaded them
     if count > 0:
         renamed = rename_images_sequentially(out_dir)
         logger.info(f"Final step: Renamed {renamed} images sequentially")
+        return True, count
 
-    return count >= 1, count  # Consider success if at least one image was downloaded
+    raise DownloadError(f"Failed to download any images for keyword '{keyword}' after {max_retries} retries.")
 
 
 def load_config(config_path: str) -> Dict[str, Any]:
@@ -336,9 +332,7 @@ def load_config(config_path: str) -> Dict[str, Any]:
         Dict[str, Any]: A dictionary containing the validated dataset configuration.
 
     Raises:
-        ValueError: If the configuration file is invalid or missing required fields.
-        jsonschema.exceptions.ValidationError: If the configuration does not conform to the schema.
-        Exception: For other file loading or parsing errors.
+        ConfigurationError: If the configuration file is invalid, missing required fields, or does not conform to the schema.
     """
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
@@ -358,21 +352,21 @@ def load_config(config_path: str) -> Dict[str, Any]:
 
             if 'categories' not in config or not isinstance(config['categories'], dict):
                 logger.error("Invalid or missing 'categories' in config file")
-                raise ValueError("Config must contain a 'categories' dictionary")
+                raise ConfigurationError("Config must contain a 'categories' dictionary") from e
 
         # Ensure at least one category is defined
         if not config['categories']:
             logger.error("No categories defined in config file")
-            raise ValueError("At least one category must be defined")
+            raise ConfigurationError("At least one category must be defined")
 
         return config
 
     except jsonschema.exceptions.ValidationError as e:
         logger.error(f"Config validation failed: {e}")
-        raise
+        raise ConfigurationError(f"Config validation failed: {e}") from e
     except Exception as e:
         logger.error(f"Failed to load config file: {e}")
-        raise
+        raise ConfigurationError(f"Failed to load config file: {e}") from e
 
 
 def generate_keywords(category: str, ai_model: str = "gpt4-mini") -> List[str]:
@@ -388,7 +382,7 @@ def generate_keywords(category: str, ai_model: str = "gpt4-mini") -> List[str]:
         List[str]: A list of generated keywords related to the category.
 
     Raises:
-        SystemExit: If keyword generation fails after retries, the system will exit.
+        GenerationError: If keyword generation fails after retries.
     """
     # Try using G4F to generate keywords
     try:
@@ -422,10 +416,7 @@ def generate_keywords(category: str, ai_model: str = "gpt4-mini") -> List[str]:
 
     except Exception as e:
         logger.warning(f"Failed to generate keywords using {ai_model}: {str(e)}")
-        # Fall back to rule-based keyword generation
-        print(f"Try to provide keywords manually for {category} or try again!")
-        print("System will exit now...")
-        sys.exit(1)
+        raise GenerationError(f"Failed to generate keywords for '{category}' using {ai_model}: {e}") from e
 
 
 def _extract_keywords_from_response(response: str, category: str) -> List[str]:
@@ -484,16 +475,6 @@ def _extract_keywords_from_response(response: str, category: str) -> List[str]:
 
 
 def check_duplicates(category_name: str, keyword: str, keyword_path: str, report: ReportGenerator) -> None:
-    """
-    Checks for and records duplicate images within a specified keyword directory.
-    Duplicate images are removed, and the process is logged in the report.
-
-    Args:
-        category_name (str): The name of the category the keyword belongs to.
-        keyword (str): The specific keyword being processed.
-        keyword_path (str): The absolute path to the directory containing images for the keyword.
-        report (ReportGenerator): An instance of the ReportGenerator to record findings.
-    """
     try:
         # Get all image files
         image_files = [
@@ -523,9 +504,10 @@ def check_duplicates(category_name: str, keyword: str, keyword_path: str, report
     except Exception as e:
         logger.warning(f"Failed to check duplicates for {category_name}/{keyword}: {e}")
         report.record_error(f"{category_name}/{keyword} duplicates check", str(e))
+        raise PixCrawlerError(f"Failed to check duplicates for {category_name}/{keyword}: {e}") from e
 
 
-def check_image_integrity(
+def check_integrity(
         tracker: DatasetTracker,
         download_context: str,
         keyword_path: str,
@@ -865,7 +847,7 @@ class LabelGenerator:
             metadata (Dict[str, Any]): A dictionary containing image metadata.
 
         Raises:
-            Exception: If there is an error writing the file.
+            GenerationError: If there is an error writing the file.
         """
         try:
             with open(label_path, "w", encoding="utf-8") as f:
@@ -886,7 +868,7 @@ class LabelGenerator:
             logger.debug(f"Created TXT label: {label_path}")
         except Exception as e:
             logger.warning(f"Failed to write TXT label {label_path}: {e}")
-            raise
+            raise GenerationError(f"Failed to write TXT label {label_path}: {e}") from e
 
     @staticmethod
     def _write_json_label(label_path: Path, category: str, keyword: str,
@@ -902,7 +884,7 @@ class LabelGenerator:
             metadata (Dict[str, Any]): A dictionary containing image metadata.
 
         Raises:
-            Exception: If there is an error writing the file.
+            GenerationError: If there is an error writing the file.
         """
         try:
             label_data = {
@@ -917,7 +899,7 @@ class LabelGenerator:
             logger.debug(f"Created JSON label: {label_path}")
         except Exception as e:
             logger.warning(f"Failed to write JSON label {label_path}: {e}")
-            raise
+            raise GenerationError(f"Failed to write JSON label {label_path}: {e}") from e
 
     @staticmethod
     def _write_csv_label(label_path: Path, category: str, keyword: str,
@@ -933,7 +915,7 @@ class LabelGenerator:
             metadata (Dict[str, Any]): A dictionary containing image metadata.
 
         Raises:
-            Exception: If there is an error writing the file.
+            GenerationError: If there is an error writing the file.
         """
         try:
             headers = ["category", "keyword", "image_path", "timestamp", "filename", "width", "height", "format",
@@ -957,7 +939,7 @@ class LabelGenerator:
             logger.debug(f"Created CSV label: {label_path}")
         except Exception as e:
             logger.warning(f"Failed to write CSV label {label_path}: {e}")
-            raise
+            raise GenerationError(f"Failed to write CSV label {label_path}: {e}") from e
 
     def _write_yaml_label(self, label_path: Path, category: str, keyword: str,
                           image_path: Path, metadata: Dict[str, Any]) -> None:
@@ -972,7 +954,7 @@ class LabelGenerator:
             metadata (Dict[str, Any]): A dictionary containing image metadata.
 
         Raises:
-            Exception: If there is an error writing the file (other than ImportError for PyYAML).
+            GenerationError: If there is an error writing the file (other than ImportError for PyYAML).
         """
         try:
             import yaml
@@ -992,7 +974,7 @@ class LabelGenerator:
             self._write_txt_label(label_path, category, keyword, image_path, metadata)
         except Exception as e:
             logger.warning(f"Failed to write YAML label {label_path}: {e}")
-            raise
+            raise GenerationError(f"Failed to write YAML label {label_path}: {e}") from e
 
 
 class DatasetGenerator:
@@ -1262,7 +1244,7 @@ class DatasetGenerator:
         # Start integrity checking mini-progress
         self.progress.set_subtask_description(f"Downloading: {keyword}")
 
-        success, count = retry_download_images(
+        success, count = retry_download(
             keyword=keyword,
             out_dir=str(keyword_path),
             max_num=self.config.max_images,

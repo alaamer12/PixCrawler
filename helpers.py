@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Optional, List, TextIO, Any, Union, Callable
 from tqdm.auto import tqdm
 from constants import logger, IMAGE_EXTENSIONS
+from _exceptions import PixCrawlerError
 
 __all__ = [
     'DatasetTracker',
@@ -811,6 +812,7 @@ class FSRenamer:
                     logger.debug(f"Renamed {renamed_count}/{len(self.image_files)} images")
             except Exception as e:
                 logger.error(f"Failed to copy {file_path} to temp directory: {e}")
+                raise PixCrawlerError(f"Failed to copy {file_path} to temp directory: {e}") from e
 
         return renamed_count
 
