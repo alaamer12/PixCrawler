@@ -42,7 +42,7 @@ from PIL import Image
 from tqdm.auto import tqdm
 
 from constants import DEFAULT_CACHE_FILE, logger
-from helpers import is_valid_image_extension, FSRenamer
+from helpers import valid_image_ext, FSRenamer
 from _exceptions import PixCrawlerError, DownloadError, GenerationError
 
 __all__ = [
@@ -232,7 +232,7 @@ def _get_image_files(directory_path: Path) -> List[str]:
     """
     return [
         str(f) for f in directory_path.iterdir()
-        if f.is_file() and is_valid_image_extension(f)
+        if f.is_file() and valid_image_ext(f)
     ]
 
 
@@ -460,7 +460,7 @@ def count_valid_images(directory: str) -> Tuple[int, int, List[str]]:
         return 0, 0, []
 
     for file_path in tqdm(directory_path.iterdir(), desc="Validating", leave=False, unit="file"):
-        if file_path.is_file() and is_valid_image_extension(file_path):
+        if file_path.is_file() and valid_image_ext(file_path):
             total_count += 1
             if validate_image(str(file_path)):
                 valid_count += 1
@@ -505,7 +505,7 @@ def count_valid_images_in_latest_batch(directory: str, previous_count: int) -> i
     # Get all image files
     image_files = [
         f for f in directory_path.iterdir()
-        if f.is_file() and is_valid_image_extension(f)
+        if f.is_file() and valid_image_ext(f)
     ]
 
     # Sort by creation time to get the latest batch

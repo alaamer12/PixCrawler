@@ -14,7 +14,7 @@ Features:
 
 import logging
 import warnings
-from typing import Set, List, Literal
+from typing import Set, List, Literal, Final
 
 __all__ = [
     'DEFAULT_CACHE_FILE',
@@ -32,10 +32,10 @@ DEFAULT_CONFIG_FILE: str = "config.json"
 DEFAULT_LOG_FILE: str = "pixcrawler.log"
 
 # Supported search engines
-ENGINES: List[str] = ["google", "bing", "baidu", "ddgs"]
+ENGINES: Final[List[str]] = ["google", "bing", "baidu", "ddgs"]
 
 # Image extensions supported by the application
-IMAGE_EXTENSIONS: Set[str] = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff'}
+IMAGE_EXTENSIONS: Final[Set[str]] = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff'}
 
 # Suppress all warnings to prevent them from appearing in the console
 warnings.filterwarnings("ignore")
@@ -67,7 +67,7 @@ for logger_name in ["icrawler", "PIL", "downloader", "urllib3", "requests", "cha
     logging.getLogger(logger_name).propagate = False
 
 # ASCII Art for Pixcrawler
-PIXCRAWLER_ASCII = """
+PIXCRAWLER_ASCII: Final[str] = """
     ____  _       ______                    __           
    / __ \\(_)_  __/ ____/________ __      __/ /__  _____  
   / /_/ / /| |/_/ /   / ___/ __ `/ | /| / / / _ \\/ ___/  

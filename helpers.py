@@ -31,11 +31,11 @@ __all__ = [
     'ReportGenerator',
     'FSRenamer',
     'ProgressManager',
-    'is_valid_image_extension'
+    'valid_image_ext'
 ]
 
 
-def is_valid_image_extension(file_path: Union[str, Path]) -> bool:
+def valid_image_ext(file_path: Union[str, Path]) -> bool:
     """
     Check if a file has a valid image extension.
 
@@ -108,31 +108,19 @@ class DatasetTracker:
         Prints a comprehensive summary of the dataset generation process,
         including download statistics and integrity check results.
         """
-        logger.info("\n" + "=" * 60)
-        logger.info("DATASET GENERATION SUMMARY")
-        logger.info("=" * 60)
+        self._print_header()
 
         # Download statistics
-        logger.info(f"\n📥 IMAGE DOWNLOAD STATISTICS:")
-        logger.info(f"  ✅ Successful downloads: {self.download_successes}")
-        logger.info(f"  ❌ Failed downloads: {self.download_failures}")
+        self.print_statistics()
 
         if self.failed_downloads:
             logger.info(f"\n  📋 Download Failures:")
-            for failure in self.failed_downloads:
-                logger.info(f"    • {failure}")
+            self._print_failed_downloads()
 
         # Integrity check results
         if self.integrity_failures:
             logger.info(f"\n🔍 INTEGRITY CHECK FAILURES:")
-            for failure in self.integrity_failures:
-                logger.info(f"  📁 {failure['context']}:")
-                logger.info(f"    Expected: {failure['expected']} images")
-                logger.info(f"    Valid: {failure['actual']} images")
-                if failure['corrupted_files']:
-                    logger.info(f"    Corrupted files:")
-                    for corrupted in failure['corrupted_files']:
-                        logger.info(f"      • {corrupted}")
+            self._print_integrity_filures()
 
         # Overall success rate
         total_operations = self.download_successes + self.download_failures
@@ -141,6 +129,31 @@ class DatasetTracker:
             logger.info(f"\n📊 OVERALL SUCCESS RATE: {success_rate:.1f}%")
 
         logger.info("=" * 60)
+
+    @staticmethod
+    def _print_header() -> None:
+        logger.info("\n" + "=" * 60)
+        logger.info("DATASET GENERATION SUMMARY")
+        logger.info("=" * 60)
+
+    def print_statistics(self) -> None:
+        logger.info(f"\n📥 IMAGE DOWNLOAD STATISTICS:")
+        logger.info(f"  ✅ Successful downloads: {self.download_successes}")
+        logger.info(f"  ❌ Failed downloads: {self.download_failures}")
+
+    def _print_failed_downloads(self) -> None:
+        for failure in self.failed_downloads:
+            logger.info(f"    • {failure}")
+
+    def _print_integrity_filures(self) -> None:
+        for failure in self.integrity_failures:
+            logger.info(f"  📁 {failure['context']}:")
+            logger.info(f"    Expected: {failure['expected']} images")
+            logger.info(f"    Valid: {failure['actual']} images")
+            if failure['corrupted_files']:
+                logger.info(f"    Corrupted files:")
+                for corrupted in failure['corrupted_files']:
+                    logger.info(f"      • {corrupted}")
 
 
 class ReportGenerator:
@@ -764,7 +777,7 @@ class FSRenamer:
         """
         image_files = [
             f for f in self.directory_path.iterdir()
-            if f.is_file() and is_valid_image_extension(f)
+            if f.is_file() and valid_image_ext(f)
         ]
         # Sort by filename to maintain any existing sequential order
         image_files.sort(key=lambda x: x.name)
