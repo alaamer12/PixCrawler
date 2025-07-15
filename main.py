@@ -29,14 +29,14 @@ from jupyter_support import is_running_in_notebook, print_help_colored
 from _exceptions import PixCrawlerError
 
 __all__ = [
-    'parse_args_safely',
+    'parse_args',
     'run_from_jupyter',
     'create_arg_parser',
     'main'
 ]
 
 
-def parse_args_safely(parser: argparse.ArgumentParser) -> Optional[argparse.Namespace]:
+def parse_args(parser: argparse.ArgumentParser) -> Optional[argparse.Namespace]:
     """
     Parses command-line arguments safely, ensuring compatibility with both
     standard terminal environments and Jupyter/Colab notebooks.
@@ -305,7 +305,7 @@ def main() -> None:
     parser = create_arg_parser(parser)
 
     # Parse arguments safely (works in both scripts and notebooks)
-    args = parse_args_safely(parser)
+    args = parse_args(parser)
 
     # If help was requested, we've already printed it
     if args is None:

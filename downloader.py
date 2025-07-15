@@ -33,7 +33,7 @@ from _engine import EngineProcessor
 from config import get_search_variations
 from constants import logger
 from helpers import progress
-from utilities import validate_image, rename_images_sequentially
+from utilities import rename_images_sequentially, image_validator
 from _exceptions import DownloadError, ImageValidationError
 
 __all__ = [
@@ -120,7 +120,7 @@ class DuckDuckGoImageDownloader(IDownloader):
                 f.write(response.content)
 
             # Validate the downloaded image
-            if not validate_image(file_path):
+            if not image_validator.validate(file_path):
                 # Remove corrupted image
                 try:
                     os.remove(file_path)

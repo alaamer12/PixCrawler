@@ -61,8 +61,7 @@ from constants import DEFAULT_CACHE_FILE, DEFAULT_LOG_FILE, ENGINES, \
     file_formatter, logger, IMAGE_EXTENSIONS
 from downloader import ImageDownloader, download_images_ddgs
 from helpers import ReportGenerator, DatasetTracker, ProgressManager, progress, valid_image_ext
-from utilities import ProgressCache, detect_duplicate_images, \
-    count_valid_images, remove_duplicate_images, rename_images_sequentially
+from utilities import ProgressCache, rename_images_sequentially, DuplicationManager, image_validator
 
 __all__ = [
     'retry_download',
@@ -78,6 +77,8 @@ __all__ = [
 ]
 
 BACKOFF_DELAY: Final[float] = 0.5
+
+duplicate_manager = DuplicationManager()
 
 
 def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, Any]) -> None:
@@ -522,7 +523,7 @@ class Retry:
 
         # Remove duplicates
         try:
-            removed = remove_duplicate_images(out_dir)
+            removed = duplicate_manager.remove_duplicates(out_dir)
             if removed[0] > 0:
                 self.stats.duplicates_removed += removed[0]
                 logger.info(f"Removed {removed[0]} duplicate images")
@@ -1083,7 +1084,7 @@ class CheckManager:
 
             logger.info(f"Checking for duplicates in {len(image_files)} images for {category_name}/{keyword}")
 
-            duplicates = detect_duplicate_images(keyword_path)
+            duplicates = duplicate_manager.detect_duplicates(keyword_path)
 
             result.duplicate_groups = duplicates
             result.duplicates_found = sum(len(dups) for dups in duplicates.values())
@@ -1165,7 +1166,7 @@ class CheckManager:
 
         try:
             # Count valid images
-            valid_count, total_count, corrupted_files = count_valid_images(keyword_path)
+            valid_count, total_count, corrupted_files = image_validator.count_valid(keyword_path)
 
             result.total_images = total_count
             result.valid_images = valid_count
@@ -2310,7 +2311,7 @@ class DatasetGenerator:
         """
         self.progress.set_subtask_description(f"Checking image integrity: {keyword}")
 
-        valid_count, total_count, corrupted_files = count_valid_images(keyword_path)
+        valid_count, total_count, corrupted_files = image_validator.count_valid(keyword_path)
 
         if valid_count < total_count:
             self.tracker.record_integrity_failure(
