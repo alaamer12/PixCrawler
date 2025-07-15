@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pixcrawler"
-version = "0.1.0"
+version = "0.1.9"
 description = "Configurable Image Dataset Builder for ML/AI projects"
 readme = "README.md"
 authors = [
-    {name = "PixCrawler Contributors", email = "example@example.com"}
+    {name = "Alaamer", email = "ahmedmuhmmed239@gmail.com"}
 ]
 license = {text = "MIT"}
 classifiers = [
@@ -32,7 +32,6 @@ dependencies = [
     "icrawler>=0.6.6",
     "tqdm>=4.62.0",
     "Pillow>=9.0.0",
-    "imagehash>=4.3.0",
 ]
 requires-python = ">=3.8"
 
@@ -48,12 +47,12 @@ dev = [
 yaml = ["PyYAML>=6.0"]
 
 [project.urls]
-"Homepage" = "https://github.com/yourusername/pixcrawler"
-"Bug Tracker" = "https://github.com/yourusername/pixcrawler/issues"
-"Documentation" = "https://github.com/yourusername/pixcrawler#readme"
+"Homepage" = "https://github.com/alaamer12/pixcrawler"
+"Bug Tracker" = "https://github.com/alaamer12/pixcrawler/issues"
+"Documentation" = "https://github.com/alaamer12/pixcrawler#readme"
 
 [project.scripts]
-pixcrawler = "pixcrawler.main:main"
+crawle = "main:main"
 
 [tool.setuptools]
 package-dir = {"" = "."}
