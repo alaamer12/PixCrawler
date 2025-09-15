@@ -44,19 +44,7 @@ Create a config file following the example in `config.json.example`:
     "generate_keywords": true
   }
 }
-```
 
-Then run:
-
-```bash
-python generator.py
-```
-
-Or with custom options:
-
-```bash
-python generator.py -c my_config.json -m 30 --generate-keywords
-```
 
 ### Configuration Options
 

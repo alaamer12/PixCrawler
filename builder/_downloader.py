@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import List, Tuple, Optional, Protocol, Final
 
 import requests
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 from builder._engine import EngineProcessor
 from builder._config import get_search_variations

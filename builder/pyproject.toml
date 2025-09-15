@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "builder"
 version = "0.0.1"
 description = "Configurable Image Dataset Builder - A customizable image dataset builder that crawls the web using popular search engines"
-authors = ["Alaamer amrmuhmed86@gmail.com>"]
+authors = [{name = "Alaamer", email = "amrmuhmed86@gmail.com"}]
 readme = "README.md"
 license = "MIT"
 keywords = ["image", "dataset", "crawler", "machine-learning", "web-scraping", "ai"]
@@ -29,7 +29,7 @@ classifiers = [
 dependencies = [
     "requests",
     "pillow",
-    "duckduckgo-search",
+    "ddgs",
     "jsonschema",
     "icrawler",
     "tqdm",
