@@ -1,0 +1,190 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pixcrawler"
+version = "0.0.1"
+description = ""
+authors = [
+    {name = "PixCrawler Team", email = "team@pixcrawler.com"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+keywords = []
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Code Generators",
+]
+dependencies = [
+    "backend",
+    "builder"
+]
+
+[project.urls]
+Homepage = "https://github.com/pixcrawler/pixcrawler"
+Documentation = "https://pixcrawler.github.io/pixcrawler"
+Repository = "https://github.com/pixcrawler/pixcrawler"
+Issues = "https://github.com/pixcrawler/pixcrawler/issues"
+
+
+
+[tool.uv.workspace]
+members = ["backend", "builder"]
+
+[tool.uv.sources]
+backend = { workspace = true }
+builder = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/"]
+
+
+# Ruff configuration - Primary linter and formatter
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+    "PTH", # flake8-use-pathlib
+    "ERA", # eradicate
+    "PL",  # pylint
+    "RUF", # ruff-specific rules
+]
+ignore = [
+    "E501",   # line too long, handled by formatter
+    "PLR0913", # too many arguments
+    "PLR0912", # too many branches
+    "PLR0915", # too many statements
+    "UP035", # use dict instead of typing.Dict
+    "UP006", # use list instead of typing.List
+    "UP007", # use tuple instead of typing.Tuple
+    "UP045", # use X | None instead of typing.Optional[X]
+    "PLC0415", # no local imports
+    "W293", # blank line at end of file
+]
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+    "*_demo.py",
+    "demo_*.py",
+    "*_test.py",
+    "test_*.py",
+    "base/provider/*.py",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-first-party = ["fm", "pbm", "src"]
+force-sort-within-sections = true
+split-on-trailing-comma = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["ARG", "S101", "PLR2004"]
+"**/__init__.py" = ["F401"]
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+exclude = [
+    '^test_.*\.py$',
+    '.*_demo\.py$',
+    '^tests/.*',
+    '^docs/.*',
+    '^build/.*',
+    '^dist/.*',
+    '^provider/.*',
+]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+disallow_untyped_decorators = false
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src",
+    "--cov=fm",
+    "--cov=pbm",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src", "fm", "pbm", "base", "utils"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]
