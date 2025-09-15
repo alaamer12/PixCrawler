@@ -1,0 +1,9 @@
+pillow
+duckduckgo-search
+jsonschema
+icrawler
+tqdm
+requests
+g4f
+
+
