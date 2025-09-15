@@ -32,9 +32,9 @@ from typing import Any, Dict, Optional, List, Tuple
 from PIL import Image
 from tqdm.auto import tqdm
 
-from constants import DEFAULT_CACHE_FILE, logger
-from helpers import valid_image_ext, FSRenamer
-from _exceptions import PixCrawlerError
+from builder._constants import DEFAULT_CACHE_FILE, logger
+from builder._helpers import valid_image_ext, FSRenamer
+from builder._exceptions import PixCrawlerError
 
 __all__ = [
     'TimeoutException',

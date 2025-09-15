@@ -16,7 +16,7 @@ Features:
 
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
-from constants import DEFAULT_CACHE_FILE, KEYWORD_MODE, AI_MODELS
+from builder._constants import DEFAULT_CACHE_FILE, KEYWORD_MODE, AI_MODELS
 
 __all__ = [
     'CONFIG_SCHEMA',

@@ -21,12 +21,12 @@ import argparse
 import sys
 from typing import Optional
 
-from config import DatasetGenerationConfig
-from constants import Colors, PIXCRAWLER_ASCII, DEFAULT_LOG_FILE
-from constants import DEFAULT_CACHE_FILE, DEFAULT_CONFIG_FILE, KEYWORD_MODE, AI_MODELS
-from generator import generate_dataset, update_logfile
-from jupyter_support import is_running_in_notebook, print_help_colored
-from _exceptions import PixCrawlerError
+from builder._config import DatasetGenerationConfig
+from builder._constants import Colors, PIXCRAWLER_ASCII, DEFAULT_LOG_FILE
+from builder._constants import DEFAULT_CACHE_FILE, DEFAULT_CONFIG_FILE, KEYWORD_MODE, AI_MODELS
+from builder._generator import generate_dataset, update_logfile
+from builder._jupyter_support import is_running_in_notebook, print_help_colored
+from builder._exceptions import PixCrawlerError
 
 __all__ = [
     'parse_args',

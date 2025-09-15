@@ -29,12 +29,12 @@ from typing import List, Tuple, Optional, Protocol, Final
 import requests
 from duckduckgo_search import DDGS
 
-from _engine import EngineProcessor
-from config import get_search_variations
-from constants import logger
-from helpers import progress
-from utilities import rename_images_sequentially, image_validator
-from _exceptions import DownloadError, ImageValidationError
+from builder._engine import EngineProcessor
+from builder._config import get_search_variations
+from builder._constants import logger
+from builder._helpers import progress
+from builder._utilities import rename_images_sequentially, image_validator
+from builder._exceptions import DownloadError, ImageValidationError
 
 __all__ = [
     'IDownloader',

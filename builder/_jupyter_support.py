@@ -17,13 +17,13 @@ Features:
 
 import argparse
 
-from constants import Colors, PIXCRAWLER_ASCII
+from builder._constants import Colors, PIXCRAWLER_ASCII
 
 
 def is_running_in_notebook() -> bool:
     """
     Check if the code is running in a Jupyter notebook environment.
-    
+
     Returns:
         bool: True if running in Jupyter notebook or Google Colab
     """
@@ -40,7 +40,7 @@ def is_running_in_notebook() -> bool:
 def print_help_colored(parser: argparse.ArgumentParser) -> None:
     """
     Print help text with color highlighting.
-    
+
     Args:
         parser: The argument parser
     """
@@ -75,11 +75,11 @@ def print_help_colored(parser: argparse.ArgumentParser) -> None:
 def colorize_output(text: str, style: str = None) -> str:
     """
     Apply color styling to text output.
-    
+
     Args:
         text: Text to colorize
         style: Style to apply (one of 'success', 'error', 'warning', 'info', 'bold')
-        
+
     Returns:
         Colorized text
     """

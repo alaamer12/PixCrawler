@@ -49,19 +49,19 @@ from PIL import Image
 from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler
 from jsonschema import validate
 
-from _exceptions import PixCrawlerError, ConfigurationError, DownloadError, GenerationError
-from config import DatasetGenerationConfig, CONFIG_SCHEMA
-from config import get_basic_variations, get_quality_variations, get_generic_quality_variations, get_search_variations, \
+from builder._exceptions import PixCrawlerError, ConfigurationError, DownloadError, GenerationError
+from builder._config import DatasetGenerationConfig, CONFIG_SCHEMA
+from builder._config import get_basic_variations, get_quality_variations, get_generic_quality_variations, get_search_variations, \
     get_lighting_variations, get_location_variations, get_background_variations, get_professional_variations, \
     get_color_variations, get_style_variations, get_meme_culture_variations, get_size_format_variations, \
     get_time_period_variations, get_condition_age_variations, get_emotional_aesthetic_variations, \
     get_quantity_arrangement_variations, get_camera_technique_variations, get_focus_sharpness_variations, \
     get_texture_material_variations
-from constants import DEFAULT_CACHE_FILE, DEFAULT_LOG_FILE, ENGINES, \
+from builder._constants import DEFAULT_CACHE_FILE, DEFAULT_LOG_FILE, ENGINES, \
     file_formatter, logger, IMAGE_EXTENSIONS
-from downloader import ImageDownloader, download_images_ddgs
-from helpers import ReportGenerator, DatasetTracker, ProgressManager, progress, valid_image_ext
-from utilities import ProgressCache, rename_images_sequentially, DuplicationManager, image_validator
+from builder._downloader import ImageDownloader, download_images_ddgs
+from builder._helpers import ReportGenerator, DatasetTracker, ProgressManager, progress, valid_image_ext
+from builder._utilities import ProgressCache, rename_images_sequentially, DuplicationManager, image_validator
 
 __all__ = [
     'retry_download',
@@ -1910,8 +1910,8 @@ class KeywordManagement:
 
     @staticmethod
     def _get_prompt(category: str) -> str:
-        return f"""Generate 10-15 search keywords related to "{category}" that would be useful for 
-            finding diverse, high-quality images of this concept. 
+        return f"""Generate 10-15 search keywords related to "{category}" that would be useful for
+            finding diverse, high-quality images of this concept.
 
             Include variations that would work well for image search engines.
 

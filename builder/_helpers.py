@@ -23,8 +23,8 @@ import time
 from pathlib import Path
 from typing import Optional, List, TextIO, Any, Union, Callable
 from tqdm.auto import tqdm
-from constants import logger, IMAGE_EXTENSIONS
-from _exceptions import PixCrawlerError
+from builder._constants import logger, IMAGE_EXTENSIONS
+from builder._exceptions import PixCrawlerError
 
 __all__ = [
     'DatasetTracker',
@@ -159,7 +159,7 @@ class DatasetTracker:
 class ReportGenerator:
     """
     Class to track and generate a markdown report about dataset generation.
-    
+
     This class collects information during the dataset generation process
     and produces a well-structured markdown report with tables and sections
     for better readability.

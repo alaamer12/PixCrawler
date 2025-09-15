@@ -32,10 +32,10 @@ from typing import Tuple, Optional, List, Dict, Any, Union, Type
 
 from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler
 
-from config import get_engines
-from constants import logger
-from _exceptions import DownloadError, CrawlerError, CrawlerInitializationError, CrawlerExecutionError
-from utilities import image_validator
+from builder._config import get_engines
+from builder._constants import logger
+from builder._exceptions import DownloadError, CrawlerError, CrawlerInitializationError, CrawlerExecutionError
+from builder._utilities import image_validator
 
 __all__ = [
     'EngineMode',
