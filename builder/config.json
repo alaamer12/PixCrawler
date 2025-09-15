@@ -1,0 +1,20 @@
+{
+  "dataset_name": "my_dataset",
+  "categories": {
+    "animals": [
+      "Retro Games"
+    ],
+    "vehicles": [
+      "car"
+    ]
+  },
+  "options": {
+    "max_images": 10,
+    "output_dir": "datasets/my_dataset",
+    "integrity": true,
+    "max_retries": 3,
+    "cache_file": "my_progress.json",
+    "generate_keywords": false,
+    "generate_labels": true
+  }
+}
