@@ -1,20 +1,23 @@
 """
-This module defines constants and sets up the logging configuration for the PixCrawler application. It includes default file paths, supported search engines, image extensions, and ASCII art for the application banner. It also configures logging to a file and provides ANSI color codes for terminal output.
+This module defines constants for the PixCrawler application and provides centralized logging.
+It includes default file paths, supported search engines, image extensions, and ASCII art 
+for the application banner. Uses the centralized logging_config package for consistent logging.
 
 Classes:
     Colors: Provides ANSI escape codes for colored terminal output.
 
 Features:
     - Defines core application constants such as default file paths and supported engines.
-    - Configures file-based logging for the application.
-    - Suppresses noisy warnings from external libraries.
+    - Uses centralized logging configuration from logging_config package.
     - Includes ASCII art for the application's visual branding.
     - Provides utility classes for colored console output.
 """
 
-import logging
 import warnings
 from typing import Set, List, Literal, Final
+
+# Import centralized logging
+from logging_config import get_logger
 
 __all__ = [
     'DEFAULT_CACHE_FILE',
@@ -22,8 +25,7 @@ __all__ = [
     'DEFAULT_LOG_FILE',
     'ENGINES',
     'IMAGE_EXTENSIONS',
-    'logger',
-    'file_formatter'
+    'logger'
 ]
 
 # Default file paths for application data
@@ -40,31 +42,8 @@ IMAGE_EXTENSIONS: Final[Set[str]] = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.
 # Suppress all warnings to prevent them from appearing in the console
 warnings.filterwarnings("ignore")
 
-# Configure logging to file only, no console output
-logging.basicConfig(level=logging.CRITICAL)  # Set root logger to CRITICAL to suppress most messages
-
-# Create our application logger
-logger = logging.getLogger("pixcrawler")
-logger.setLevel(logging.INFO)
-logger.propagate = False  # Prevent propagation to root logger
-
-# Create formatters
-file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-# Create file handler
-file_handler = logging.FileHandler(DEFAULT_LOG_FILE, encoding='utf-8')
-file_handler.setLevel(logging.INFO)
-file_handler.setFormatter(file_formatter)
-logger.addHandler(file_handler)
-
-# Suppress urllib3 warnings specifically
-logging.getLogger("urllib3").setLevel(logging.CRITICAL)
-logging.getLogger("requests").setLevel(logging.CRITICAL)
-
-# Silence other common noisy loggers
-for logger_name in ["icrawler", "PIL", "downloader", "urllib3", "requests", "chardet", "charset_normalizer"]:
-    logging.getLogger(logger_name).setLevel(logging.CRITICAL)
-    logging.getLogger(logger_name).propagate = False
+# Get logger from centralized logging system
+logger = get_logger("builder")
 
 # ASCII Art for Pixcrawler
 PIXCRAWLER_ASCII: Final[str] = """

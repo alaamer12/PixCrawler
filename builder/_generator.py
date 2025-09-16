@@ -58,7 +58,7 @@ from builder._config import get_basic_variations, get_quality_variations, get_ge
     get_quantity_arrangement_variations, get_camera_technique_variations, get_focus_sharpness_variations, \
     get_texture_material_variations
 from builder._constants import DEFAULT_CACHE_FILE, DEFAULT_LOG_FILE, ENGINES, \
-    file_formatter, logger, IMAGE_EXTENSIONS
+    logger, IMAGE_EXTENSIONS
 from builder._downloader import ImageDownloader, download_images_ddgs
 from builder._helpers import ReportGenerator, DatasetTracker, ProgressManager, progress, valid_image_ext
 from builder._utilities import ProgressCache, rename_images_sequentially, DuplicationManager, image_validator
@@ -1309,10 +1309,9 @@ def update_logfile(log_file: str) -> None:
                 handler.close()
                 logger.removeHandler(handler)
 
-        new_file_handler = logging.FileHandler(log_file, encoding='utf-8')
-        new_file_handler.setLevel(logging.INFO)
-        new_file_handler.setFormatter(file_formatter)
-        logger.addHandler(new_file_handler)
+        # Use centralized logging system - no need to manually configure handlers
+        from logging_config import get_logger
+        logger = get_logger('builder.generator')
 
 
 def validate_keywords(keywords: List[str]) -> List[str]:
