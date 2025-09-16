@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "builder"
-version = "0.0.1"
+version = "0.1.1"
 description = "Configurable Image Dataset Builder - A customizable image dataset builder that crawls the web using popular search engines"
 authors = [{name = "Alaamer", email = "amrmuhmed86@gmail.com"}]
 readme = "README.md"
