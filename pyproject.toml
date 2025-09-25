@@ -16,34 +16,18 @@ keywords = []
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Code Generators",
 ]
-keywords = ["dataset", "crawler", "image", "machine learning", "AI"]
 dependencies = [
     "backend",
     "builder",
     "pixcrawler-logging"
 ]
-requires-python = ">=3.8"
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=3.0.0",
-    "black>=22.0.0",
-    "isort>=5.10.0",
-    "flake8>=4.0.0",
-    "mypy>=0.9.0",
-]
-yaml = ["PyYAML>=6.0"]
 
 [project.urls]
 Homepage = "https://github.com/pixcrawler/pixcrawler"
@@ -64,8 +48,6 @@ pixcrawler-logging = { workspace = true }
 [tool.hatch.build.targets.wheel]
 packages = ["src/"]
 
-[tool.setuptools]
-package-dir = {"" = "."}
 
 # Ruff configuration - Primary linter and formatter
 [tool.ruff]

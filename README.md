@@ -88,8 +88,6 @@ graph LR
     E --> F[📦 Compression]
     F --> G[☁️ Storage]
 
-```bash
-python generator.py
 ```
 
 ### 🔄 **Workflow Overview**

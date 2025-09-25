@@ -1,9 +1,3 @@
-**/__pycache__/*
-**/.venv/*
-**/datasets/*
-**/idea/*
-config.json
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
