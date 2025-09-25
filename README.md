@@ -1,119 +1,175 @@
-# PixCrawler 🕷️ - Configurable Image Dataset Builder
+# PixCrawler
 
-PixCrawler is a customizable image dataset builder that crawls the web using popular search engines like Google, Bing, and DuckDuckGo. It enables researchers, ML engineers, and developers to automate the collection of images for training datasets using a simple JSON-based configuration file.
+> ***Automated Image Dataset Builder for ML & Research***
+> 
 
-## 📚 Features
+## 📋 Overview
 
-* **JSON-driven Configuration**: Define dataset name, categories, and keywords for search.
-* **Multi-Engine Support**: Utilizes Google, Bing, Baidu, and DuckDuckGo for comprehensive image crawling.
-* **Fast Concurrent Crawling**: Efficient image scraping through parallel downloads.
-* **Organized Dataset Structure**: Images are automatically grouped by category and keyword for easy management.
-* **Duplicate Detection**: Employs content and perceptual hashing to automatically remove duplicate images.
-* **Progress Tracking**: Features progress caching, allowing you to resume interrupted downloads seamlessly.
-* **AI-Powered Keyword Generation**:
-  * Automatically generates effective keywords when none are provided.
-  * Optionally augments user-provided keywords with additional AI-generated terms for broader searches.
-* **Automated Label Generation**:
-  * Creates corresponding label files for each image.
-  * Supports multiple formats: TXT, JSON, CSV, and YAML.
-  * Maintains a hierarchical structure that mirrors the image dataset for machine learning readiness.
-* **Image Integrity Checks**: Verifies the validity and integrity of downloaded images.
-* **Comprehensive Reporting**: Generates detailed reports on the dataset generation process, including download statistics, duplicate findings, and integrity check results.
+PixCrawler is a powerful, scalable SaaS platform that automates the creation of high-quality image datasets for machine learning, research, and data science projects. Transform keywords into organized, validated, and ready-to-use image collections with just a few clicks.
 
-## 🔧 Usage
+### ✨ Key Features
 
-Create a config file following the example in `config.json.example`:
+- 🤖 **Intelligent Crawling** - Multiple discovery methods for comprehensive image collection
+- 🔍 **Smart Validation** - Automated quality checks and integrity verification
+- 🗂️ **Auto Organization** - Structured folder hierarchies and metadata generation
+- 🚀 **Parallel Processing** - High-speed concurrent downloads and processing
+- 🔄 **Duplicate Detection** - Advanced deduplication using perceptual and content hashing
+- 📦 **Multi-Format Output** - Support for various label formats (JSON, CSV, YAML, TXT)
+- ⚡ **Hot & Warm Storage** - Optimized storage tiers for different access patterns
+- 🎯 **AI-Powered Keywords** - Intelligent search term expansion and generation
+
+---
+
+## 🎯 Use Cases
+
+### 🔬 **Research & Academia**
+
+- Build custom datasets for computer vision research
+- Create balanced training sets for academic projects
+- Generate benchmark datasets for model evaluation
+
+### 🏢 **Enterprise & Startups**
+
+- Rapid prototyping of ML models with custom data
+- Product image datasets for e-commerce applications
+- Visual content analysis for business intelligence
+
+### 👨‍💻 **Individual Developers**
+
+- Personal ML projects and experimentation
+- Learning and educational purposes
+- Portfolio and demonstration projects
+
+---
+
+## 🚀 Quick Start
+
+### 1️⃣ **Configuration**
+
+Create your dataset configuration using our intuitive web interface or JSON schema:
 
 ```json
 {
-  "dataset_name": "animals",
-  "categories": {
-    "mammals": [
-      "dog",
-      "cat",
-      "elephant"
-    ],
-    "birds": [
-      "eagle",
-      "penguin",
-      "parrot"
-    ]
-  },
-  "options": {
-    "max_images": 20,
-    "generate_keywords": true
+  "name": "my_dataset",
+  "categories": ["cats", "dogs", "birds"],
+  "max_images_per_category": 1000,
+  "engines": ["primary", "secondary", "tertiary"],
+  "quality_filters": {
+    "min_resolution": [224, 224],
+    "formats": ["jpg", "png", "webp"]
   }
 }
+
 ```
 
-Then run:
+### 2️⃣ **Processing**
+
+Submit your job through our dashboard
+
+### 3️⃣ **Download**
+
+Get your processed dataset in optimized formats:
+
+- **Hot Version**: Quick access ZIP (available in minutes)
+- **Warm Version**: Ultra-compressed 7z (available within hours)
+
+---
+
+## 🏗️ Architecture
+
+### 📊 **Processing Pipeline**
+
+```mermaid
+graph LR
+    A[🔍 Discovery] --> B[📥 Download]
+    B --> C[✅ Validation]
+    C --> D[🔍 Deduplication]
+    D --> E[📁 Organization]
+    E --> F[📦 Compression]
+    F --> G[☁️ Storage]
 
 ```bash
 python generator.py
 ```
 
-Or with custom options:
+### 🔄 **Workflow Overview**
 
-```bash
-python generator.py -c my_config.json -m 30 --generate-keywords
-```
+1. **Discovery Phase** 📡
+    - Multi-source image discovery
+    - Intelligent keyword expansion
+    - URL validation and filtering
+2. **Processing Phase** ⚙️
+    - Concurrent image downloads
+    - Real-time integrity checks
+    - Advanced deduplication algorithms
+3. **Organization Phase** 📚
+    - Structured directory creation
+    - Metadata generation
+    - Label file creation
+4. **Delivery Phase** 🚚
+    - Hot storage (immediate access)
+    - Warm storage (cost-optimized)
+    - Secure download links
 
-### Configuration Options
+---
 
-You can specify options either in the config file or via command-line arguments. Command-line arguments take precedence over config file options.
+## 📚 Documentation
 
-**Config File Options:**
+### 🔗 **Quick Links**
 
-```json
-"options": {
-  "max_images": 20,
-  "output_dir": "datasets/my_dataset",
-  "integrity": true,
-  "max_retries": 3,
-  "cache_file": "my_progress.json",
-  "generate_keywords": true,
-  "disable_keyword_generation": false
-}
-```
+- 📖 User Guide
+- 🔧 Configuration Schema
+- ❓ FAQ
 
-This will create a dataset with the following structure:
+### 🛠️ **Developer Resources**
 
-```
-animals/
-├── mammals/
-│   ├── dog/
-│   │   ├── 001.jpg
-│   │   ├── 002.jpg
-│   │   └── ...
-│   ├── cat/
-│   └── elephant/
-└── birds/
-    ├── eagle/
-    ├── penguin/
-    └── parrot/
-```
+- 📊 Jupyter Examples
 
-## 🚀 Command Line Arguments
+---
 
-```
-python main.py --help
-```
+## 🌟 Key Benefits
 
-- `-c, --config`: Path to configuration file (required)
-- `-m, --max-images`: Maximum number of images per keyword (default: 10)
-- `-o, --output`: Custom output directory (default: uses dataset_name from config)
-- `--no-integrity`: Skip integrity checks
-- `-r, --max-retries`: Maximum retry attempts (default: 5)
-- `--continue`: Continue from last run
-- `--cache`: Cache file for progress tracking (default: download_progress.json)
-- `--generate-keywords`: Generate additional keywords for categories (even when user-provided)
-- `--no-generate-keywords`: Disable automatic keyword generation
-- `--no-labels`: Disable automatic label file generation
+### ⚡ **Speed & Efficiency**
 
-## 🌟 Acknowledgements
+- Process thousands of images in minutes
+- Parallel processing architecture
+- Optimized network utilization
 
-* Google, Bing, and Baidu image search APIs
-* DuckDuckGo search
-* Python requests & icrawler
+### 🎯 **Quality Assurance**
 
-> Built with ❤️ by [Alaamer](https://github.com/alaamer12)
+- Automated validation pipelines
+- Comprehensive error handling
+- Duplicate detection and removal
+
+### 💰 **Cost Effective**
+
+- Pay-per-use pricing model
+- Optimized storage tiers
+- No infrastructure overhead
+
+### 🔒 **Secure & Reliable**
+
+- Enterprise-grade security
+- 99.9% uptime SLA
+- Data privacy compliance
+
+---
+
+## 🤝 Support & Community
+
+### 📞 **Get Help**
+
+- 📧 Email Support
+- 🐛 Bug Reports
+
+### 🔄 **Stay Updated**
+
+- 📈 Changelog
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
