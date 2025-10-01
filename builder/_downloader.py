@@ -3,7 +3,9 @@ This module provides various image downloading functionalities, including DuckDu
 
 Classes:
     IDownloader: A protocol defining the interface for image downloaders.
-    DuckDuckGoImageDownloader: A class to download images using DuckDuckGo search.
+    ABC: Abstract base class.
+    SearchEngine: Base class for search engines.
+    DuckDuckGo: A class to download images using DuckDuckGo search.
     ImageDownloader: A class for downloading images using multiple image crawlers in parallel.
 
 Functions:
@@ -39,7 +41,9 @@ from builder._exceptions import DownloadError, ImageValidationError
 
 __all__ = [
     'IDownloader',
-    'DuckDuckGoImageDownloader',
+    'ABC',
+    'SearchEngine',
+    'DuckDuckGo',
     'download_images_ddgs',
     'ImageDownloader',
     'DownloaderRegistry',
@@ -82,16 +86,24 @@ class IDownloader(ABC):
         pass
 
 
-class DuckDuckGoImageDownloader(IDownloader):
+class ABC(ABC):
+    pass
+
+
+class SearchEngine(IDownloader, ABC):
+    pass
+
+
+class DuckDuckGo(SearchEngine):
     """
-    A class to download images using DuckDuckGo search as a fallback mechanism.
+    A class to download images using DuckDuckGo search.
 
     Uses parallel processing for faster downloads.
     """
 
     def __init__(self, max_workers: int = 4):
         """
-        Initializes the DuckDuckGoImageDownloader with default settings.
+        Initializes the DuckDuckGo with default settings.
 
         Args:
             max_workers (int): The maximum number of parallel download workers.
@@ -361,7 +373,7 @@ class DuckDuckGoImageDownloader(IDownloader):
 def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
     """
     Downloads images directly using the DuckDuckGo search engine.
-    This function serves as a wrapper for the `DuckDuckGoImageDownloader` class.
+    This function serves as a wrapper for the `DuckDuckGo` class.
 
     Args:
         keyword (str): The search term for images.
@@ -377,7 +389,7 @@ def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool
         Path(out_dir).mkdir(parents=True, exist_ok=True)
 
         # Initialize the DuckDuckGo downloader with parallel processing
-        ddg_downloader = DuckDuckGoImageDownloader(max_workers=6)
+        ddg_downloader = DuckDuckGo(max_workers=6)
 
         # Get the current count of images in the directory
         initial_count = len([f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
@@ -617,29 +629,6 @@ class ImageDownloader(IDownloader):
             self.downloader_threads = downloader
 
 
-class DownloaderRegistry:
-    """Registry for downloader classes."""
-    
-    _registry: Dict[str, Type[IDownloader]] = {}
-    
-    @classmethod
-    def register(cls, name: str, downloader_class: Type[IDownloader]) -> None:
-        """Register a downloader class."""
-        cls._registry[name] = downloader_class
-    
-    @classmethod
-    def get(cls, name: str, **kwargs) -> IDownloader:
-        """Get downloader instance by name."""
-        if name not in cls._registry:
-            raise ValueError(f"Downloader '{name}' not found")
-        return cls._registry[name](**kwargs)
-    
-    @classmethod
-    def list_names(cls) -> List[str]:
-        """List registered downloader names."""
-        return list(cls._registry.keys())
-
-
 class APIDownloader(IDownloader):
     """Placeholder for API-based downloader. Disabled by default."""
     
@@ -666,23 +655,5 @@ class AioHttpDownloader(IDownloader):
         raise NotImplementedError("AioHttpDownloader placeholder")
 
 
-# Register default downloaders
-DownloaderRegistry.register("duckduckgo", DuckDuckGoImageDownloader)
-DownloaderRegistry.register("image_downloader", ImageDownloader)
 
 
-"""
-How to register custom downloaders:
-
-1. Create class inheriting from IDownloader:
-   class MyDownloader(IDownloader):
-       def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
-           return True, count
-
-2. Register it:
-   DownloaderRegistry.register("my_downloader", MyDownloader)
-
-3. Use it:
-   downloader = DownloaderRegistry.get("my_downloader")
-   success, count = downloader.download("cats", "/output", 10)
-"""
