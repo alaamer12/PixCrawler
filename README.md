@@ -1,5 +1,7 @@
 # PixCrawler
 
+Version 2.0
+
 > ***Automated Image Dataset Builder for ML & Research***
 > 
 
