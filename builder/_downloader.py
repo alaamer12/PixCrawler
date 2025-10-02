@@ -3,7 +3,9 @@ This module provides various image downloading functionalities, including DuckDu
 
 Classes:
     IDownloader: A protocol defining the interface for image downloaders.
-    DuckDuckGoImageDownloader: A class to download images using DuckDuckGo search.
+    ABC: Abstract base class.
+    SearchEngine: Base class for search engines.
+    DuckDuckGo: A class to download images using DuckDuckGo search.
     ImageDownloader: A class for downloading images using multiple image crawlers in parallel.
 
 Functions:
@@ -24,7 +26,8 @@ import random
 import threading
 import time
 from pathlib import Path
-from typing import List, Tuple, Optional, Protocol, Final
+from typing import List, Tuple, Optional, Protocol, Final, Dict, Type, Any
+from abc import ABC, abstractmethod
 
 import requests
 from ddgs import DDGS
@@ -38,35 +41,69 @@ from builder._exceptions import DownloadError, ImageValidationError
 
 __all__ = [
     'IDownloader',
-    'DuckDuckGoImageDownloader',
+    'ABC',
+    'SearchEngine',
+    'DuckDuckGo',
     'download_images_ddgs',
-    'ImageDownloader'
+    'ImageDownloader',
+    'DownloaderRegistry',
+    'APIDownloader',
+    'AioHttpDownloader'
 ]
 
 USER_AGENT: Final[
     str] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 
 
-class IDownloader(Protocol):
+class IDownloader(ABC):
     """
-    A protocol defining the interface for image downloaders.
-    Any class implementing this protocol must provide a `download` method.
+    Abstract base class for image downloaders.
+    
+    Contract:
+    - Must handle retries internally
+    - Must validate downloaded images
+    - Must return (success: bool, count: int)
+    - Must raise DownloadError for unrecoverable failures
     """
 
+    @abstractmethod
     def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
-        ...
+        """
+        Downloads images for the given keyword.
+        
+        Args:
+            keyword: Search term for images
+            out_dir: Output directory path
+            max_num: Maximum number of images to download
+            
+        Returns:
+            Tuple[bool, int]: (success, downloaded_count)
+            
+        Raises:
+            DownloadError: For unrecoverable download failures
+            ImageValidationError: For validation failures
+        """
+        pass
 
 
-class DuckDuckGoImageDownloader(IDownloader):
+class ABC(ABC):
+    pass
+
+
+class SearchEngine(IDownloader, ABC):
+    pass
+
+
+class DuckDuckGo(SearchEngine):
     """
-    A class to download images using DuckDuckGo search as a fallback mechanism.
+    A class to download images using DuckDuckGo search.
 
     Uses parallel processing for faster downloads.
     """
 
     def __init__(self, max_workers: int = 4):
         """
-        Initializes the DuckDuckGoImageDownloader with default settings.
+        Initializes the DuckDuckGo with default settings.
 
         Args:
             max_workers (int): The maximum number of parallel download workers.
@@ -336,7 +373,7 @@ class DuckDuckGoImageDownloader(IDownloader):
 def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
     """
     Downloads images directly using the DuckDuckGo search engine.
-    This function serves as a wrapper for the `DuckDuckGoImageDownloader` class.
+    This function serves as a wrapper for the `DuckDuckGo` class.
 
     Args:
         keyword (str): The search term for images.
@@ -352,7 +389,7 @@ def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool
         Path(out_dir).mkdir(parents=True, exist_ok=True)
 
         # Initialize the DuckDuckGo downloader with parallel processing
-        ddg_downloader = DuckDuckGoImageDownloader(max_workers=6)
+        ddg_downloader = DuckDuckGo(max_workers=6)
 
         # Get the current count of images in the directory
         initial_count = len([f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
@@ -590,3 +627,33 @@ class ImageDownloader(IDownloader):
             self.parser_threads = parser
         if downloader is not None:
             self.downloader_threads = downloader
+
+
+class APIDownloader(IDownloader):
+    """Placeholder for API-based downloader. Disabled by default."""
+    
+    def __init__(self, api_key: Optional[str] = None, **kwargs):
+        from builder._config import is_downloader_enabled
+        if not is_downloader_enabled("api_downloader"):
+            raise ValueError("APIDownloader is disabled")
+        self.api_key = api_key
+    
+    def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
+        raise NotImplementedError("APIDownloader placeholder")
+
+
+class AioHttpDownloader(IDownloader):
+    """Placeholder for async HTTP downloader. Disabled by default."""
+    
+    def __init__(self, max_concurrent: int = 10, **kwargs):
+        from builder._config import is_downloader_enabled
+        if not is_downloader_enabled("aiohttp_downloader"):
+            raise ValueError("AioHttpDownloader is disabled")
+        self.max_concurrent = max_concurrent
+    
+    def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
+        raise NotImplementedError("AioHttpDownloader placeholder")
+
+
+
+
