@@ -222,7 +222,6 @@ config.local.*
 docs/site/
 
 # Model artifacts and data
-models/
 data/
 artifacts/
 checkpoints/

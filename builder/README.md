@@ -44,7 +44,7 @@ Create a config file following the example in `config.json.example`:
     "generate_keywords": true
   }
 }
-
+```
 
 ### Configuration Options
 
@@ -53,14 +53,16 @@ You can specify options either in the config file or via command-line arguments.
 **Config File Options:**
 
 ```json
-"options": {
-  "max_images": 20,
-  "output_dir": "datasets/my_dataset",
-  "integrity": true,
-  "max_retries": 3,
-  "cache_file": "my_progress.json",
-  "generate_keywords": true,
-  "disable_keyword_generation": false
+{
+  "options": {
+    "max_images": 20,
+    "output_dir": "datasets/my_dataset",
+    "integrity": true,
+    "max_retries": 3,
+    "cache_file": "my_progress.json",
+    "generate_keywords": true,
+    "disable_keyword_generation": false
+  }
 }
 ```
 

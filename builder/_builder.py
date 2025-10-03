@@ -37,25 +37,17 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 
 from builder._config import DatasetGenerationConfig, get_engines, get_search_variations
-from builder._constants import logger
-from builder._downloader import DuckDuckGoImageDownloader, DownloaderRegistry
+from builder._constants import logger, KEYWORD_MODE, AI_MODELS
+from builder._downloader import DDGSImageDownloader
 from builder._engine import EngineProcessor
 from builder._exceptions import (
     DownloadError,
     ImageValidationError,
     GenerationError
 )
-
-from enum import Enum
-
-class KEYWORD_MODE(Enum):
-    DISABLED = "disabled"
-    ENABLED = "enabled"
-    AUTO = "auto"
-
-class AI_MODELS(Enum):
-    GPT4 = "gpt4"
-    GPT4_MINI = "gpt4-mini"
+from builder._generator import DatasetGenerator, ConfigManager
+from builder._helpers import ReportGenerator, ProgressManager
+from builder._utilities import image_validator
 
 __all__ = ['Builder']
 
@@ -93,8 +85,8 @@ class Builder:
         max_retries: int = 5,
         continue_from_last: bool = False,
         cache_file: str = "progress_cache.json",
-        keyword_generation: KEYWORD_MODE = KEYWORD_MODE.AUTO,
-        ai_model: AI_MODELS = AI_MODELS.GPT4_MINI,
+        keyword_generation: KEYWORD_MODE = "auto",
+        ai_model: AI_MODELS = "gpt4-mini",
         generate_labels: bool = True
     ):
         """
@@ -232,7 +224,7 @@ class Builder:
                 try:
                     # Use DuckDuckGo downloader for now (can be extended for other engines)
                     if engine.lower() == 'duckduckgo':
-                        downloader = DuckDuckGoImageDownloader()
+                        downloader = DDGSImageDownloader()
                         success, downloaded = downloader.download(keyword, output_dir, max_count)
                         if success:
                             total_downloaded += downloaded
@@ -342,7 +334,7 @@ class Builder:
         self.config.ai_model = model
         logger.info(f"AI model set to: {model}")
 
-    def enable_kwgen(self, mode: KEYWORD_MODE = KEYWORD_MODE.ENABLED) -> None:
+    def enable_kwgen(self, mode: KEYWORD_MODE = "enabled") -> None:
         """
         Enable AI-powered keyword generation.
 
@@ -354,7 +346,7 @@ class Builder:
 
     def disable_keyword_generation(self) -> None:
         """Disable AI-powered keyword generation."""
-        self.config.keyword_generation = KEYWORD_MODE.DISABLED
+        self.config.keyword_generation = "disabled"
         logger.info("Keyword generation disabled")
 
     def set_maxi(self, max_images: int) -> None:
