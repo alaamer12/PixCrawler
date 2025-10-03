@@ -19,7 +19,7 @@ Features:
 """
 
 from functools import lru_cache
-from typing import Any, Optional, List
+from typing import Any, List
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -44,10 +44,6 @@ class Settings(BaseSettings):
         host: Server host address
         port: Server port number
         log_level: Logging level
-        secret_key: Secret key for JWT tokens
-        access_token_expire_minutes: Access token expiration time
-        refresh_token_expire_days: Refresh token expiration time
-        algorithm: JWT algorithm
         allowed_origins: List of allowed CORS origins
         database_url: PostgreSQL database connection URL
         redis_url: Redis connection URL
@@ -85,6 +81,8 @@ class Settings(BaseSettings):
 
     # Database settings
     database_url: str = Field(..., description="PostgreSQL database URL")
+    database_pool_size: int = Field(..., description="", default=10)
+    database_max_overflow: int = Field(..., description="", default=20)
 
     # Redis settings
     redis_url: str = Field(..., description="Redis URL for caching and sessions")
@@ -122,8 +120,5 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """
     Get cached application settings.
-
-    Returns:
-        Cached Settings instance
     """
     return Settings()
