@@ -123,10 +123,6 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Global Python cache ignore
-__pycache__/
-*.py[cod]
-
 # Ignore common environment folders
 .env
 .venv
