@@ -20,7 +20,6 @@ Example:
         config_path="config.json",
         max_images=50,
         output_dir="./my_dataset",
-        integrity=True,
         generate_labels=True
     )
     builder.generate()
@@ -42,7 +41,6 @@ from builder._downloader import DDGSImageDownloader
 from builder._engine import EngineProcessor
 from builder._exceptions import (
     DownloadError,
-    ImageValidationError,
     GenerationError
 )
 from builder._generator import DatasetGenerator, ConfigManager
@@ -62,7 +60,6 @@ class Builder:
     Features:
         - Dataset generation with multiple search engines
         - AI-powered keyword generation
-        - Image integrity checking
         - Label file generation
         - Progress tracking and resumption
         - Comprehensive reporting
@@ -81,7 +78,6 @@ class Builder:
         config_path: str,
         max_images: int = 10,
         output_dir: Optional[str] = None,
-        integrity: bool = True,
         max_retries: int = 5,
         continue_from_last: bool = False,
         cache_file: str = "progress_cache.json",
@@ -96,7 +92,6 @@ class Builder:
             config_path (str): Path to the JSON configuration file
             max_images (int): Maximum number of images to download per keyword
             output_dir (Optional[str]): Custom output directory (None uses dataset_name from config)
-            integrity (bool): Whether to perform image integrity checks
             max_retries (int): Maximum number of retry attempts for failed downloads
             continue_from_last (bool): Whether to continue from the last incomplete run
             cache_file (str): Path to the progress cache file
@@ -117,7 +112,6 @@ class Builder:
             config_path=config_path,
             max_images=max_images,
             output_dir=output_dir,
-            integrity=integrity,
             max_retries=max_retries,
             continue_from_last=continue_from_last,
             cache_file=cache_file,
@@ -243,37 +237,6 @@ class Builder:
             raise DownloadError(f"Failed to download images for '{keyword}': {e}") from e
 
     @staticmethod
-    def validate(directory: str, remove_invalid: bool = True) -> Dict[str, Any]:
-        """
-        Validate integrity of images in a directory.
-        Note: This functionality has been moved to the backend package.
-
-        Args:
-            directory (str): Directory containing images to validate
-            remove_invalid (bool): Whether to remove invalid images
-
-        Returns:
-            Dict[str, Any]: Validation results with statistics
-
-        Raises:
-            ImageValidationError: If validation process fails
-        """
-        try:
-            logger.info(f"Validating images in: {directory}")
-            logger.warning("Image validation functionality moved to backend package. Use backend.validate_dataset() instead.")
-            
-            # For backward compatibility, return empty results
-            return {
-                'valid_count': 0,
-                'total_count': 0,
-                'corrupted_files': []
-            }
-
-        except Exception as e:
-            logger.error(f"Image validation failed: {e}")
-            raise ImageValidationError(f"Failed to validate images: {e}") from e
-
-    @staticmethod
     def generate_labels(dataset_dir: str, formats: List[str] = None) -> None:
         """
         Generate label files for the dataset.
@@ -376,16 +339,6 @@ class Builder:
         self.config.output_dir = output_dir
         logger.info(f"Output directory set to: {output_dir}")
 
-    def enable_integrity(self, enabled: bool = True) -> None:
-        """
-        Enable or disable image integrity checking.
-
-        Args:
-            enabled (bool): Whether to enable integrity checking
-        """
-        self.config.integrity = enabled
-        logger.info(f"Image integrity checking: {'enabled' if enabled else 'disabled'}")
-
     def enable_label_generation(self, enabled: bool = True) -> None:
         """
         Enable or disable label file generation.
@@ -450,7 +403,6 @@ class Builder:
             f"Builder(config_path='{self.config.config_path}', "
             f"max_images={self.config.max_images}, "
             f"output_dir='{self.config.output_dir}', "
-            f"integrity={self.config.integrity}, "
             f"keyword_generation='{self.config.keyword_generation}', "
             f"ai_model='{self.config.ai_model}', "
             f"generate_labels={self.config.generate_labels})"

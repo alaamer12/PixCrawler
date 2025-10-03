@@ -11,10 +11,12 @@ Functions:
     is_valid_image_extension: Checks if a file has a valid image extension.
 
 Features:
-    - Comprehensive tracking of download successes, failures, and integrity issues.
+    - Comprehensive tracking of download successes and failures.
     - Generation of detailed markdown reports for dataset generation summaries.
     - Robust file system operations for renaming and organizing image files.
     - Interactive progress bars for real-time feedback during long-running operations.
+
+Note: Image integrity checking and duplicate detection have been moved to the validator package.
 """
 
 import os
@@ -54,17 +56,16 @@ def valid_image_ext(file_path: Union[str, Path]) -> bool:
 class DatasetTracker:
     """
     A class to track the progress and various outcomes of the dataset generation process.
-    It records successful and failed downloads, as well as image integrity issues.
+    It records successful and failed downloads. Integrity checking has been moved to the validator package.
     """
 
     def __init__(self):
         """
         Initializes the DatasetTracker with counters for download successes and failures,
-        and lists to store details of integrity failures and failed downloads.
+        and lists to store details of failed downloads.
         """
         self.download_successes: int = 0
         self.download_failures: int = 0
-        self.integrity_failures: List[dict] = []
         self.failed_downloads: List[str] = []
 
     def record_download_success(self, context: str) -> None:
@@ -74,6 +75,7 @@ class DatasetTracker:
         Args:
             context (str): A string describing the context of the successful download (e.g., keyword).
         """
+        self.download_successes += 1
 
     def record_download_failure(self, context: str, error: str) -> None:
         """
@@ -85,19 +87,6 @@ class DatasetTracker:
         """
         self.download_failures += 1
         self.failed_downloads.append(f"{context}: {error}")
-
-    def record_integrity_failure(self, context: str, expected: int, actual: int, corrupted: List[str]) -> None:
-        """
-        Records an image integrity check failure.
-
-        Args:
-            context (str): A string describing the context of the integrity check.
-            expected (int): The number of images expected to be valid.
-            actual (int): The number of images actually found to be valid.
-            corrupted (List[str]): A list of file paths of corrupted images.
-        """
-        self.integrity_failures.append({
-            'context': context,
             'expected': expected,
             'actual': actual,
             'corrupted_files': corrupted
@@ -106,7 +95,7 @@ class DatasetTracker:
     def print_summary(self) -> None:
         """
         Prints a comprehensive summary of the dataset generation process,
-        including download statistics and integrity check results.
+        including download statistics. Integrity checking has been moved to the validator package.
         """
         self._print_header()
 
@@ -116,11 +105,6 @@ class DatasetTracker:
         if self.failed_downloads:
             logger.info(f"\n  📋 Download Failures:")
             self._print_failed_downloads()
-
-        # Integrity check results
-        if self.integrity_failures:
-            logger.info(f"\n🔍 INTEGRITY CHECK FAILURES:")
-            self._print_integrity_filures()
 
         # Overall success rate
         total_operations = self.download_successes + self.download_failures
@@ -145,15 +129,7 @@ class DatasetTracker:
         for failure in self.failed_downloads:
             logger.info(f"    • {failure}")
 
-    def _print_integrity_filures(self) -> None:
-        for failure in self.integrity_failures:
-            logger.info(f"  📁 {failure['context']}:")
-            logger.info(f"    Expected: {failure['expected']} images")
-            logger.info(f"    Valid: {failure['actual']} images")
-            if failure['corrupted_files']:
-                logger.info(f"    Corrupted files:")
-                for corrupted in failure['corrupted_files']:
-                    logger.info(f"      • {corrupted}")
+
 
 
 class ReportGenerator:
@@ -178,7 +154,6 @@ class ReportGenerator:
             "summary": [],
             "keywords": {},
             "downloads": {},
-            "integrity": {},
             "errors": []
         }
         self.start_time = time.time()
@@ -234,52 +209,7 @@ class ReportGenerator:
             "errors": errors or []
         }
 
-    def record_duplicates(self, category: str, keyword: str,
-                          total: int, duplicates: int, kept: int) -> None:
-        """
-        Records information about duplicate image detection and removal.
 
-        Args:
-            category (str): The category of the download (e.g., 'main', 'fallback').
-            keyword (str): The keyword associated with the images.
-            total (int): The total number of images before duplicate removal.
-            duplicates (int): The number of duplicate images removed.
-            kept (int): The number of unique images kept.
-        """
-        if category not in self.sections["downloads"]:
-            self.sections["downloads"][category] = {}
-
-        if keyword not in self.sections["downloads"][category]:
-            self.sections["downloads"][category][keyword] = {}
-
-        self.sections["downloads"][category][keyword]["duplicates"] = {
-            "total": total,
-            "duplicates_removed": duplicates,
-            "unique_kept": kept
-        }
-
-    def record_integrity(self, category: str, keyword: str,
-                         expected: int, actual: int,
-                         corrupted: Optional[List[str]] = None) -> None:
-        """
-        Records information about image integrity checks.
-
-        Args:
-            category (str): The category of the integrity check.
-            keyword (str): The keyword associated with the images.
-            expected (int): The number of images expected to be valid.
-            actual (int): The number of images actually found to be valid.
-            corrupted (Optional[List[str]]): A list of corrupted file paths, if any.
-        """
-        if category not in self.sections["integrity"]:
-            self.sections["integrity"][category] = {}
-
-        self.sections["integrity"][category][keyword] = {
-            "expected": expected,
-            "valid": actual,
-            "corrupted_count": len(corrupted or []),
-            "corrupted_files": corrupted or []
-        }
 
     def record_error(self, context: str, error: str) -> None:
         """
@@ -307,7 +237,6 @@ class ReportGenerator:
             self._write_summary(f)
             self._write_keyword_generation(f)
             self._write_downloads(f)
-            self._write_integrity(f)
             self._write_errors(f)
 
         logger.info(f"Report generated at {self.report_file}")
@@ -413,18 +342,15 @@ class ReportGenerator:
         """
         total_attempted = 0
         total_downloaded = 0
-        total_duplicates = 0
 
         for category, keywords in self.sections["downloads"].items():
             category_stats = self._write_download_category(f, category, keywords)
             total_attempted += category_stats["attempted"]
             total_downloaded += category_stats["downloaded"]
-            total_duplicates += category_stats["duplicates"]
 
         return {
             "attempted": total_attempted,
-            "downloaded": total_downloaded,
-            "duplicates": total_duplicates
+            "downloaded": total_downloaded
         }
 
     def _write_download_category(self, f: TextIO, category: str, keywords: dict) -> dict:
@@ -442,18 +368,16 @@ class ReportGenerator:
         f.write(f"### Category: {category}\n\n")
 
         # Create a table for keywords in this category
-        f.write("| Keyword | Downloaded | Attempted | Success Rate | Duplicates Removed | Unique Images |\n")
-        f.write("|---------|------------|-----------|--------------|-------------------|---------------|\n")
+        f.write("| Keyword | Downloaded | Attempted | Success Rate |\n")
+        f.write("|---------|------------|-----------|--------------|")
 
         category_attempted = 0
         category_downloaded = 0
-        category_duplicates = 0
 
         for keyword, data in keywords.items():
             keyword_stats = self._write_download_keyword_table_row(f, keyword, data)
             category_attempted += keyword_stats["attempted"]
             category_downloaded += keyword_stats["downloaded"]
-            category_duplicates += keyword_stats["duplicates"]
 
             # Write any errors for this keyword
             if "errors" in data and data["errors"]:
@@ -463,12 +387,11 @@ class ReportGenerator:
 
         f.write("\n")
         f.write(
-            f"**Category Stats:** {category_downloaded}/{category_attempted} images downloaded, {category_duplicates} duplicates removed\n\n")
+            f"**Category Stats:** {category_downloaded}/{category_attempted} images downloaded\n\n")
 
         return {
             "attempted": category_attempted,
-            "downloaded": category_downloaded,
-            "duplicates": category_duplicates
+            "downloaded": category_downloaded
         }
 
     @staticmethod
@@ -488,21 +411,12 @@ class ReportGenerator:
         downloaded = data.get('downloaded', 0)
         success_rate = f"{(downloaded / attempted * 100):.1f}%" if attempted > 0 else "N/A"
 
-        duplicates_removed = 0
-        unique_kept = 0
-
-        if "duplicates" in data:
-            dup_data = data["duplicates"]
-            duplicates_removed = dup_data.get('duplicates_removed', 0)
-            unique_kept = dup_data.get('unique_kept', 0)
-
         # Write the table row
-        f.write(f"| {keyword} | {downloaded} | {attempted} | {success_rate} | {duplicates_removed} | {unique_kept} |\n")
+        f.write(f"| {keyword} | {downloaded} | {attempted} | {success_rate} |\n")
 
         return {
             "attempted": attempted,
-            "downloaded": downloaded,
-            "duplicates": duplicates_removed
+            "downloaded": downloaded
         }
 
     @staticmethod
@@ -523,161 +437,12 @@ class ReportGenerator:
         f.write(f"| Total Attempted | {total_stats['attempted']} |\n")
         f.write(f"| Total Downloaded | {total_stats['downloaded']} |\n")
         f.write(f"| Success Rate | {success_rate} |\n")
-        f.write(f"| Duplicates Removed | {total_stats['duplicates']} |\n")
-        f.write("\n")
-
-    def _write_integrity(self, f: TextIO) -> None:
-        """
-        Writes the integrity checks section of the markdown report.
-
-        Args:
-            f (TextIO): The file object to write to.
-        """
-        if not self.sections["integrity"]:
-            return
-
-        f.write("## Integrity Checks\n\n")
-        total_stats = self._write_integrity_categories(f)
-        self._write_integrity_totals(f, total_stats)
-
-    def _write_integrity_categories(self, f: TextIO) -> dict:
-        """
-        Writes all integrity categories to the report and calculates total integrity statistics.
-
-        Args:
-            f (TextIO): The file object to write to.
-
-        Returns:
-            dict: A dictionary containing total expected, valid, and corrupted image counts.
-        """
-        total_expected = 0
-        total_valid = 0
-        total_corrupted = 0
-
-        for category, keywords in self.sections["integrity"].items():
-            category_stats = self._write_integrity_category(f, category, keywords)
-            total_expected += category_stats["expected"]
-            total_valid += category_stats["valid"]
-            total_corrupted += category_stats["corrupted"]
-
-        return {
-            "expected": total_expected,
-            "valid": total_valid,
-            "corrupted": total_corrupted
-        }
-
-    def _write_integrity_category(self, f: TextIO, category: str, keywords: dict) -> dict:
-        """
-        Writes a single integrity category's details to the report, including keyword-specific statistics.
-
-        Args:
-            f (TextIO): The file object to write to.
-            category (str): The name of the integrity category.
-            keywords (dict): A dictionary where keys are keywords and values are their integrity data.
-
-        Returns:
-            dict: A dictionary containing expected, valid, and corrupted counts for the category.
-        """
-        f.write(f"### Category: {category}\n\n")
-
-        # Create a table for integrity results
-        f.write("| Keyword | Expected Images | Valid Images | Corrupted Images | Integrity Rate |\n")
-        f.write("|---------|-----------------|--------------|------------------|---------------|\n")
-
-        category_expected = 0
-        category_valid = 0
-        category_corrupted = 0
-
-        for keyword, data in keywords.items():
-            keyword_stats = self._write_integrity_keyword_table_row(f, keyword, data)
-            category_expected += keyword_stats["expected"]
-            category_valid += keyword_stats["valid"]
-            category_corrupted += keyword_stats["corrupted"]
-
-            # List corrupted files if any
-            if data["corrupted_files"]:
-                self._write_corrupted_files(f, data["corrupted_files"])
 
         f.write("\n")
-        integrity_rate = f"{(category_valid / category_expected * 100):.1f}%" if category_expected > 0 else "N/A"
-        f.write(
-            f"**Category Integrity:** {category_valid}/{category_expected} valid images ({integrity_rate}), {category_corrupted} corrupted\n\n")
 
-        return {
-            "expected": category_expected,
-            "valid": category_valid,
-            "corrupted": category_corrupted
-        }
 
-    @staticmethod
-    def _write_integrity_keyword_table_row(f: TextIO, keyword: str, data: dict) -> dict:
-        """
-        Writes a single keyword's integrity statistics as a table row in the report.
 
-        Args:
-            f (TextIO): The file object to write to.
-            keyword (str): The keyword for which to write statistics.
-            data (dict): A dictionary containing integrity data for the keyword.
 
-        Returns:
-            dict: A dictionary containing expected, valid, and corrupted counts for the keyword.
-        """
-        expected = data['expected']
-        valid = data['valid']
-        corrupted = data['corrupted_count']
-        integrity_rate = f"{(valid / expected * 100):.1f}%" if expected > 0 else "N/A"
-
-        # Write the table row
-        f.write(f"| {keyword} | {expected} | {valid} | {corrupted} | {integrity_rate} |\n")
-
-        return {
-            "expected": expected,
-            "valid": valid,
-            "corrupted": corrupted
-        }
-
-    @staticmethod
-    def _write_corrupted_files(f: TextIO, corrupted_files: List[str]) -> None:
-        """
-        Writes a collapsible list of corrupted files to the report.
-
-        Args:
-            f (TextIO): The file object to write to.
-            corrupted_files (List[str]): A list of file paths of corrupted images.
-        """
-        if not corrupted_files:
-            return
-
-        f.write("\n<details>\n")
-        f.write("<summary>Corrupted Files (Click to expand)</summary>\n\n")
-
-        for corrupt_file in corrupted_files[:10]:  # Show just first 10
-            f.write(f"- {os.path.basename(corrupt_file)}\n")
-        if len(corrupted_files) > 10:
-            f.write(f"- ... and {len(corrupted_files) - 10} more\n")
-
-        f.write("</details>\n\n")
-
-    @staticmethod
-    def _write_integrity_totals(f: TextIO, total_stats: dict) -> None:
-        """
-        Writes the overall integrity statistics to the report.
-
-        Args:
-            f (TextIO): The file object to write to.
-            total_stats (dict): A dictionary containing overall integrity statistics.
-        """
-        integrity_rate = f"{(total_stats['valid'] / total_stats['expected'] * 100):.1f}%" if total_stats[
-                                                                                                 'expected'] > 0 else "N/A"
-
-        f.write("### Overall Integrity Statistics\n\n")
-        f.write("| Metric | Value |\n")
-        f.write("|--------|-------|\n")
-        f.write(f"| Total Expected | {total_stats['expected']} |\n")
-        f.write(f"| Total Valid | {total_stats['valid']} |\n")
-        f.write(f"| Integrity Rate | {integrity_rate} |\n")
-        f.write(f"| Total Corrupted | {total_stats['corrupted']} |\n")
-        f.write("\n")
 
     def _write_errors(self, f: TextIO) -> None:
         """

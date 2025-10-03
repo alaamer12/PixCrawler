@@ -103,8 +103,12 @@ def _download_images_with_crawler(engine_name: str, crawler_class: Type, keyword
                     file_idx_offset=file_idx_offset
                 )
 
-                downloaded_count = image_validator.count_valid_in_latest_batch(out_dir,
-                                                                               file_idx_offset)
+                # Basic count of downloaded files - validation moved to validator package
+                try:
+                    files = [f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'))]
+                    downloaded_count = len(files) - file_idx_offset
+                except OSError:
+                    downloaded_count = 0
 
                 variation_results.append(VariationResult(
                     variation=variation,

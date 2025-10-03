@@ -55,10 +55,7 @@ CONFIG_SCHEMA: Dict[str, Any] = {
                     "type": ["string", "null"],
                     "description": "Custom output directory"
                 },
-                "integrity": {
-                    "type": "boolean",
-                    "description": "Whether to check image integrity"
-                },
+
                 "max_retries": {
                     "type": "integer",
                     "minimum": 0,
@@ -696,7 +693,6 @@ class DatasetGenerationConfig:
         config_path: Path to the configuration file
         max_images: Maximum number of images to download per keyword
         output_dir: Custom output directory (None uses dataset_name from config)
-        integrity: Whether to perform image integrity checks
         max_retries: Maximum number of retry attempts for failed downloads
         continue_from_last: Whether to continue from previous run
         cache_file: Path to cache file for progress tracking
@@ -709,7 +705,6 @@ class DatasetGenerationConfig:
     config_path: str
     max_images: int = 10
     output_dir: Optional[str] = None
-    integrity: bool = True
     max_retries: int = 5
     continue_from_last: bool = False
     cache_file: str = DEFAULT_CACHE_FILE

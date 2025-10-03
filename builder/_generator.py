@@ -4,7 +4,6 @@ This module orchestrates the entire process of generating image datasets, includ
 - Loading configurations
 - Generating keywords (with AI assistance)
 - Downloading images from various search engines
-- Performing integrity checks on downloaded images
 - Generating comprehensive reports
 - Creating label files for machine learning tasks
 
@@ -16,19 +15,17 @@ Functions:
     retry_download_images: Attempts to download images with retries and alternative terms.
     load_config: Loads and validates dataset configuration from a JSON file.
     generate_keywords: Generates search keywords using an AI model.
-    check_duplicates: Checks for and removes duplicate images.
-    check_image_integrity: Verifies the integrity of downloaded images.
     update_logfile: Updates the logging configuration to a specified file.
     generate_dataset: Main entry point to start the dataset generation process.
 
 Features:
 - Multi-engine image downloading (Google, Bing, Baidu, DuckDuckGo)
 - AI-powered keyword generation for diverse image collection
-- Duplicate image detection and removal
-- Image integrity checking
 - Progress tracking and caching for resuming interrupted runs
 - Automatic label file generation in multiple formats (TXT, JSON, CSV, YAML)
 - Comprehensive report generation for dataset overview
+
+Note: Image integrity checking and duplicate detection have been moved to the validator package.
 """
 
 import contextlib
@@ -71,7 +68,6 @@ __all__ = [
     'LabelGenerator',
     'KeywordManagement',
     'DatasetGenerator',
-    'CheckManager',
     'generate_dataset',
     'ConfigManager',
 ]
@@ -466,14 +462,8 @@ class Retry:
         if len(image_files) == 1:
             return 1
 
-        # Remove duplicates
-        try:
-            removed = duplicate_manager.remove_duplicates(out_dir)
-            if removed[0] > 0:
-                self.stats.duplicates_removed += removed[0]
-                logger.info(f"Removed {removed[0]} duplicate images")
-        except Exception as e:
-            logger.warning(f"Error removing duplicates: {str(e)}")
+        # Duplicate removal moved to validator package
+        # Basic duplicate removal can be done post-processing if needed
 
         # Count remaining images
         remaining_images = self._get_image_files(out_dir)
@@ -828,415 +818,6 @@ class ConfigManager:
     def get_all_options(self) -> Dict[str, Any]:
         """Returns the entire options dictionary."""
         return self.config.get('options', {})
-
-
-class CheckMode(Enum):
-    """Enumeration of available check modes"""
-    STRICT = auto()  # Fail on any issues
-    LENIENT = auto()  # Log warnings but continue
-    REPORT_ONLY = auto()  # Only report, no actions
-
-
-class DuplicateAction(Enum):
-    """Actions to take when duplicates are found"""
-    REMOVE = auto()
-    REPORT_ONLY = auto()
-    QUARANTINE = auto()
-
-
-@dataclass
-class CheckConfig:
-    """Configuration for check operations"""
-    mode: CheckMode = CheckMode.LENIENT
-    duplicate_action: DuplicateAction = DuplicateAction.REMOVE
-    supported_extensions: Tuple[str, ...] = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
-    max_file_size_mb: Optional[int] = None
-    min_file_size_bytes: int = 1024  # 1KB minimum
-    quarantine_dir: Optional[str] = None
-    batch_size: int = 100  # Process images in batches
-
-
-@dataclass
-class DuplicateResult:
-    """Result of duplicate checking operation"""
-    total_images: int
-    duplicates_found: int
-    duplicates_removed: int
-    unique_kept: int
-    duplicate_groups: Dict[str, List[str]] = field(default_factory=dict)
-    processing_time: float = 0.0
-    errors: List[str] = field(default_factory=list)
-
-
-@dataclass
-class IntegrityResult:
-    """Result of integrity checking operation"""
-    total_images: int
-    valid_images: int
-    corrupted_images: int
-    corrupted_files: List[str] = field(default_factory=list)
-    size_violations: List[str] = field(default_factory=list)
-    processing_time: float = 0.0
-    errors: List[str] = field(default_factory=list)
-
-
-@dataclass
-class CheckStats:
-    """Overall statistics for check operations"""
-    total_checks: int = 0
-    successful_checks: int = 0
-    failed_checks: int = 0
-    total_duplicates_found: int = 0
-    total_duplicates_removed: int = 0
-    total_corrupted_found: int = 0
-    categories_processed: Set[str] = field(default_factory=set)
-    keywords_processed: Set[str] = field(default_factory=set)
-    processing_history: List[Dict[str, Any]] = field(default_factory=list)
-
-
-class CheckManager:
-    """
-    Enhanced manager for checking image duplicates and integrity with comprehensive
-    tracking, configurable behavior, and detailed reporting.
-    """
-
-    def __init__(self, config: Optional[CheckConfig] = None):
-        """
-        Initialize the CheckManager.
-
-        Args:
-            config: Optional CheckConfig for customizing behavior
-        """
-        self.config = config or CheckConfig()
-        self.stats = CheckStats()
-
-        # Setup quarantine directory if specified
-        if (self.config.duplicate_action == DuplicateAction.QUARANTINE and
-                self.config.quarantine_dir):
-            Path(self.config.quarantine_dir).mkdir(parents=True, exist_ok=True)
-
-    def _is_valid_image_file(self, file_path: Path) -> bool:
-        """Check if a file is a valid image file"""
-        try:
-            if not file_path.is_file():
-                return False
-
-            # Check extension
-            if not file_path.suffix.lower() in self.config.supported_extensions:
-                return False
-
-            # Check file size constraints
-            file_size = file_path.stat().st_size
-            if file_size < self.config.min_file_size_bytes:
-                return False
-
-            if (self.config.max_file_size_mb and
-                    file_size > self.config.max_file_size_mb * 1024 * 1024):
-                return False
-
-            return True
-
-        except Exception as e:
-            logger.warning(f"Error checking file {file_path}: {e}")
-            return False
-
-    def _get_image_files(self, directory_path: Path) -> List[Path]:
-        """Get all valid image files in a directory"""
-        try:
-            if not directory_path.exists():
-                logger.warning(f"Directory does not exist: {directory_path}")
-                return []
-
-            image_files = []
-            for file_path in directory_path.iterdir():
-                if self._is_valid_image_file(file_path):
-                    image_files.append(file_path)
-
-            return image_files
-
-        except Exception as e:
-            logger.error(f"Error reading directory {directory_path}: {e}")
-            return []
-
-    def _handle_duplicates(self, duplicates: Dict[str, List[str]],
-                           keyword_path: str) -> int:
-        """Handle duplicate files based on configured action"""
-        removed_count = 0
-
-        try:
-            if self.config.duplicate_action == DuplicateAction.REPORT_ONLY:
-                return 0
-
-            for original, duplicates_list in duplicates.items():
-                for duplicate_file in duplicates_list:
-                    duplicate_path = Path(keyword_path) / duplicate_file
-
-                    if self.config.duplicate_action == DuplicateAction.REMOVE:
-                        removed_count = self._unlink(duplicate_path, removed_count, duplicate_file)
-
-                    elif self.config.duplicate_action == DuplicateAction.QUARANTINE:
-                        removed_count = self._unlink_quarantine(duplicate_path, removed_count, duplicate_file)
-
-        except Exception as e:
-            logger.error(f"Error handling duplicates: {e}")
-
-        return removed_count
-
-    @staticmethod
-    def _unlink(duplicate_path, removed_count, duplicate_file) -> int:
-        if duplicate_path.exists():
-            duplicate_path.unlink()
-            removed_count += 1
-            logger.debug(f"Removed duplicate: {duplicate_file}")
-        return removed_count
-
-    def _unlink_quarantine(self, duplicate_path, removed_count, duplicate_file) -> int:
-        if duplicate_path.exists() and self.config.quarantine_dir:
-            quarantine_path = Path(self.config.quarantine_dir) / duplicate_file
-            quarantine_path.parent.mkdir(parents=True, exist_ok=True)
-            duplicate_path.rename(quarantine_path)
-            removed_count += 1
-            logger.debug(f"Quarantined duplicate: {duplicate_file}")
-        return removed_count
-
-    def duplicates(self, category_name: str, keyword: str,
-                   keyword_path: str, report: 'ReportGenerator') -> DuplicateResult:
-        """
-        Enhanced duplicate checking with comprehensive result tracking.
-
-        Args:
-            category_name: Name of the category
-            keyword: Keyword being processed
-            keyword_path: Path to the keyword directory
-            report: ReportGenerator instance for recording results
-
-        Returns:
-            DuplicateResult: Detailed results of the duplicate check
-        """
-        start_time = time.time()
-        result = DuplicateResult(total_images=0, duplicates_found=0,
-                                 duplicates_removed=0, unique_kept=0)
-
-        try:
-            # Get all image files
-            keyword_path_obj = Path(keyword_path)
-            image_files = self._get_image_files(keyword_path_obj)
-            result.total_images = len(image_files)
-
-            if not image_files:
-                logger.info(f"No images found in {keyword_path}")
-                return result
-
-            logger.info(f"Checking for duplicates in {len(image_files)} images for {category_name}/{keyword}")
-
-            duplicates = duplicate_manager.detect_duplicates(keyword_path)
-
-            result.duplicate_groups = duplicates
-            result.duplicates_found = sum(len(dups) for dups in duplicates.values())
-
-            # Handle duplicates based on configuration
-            result.duplicates_removed = self._handle_duplicates(duplicates, keyword_path)
-            result.unique_kept = result.total_images - result.duplicates_removed
-
-            # Update statistics
-            self._update_statistics(result, category_name, keyword)
-
-            # Record in report
-            report.record_duplicates(
-                category=category_name,
-                keyword=keyword,
-                total=result.total_images,
-                duplicates=result.duplicates_found,
-                kept=result.unique_kept
-            )
-
-            logger.info(f"Found {result.duplicates_found} duplicates, "
-                        f"removed {result.duplicates_removed} out of {result.total_images} images")
-
-        except Exception as e:
-            error_msg = f"Failed to check duplicates for {category_name}/{keyword}: {e}"
-            logger.error(error_msg)
-            result.errors.append(error_msg)
-            self.stats.failed_checks += 1
-
-            report.record_error(f"{category_name}/{keyword} duplicates check", str(e))
-
-            if self.config.mode == CheckMode.STRICT:
-                raise PixCrawlerError(error_msg) from e
-
-        finally:
-            result.processing_time = time.time() - start_time
-            self.stats.total_checks += 1
-
-            # Record processing history
-            self.stats.processing_history.append({
-                'operation': 'duplicate_check',
-                'category': category_name,
-                'keyword': keyword,
-                'success': not result.errors,
-                'processing_time': result.processing_time,
-                'images_processed': result.total_images,
-                'duplicates_found': result.duplicates_found
-            })
-
-        return result
-
-    def _update_statistics(self, result, category_name, keyword):
-        self.stats.total_duplicates_found += result.duplicates_found
-        self.stats.total_duplicates_removed += result.duplicates_removed
-        self.stats.categories_processed.add(category_name)
-        self.stats.keywords_processed.add(keyword)
-        self.stats.successful_checks += 1
-
-    def integrity(self, tracker: 'DatasetTracker', download_context: str,
-                  keyword_path: str, max_images: int, report: 'ReportGenerator',
-                  category_name: str, keyword: str) -> IntegrityResult:
-        """
-        Enhanced integrity checking with detailed result tracking.
-
-        Args:
-            tracker: DatasetTracker instance
-            download_context: Context description for the download
-            keyword_path: Path to the keyword directory
-            max_images: Expected maximum number of images
-            report: ReportGenerator instance
-            category_name: Name of the category
-            keyword: Keyword being processed
-
-        Returns:
-            IntegrityResult: Detailed results of the integrity check
-        """
-        start_time = time.time()
-        result = IntegrityResult(total_images=0, valid_images=0, corrupted_images=0)
-
-        try:
-            # Count valid images
-            valid_count, total_count, corrupted_files = image_validator.count_valid(keyword_path)
-
-            result.total_images = total_count
-            result.valid_images = valid_count
-            result.corrupted_images = len(corrupted_files)
-            result.corrupted_files = corrupted_files
-
-            # Check for size violations if configured
-            if self.config.max_file_size_mb or self.config.min_file_size_bytes:
-                keyword_path_obj = Path(keyword_path)
-                for file_path in self._get_image_files(keyword_path_obj):
-                    file_size = file_path.stat().st_size
-
-                    if file_size < self.config.min_file_size_bytes:
-                        result.size_violations.append(f"{file_path.name} (too small: {file_size} bytes)")
-                    elif (self.config.max_file_size_mb and
-                          file_size > self.config.max_file_size_mb * 1024 * 1024):
-                        result.size_violations.append(f"{file_path.name} (too large: {file_size} bytes)")
-
-            # Record integrity failure if needed
-            if valid_count < max_images:
-                tracker.record_integrity_failure(
-                    download_context,
-                    max_images,
-                    valid_count,
-                    corrupted_files
-                )
-
-            # Record in report
-            report.record_integrity(
-                category=category_name,
-                keyword=keyword,
-                expected=max_images,
-                actual=valid_count,
-                corrupted=corrupted_files
-            )
-
-            # Update statistics
-            self.stats.total_corrupted_found += result.corrupted_images
-            self.stats.categories_processed.add(category_name)
-            self.stats.keywords_processed.add(keyword)
-            self.stats.successful_checks += 1
-
-            logger.info(f"Integrity check for {category_name}/{keyword}: "
-                        f"{valid_count}/{total_count} valid images, "
-                        f"{result.corrupted_images} corrupted")
-
-        except Exception as e:
-            error_msg = f"Failed to check integrity for {category_name}/{keyword}: {e}"
-            logger.error(error_msg)
-            result.errors.append(error_msg)
-            self.stats.failed_checks += 1
-
-            report.record_error(f"{category_name}/{keyword} integrity check", str(e))
-
-            if self.config.mode == CheckMode.STRICT:
-                raise PixCrawlerError(error_msg) from e
-
-        finally:
-            result.processing_time = time.time() - start_time
-            self.stats.total_checks += 1
-
-            # Record processing history
-            self.stats.processing_history.append({
-                'operation': 'integrity_check',
-                'category': category_name,
-                'keyword': keyword,
-                'success': not result.errors,
-                'processing_time': result.processing_time,
-                'images_processed': result.total_images,
-                'valid_images': result.valid_images,
-                'corrupted_images': result.corrupted_images
-            })
-
-        return result
-
-    def all(self, tracker: 'DatasetTracker', download_context: str,
-            keyword_path: str, max_images: int, report: 'ReportGenerator',
-            category_name: str, keyword: str) -> Tuple[DuplicateResult, IntegrityResult]:
-        """
-        Perform both duplicate and integrity checks in sequence.
-
-        Returns:
-            Tuple[DuplicateResult, IntegrityResult]: Results of both checks
-        """
-        logger.info(f"Starting comprehensive check for {category_name}/{keyword}")
-
-        # Check duplicates first
-        duplicate_result = self.duplicates(category_name, keyword, keyword_path, report)
-
-        # Then check integrity
-        integrity_result = self.integrity(
-            tracker, download_context, keyword_path, max_images,
-            report, category_name, keyword
-        )
-
-        return duplicate_result, integrity_result
-
-    def reset(self) -> None:
-        """Reset check statistics"""
-        self.stats = CheckStats()
-
-    def update_config(self, **kwargs) -> None:
-        """Update configuration parameters"""
-        for key, value in kwargs.items():
-            if hasattr(self.config, key):
-                setattr(self.config, key, value)
-            else:
-                logger.warning(f"Unknown configuration parameter: {key}")
-
-    def get_summary_report(self) -> Dict[str, Any]:
-        """Generate a summary report of all check operations"""
-        return {
-            'total_checks': self.stats.total_checks,
-            'success_rate': (self.stats.successful_checks / self.stats.total_checks
-                             if self.stats.total_checks > 0 else 0),
-            'categories_processed': len(self.stats.categories_processed),
-            'keywords_processed': len(self.stats.keywords_processed),
-            'total_duplicates_found': self.stats.total_duplicates_found,
-            'total_duplicates_removed': self.stats.total_duplicates_removed,
-            'total_corrupted_found': self.stats.total_corrupted_found,
-            'duplicate_removal_rate': (self.stats.total_duplicates_removed /
-                                       self.stats.total_duplicates_found
-                                       if self.stats.total_duplicates_found > 0 else 0),
-            'processing_history': self.stats.processing_history
-        }
 
 
 def update_logfile(log_file: str) -> None:
@@ -1994,7 +1575,7 @@ class DatasetGenerator:
         """
         Generates the dataset based on the provided configuration.
         This is the main entry point for the dataset generation process,
-        orchestrating keyword processing, image downloading, integrity checks,
+        orchestrating keyword processing, image downloading,
         label generation, and report creation.
         """
         # Pre-process all keywords to get accurate totals
@@ -2201,15 +1782,8 @@ class DatasetGenerator:
         # Track results and record in report
         self._track_download_results(download_context, success, count, category_name, keyword)
 
-        # Check and record duplicates
-        self.progress.set_subtask_description(f"Checking duplicates: {keyword}")
-        check_manager = CheckManager()
-        check_manager.duplicates(category_name, keyword, str(keyword_path), self.report)
-
-        # Check integrity if enabled
-        if self.config.integrity:
-            self.progress.set_subtask_description(f"Checking integrity: {keyword}")
-            self._check_image_integrity(download_context, str(keyword_path), category_name, keyword)
+        # Validation (duplicates and integrity) moved to validator package
+        # Can be performed post-processing if needed using the validator package
 
         # Update progress cache if continuing from last run
         if self.config.continue_from_last and self.progress_cache:
@@ -2241,41 +1815,6 @@ class DatasetGenerator:
             error_msg = "Failed to download any valid images after retries"
             self.tracker.record_download_failure(download_context, error_msg)
             self.report.record_error(f"{category_name}/{keyword} download", error_msg)
-
-    def _check_image_integrity(self, download_context: str, keyword_path: str, category_name: str,
-                               keyword: str) -> None:
-        """
-        Checks image integrity for a given keyword directory and records the results.
-
-        Args:
-            download_context (str): A string describing the context of the download.
-            keyword_path (str): The path to the keyword's image directory.
-            category_name (str): The name of the category.
-            keyword (str): The keyword being processed.
-        """
-        self.progress.set_subtask_description(f"Checking image integrity: {keyword}")
-
-        valid_count, total_count, corrupted_files = image_validator.count_valid(keyword_path)
-
-        if valid_count < total_count:
-            self.tracker.record_integrity_failure(
-                download_context,
-                total_count,
-                valid_count,
-                corrupted_files
-            )
-            self.progress.set_subtask_postfix(valid=valid_count, corrupted=total_count - valid_count)
-        else:
-            self.progress.set_subtask_postfix(valid=valid_count, corrupted=0)
-
-        self.report.record_integrity(
-            category=category_name,
-            keyword=keyword,
-            expected=total_count,
-            actual=valid_count,
-            corrupted=corrupted_files
-        )
-
 
 def generate_dataset(config: DatasetGenerationConfig) -> None:
     """

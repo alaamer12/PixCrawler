@@ -23,6 +23,7 @@ Features:
 """
 
 import concurrent.futures
+import os
 import random
 import threading
 import time
@@ -38,7 +39,7 @@ from builder._config import get_engines
 from builder._constants import logger
 from builder._exceptions import DownloadError, CrawlerError, CrawlerInitializationError, \
     CrawlerExecutionError
-from builder._utilities import image_validator
+# Image validation moved to validator package
 
 __all__ = [
     'EngineMode',
@@ -827,7 +828,12 @@ class SingleEngineProcessor:
             int: The number of valid images found.
         """
         with self.image_downloader.lock:
-            return image_validator.count_valid_in_latest_batch(out_dir, file_idx_offset)
+            # Basic count of files - validation moved to validator package
+            try:
+                files = [f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'))]
+                return len(files) - file_idx_offset
+            except OSError:
+                return 0
 
     def _update_global_counters(self, result: VariationResult) -> None:
         """

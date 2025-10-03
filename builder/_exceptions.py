@@ -23,9 +23,7 @@ class GenerationError(PixCrawlerError):
     pass
 
 
-class ImageValidationError(DownloadError):
-    """Exception raised when a downloaded image fails validation (e.g., corrupted, too small, wrong format)."""
-    pass
+
 
 
 class CrawlerError(PixCrawlerError):

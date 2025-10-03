@@ -36,9 +36,10 @@ from _search_engines import download_images_ddgs
 from builder._config import get_search_variations
 from builder._constants import logger
 from builder._engine import EngineProcessor
-from builder._exceptions import DownloadError, ImageValidationError
+from builder._exceptions import DownloadError
 from builder._helpers import progress
-from builder._utilities import rename_images_sequentially, image_validator
+from builder._utilities import rename_images_sequentially
+# Image validation moved to validator package
 
 __all__ = [
     'IDownloader',
@@ -79,8 +80,7 @@ class IDownloader(ABC):
             Tuple[bool, int]: (success, downloaded_count)
 
         Raises:
-            DownloadError: For unrecoverable download failures
-            ImageValidationError: For validation failures
+            DownloadError: For download and validation failures
         """
         pass
 
@@ -147,31 +147,31 @@ class DDGSImageDownloader(SearchEngine):
             # Check content type and file size before saving
             content_type = response.headers.get('Content-Type', '')
             if not content_type.startswith('image/'):
-                raise ImageValidationError(f"Skipping non-image content type: {content_type}")
+                raise DownloadError(f"Skipping non-image content type: {content_type}")
 
             if len(response.content) < self.min_file_size:
-                raise ImageValidationError(f"Skipping too small image ({len(response.content)} bytes)")
+                raise DownloadError(f"Skipping too small image ({len(response.content)} bytes)")
 
             with open(file_path, "wb") as f:
                 f.write(response.content)
 
-            # Validate the downloaded image
-            if not image_validator.validate(file_path):
-                # Remove corrupted image
+            # Basic validation - check if file exists and has content
+            if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+                # Remove empty or missing file
                 try:
                     os.remove(file_path)
                     logger.warning(f"Removed corrupted image: {file_path}")
                 except OSError as ose:
                     logger.error(f"Error removing corrupted image {file_path}: {ose}")
-                raise ImageValidationError(f"Downloaded image failed validation: {file_path}")
+                raise DownloadError(f"Downloaded image failed validation: {file_path}")
             return True
 
         except requests.exceptions.RequestException as req_e:
             logger.warning(f"Network or request error downloading {image_url}: {req_e}")
             raise DownloadError(f"Network or request error downloading {image_url}: {req_e}") from req_e
-        except ImageValidationError as ive:
-            logger.warning(f"Image validation error for {image_url}: {ive}")
-            raise ive
+        except DownloadError as de:
+            logger.warning(f"Download error for {image_url}: {de}")
+            raise de
         except Exception as e:
             logger.warning(f"An unexpected error occurred while downloading {image_url}: {e}")
             raise DownloadError(f"Unexpected error downloading {image_url}: {e}") from e
@@ -290,7 +290,7 @@ class DDGSImageDownloader(SearchEngine):
                         with self.lock:
                             downloaded += 1
                             logger.info(f"Downloaded image from DuckDuckGo [{downloaded}/{max_count}]")
-                except (DownloadError, ImageValidationError) as e:
+                except DownloadError as e:
                     logger.warning(f"Error downloading image: {e}")
                 except Exception as e:
                     logger.error(f"An unexpected error occurred during parallel download: {e}")
