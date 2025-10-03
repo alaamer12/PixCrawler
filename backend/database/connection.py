@@ -13,8 +13,8 @@ settings = get_settings()
 # Create async engine
 engine = create_async_engine(
     str(settings.database_url),
-    pool_size=settings.database_pool_size,
-    max_overflow=settings.database_max_overflow,
+    pool_size=10,  # Default pool size for Supabase
+    max_overflow=20,  # Default max overflow
     echo=settings.debug,
 )
 
