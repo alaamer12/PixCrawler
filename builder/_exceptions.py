@@ -23,9 +23,6 @@ class GenerationError(PixCrawlerError):
     pass
 
 
-
-
-
 class CrawlerError(PixCrawlerError):
     """Base exception for all crawler-related errors."""
     pass

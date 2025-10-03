@@ -1,6 +1,7 @@
 # PixCrawler Backend
 
-Professional backend API service for the PixCrawler image dataset platform. Built with FastAPI, following clean architecture principles and industry best practices.
+Professional backend API service for the PixCrawler image dataset platform. Built with FastAPI, following clean
+architecture principles and industry best practices.
 
 ## Architecture Overview
 
@@ -56,22 +57,26 @@ backend/
 ### Installation
 
 1. Install dependencies:
+
 ```bash
 uv sync
 ```
 
 2. Set up environment variables:
+
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
 ```
 
 3. Run database migrations:
+
 ```bash
 # TODO: Add Alembic migration commands
 ```
 
 4. Start the development server:
+
 ```bash
 uv run pixcrawler-api
 # or
@@ -83,14 +88,17 @@ The API will be available at `http://localhost:8000` with interactive documentat
 ## API Endpoints
 
 ### Health Check
+
 - `GET /api/v1/health/` - Service health status
 
 ### Authentication (Supabase Integration)
+
 - `GET /api/v1/auth/me` - Get current user profile
 - `POST /api/v1/auth/verify-token` - Verify Supabase JWT token
 - `POST /api/v1/auth/sync-profile` - Sync user profile from Supabase Auth
 
 ### Users
+
 - `POST /api/v1/users/` - Create user account
 - `GET /api/v1/users/` - List users (paginated)
 - `GET /api/v1/users/{id}` - Get user by ID
@@ -98,11 +106,13 @@ The API will be available at `http://localhost:8000` with interactive documentat
 - `DELETE /api/v1/users/{id}` - Delete user
 
 ### Crawl Jobs (Image Dataset Generation)
+
 - `POST /api/v1/jobs/` - Create and start crawl job
 - `GET /api/v1/jobs/{id}` - Get crawl job status and progress
 - `POST /api/v1/jobs/{id}/cancel` - Cancel running crawl job
 
 ### Legacy Datasets (Deprecated)
+
 - `POST /api/v1/datasets/` - Create dataset generation job
 - `GET /api/v1/datasets/` - List datasets (paginated)
 - `GET /api/v1/datasets/stats` - Get dataset statistics

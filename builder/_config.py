@@ -16,6 +16,7 @@ Features:
 
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
+
 from builder._constants import DEFAULT_CACHE_FILE, KEYWORD_MODE, AI_MODELS
 
 __all__ = [
@@ -634,24 +635,24 @@ def get_search_variations() -> List[str]:
         List of search variations
     """
     return (
-            get_basic_variations() +
-            get_quality_variations() +
-            get_style_variations() +
-            get_time_period_variations() +
-            get_emotional_aesthetic_variations() +
-            get_meme_culture_variations() +
-            get_professional_variations() +
-            get_camera_technique_variations() +
-            get_focus_sharpness_variations() +
-            get_color_variations() +
-            get_lighting_variations() +
-            get_location_variations() +
-            get_background_variations() +
-            get_size_format_variations() +
-            get_texture_material_variations() +
-            get_condition_age_variations() +
-            get_quantity_arrangement_variations() +
-            get_generic_quality_variations()
+        get_basic_variations() +
+        get_quality_variations() +
+        get_style_variations() +
+        get_time_period_variations() +
+        get_emotional_aesthetic_variations() +
+        get_meme_culture_variations() +
+        get_professional_variations() +
+        get_camera_technique_variations() +
+        get_focus_sharpness_variations() +
+        get_color_variations() +
+        get_lighting_variations() +
+        get_location_variations() +
+        get_background_variations() +
+        get_size_format_variations() +
+        get_texture_material_variations() +
+        get_condition_age_variations() +
+        get_quantity_arrangement_variations() +
+        get_generic_quality_variations()
     )
 
 

@@ -20,6 +20,7 @@ Features:
 """
 
 from typing import Optional, Dict, Any
+
 import jwt
 from supabase import create_client, Client
 

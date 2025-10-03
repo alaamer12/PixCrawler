@@ -2,7 +2,6 @@
 User service for user management operations.
 """
 
-from backend.core.exceptions import NotFoundError, ValidationError
 from backend.models.user import UserCreate, UserResponse, UserUpdate
 
 from .base import BaseService

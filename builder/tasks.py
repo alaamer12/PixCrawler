@@ -20,9 +20,8 @@ Tasks:
 
 import abc
 import functools
-from typing import Dict, List, Any, Optional, Callable, Union, Type
-import os
 from pathlib import Path
+from typing import Dict, List, Any, Optional, Callable
 
 from logging_config import get_logger
 
@@ -31,6 +30,7 @@ logger = get_logger(__name__)
 # Check celery availability
 try:
     from celery import Celery
+
     CELERY_AVAILABLE = True
 except ImportError:
     CELERY_AVAILABLE = False
@@ -181,6 +181,7 @@ class TaskRegistry:
 
     def task(self, func: Callable) -> Callable:
         """Decorator to register a function as a task."""
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             return self.executor.execute(func, *args, **kwargs)
@@ -205,7 +206,7 @@ def configure_tasks(celery_app: Optional[Celery] = None):
 
 # Task implementations using all available engines
 def _crawl_images_impl(keyword: str, output_dir: str, max_images: int = 10,
-                      engines: Optional[List[str]] = None) -> Dict[str, Any]:
+                       engines: Optional[List[str]] = None) -> Dict[str, Any]:
     """Implementation for crawling images using all available engines."""
     from builder._engine import EngineProcessor
     from builder._downloader import ImageDownloader, DuckDuckGoImageDownloader
@@ -246,7 +247,8 @@ def _crawl_images_impl(keyword: str, output_dir: str, max_images: int = 10,
                 if engine_name.lower() == 'duckduckgo':
                     # Use DuckDuckGo downloader as fallback
                     ddg_downloader = DuckDuckGoImageDownloader()
-                    success, downloaded = ddg_downloader.download(keyword, output_dir, max_images)
+                    success, downloaded = ddg_downloader.download(keyword, output_dir,
+                                                                  max_images)
 
                     results['downloads'][engine_name] = {
                         'success': success,
@@ -259,7 +261,9 @@ def _crawl_images_impl(keyword: str, output_dir: str, max_images: int = 10,
 
                 else:
                     # Use engine processor for other engines (Google, Bing, Baidu)
-                    engine_config = next((e for e in available_engines if e['name'].lower() == engine_name.lower()), None)
+                    engine_config = next((e for e in available_engines if
+                                          e['name'].lower() == engine_name.lower()),
+                                         None)
 
                     if engine_config:
                         # Process single engine
@@ -270,7 +274,8 @@ def _crawl_images_impl(keyword: str, output_dir: str, max_images: int = 10,
                             max_images=max_images
                         )
 
-                        downloaded = engine_result.total_downloaded if hasattr(engine_result, 'total_downloaded') else 0
+                        downloaded = engine_result.total_downloaded if hasattr(
+                            engine_result, 'total_downloaded') else 0
                         success = downloaded > 0
 
                         results['downloads'][engine_name] = {
@@ -281,7 +286,8 @@ def _crawl_images_impl(keyword: str, output_dir: str, max_images: int = 10,
 
                         total_downloaded += downloaded
                     else:
-                        logger.warning(f"Engine {engine_name} not found in configuration")
+                        logger.warning(
+                            f"Engine {engine_name} not found in configuration")
                         results['downloads'][engine_name] = {
                             'success': False,
                             'downloaded': 0,
@@ -301,7 +307,8 @@ def _crawl_images_impl(keyword: str, output_dir: str, max_images: int = 10,
         results['total_downloaded'] = total_downloaded
         results['success'] = total_downloaded > 0
 
-        logger.info(f"Crawl completed for {keyword}: {total_downloaded} images downloaded")
+        logger.info(
+            f"Crawl completed for {keyword}: {total_downloaded} images downloaded")
         return results
 
     except Exception as e:
@@ -316,7 +323,7 @@ def _crawl_images_impl(keyword: str, output_dir: str, max_images: int = 10,
 
 
 def _generate_keywords_impl(base_keywords: List[str], ai_model: str = "gpt4-mini",
-                           count: int = 10) -> Dict[str, Any]:
+                            count: int = 10) -> Dict[str, Any]:
     """Implementation for AI-powered keyword generation."""
     logger.info(f"Starting keyword generation for: {base_keywords}")
 
@@ -350,7 +357,8 @@ def _generate_keywords_impl(base_keywords: List[str], ai_model: str = "gpt4-mini
         results['generated_keywords'] = list(set(generated_keywords))
         results['success'] = len(generated_keywords) > 0
 
-        logger.info(f"Keyword generation completed: {len(generated_keywords)} keywords generated")
+        logger.info(
+            f"Keyword generation completed: {len(generated_keywords)} keywords generated")
         return results
 
     except Exception as e:
@@ -364,7 +372,8 @@ def _generate_keywords_impl(base_keywords: List[str], ai_model: str = "gpt4-mini
         }
 
 
-def _generate_labels_impl(dataset_dir: str, formats: Optional[List[str]] = None) -> Dict[str, Any]:
+def _generate_labels_impl(dataset_dir: str, formats: Optional[List[str]] = None) -> \
+Dict[str, Any]:
     """Implementation for generating label files."""
     logger.info(f"Starting label generation for: {dataset_dir}")
 
@@ -388,7 +397,8 @@ def _generate_labels_impl(dataset_dir: str, formats: Optional[List[str]] = None)
         results['generated_files'] = generated_files
         results['success'] = len(generated_files) > 0
 
-        logger.info(f"Label generation completed: {len(generated_files)} files generated")
+        logger.info(
+            f"Label generation completed: {len(generated_files)} files generated")
         return results
 
     except Exception as e:
@@ -403,9 +413,11 @@ def _generate_labels_impl(dataset_dir: str, formats: Optional[List[str]] = None)
 
 
 def _process_category_impl(category: str, keywords: List[str], output_dir: str,
-                          max_images: int = 10, generate_labels: bool = True) -> Dict[str, Any]:
+                           max_images: int = 10, generate_labels: bool = True) -> Dict[
+    str, Any]:
     """Implementation for processing a complete category."""
-    logger.info(f"Starting category processing: {category} with {len(keywords)} keywords")
+    logger.info(
+        f"Starting category processing: {category} with {len(keywords)} keywords")
 
     try:
         category_dir = Path(output_dir) / category
@@ -461,7 +473,8 @@ def _process_category_impl(category: str, keywords: List[str], output_dir: str,
         results['total_downloaded'] = total_downloaded
         results['success'] = total_downloaded > 0
 
-        logger.info(f"Category processing completed: {category} - {total_downloaded} images downloaded")
+        logger.info(
+            f"Category processing completed: {category} - {total_downloaded} images downloaded")
         return results
 
     except Exception as e:
@@ -477,29 +490,32 @@ def _process_category_impl(category: str, keywords: List[str], output_dir: str,
 
 @_task_registry.task
 def crawl_images_task(keyword: str, output_dir: str, max_images: int = 10,
-                     engines: Optional[List[str]] = None) -> Dict[str, Any]:
+                      engines: Optional[List[str]] = None) -> Dict[str, Any]:
     """Celery task for crawling images using all available engines."""
     return _crawl_images_impl(keyword, output_dir, max_images, engines)
 
 
 @_task_registry.task
 def generate_keywords_task(base_keywords: List[str], ai_model: str = "gpt4-mini",
-                          count: int = 10) -> Dict[str, Any]:
+                           count: int = 10) -> Dict[str, Any]:
     """Celery task for AI-powered keyword generation."""
     return _generate_keywords_impl(base_keywords, ai_model, count)
 
 
 @_task_registry.task
-def generate_labels_task(dataset_dir: str, formats: Optional[List[str]] = None) -> Dict[str, Any]:
+def generate_labels_task(dataset_dir: str, formats: Optional[List[str]] = None) -> Dict[
+    str, Any]:
     """Celery task for generating label files."""
     return _generate_labels_impl(dataset_dir, formats)
 
 
 @_task_registry.task
 def process_category_task(category: str, keywords: List[str], output_dir: str,
-                         max_images: int = 10, generate_labels: bool = True) -> Dict[str, Any]:
+                          max_images: int = 10, generate_labels: bool = True) -> Dict[
+    str, Any]:
     """Celery task for processing a complete category."""
-    return _process_category_impl(category, keywords, output_dir, max_images, generate_labels)
+    return _process_category_impl(category, keywords, output_dir, max_images,
+                                  generate_labels)
 
 
 class CrawlerTaskManager:
@@ -514,7 +530,7 @@ class CrawlerTaskManager:
         self.active_tasks = {}
 
     def submit_crawl_task(self, keyword: str, output_dir: str, max_images: int = 10,
-                         engines: Optional[List[str]] = None) -> str:
+                          engines: Optional[List[str]] = None) -> str:
         """Submit a crawl task using all available engines."""
         task_id = crawl_images_task(keyword, output_dir, max_images, engines)
 
@@ -525,13 +541,15 @@ class CrawlerTaskManager:
             'submitted_at': __import__('time').time()
         }
 
-        logger.info(f"Submitted crawl task {task_id} for keyword: {keyword} with engines: {engines}")
+        logger.info(
+            f"Submitted crawl task {task_id} for keyword: {keyword} with engines: {engines}")
         return task_id
 
     def submit_category_task(self, category: str, keywords: List[str], output_dir: str,
-                           max_images: int = 10, generate_labels: bool = True) -> str:
+                             max_images: int = 10, generate_labels: bool = True) -> str:
         """Submit a category processing task."""
-        task_id = process_category_task(category, keywords, output_dir, max_images, generate_labels)
+        task_id = process_category_task(category, keywords, output_dir, max_images,
+                                        generate_labels)
 
         self.active_tasks[task_id] = {
             'type': 'category',
@@ -544,7 +562,8 @@ class CrawlerTaskManager:
         return task_id
 
     def submit_keyword_generation_task(self, base_keywords: List[str],
-                                     ai_model: str = "gpt4-mini", count: int = 10) -> str:
+                                       ai_model: str = "gpt4-mini",
+                                       count: int = 10) -> str:
         """Submit a keyword generation task."""
         task_id = generate_keywords_task(base_keywords, ai_model, count)
 
@@ -559,7 +578,7 @@ class CrawlerTaskManager:
         return task_id
 
     def submit_label_generation_task(self, dataset_dir: str,
-                                   formats: Optional[List[str]] = None) -> str:
+                                     formats: Optional[List[str]] = None) -> str:
         """Submit a label generation task."""
         task_id = generate_labels_task(dataset_dir, formats)
 

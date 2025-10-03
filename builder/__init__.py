@@ -1,7 +1,7 @@
 """
 PixCrawler Builder Package
 
-This package provides unified Builder classes for generating image datasets with 
+This package provides unified Builder classes for generating image datasets with
 AI-powered keyword generation, multi-engine downloading, and label generation.
 Integrity management has been moved to the backend package.
 
@@ -21,7 +21,7 @@ Example:
 
     # Async usage with celery
     from builder import AsyncBuilder, BuilderConfig
-    
+
     config = BuilderConfig("config.json", max_images=50)
     async_builder = AsyncBuilder(config, celery_app)
     task_ids = await async_builder.generate_dataset_async()
@@ -39,7 +39,6 @@ Note: Image integrity checking and duplicate removal moved to backend package.
 """
 
 from builder._builder import Builder
-from builder.async_builder import AsyncBuilder, BuilderConfig
 from builder.tasks import CrawlerTaskManager
 
 __version__ = "0.1.1"

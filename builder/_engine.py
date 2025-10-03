@@ -39,6 +39,7 @@ from builder._config import get_engines
 from builder._constants import logger
 from builder._exceptions import DownloadError, CrawlerError, CrawlerInitializationError, \
     CrawlerExecutionError
+
 # Image validation moved to validator package
 
 __all__ = [
@@ -117,7 +118,7 @@ class EngineStats:
         """
         total_attempts = self.success_count + self.failure_count
         return (
-                self.success_count / total_attempts * 100) if total_attempts > 0 else 0.0
+            self.success_count / total_attempts * 100) if total_attempts > 0 else 0.0
 
 
 class EngineProcessor:
@@ -194,10 +195,10 @@ class EngineProcessor:
 
         for engine_name, stats in self.engine_stats.items():
             percentage = (
-                    stats.download_count / total_downloaded * 100) if total_downloaded > 0 else 0
+                stats.download_count / total_downloaded * 100) if total_downloaded > 0 else 0
             avg_time = stats.total_processing_time / (
-                    stats.success_count + stats.failure_count) if (
-                                                                      stats.success_count + stats.failure_count) > 0 else 0
+                stats.success_count + stats.failure_count) if (
+                                                                  stats.success_count + stats.failure_count) > 0 else 0
 
             logger.info(f"{engine_name.upper()}:")
             logger.info(
@@ -206,6 +207,52 @@ class EngineProcessor:
             logger.info(f"  Avg Processing Time: {avg_time:.2f}s")
             logger.info(f"  Total Processing Time: {stats.total_processing_time:.2f}s")
             logger.info("-" * 40)
+
+    def _get_downloader(self, config_name: str):
+        engine_downloaders = {
+            "google": download_google_images,
+            "bing": download_bing_images,
+            "baidu": download_baidu_images,
+        }
+        return engine_downloaders.get(config_name)
+
+    def _submit_engine_task(self, executor, config, variations_copy, out_dir,
+                            per_engine_target, max_num, keyword):
+        downloader = self._get_downloader(config.name)
+        if downloader:
+            return executor.submit(
+                downloader, keyword, variations_copy, out_dir,
+                per_engine_target, config, self.image_downloader
+            )
+        else:
+            return executor.submit(
+                self._process_engine_parallel, config, variations_copy,
+                out_dir, per_engine_target, max_num
+            )
+
+    def _handle_future_result(self, future, config):
+        try:
+            result = future.result(timeout=300)  # 5 minute timeout per engine
+            logger.info(
+                f"Engine {result.engine_name} completed: {result.total_downloaded} images")
+            return result
+        except concurrent.futures.TimeoutError:
+            logger.warning(f"Engine {config.name} timed out")
+            return EngineResult(
+                engine_name=config.name,
+                total_downloaded=0,
+                variations_processed=0,
+                success_rate=0.0,
+                processing_time=0.0,
+                variations=[]
+            )
+        except CrawlerError as ce:
+            logger.error(f"Engine {config.name} failed with crawler error: {ce}")
+            raise ce
+        except Exception as e:
+            logger.error(f"Engine {config.name} failed with unexpected error: {e}")
+            raise DownloadError(
+                f"Engine {config.name} failed during parallel download: {e}") from e
 
     def download_with_parallel_engines(self, keyword: str, variations: List[str],
                                        out_dir: str, max_num: int) -> List[
@@ -225,71 +272,30 @@ class EngineProcessor:
         logger.info(
             f"Starting parallel engine processing for '{keyword}' (target: {max_num} images)")
 
-        results = []
         per_engine_target = self._calculate_per_engine_target(max_num)
 
+        results = []
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=self.image_downloader.max_parallel_engines,
             thread_name_prefix="EnginePool"
         ) as executor:
 
-            # Submit engine tasks
             engine_futures = {}
             for config in self.engine_configs:
-                if config.name == "google":
-                    future = executor.submit(download_google_images, keyword,
-                                             variations.copy(), out_dir,
-                                             per_engine_target, config,
-                                             self.image_downloader)
-                elif config.name == "bing":
-                    future = executor.submit(download_bing_images, keyword,
-                                             variations.copy(), out_dir,
-                                             per_engine_target, config,
-                                             self.image_downloader)
-                elif config.name == "baidu":
-                    future = executor.submit(download_baidu_images, keyword,
-                                             variations.copy(), out_dir,
-                                             per_engine_target, config,
-                                             self.image_downloader)
-                else:
-                    future = executor.submit(self._process_engine_parallel, config,
-                                             variations.copy(), out_dir,
-                                             per_engine_target, max_num)
+                variations_copy = variations.copy()
+                future = self._submit_engine_task(executor, config, variations_copy,
+                                                  out_dir, per_engine_target, max_num,
+                                                  keyword)
                 engine_futures[future] = config
 
-            # Monitor and collect results
             for future in concurrent.futures.as_completed(engine_futures):
                 if self._should_stop_processing(max_num):
                     self._cancel_remaining_futures(engine_futures)
                     break
 
-                try:
-                    result = future.result(timeout=300)  # 5 minute timeout per engine
-                    results.append(result)
-                    logger.info(
-                        f"Engine {result.engine_name} completed: {result.total_downloaded} images")
-                except concurrent.futures.TimeoutError:
-                    config = engine_futures[future]
-                    logger.warning(f"Engine {config.name} timed out")
-                    results.append(EngineResult(
-                        engine_name=config.name,
-                        total_downloaded=0,
-                        variations_processed=0,
-                        success_rate=0.0,
-                        processing_time=0.0,
-                        variations=[]
-                    ))
-                except CrawlerError as ce:
-                    config = engine_futures[future]
-                    logger.error(
-                        f"Engine {config.name} failed with crawler error: {ce}")
-                    raise ce
-                except Exception as e:
-                    config = engine_futures[future]
-                    logger.error(
-                        f"Engine {config.name} failed with unexpected error: {e}")
-                    raise DownloadError(
-                        f"Engine {config.name} failed during parallel download: {e}") from e
+                config = engine_futures[future]
+                result = self._handle_future_result(future, config)
+                results.append(result)
 
         return results
 
@@ -366,7 +372,8 @@ class EngineProcessor:
         # Add buffer to ensure we get enough images
         return max(5, int(base_target * 1.3))
 
-    def _process_engine_parallel(self, config: SearchEngineConfig, variations: List[str],
+    def _process_engine_parallel(self, config: SearchEngineConfig,
+                                 variations: List[str],
                                  out_dir: str, per_engine_target: int,
                                  total_max: int) -> EngineResult:
         """
@@ -514,9 +521,10 @@ class SingleEngineProcessor:
             variations=variation_results
         )
 
-    def _process_variations_parallel(self, config: SearchEngineConfig, variations: List[str],
+    def _process_variations_parallel(self, config: SearchEngineConfig,
+                                     variations: List[str],
                                      out_dir: str, max_num: int, total_max: int) -> \
-    List[VariationResult]:
+        List[VariationResult]:
         """
         Processes multiple search variations in parallel for a given engine.
 
@@ -592,7 +600,7 @@ class SingleEngineProcessor:
     def _process_variations_sequential(self, config: SearchEngineConfig,
                                        variations: List[str],
                                        out_dir: str, max_num: int, total_max: int) -> \
-    List[VariationResult]:
+        List[VariationResult]:
         """
         Processes multiple search variations sequentially for a given engine.
 
@@ -661,7 +669,7 @@ class SingleEngineProcessor:
         try:
             # Calculate parameters
             current_offset = config.random_offset + (
-                    variation_index * config.variation_step)
+                variation_index * config.variation_step)
             actual_limit = min(max_num, self._calculate_remaining_capacity(total_max))
 
             if actual_limit <= 0:
@@ -830,7 +838,8 @@ class SingleEngineProcessor:
         with self.image_downloader.lock:
             # Basic count of files - validation moved to validator package
             try:
-                files = [f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'))]
+                files = [f for f in os.listdir(out_dir) if f.lower().endswith(
+                    ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'))]
                 return len(files) - file_idx_offset
             except OSError:
                 return 0

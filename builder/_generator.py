@@ -37,27 +37,34 @@ import re
 import threading
 import time
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import Enum
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple, Final, Iterator, Union, Set
+from typing import Optional, List, Dict, Any, Tuple, Final, Iterator, Union
 
 import jsonschema
 from PIL import Image
 from jsonschema import validate
 
-from builder._exceptions import PixCrawlerError, ConfigurationError, DownloadError, GenerationError
+from _search_engines import download_images_ddgs
 from builder._config import DatasetGenerationConfig, CONFIG_SCHEMA
-from builder._config import get_basic_variations, get_quality_variations, get_generic_quality_variations, get_search_variations, \
-    get_lighting_variations, get_location_variations, get_background_variations, get_professional_variations, \
-    get_color_variations, get_style_variations, get_meme_culture_variations, get_size_format_variations, \
-    get_time_period_variations, get_condition_age_variations, get_emotional_aesthetic_variations, \
-    get_quantity_arrangement_variations, get_camera_technique_variations, get_focus_sharpness_variations, \
+from builder._config import get_basic_variations, get_quality_variations, \
+    get_generic_quality_variations, get_search_variations, \
+    get_lighting_variations, get_location_variations, get_background_variations, \
+    get_professional_variations, \
+    get_color_variations, get_style_variations, get_meme_culture_variations, \
+    get_size_format_variations, \
+    get_time_period_variations, get_condition_age_variations, \
+    get_emotional_aesthetic_variations, \
+    get_quantity_arrangement_variations, get_camera_technique_variations, \
+    get_focus_sharpness_variations, \
     get_texture_material_variations
 from builder._constants import DEFAULT_CACHE_FILE, ENGINES, \
     logger, IMAGE_EXTENSIONS
 from builder._downloader import ImageDownloader
-from _search_engines import download_images_ddgs
-from builder._helpers import ReportGenerator, DatasetTracker, ProgressManager, progress, valid_image_ext
+from builder._exceptions import ConfigurationError, DownloadError, \
+    GenerationError
+from builder._helpers import ReportGenerator, DatasetTracker, ProgressManager, progress, \
+    valid_image_ext
 from builder._utilities import rename_images_sequentially
 
 __all__ = [
@@ -76,10 +83,12 @@ from progress import ProgressCache
 
 BACKOFF_DELAY: Final[float] = 0.5
 
+
 # Integrity management moved to backend package
 
 
-def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, Any]) -> None:
+def _apply_config_options(config: DatasetGenerationConfig,
+                          options: Dict[str, Any]) -> None:
     """
     Applies configuration options from a loaded config file to the DatasetGenerationConfig object.
     This function selectively overrides default configuration values with values from the config file,
@@ -97,10 +106,13 @@ def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, An
         'output_dir': (config.output_dir is None, lambda: options.get('output_dir')),
         'integrity': (config.integrity is True, lambda: options.get('integrity')),
         'max_retries': (config.max_retries == 5, lambda: options.get('max_retries')),
-        'cache_file': (config.cache_file == DEFAULT_CACHE_FILE, lambda: options.get('cache_file')),
-        'keyword_generation': (config.keyword_generation == "auto", lambda: options.get('keyword_generation')),
+        'cache_file': (
+        config.cache_file == DEFAULT_CACHE_FILE, lambda: options.get('cache_file')),
+        'keyword_generation': (
+        config.keyword_generation == "auto", lambda: options.get('keyword_generation')),
         'ai_model': (config.ai_model == "gpt4-mini", lambda: options.get('ai_model')),
-        'generate_labels': (config.generate_labels is True, lambda: options.get('generate_labels'))
+        'generate_labels': (
+        config.generate_labels is True, lambda: options.get('generate_labels'))
     }
 
     # Apply each config option if its CLI argument is using the default value
@@ -163,7 +175,8 @@ class AlternativeTermsGenerator:
 
             for variation in variations:
                 # Remove {keyword} and clean up the remaining text
-                clean_term = variation.replace("{keyword} ", "").replace("{keyword}", "").strip()
+                clean_term = variation.replace("{keyword} ", "").replace("{keyword}",
+                                                                         "").strip()
                 if clean_term and clean_term not in clean_terms[category]:
                     clean_terms[category].append(clean_term)
 
@@ -188,7 +201,8 @@ class AlternativeTermsGenerator:
         Strategy 2: Multiple quality terms + emotional
         Example: "stunning high resolution 4K detailed cat"
         """
-        quality_terms = random.sample(self.clean_terms['quality'], min(2, len(self.clean_terms['quality'])))
+        quality_terms = random.sample(self.clean_terms['quality'],
+                                      min(2, len(self.clean_terms['quality'])))
         emotional_term = random.choice(self.clean_terms['emotional_aesthetic'])
 
         if retry_count <= 5:
@@ -308,7 +322,8 @@ class AlternativeTermsGenerator:
         strategies = self._get_strategies()
 
         # Generate multiple alternatives using different strategies
-        num_alternatives = min(15, 3 + retry_count)  # More alternatives for higher retry counts
+        num_alternatives = min(15,
+                               3 + retry_count)  # More alternatives for higher retry counts
 
         for i in range(num_alternatives):
             strategy_num = self._progressive_strategy_selection(retry_count + i)
@@ -471,7 +486,8 @@ class Retry:
 
     def _initial_download(self, max_num: int, keyword: str, out_dir: str) -> int:
         """Perform the initial download attempt"""
-        logger.info(f"Attempting to download {max_num} images for '{keyword}' using parallel processing")
+        logger.info(
+            f"Attempting to download {max_num} images for '{keyword}' using parallel processing")
 
         downloader = ImageDownloader(
             feeder_threads=self.config.feeder_threads,
@@ -492,7 +508,8 @@ class Retry:
             self.stats.failed_attempts += 1
             return count
 
-    def _attempt_retry(self, retries: int, keyword: str, out_dir: str, images_needed: int) -> int:
+    def _attempt_retry(self, retries: int, keyword: str, out_dir: str,
+                       images_needed: int) -> int:
         """Perform a single retry attempt"""
         if self.config.backoff_delay > 0:
             time.sleep(self.config.backoff_delay)
@@ -513,24 +530,29 @@ class Retry:
             success = False
 
             if self.config.strategy == RetryStrategy.DDGS_ONLY:
-                logger.info(f"Retry #{retries}: Using DuckDuckGo with term '{retry_term}'")
+                logger.info(
+                    f"Retry #{retries}: Using DuckDuckGo with term '{retry_term}'")
                 success, _ = download_images_ddgs(retry_term, out_dir, images_needed)
 
             elif self.config.strategy == RetryStrategy.ENGINE_ONLY:
                 retry_engine = ENGINES[retries % len(ENGINES)]
-                logger.info(f"Retry #{retries}: Using {retry_engine} with term '{retry_term}'")
+                logger.info(
+                    f"Retry #{retries}: Using {retry_engine} with term '{retry_term}'")
                 downloader = ImageDownloader(use_all_engines=False)
                 success, _ = downloader.download(retry_term, out_dir, images_needed)
 
             else:  # ALTERNATING strategy (default)
                 if retries % 2 == 0:
                     retry_engine = ENGINES[retries % len(ENGINES)]
-                    logger.info(f"Retry #{retries}: Using {retry_engine} with term '{retry_term}'")
+                    logger.info(
+                        f"Retry #{retries}: Using {retry_engine} with term '{retry_term}'")
                     downloader = ImageDownloader(use_all_engines=False)
                     success, _ = downloader.download(retry_term, out_dir, images_needed)
                 else:
-                    logger.info(f"Retry #{retries}: Using DuckDuckGo with term '{retry_term}'")
-                    success, _ = download_images_ddgs(retry_term, out_dir, images_needed)
+                    logger.info(
+                        f"Retry #{retries}: Using DuckDuckGo with term '{retry_term}'")
+                    success, _ = download_images_ddgs(retry_term, out_dir,
+                                                      images_needed)
 
             self.stats.total_attempts += 1
             result = self._update_image_count(out_dir) if success else 0
@@ -631,7 +653,8 @@ class Retry:
 
 
 # Backward compatibility function
-def retry_download(keyword: str, out_dir: str, max_num: int, max_retries: int = 5) -> Tuple[bool, int]:
+def retry_download(keyword: str, out_dir: str, max_num: int, max_retries: int = 5) -> \
+Tuple[bool, int]:
     """
     Backward compatibility function that maintains the original API.
 
@@ -682,7 +705,8 @@ class ConfigManager:
         config = self._load_config_from_file()
         self._validate_config(config)
         self._set_defaults(config)
-        logger.info(f"Configuration from '{self.config_path}' loaded and validated successfully.")
+        logger.info(
+            f"Configuration from '{self.config_path}' loaded and validated successfully.")
         return config
 
     def _load_config_from_file(self) -> Dict[str, Any]:
@@ -700,10 +724,12 @@ class ConfigManager:
                 return json.load(f)
         except FileNotFoundError:
             logger.error(f"Configuration file not found at: {self.config_path}")
-            raise ConfigurationError(f"Configuration file not found at: {self.config_path}")
+            raise ConfigurationError(
+                f"Configuration file not found at: {self.config_path}")
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding JSON from {self.config_path}: {e}")
-            raise ConfigurationError(f"Error decoding JSON from {self.config_path}: {e}")
+            raise ConfigurationError(
+                f"Error decoding JSON from {self.config_path}: {e}")
 
     @staticmethod
     def _validate_config(config: Dict[str, Any]):
@@ -735,7 +761,8 @@ class ConfigManager:
         # Set a default for the top-level 'dataset_name'
         if 'dataset_name' not in config:
             config['dataset_name'] = 'default_dataset'
-            logger.info("Missing 'dataset_name' in config, using 'default_dataset' as default.")
+            logger.info(
+                "Missing 'dataset_name' in config, using 'default_dataset' as default.")
 
         # Ensure 'options' exists before setting defaults within it
         config.setdefault('options', {})
@@ -776,7 +803,8 @@ class ConfigManager:
         try:
             return self.config[key]
         except KeyError:
-            raise KeyError(f"Configuration key '{key}' not found. Available keys are: {list(self.config.keys())}")
+            raise KeyError(
+                f"Configuration key '{key}' not found. Available keys are: {list(self.config.keys())}")
 
     def __len__(self) -> int:
         """
@@ -867,7 +895,8 @@ def validate_keywords(keywords: List[str]) -> List[str]:
 
         # Skip keywords with invalid characters (basic validation)
         if re.search(r'[<>:"/\\|?*]', keyword):
-            logger.warning(f"Skipping keyword '{keyword}' - contains invalid characters")
+            logger.warning(
+                f"Skipping keyword '{keyword}' - contains invalid characters")
             continue
 
         valid_keywords.append(keyword)
@@ -903,7 +932,8 @@ def keyword_stats(category_results: Dict[str, Dict[str, Any]]) -> Dict[str, Any]
             stats['categories_with_generation'] += 1
 
     if stats['total_categories'] > 0:
-        stats['generation_rate'] = stats['categories_with_generation'] / stats['total_categories']
+        stats['generation_rate'] = stats['categories_with_generation'] / stats[
+            'total_categories']
 
     return stats
 
@@ -930,7 +960,8 @@ class LabelGenerator:
         self.supported_formats = {"txt", "json", "csv", "yaml"}
 
         if self.format_type not in self.supported_formats:
-            logger.warning(f"Unsupported label format: {format_type}. Defaulting to 'txt'.")
+            logger.warning(
+                f"Unsupported label format: {format_type}. Defaulting to 'txt'.")
             self.format_type = "txt"
 
     def generate_dataset_labels(self, dataset_dir: str) -> None:
@@ -941,7 +972,8 @@ class LabelGenerator:
         Args:
             dataset_dir (str): The root directory of the dataset.
         """
-        logger.info(f"Generating {self.format_type} labels for dataset at {dataset_dir}")
+        logger.info(
+            f"Generating {self.format_type} labels for dataset at {dataset_dir}")
         dataset_path = Path(dataset_dir)
 
         # Create labels directory
@@ -949,17 +981,20 @@ class LabelGenerator:
         labels_dir.mkdir(parents=True, exist_ok=True)
 
         # Process each category directory
-        category_dirs = [d for d in dataset_path.iterdir() if d.is_dir() and d.name != "labels"]
+        category_dirs = [d for d in dataset_path.iterdir() if
+                         d.is_dir() and d.name != "labels"]
 
         # Count total images for progress tracking
         total_images = sum(
-            len([f for f in Path(keyword_dir).glob("**/*") if f.is_file() and valid_image_ext(f)])
+            len([f for f in Path(keyword_dir).glob("**/*") if
+                 f.is_file() and valid_image_ext(f)])
             for category_dir in category_dirs
             for keyword_dir in [d for d in category_dir.iterdir() if d.is_dir()]
         )
 
         # Create metadata file for the dataset with overall information
-        self._generate_dataset_metadata(dataset_path, labels_dir, len(category_dirs), total_images)
+        self._generate_dataset_metadata(dataset_path, labels_dir, len(category_dirs),
+                                        total_images)
 
         # Create category index file
         self._generate_category_index(labels_dir, [d.name for d in category_dirs])
@@ -1006,10 +1041,12 @@ class LabelGenerator:
         elif self.format_type == "yaml":
             try:
                 import yaml
-                with open(labels_dir / "dataset_metadata.yaml", "w", encoding="utf-8") as f:
+                with open(labels_dir / "dataset_metadata.yaml", "w",
+                          encoding="utf-8") as f:
                     yaml.dump(metadata, f, default_flow_style=False)
             except ImportError:
-                logger.warning("PyYAML not installed, skipping YAML metadata generation")
+                logger.warning(
+                    "PyYAML not installed, skipping YAML metadata generation")
         else:
             # For txt and csv, use simple format
             with open(labels_dir / "dataset_metadata.txt", "w", encoding="utf-8") as f:
@@ -1034,12 +1071,15 @@ class LabelGenerator:
         elif self.format_type == "yaml":
             try:
                 import yaml
-                with open(labels_dir / "category_index.yaml", "w", encoding="utf-8") as f:
+                with open(labels_dir / "category_index.yaml", "w",
+                          encoding="utf-8") as f:
                     yaml.dump(category_map, f, default_flow_style=False)
             except ImportError:
-                logger.warning("PyYAML not installed, skipping YAML category index generation")
+                logger.warning(
+                    "PyYAML not installed, skipping YAML category index generation")
         elif self.format_type == "csv":
-            with open(labels_dir / "category_index.csv", "w", encoding="utf-8", newline="") as f:
+            with open(labels_dir / "category_index.csv", "w", encoding="utf-8",
+                      newline="") as f:
                 f.write("category,id\n")
                 for name, idx in category_map.items():
                     f.write(f"{name},{idx}\n")
@@ -1070,7 +1110,8 @@ class LabelGenerator:
         for keyword_dir in keyword_dirs:
             keyword_name = keyword_dir.name
             progress.set_subtask_description(f"Keyword: {keyword_name}")
-            self._process_keyword(keyword_dir, category_name, keyword_name, category_label_dir, progress)
+            self._process_keyword(keyword_dir, category_name, keyword_name,
+                                  category_label_dir, progress)
 
     def _process_keyword(self, keyword_dir: Path, category_name: str, keyword_name: str,
                          category_label_dir: Path, progress: ProgressManager) -> None:
@@ -1104,7 +1145,8 @@ class LabelGenerator:
             )
             progress.update_step(1)  # Update main progress bar
 
-    def _generate_label_file(self, image_file: Path, label_dir: Path, category: str, keyword: str) -> None:
+    def _generate_label_file(self, image_file: Path, label_dir: Path, category: str,
+                             keyword: str) -> None:
         """
         Generates a label file for a single image based on the configured format.
         It extracts image metadata and writes the label content to the specified directory.
@@ -1126,23 +1168,31 @@ class LabelGenerator:
 
             # Generate label content based on format
             if self.format_type == "txt":
-                self._write_txt_label(label_file_path, category, keyword, image_file, image_metadata)
+                self._write_txt_label(label_file_path, category, keyword, image_file,
+                                      image_metadata)
             elif self.format_type == "json":
-                self._write_json_label(label_file_path, category, keyword, image_file, image_metadata)
+                self._write_json_label(label_file_path, category, keyword, image_file,
+                                       image_metadata)
             elif self.format_type == "csv":
-                self._write_csv_label(label_file_path, category, keyword, image_file, image_metadata)
+                self._write_csv_label(label_file_path, category, keyword, image_file,
+                                      image_metadata)
             elif self.format_type == "yaml":
-                self._write_yaml_label(label_file_path, category, keyword, image_file, image_metadata)
+                self._write_yaml_label(label_file_path, category, keyword, image_file,
+                                       image_metadata)
 
         except PermissionError as pe:
-            logger.warning(f"Permission denied when creating label file for {image_file}: {pe}")
-            raise GenerationError(f"Permission denied creating label for {image_file}: {pe}") from pe
+            logger.warning(
+                f"Permission denied when creating label file for {image_file}: {pe}")
+            raise GenerationError(
+                f"Permission denied creating label for {image_file}: {pe}") from pe
         except IOError as ioe:
             logger.warning(f"I/O error generating label for {image_file}: {ioe}")
-            raise GenerationError(f"I/O error generating label for {image_file}: {ioe}") from ioe
+            raise GenerationError(
+                f"I/O error generating label for {image_file}: {ioe}") from ioe
         except Exception as e:
             logger.warning(f"Unexpected error generating label for {image_file}: {e}")
-            raise GenerationError(f"Unexpected error generating label for {image_file}: {e}") from e
+            raise GenerationError(
+                f"Unexpected error generating label for {image_file}: {e}") from e
 
     @staticmethod
     def _extract_image_metadata(image_path: Path) -> Dict[str, Any]:
@@ -1159,7 +1209,8 @@ class LabelGenerator:
             "timestamp": time.time(),
             "size": os.path.getsize(image_path) if image_path.exists() else None,
             "filename": image_path.name,
-            "parent_dir": image_path.parent.name  # Store parent directory name for context
+            "parent_dir": image_path.parent.name
+            # Store parent directory name for context
         }
 
         # Try to get image dimensions
@@ -1241,7 +1292,8 @@ class LabelGenerator:
             logger.debug(f"Created JSON label: {label_path}")
         except Exception as e:
             logger.warning(f"Failed to write JSON label {label_path}: {e}")
-            raise GenerationError(f"Failed to write JSON label {label_path}: {e}") from e
+            raise GenerationError(
+                f"Failed to write JSON label {label_path}: {e}") from e
 
     @staticmethod
     def _write_csv_label(label_path: Path, category: str, keyword: str,
@@ -1260,7 +1312,8 @@ class LabelGenerator:
             GenerationError: If there is an error writing the file.
         """
         try:
-            headers = ["category", "keyword", "image_path", "timestamp", "filename", "width", "height", "format",
+            headers = ["category", "keyword", "image_path", "timestamp", "filename",
+                       "width", "height", "format",
                        "size"]
             values = [
                 category,
@@ -1316,7 +1369,8 @@ class LabelGenerator:
             self._write_txt_label(label_path, category, keyword, image_path, metadata)
         except Exception as e:
             logger.warning(f"Failed to write YAML label {label_path}: {e}")
-            raise GenerationError(f"Failed to write YAML label {label_path}: {e}") from e
+            raise GenerationError(
+                f"Failed to write YAML label {label_path}: {e}") from e
 
 
 class KeywordManagement:
@@ -1337,7 +1391,8 @@ class KeywordManagement:
         self.ai_model = ai_model
         self.keyword_generation = keyword_generation
 
-    def prepare_keywords(self, category_name: str, keywords: List[str]) -> Dict[str, Any]:
+    def prepare_keywords(self, category_name: str, keywords: List[str]) -> Dict[
+        str, Any]:
         """
         Prepares keywords for processing based on the configuration.
         This includes generating new keywords using an AI model if enabled and necessary.
@@ -1363,7 +1418,8 @@ class KeywordManagement:
             generated_keywords = self.generate_keywords(category_name)
             keywords = generated_keywords
             generation_occurred = True
-            logger.info(f"No keywords provided for category '{category_name}', generated {len(keywords)} keywords")
+            logger.info(
+                f"No keywords provided for category '{category_name}', generated {len(keywords)} keywords")
 
         elif not keywords and self.keyword_generation == "disabled":
             # No keywords and generation disabled, use category name as keyword
@@ -1426,12 +1482,15 @@ class KeywordManagement:
             # Extract keywords from response
             keywords = self._extract_keywords_from_response(response, category)
 
-            logger.info(f"Generated {len(keywords)} keywords for '{category}' using {self.ai_model}")
+            logger.info(
+                f"Generated {len(keywords)} keywords for '{category}' using {self.ai_model}")
             return keywords
 
         except Exception as e:
-            logger.warning(f"Failed to generate keywords using {self.ai_model}: {str(e)}")
-            raise GenerationError(f"Failed to generate keywords for '{category}' using {self.ai_model}: {e}") from e
+            logger.warning(
+                f"Failed to generate keywords using {self.ai_model}: {str(e)}")
+            raise GenerationError(
+                f"Failed to generate keywords for '{category}' using {self.ai_model}: {e}") from e
 
     @staticmethod
     def _get_prompt(category: str) -> str:
@@ -1444,7 +1503,8 @@ class KeywordManagement:
             Example format: ["keyword 1", "keyword 2", "keyword 3"]
             """
 
-    def _extract_keywords_from_response(self, response: str, category: str) -> List[str]:
+    def _extract_keywords_from_response(self, response: str, category: str) -> List[
+        str]:
         """
         Extracts a list of keywords from the raw AI model response string.
         It attempts to parse a Python list structure first, then falls back to line-by-line extraction.
@@ -1467,7 +1527,8 @@ class KeywordManagement:
                 with contextlib.suppress(Exception):
                     # Parse as Python list
                     keywords = eval(list_str)
-                    if isinstance(keywords, list) and all(isinstance(k, str) for k in keywords):
+                    if isinstance(keywords, list) and all(
+                        isinstance(k, str) for k in keywords):
                         return self._clean_and_deduplicate_keywords(keywords, category)
 
             # If we couldn't parse a proper list, try to extract keywords line by line
@@ -1491,7 +1552,8 @@ class KeywordManagement:
             return [category]
 
     @staticmethod
-    def _clean_and_deduplicate_keywords(keywords: List[str], category: str) -> List[str]:
+    def _clean_and_deduplicate_keywords(keywords: List[str], category: str) -> List[
+        str]:
         """
         Cleans and deduplicates a list of keywords.
 
@@ -1504,7 +1566,8 @@ class KeywordManagement:
         """
         # Remove duplicates and empty strings
         keywords = [k.strip() for k in keywords if k and k.strip()]
-        keywords = list(dict.fromkeys(keywords))  # Remove duplicates while preserving order
+        keywords = list(
+            dict.fromkeys(keywords))  # Remove duplicates while preserving order
 
         # Always include the category itself
         if category not in keywords:
@@ -1581,11 +1644,13 @@ class DatasetGenerator:
         # Pre-process all keywords to get accurate totals
         all_keyword_results = {}
         for category_name, keywords in self.categories.items():
-            keyword_result = self.keyword_manager.prepare_keywords(category_name, keywords)
+            keyword_result = self.keyword_manager.prepare_keywords(category_name,
+                                                                   keywords)
             all_keyword_results[category_name] = keyword_result
 
         # Calculate total work items for progress tracking
-        total_keywords = sum(len(result['keywords']) for result in all_keyword_results.values())
+        total_keywords = sum(
+            len(result['keywords']) for result in all_keyword_results.values())
 
         # Generate keyword statistics for reporting
         keyword_stats_ = keyword_stats(all_keyword_results)
@@ -1597,7 +1662,8 @@ class DatasetGenerator:
         # Process each category with prepared keywords
         for category_name, keyword_result in all_keyword_results.items():
             logger.info(f"Processing category: {category_name}")
-            self.progress.start_subtask(f"Category: {category_name}", total=len(keyword_result['keywords']))
+            self.progress.start_subtask(f"Category: {category_name}",
+                                        total=len(keyword_result['keywords']))
 
             # Record keyword generation in report if any generation occurred
             if keyword_result['generation_occurred']:
@@ -1680,11 +1746,13 @@ class DatasetGenerator:
         report.add_summary(f"Keyword generation mode: {self.config.keyword_generation}")
 
         if self.config.keyword_generation != "disabled":
-            report.add_summary(f"AI model for keyword generation: {self.config.ai_model}")
+            report.add_summary(
+                f"AI model for keyword generation: {self.config.ai_model}")
 
         if self.config.continue_from_last and self.progress_cache:
             stats = self.progress_cache.get_completion_stats()
-            report.add_summary(f"Continuing from previous run with {stats['total_completed']} completed items")
+            report.add_summary(
+                f"Continuing from previous run with {stats['total_completed']} completed items")
 
         return report
 
@@ -1715,10 +1783,14 @@ class DatasetGenerator:
         """
         self.report.add_summary(f"Keyword generation statistics:")
         self.report.add_summary(f"  - Total categories: {stats['total_categories']}")
-        self.report.add_summary(f"  - Categories with generation: {stats['categories_with_generation']}")
-        self.report.add_summary(f"  - Total original keywords: {stats['total_original_keywords']}")
-        self.report.add_summary(f"  - Total generated keywords: {stats['total_generated_keywords']}")
-        self.report.add_summary(f"  - Total final keywords: {stats['total_final_keywords']}")
+        self.report.add_summary(
+            f"  - Categories with generation: {stats['categories_with_generation']}")
+        self.report.add_summary(
+            f"  - Total original keywords: {stats['total_original_keywords']}")
+        self.report.add_summary(
+            f"  - Total generated keywords: {stats['total_generated_keywords']}")
+        self.report.add_summary(
+            f"  - Total final keywords: {stats['total_final_keywords']}")
         self.report.add_summary(f"  - Generation rate: {stats['generation_rate']:.2%}")
 
     def _process_category(self, category_name: str, keywords: List[str]) -> None:
@@ -1742,7 +1814,8 @@ class DatasetGenerator:
             self.progress.set_subtask_description(
                 f"Category: {category_name} ({keywords.index(keyword) + 1}/{len(keywords)})")
 
-    def _process_keyword(self, category_name: str, keyword: str, category_path: Path) -> None:
+    def _process_keyword(self, category_name: str, keyword: str,
+                         category_path: Path) -> None:
         """
         Processes a single keyword, including downloading images, checking for duplicates,
         and performing integrity checks.
@@ -1757,7 +1830,7 @@ class DatasetGenerator:
 
         # Skip if already processed and continuing from last run
         if self.config.continue_from_last and self.progress_cache and self.progress_cache.is_completed(
-                category_name, keyword):
+            category_name, keyword):
             logger.info(f"Skipping already processed: {category_name}/{keyword}")
             return
 
@@ -1780,7 +1853,8 @@ class DatasetGenerator:
         )
 
         # Track results and record in report
-        self._track_download_results(download_context, success, count, category_name, keyword)
+        self._track_download_results(download_context, success, count, category_name,
+                                     keyword)
 
         # Validation (duplicates and integrity) moved to validator package
         # Can be performed post-processing if needed using the validator package
@@ -1796,7 +1870,8 @@ class DatasetGenerator:
         # Small delay to be respectful to image services
         time.sleep(0.5)
 
-    def _track_download_results(self, download_context: str, success: bool, count: int, category_name: str,
+    def _track_download_results(self, download_context: str, success: bool, count: int,
+                                category_name: str,
                                 keyword: str) -> None:
         """
         Tracks the results of image downloads, updating the dataset tracker and report.
@@ -1810,11 +1885,13 @@ class DatasetGenerator:
         """
         if success:
             self.tracker.record_download_success(download_context)
-            logger.info(f"Successfully downloaded {count} images for {download_context}")
+            logger.info(
+                f"Successfully downloaded {count} images for {download_context}")
         else:
             error_msg = "Failed to download any valid images after retries"
             self.tracker.record_download_failure(download_context, error_msg)
             self.report.record_error(f"{category_name}/{keyword} download", error_msg)
+
 
 def generate_dataset(config: DatasetGenerationConfig) -> None:
     """

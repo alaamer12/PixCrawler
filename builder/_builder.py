@@ -45,6 +45,7 @@ from builder._exceptions import (
 )
 from builder._generator import DatasetGenerator, ConfigManager
 from builder._helpers import ReportGenerator, ProgressManager
+
 # Image validation moved to backend package
 
 __all__ = ['Builder']
@@ -141,7 +142,8 @@ class Builder:
             if 'dataset_name' in config_manager:
                 self.config.dataset_name = config_manager['dataset_name']
 
-            logger.info(f"Configuration loaded successfully: {self.config.dataset_name}")
+            logger.info(
+                f"Configuration loaded successfully: {self.config.dataset_name}")
         except Exception as e:
             raise ValueError(f"Failed to load configuration: {e}") from e
 
@@ -211,7 +213,8 @@ class Builder:
             # Create output directory
             Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-            logger.info(f"Downloading {max_count} images for '{keyword}' using engines: {engines}")
+            logger.info(
+                f"Downloading {max_count} images for '{keyword}' using engines: {engines}")
 
             total_downloaded = 0
             for engine in engines:
@@ -219,7 +222,8 @@ class Builder:
                     # Use DuckDuckGo downloader for now (can be extended for other engines)
                     if engine.lower() == 'duckduckgo':
                         downloader = DDGSImageDownloader()
-                        success, downloaded = downloader.download(keyword, output_dir, max_count)
+                        success, downloaded = downloader.download(keyword, output_dir,
+                                                                  max_count)
                         if success:
                             total_downloaded += downloaded
                             logger.info(f"Downloaded {downloaded} images from {engine}")
@@ -234,7 +238,8 @@ class Builder:
 
         except Exception as e:
             logger.error(f"Image download failed: {e}")
-            raise DownloadError(f"Failed to download images for '{keyword}': {e}") from e
+            raise DownloadError(
+                f"Failed to download images for '{keyword}': {e}") from e
 
     @staticmethod
     def generate_labels(dataset_dir: str, formats: List[str] = None) -> None:
@@ -360,9 +365,12 @@ class Builder:
             return {}
 
         return {
-            'dataset_name': self.dataset_config['dataset_name'] if 'dataset_name' in self.dataset_config else '',
-            'categories': list(self.dataset_config['categories'].keys()) if 'categories' in self.dataset_config else [],
-            'category_count': len(self.dataset_config['categories']) if 'categories' in self.dataset_config else 0,
+            'dataset_name': self.dataset_config[
+                'dataset_name'] if 'dataset_name' in self.dataset_config else '',
+            'categories': list(self.dataset_config[
+                                   'categories'].keys()) if 'categories' in self.dataset_config else [],
+            'category_count': len(self.dataset_config[
+                                      'categories']) if 'categories' in self.dataset_config else 0,
             'total_keywords': sum(
                 len(keywords) for keywords in self.dataset_config['categories'].values()
             ) if 'categories' in self.dataset_config else 0

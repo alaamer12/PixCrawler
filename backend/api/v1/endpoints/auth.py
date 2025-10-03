@@ -10,11 +10,12 @@ and user profile management.
 """
 
 from typing import Dict, Any
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from backend.api.dependencies import get_current_user
 from backend.models.user import UserResponse
 from backend.services.supabase_auth import SupabaseAuthService
-from backend.api.dependencies import get_current_user
 
 __all__ = ['router']
 
@@ -28,23 +29,23 @@ async def get_current_user_profile(
 ) -> UserResponse:
     """
     Get current authenticated user profile.
-    
+
     Returns the profile information for the currently authenticated user
     based on the Supabase JWT token.
-    
+
     Args:
         current_user: Current authenticated user from dependency
         auth_service: Supabase authentication service
-        
+
     Returns:
         Current user profile information
-        
+
     Raises:
         HTTPException: If user profile is not found
     """
     try:
         profile = current_user["profile"]
-        
+
         return UserResponse(
             id=profile["id"],
             email=profile["email"],
@@ -53,7 +54,7 @@ async def get_current_user_profile(
             created_at=profile["created_at"],
             updated_at=profile["updated_at"]
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -67,13 +68,13 @@ async def verify_token(
 ) -> Dict[str, Any]:
     """
     Verify Supabase JWT token and return user information.
-    
+
     This endpoint can be used by the frontend to verify that a token
     is still valid and get updated user information.
-    
+
     Args:
         current_user: Current authenticated user from dependency
-        
+
     Returns:
         Token verification result with user information
     """
@@ -94,14 +95,14 @@ async def sync_user_profile(
 ) -> Dict[str, str]:
     """
     Sync user profile from Supabase Auth to profiles table.
-    
+
     This endpoint ensures that the user profile in the profiles table
     is synchronized with the Supabase Auth user data.
-    
+
     Args:
         current_user: Current authenticated user from dependency
         auth_service: Supabase authentication service
-        
+
     Returns:
         Success message
     """
@@ -109,7 +110,7 @@ async def sync_user_profile(
         user_id = current_user["user_id"]
         email = current_user["email"]
         user_metadata = current_user.get("user_metadata", {})
-        
+
         # Check if profile exists
         try:
             await auth_service.get_user_profile(user_id)
@@ -121,7 +122,7 @@ async def sync_user_profile(
                 "updated_at": "now()"
             })
             action = "updated"
-            
+
         except Exception:
             # Profile doesn't exist, create it
             await auth_service.create_user_profile({
@@ -132,9 +133,9 @@ async def sync_user_profile(
                 "role": "user"
             })
             action = "created"
-        
+
         return {"message": f"User profile {action} successfully"}
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

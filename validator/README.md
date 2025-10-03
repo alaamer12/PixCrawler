@@ -60,12 +60,12 @@ from validator import CheckManager, ValidationConfig, CheckMode, DuplicateAction
 
 # Create custom configuration
 config = ValidationConfig(
-    mode=CheckMode.STRICT,
-    duplicate_action=DuplicateAction.QUARANTINE,
-    min_file_size_bytes=2048,
-    min_image_width=100,
-    min_image_height=100,
-    quarantine_dir="./quarantine"
+  mode=CheckMode.STRICT,
+  duplicate_action=DuplicateAction.QUARANTINE,
+  min_file_size_bytes=2048,
+  min_image_width=100,
+  min_image_height=100,
+  quarantine_dir="./quarantine"
 )
 
 # Initialize validation manager

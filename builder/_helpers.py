@@ -24,7 +24,9 @@ import shutil
 import time
 from pathlib import Path
 from typing import Optional, List, TextIO, Any, Union, Callable
+
 from tqdm.auto import tqdm
+
 from builder._constants import logger, IMAGE_EXTENSIONS
 from builder._exceptions import PixCrawlerError
 
@@ -87,10 +89,11 @@ class DatasetTracker:
         """
         self.download_failures += 1
         self.failed_downloads.append(f"{context}: {error}")
-            'expected': expected,
-            'actual': actual,
-            'corrupted_files': corrupted
-        })
+        'expected': expected,
+        'actual': actual,
+        'corrupted_files': corrupted
+
+    })
 
     def print_summary(self) -> None:
         """
@@ -128,8 +131,6 @@ class DatasetTracker:
     def _print_failed_downloads(self) -> None:
         for failure in self.failed_downloads:
             logger.info(f"    • {failure}")
-
-
 
 
 class ReportGenerator:
@@ -208,8 +209,6 @@ class ReportGenerator:
             "attempted": attempted,
             "errors": errors or []
         }
-
-
 
     def record_error(self, context: str, error: str) -> None:
         """
@@ -353,7 +352,8 @@ class ReportGenerator:
             "downloaded": total_downloaded
         }
 
-    def _write_download_category(self, f: TextIO, category: str, keywords: dict) -> dict:
+    def _write_download_category(self, f: TextIO, category: str,
+                                 keywords: dict) -> dict:
         """
         Writes a single download category's details to the report, including keyword-specific statistics.
 
@@ -428,8 +428,9 @@ class ReportGenerator:
             f (TextIO): The file object to write to.
             total_stats (dict): A dictionary containing overall download statistics.
         """
-        success_rate = f"{(total_stats['downloaded'] / total_stats['attempted'] * 100):.1f}%" if total_stats[
-                                                                                                     'attempted'] > 0 else "N/A"
+        success_rate = f"{(total_stats['downloaded'] / total_stats['attempted'] * 100):.1f}%" if \
+        total_stats[
+            'attempted'] > 0 else "N/A"
 
         f.write("### Overall Download Statistics\n\n")
         f.write("| Metric | Value |\n")
@@ -439,10 +440,6 @@ class ReportGenerator:
         f.write(f"| Success Rate | {success_rate} |\n")
 
         f.write("\n")
-
-
-
-
 
     def _write_errors(self, f: TextIO) -> None:
         """
@@ -461,7 +458,8 @@ class ReportGenerator:
         f.write("|---------|-------|----------|\n")
 
         for error in self.sections["errors"]:
-            timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(error['timestamp']))
+            timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S",
+                                          time.localtime(error['timestamp']))
             f.write(f"| {error['context']} | {error['error']} | {timestamp_str} |\n")
 
         f.write("\n")
@@ -509,7 +507,8 @@ class FSRenamer:
             return 0
 
         self.temp_dir = self._create_temp_directory()
-        self.padding_width = self._user_defined_padding_width if self._user_defined_padding_width is not None else self._calculate_padding_width(len(self.image_files))
+        self.padding_width = self._user_defined_padding_width if self._user_defined_padding_width is not None else self._calculate_padding_width(
+            len(self.image_files))
 
         renamed_count = self._copy_files_to_temp_with_new_names()
 
@@ -517,7 +516,8 @@ class FSRenamer:
         self._move_files_from_temp_to_original()
         self._cleanup_temp_directory()
 
-        logger.info(f"Renamed {renamed_count} images in {self.directory_path} with sequential numbering")
+        logger.info(
+            f"Renamed {renamed_count} images in {self.directory_path} with sequential numbering")
         return renamed_count
 
     def _validate_directory_exists(self) -> bool:
@@ -591,13 +591,17 @@ class FSRenamer:
                 renamed_count += 1
                 # Log progress every 10 files
                 if renamed_count % 10 == 0 or renamed_count == len(self.image_files):
-                    logger.debug(f"Renamed {renamed_count}/{len(self.image_files)} images")
+                    logger.debug(
+                        f"Renamed {renamed_count}/{len(self.image_files)} images")
             except IOError as ioe:
                 logger.error(f"Failed to copy {file_path} to temp directory: {ioe}")
-                raise PixCrawlerError(f"Failed to copy {file_path} to temp directory: {ioe}") from ioe
+                raise PixCrawlerError(
+                    f"Failed to copy {file_path} to temp directory: {ioe}") from ioe
             except Exception as e:
-                logger.error(f"An unexpected error occurred while copying {file_path} to temp directory: {e}")
-                raise PixCrawlerError(f"Unexpected error copying {file_path} to temp directory: {e}") from e
+                logger.error(
+                    f"An unexpected error occurred while copying {file_path} to temp directory: {e}")
+                raise PixCrawlerError(
+                    f"Unexpected error copying {file_path} to temp directory: {e}") from e
 
         return renamed_count
 
@@ -611,7 +615,8 @@ class FSRenamer:
             except OSError as ose:
                 logger.error(f"Failed to delete original file {file_path}: {ose}")
             except Exception as e:
-                logger.error(f"An unexpected error occurred while deleting original file {file_path}: {e}")
+                logger.error(
+                    f"An unexpected error occurred while deleting original file {file_path}: {e}")
 
     def _move_files_from_temp_to_original(self) -> None:
         """
@@ -623,11 +628,14 @@ class FSRenamer:
         for file_path in self.temp_dir.iterdir():
             if file_path.is_file():
                 try:
-                    shutil.move(str(file_path), str(self.directory_path / file_path.name))
+                    shutil.move(str(file_path),
+                                str(self.directory_path / file_path.name))
                 except IOError as ioe:
-                    logger.error(f"Failed to move {file_path} from temp directory: {ioe}")
+                    logger.error(
+                        f"Failed to move {file_path} from temp directory: {ioe}")
                 except Exception as e:
-                    logger.error(f"An unexpected error occurred while moving {file_path} from temp directory: {e}")
+                    logger.error(
+                        f"An unexpected error occurred while moving {file_path} from temp directory: {e}")
 
     def _cleanup_temp_directory(self) -> None:
         """
@@ -641,7 +649,8 @@ class FSRenamer:
         except OSError as ose:
             logger.error(f"Failed to remove temp directory: {ose}")
         except Exception as e:
-            logger.error(f"An unexpected error occurred while removing temp directory: {e}")
+            logger.error(
+                f"An unexpected error occurred while removing temp directory: {e}")
 
 
 class ProgressManager:
@@ -727,7 +736,8 @@ class ProgressManager:
         Args:
             n (int): The number of units to increment the progress by (default is 1).
         """
-        if self.current_progress is not None and hasattr(self.current_progress, 'update'):
+        if self.current_progress is not None and hasattr(self.current_progress,
+                                                         'update'):
             self.current_progress.update(n)
 
     def set_step_description(self, desc: str) -> None:
@@ -737,7 +747,8 @@ class ProgressManager:
         Args:
             desc (str): The new description text for the step.
         """
-        if self.current_progress is not None and hasattr(self.current_progress, 'set_description_str'):
+        if self.current_progress is not None and hasattr(self.current_progress,
+                                                         'set_description_str'):
             self.current_progress.set_description_str(desc)
 
     def set_step_postfix(self, **kwargs: Any) -> None:
@@ -747,7 +758,8 @@ class ProgressManager:
         Args:
             **kwargs (Any): Arbitrary keyword arguments to display as postfix (e.g., count=10, total=100).
         """
-        if self.current_progress is not None and hasattr(self.current_progress, 'set_postfix'):
+        if self.current_progress is not None and hasattr(self.current_progress,
+                                                         'set_postfix'):
             self.current_progress.set_postfix(**kwargs)
 
     def start_subtask(self, desc: str, total: Optional[int] = None) -> None:
@@ -792,7 +804,8 @@ class ProgressManager:
         Args:
             desc (str): The new description text for the subtask.
         """
-        if self.nested_progress is not None and hasattr(self.nested_progress, 'set_description_str'):
+        if self.nested_progress is not None and hasattr(self.nested_progress,
+                                                        'set_description_str'):
             self.nested_progress.set_description_str(f"  └─ {desc}")
 
     def set_subtask_postfix(self, **kwargs: Any) -> None:
@@ -802,7 +815,8 @@ class ProgressManager:
         Args:
             **kwargs (Any): Arbitrary keyword arguments to display as postfix.
         """
-        if self.nested_progress is not None and hasattr(self.nested_progress, 'set_postfix'):
+        if self.nested_progress is not None and hasattr(self.nested_progress,
+                                                        'set_postfix'):
             self.nested_progress.set_postfix(**kwargs)
 
     def close_subtask(self) -> None:
@@ -818,7 +832,8 @@ class ProgressManager:
         Closes all active progress bars (both main and nested).
         """
         self.close_subtask()
-        if self.current_progress is not None and hasattr(self.current_progress, 'close'):
+        if self.current_progress is not None and hasattr(self.current_progress,
+                                                         'close'):
             self.current_progress.close()
             self.current_progress = None
 
@@ -856,7 +871,8 @@ class ProgressManager:
                     n (int): The number of units to increment by (default is 1).
                 """
                 self.n += n
-                print(f"{kwargs.get('desc', 'Progress')}: {self.n}/{self.total}", end="")
+                print(f"{kwargs.get('desc', 'Progress')}: {self.n}/{self.total}",
+                      end="")
 
             @staticmethod
             def set_description_str(desc: str) -> None:
@@ -876,7 +892,9 @@ class ProgressManager:
                     **kwargs (Any): Arbitrary keyword arguments to display as postfix.
                 """
                 postfix = ' '.join(f"{k}={v}" for k, v in kwargs.items())
-                print(f"{kwargs.get('desc', 'Progress')}: {self.n}/{self.total} {postfix}", end="")
+                print(
+                    f"{kwargs.get('desc', 'Progress')}: {self.n}/{self.total} {postfix}",
+                    end="")
 
             @staticmethod
             def close() -> None:
@@ -894,7 +912,8 @@ class ProgressManager:
 
         return DummyTqdm()
 
-    def iterate(self, iterable: Any, desc: Optional[str] = None, total: Optional[int] = None,
+    def iterate(self, iterable: Any, desc: Optional[str] = None,
+                total: Optional[int] = None,
                 subtask: bool = False, unit: str = "it") -> Any:
         """
         Iterates over an iterable while displaying a progress bar.
@@ -909,7 +928,8 @@ class ProgressManager:
         Returns:
             Any: An iterator that yields items from the iterable while updating the progress bar.
         """
-        progress_method: Union[Callable[[int], None], bool] = self.update_subtask if subtask else self.update_step
+        progress_method: Union[Callable[
+            [int], None], bool] = self.update_subtask if subtask else self.update_step
         tqdm_instance = self.nested_progress if subtask else self.current_progress
 
         # If we have an active progress bar, use it

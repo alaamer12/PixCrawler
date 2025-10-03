@@ -20,9 +20,9 @@ Features:
     - Configuration validation and error handling
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, List, Tuple
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional, Dict, Any, Tuple
 
 from validator.validation import CheckMode, DuplicateAction
 
@@ -38,40 +38,40 @@ __all__ = [
 class ValidatorConfig:
     """
     Comprehensive configuration for validator operations.
-    
+
     This class consolidates all validation-related configuration options
     that were previously scattered across the builder package.
     """
-    
+
     # Validation behavior
     mode: CheckMode = CheckMode.LENIENT
     duplicate_action: DuplicateAction = DuplicateAction.REMOVE
-    
+
     # File constraints
     supported_extensions: Tuple[str, ...] = (
         '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif'
     )
     max_file_size_mb: Optional[int] = None
     min_file_size_bytes: int = 1024  # 1KB minimum
-    
+
     # Image constraints
     min_image_width: int = 50
     min_image_height: int = 50
-    
+
     # Processing options
     batch_size: int = 100
     quarantine_dir: Optional[str] = None
-    
+
     # Hash settings
     hash_size: int = 8
-    
+
     # Reporting options
     generate_reports: bool = True
     detailed_logging: bool = True
-    
+
     # Performance settings
     max_concurrent_validations: int = 4
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary"""
         return {
@@ -89,28 +89,32 @@ class ValidatorConfig:
             'detailed_logging': self.detailed_logging,
             'max_concurrent_validations': self.max_concurrent_validations
         }
-    
+
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'ValidatorConfig':
         """Create configuration from dictionary"""
         # Convert string enums back to enum values
         if 'mode' in config_dict and isinstance(config_dict['mode'], str):
             config_dict['mode'] = CheckMode[config_dict['mode']]
-        
-        if 'duplicate_action' in config_dict and isinstance(config_dict['duplicate_action'], str):
-            config_dict['duplicate_action'] = DuplicateAction[config_dict['duplicate_action']]
-        
+
+        if 'duplicate_action' in config_dict and isinstance(
+            config_dict['duplicate_action'], str):
+            config_dict['duplicate_action'] = DuplicateAction[
+                config_dict['duplicate_action']]
+
         # Convert list back to tuple for supported_extensions
-        if 'supported_extensions' in config_dict and isinstance(config_dict['supported_extensions'], list):
-            config_dict['supported_extensions'] = tuple(config_dict['supported_extensions'])
-        
+        if 'supported_extensions' in config_dict and isinstance(
+            config_dict['supported_extensions'], list):
+            config_dict['supported_extensions'] = tuple(
+                config_dict['supported_extensions'])
+
         return cls(**config_dict)
 
 
 def get_default_config() -> ValidatorConfig:
     """
     Get default validation configuration.
-    
+
     Returns:
         ValidatorConfig: Default configuration instance
     """
@@ -120,7 +124,7 @@ def get_default_config() -> ValidatorConfig:
 def get_strict_config() -> ValidatorConfig:
     """
     Get strict validation configuration.
-    
+
     Returns:
         ValidatorConfig: Strict configuration instance
     """
@@ -137,7 +141,7 @@ def get_strict_config() -> ValidatorConfig:
 def get_lenient_config() -> ValidatorConfig:
     """
     Get lenient validation configuration.
-    
+
     Returns:
         ValidatorConfig: Lenient configuration instance
     """
@@ -154,13 +158,13 @@ def get_lenient_config() -> ValidatorConfig:
 def load_config_from_dict(config_dict: Dict[str, Any]) -> ValidatorConfig:
     """
     Load configuration from dictionary with validation.
-    
+
     Args:
         config_dict: Dictionary containing configuration options
-        
+
     Returns:
         ValidatorConfig: Validated configuration instance
-        
+
     Raises:
         ValueError: If configuration is invalid
     """
@@ -175,49 +179,50 @@ def load_config_from_dict(config_dict: Dict[str, Any]) -> ValidatorConfig:
 def validate_config(config: ValidatorConfig) -> None:
     """
     Validate configuration parameters.
-    
+
     Args:
         config: Configuration to validate
-        
+
     Raises:
         ValueError: If configuration is invalid
     """
     # Validate file size constraints
     if config.min_file_size_bytes < 0:
         raise ValueError("min_file_size_bytes must be non-negative")
-    
+
     if config.max_file_size_mb is not None and config.max_file_size_mb <= 0:
         raise ValueError("max_file_size_mb must be positive")
-    
+
     # Validate image dimension constraints
     if config.min_image_width < 1:
         raise ValueError("min_image_width must be positive")
-    
+
     if config.min_image_height < 1:
         raise ValueError("min_image_height must be positive")
-    
+
     # Validate processing options
     if config.batch_size < 1:
         raise ValueError("batch_size must be positive")
-    
+
     if config.hash_size < 4 or config.hash_size > 32:
         raise ValueError("hash_size must be between 4 and 32")
-    
+
     if config.max_concurrent_validations < 1:
         raise ValueError("max_concurrent_validations must be positive")
-    
+
     # Validate quarantine directory if specified
     if config.quarantine_dir:
         quarantine_path = Path(config.quarantine_dir)
         try:
             quarantine_path.mkdir(parents=True, exist_ok=True)
         except Exception as e:
-            raise ValueError(f"Cannot create quarantine directory {config.quarantine_dir}: {e}") from e
-    
+            raise ValueError(
+                f"Cannot create quarantine directory {config.quarantine_dir}: {e}") from e
+
     # Validate supported extensions
     if not config.supported_extensions:
         raise ValueError("supported_extensions cannot be empty")
-    
+
     for ext in config.supported_extensions:
         if not ext.startswith('.'):
             raise ValueError(f"Extension '{ext}' must start with a dot")
@@ -234,18 +239,19 @@ CONFIG_PRESETS = {
 def get_preset_config(preset_name: str) -> ValidatorConfig:
     """
     Get a preset configuration by name.
-    
+
     Args:
         preset_name: Name of the preset ('default', 'strict', 'lenient')
-        
+
     Returns:
         ValidatorConfig: Preset configuration instance
-        
+
     Raises:
         ValueError: If preset name is not recognized
     """
     if preset_name not in CONFIG_PRESETS:
         available = ', '.join(CONFIG_PRESETS.keys())
-        raise ValueError(f"Unknown preset '{preset_name}'. Available presets: {available}")
-    
+        raise ValueError(
+            f"Unknown preset '{preset_name}'. Available presets: {available}")
+
     return CONFIG_PRESETS[preset_name]()

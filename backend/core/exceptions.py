@@ -50,19 +50,19 @@ logger = get_logger(__name__)
 class PixCrawlerException(Exception):
     """
     Base exception for PixCrawler application.
-    
+
     All custom exceptions in the application should inherit from this class
     to ensure consistent error handling and logging.
-    
+
     Attributes:
         message: Human-readable error message
         details: Optional additional error details
     """
-    
+
     def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
         """
         Initialize PixCrawler exception.
-        
+
         Args:
             message: Human-readable error message
             details: Optional additional error details
@@ -75,7 +75,7 @@ class PixCrawlerException(Exception):
 class ValidationError(PixCrawlerException):
     """
     Raised when data validation fails.
-    
+
     Used for input validation errors, schema validation failures,
     and other data-related validation issues.
     """
@@ -85,7 +85,7 @@ class ValidationError(PixCrawlerException):
 class NotFoundError(PixCrawlerException):
     """
     Raised when a requested resource is not found.
-    
+
     Used for database record not found, file not found,
     and other resource availability issues.
     """
@@ -95,7 +95,7 @@ class NotFoundError(PixCrawlerException):
 class AuthenticationError(PixCrawlerException):
     """
     Raised when authentication fails.
-    
+
     Used for invalid credentials, expired tokens,
     and other authentication-related issues.
     """
@@ -105,7 +105,7 @@ class AuthenticationError(PixCrawlerException):
 class AuthorizationError(PixCrawlerException):
     """
     Raised when authorization fails.
-    
+
     Used for insufficient permissions, access denied,
     and other authorization-related issues.
     """
@@ -115,7 +115,7 @@ class AuthorizationError(PixCrawlerException):
 class ExternalServiceError(PixCrawlerException):
     """
     Raised when external service calls fail.
-    
+
     Used for API call failures, service unavailability,
     and other external service integration issues.
     """
@@ -125,7 +125,7 @@ class ExternalServiceError(PixCrawlerException):
 class RateLimitError(PixCrawlerException):
     """
     Raised when rate limits are exceeded.
-    
+
     Used for API rate limiting, request throttling,
     and other rate limit enforcement.
     """
@@ -137,14 +137,14 @@ async def pixcrawler_exception_handler(
 ) -> JSONResponse:
     """
     Handle custom PixCrawler exceptions.
-    
+
     Provides structured error responses for all custom application
     exceptions with appropriate HTTP status codes and logging.
-    
+
     Args:
         request: FastAPI request object
         exc: PixCrawler exception instance
-        
+
     Returns:
         JSON response with error details
     """
@@ -189,14 +189,14 @@ async def pixcrawler_exception_handler(
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """
     Handle FastAPI HTTP exceptions.
-    
+
     Provides consistent error response format for standard
     FastAPI HTTP exceptions.
-    
+
     Args:
         request: FastAPI request object
         exc: HTTP exception instance
-        
+
     Returns:
         JSON response with error details
     """
@@ -225,14 +225,14 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
 async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """
     Handle unexpected exceptions.
-    
+
     Catches all unhandled exceptions and provides a generic
     error response while logging the full exception details.
-    
+
     Args:
         request: FastAPI request object
         exc: Exception instance
-        
+
     Returns:
         JSON response with generic error message
     """
@@ -259,10 +259,10 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 def setup_exception_handlers(app: FastAPI) -> None:
     """
     Setup exception handlers for the FastAPI application.
-    
+
     Registers all custom exception handlers with the FastAPI
     application instance.
-    
+
     Args:
         app: FastAPI application instance
     """

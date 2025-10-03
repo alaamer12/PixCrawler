@@ -149,8 +149,10 @@ class CrawlJob(Base, TimestampMixin):
     total_images: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     downloaded_images: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     valid_images: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True),
+                                                           nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True),
+                                                             nullable=True)
 
 
 class Image(Base):
@@ -203,7 +205,8 @@ class ActivityLog(Base):
     __tablename__ = "activity_logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[Optional[UUID]] = mapped_column(SQLAlchemyUUID(as_uuid=True), nullable=True)
+    user_id: Mapped[Optional[UUID]] = mapped_column(SQLAlchemyUUID(as_uuid=True),
+                                                    nullable=True)
     action: Mapped[str] = mapped_column(Text, nullable=False)
     resource_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     resource_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)

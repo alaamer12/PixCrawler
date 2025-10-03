@@ -27,7 +27,7 @@ DEFAULT_CACHE_FILE = "progress_cache.json"
 
 __all__ = [
     'ProgressCache',
-    'DatasetTracker', 
+    'DatasetTracker',
     'ProgressManager',
     'load_progress',
     'save_progress'
@@ -78,7 +78,8 @@ class ProgressCache:
         except IOError as ioe:
             logger.error(f"Failed to save progress cache: {ioe}")
         except Exception as e:
-            logger.error(f"An unexpected error occurred while saving progress cache: {e}")
+            logger.error(
+                f"An unexpected error occurred while saving progress cache: {e}")
 
     def is_completed(self, category: str, keyword: str) -> bool:
         """
@@ -125,7 +126,8 @@ class ProgressCache:
         """
         return {
             "total_completed": len(self.completed_paths),
-            "categories": len(set(item["category"] for item in self.completed_paths.values()))
+            "categories": len(
+                set(item["category"] for item in self.completed_paths.values()))
         }
 
     def clear_cache(self) -> None:
@@ -192,7 +194,8 @@ class DatasetTracker:
         self.failed_downloads.append(f"{context}: {error}")
         logger.warning(f"Download failure recorded for {context}: {error}")
 
-    def record_integrity_failure(self, context: str, expected: int, actual: int, corrupted: List[str]) -> None:
+    def record_integrity_failure(self, context: str, expected: int, actual: int,
+                                 corrupted: List[str]) -> None:
         """
         Records an image integrity check failure.
 
@@ -208,7 +211,8 @@ class DatasetTracker:
             'actual': actual,
             'corrupted_files': corrupted
         })
-        logger.warning(f"Integrity failure recorded for {context}: {actual}/{expected} valid images")
+        logger.warning(
+            f"Integrity failure recorded for {context}: {actual}/{expected} valid images")
 
     def get_summary(self) -> Dict[str, Any]:
         """
@@ -218,8 +222,9 @@ class DatasetTracker:
             Dict[str, Any]: Summary statistics
         """
         total_operations = self.download_successes + self.download_failures
-        success_rate = (self.download_successes / total_operations * 100) if total_operations > 0 else 0
-        
+        success_rate = (
+                self.download_successes / total_operations * 100) if total_operations > 0 else 0
+
         return {
             'download_successes': self.download_successes,
             'download_failures': self.download_failures,
@@ -309,8 +314,8 @@ class ProgressManager:
         """Check if a category/keyword combination is completed."""
         return self.cache.is_completed(category, keyword)
 
-    def mark_completed(self, category: str, keyword: str, 
-                      metadata: Optional[Dict[str, Any]] = None) -> None:
+    def mark_completed(self, category: str, keyword: str,
+                       metadata: Optional[Dict[str, Any]] = None) -> None:
         """Mark a category/keyword combination as completed."""
         self.cache.mark_completed(category, keyword, metadata)
 
@@ -322,8 +327,8 @@ class ProgressManager:
         """Record download failures."""
         self.tracker.record_download_failure(context, error)
 
-    def record_integrity_issue(self, context: str, expected: int, 
-                              actual: int, corrupted: List[str]) -> None:
+    def record_integrity_issue(self, context: str, expected: int,
+                               actual: int, corrupted: List[str]) -> None:
         """Record integrity check failures."""
         self.tracker.record_integrity_failure(context, expected, actual, corrupted)
 
@@ -331,7 +336,7 @@ class ProgressManager:
         """Get combined statistics."""
         cache_stats = self.cache.get_completion_stats()
         tracker_stats = self.tracker.get_summary()
-        
+
         return {
             'cache': cache_stats,
             'tracker': tracker_stats,
@@ -345,7 +350,7 @@ class ProgressManager:
     def print_summary(self) -> None:
         """Print comprehensive progress summary."""
         self.tracker.print_summary()
-        
+
         # Add cache statistics
         cache_stats = self.cache.get_completion_stats()
         logger.info(f"\n📊 PROGRESS CACHE STATISTICS:")
@@ -373,8 +378,8 @@ def load_progress(cache_file: str = DEFAULT_CACHE_FILE) -> Dict[str, Dict[str, A
     return cache.completed_paths
 
 
-def save_progress(progress_data: Dict[str, Dict[str, Any]], 
-                 cache_file: str = DEFAULT_CACHE_FILE) -> None:
+def save_progress(progress_data: Dict[str, Dict[str, Any]],
+                  cache_file: str = DEFAULT_CACHE_FILE) -> None:
     """
     Save progress to cache file.
 

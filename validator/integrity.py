@@ -34,7 +34,7 @@ IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '
 
 __all__ = [
     'ImageHasher',
-    'DuplicationManager', 
+    'DuplicationManager',
     'ImageValidator',
     'IntegrityProcessor',
     'validate_dataset',
@@ -109,7 +109,8 @@ class ImageHasher:
             logger.warning(f"Failed to compute content hash for {file_path}: {e}")
             return None
 
-    def build_hashmp(self, image_files: List[str]) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
+    def build_hashmp(self, image_files: List[str]) -> Tuple[
+        Dict[str, List[str]], Dict[str, List[str]]]:
         """
         Builds content hash and perceptual hash maps for a list of image files.
 
@@ -125,7 +126,8 @@ class ImageHasher:
         perceptual_hash_map: Dict[str, List[str]] = {}
 
         for img_path in image_files:
-            self._process_image_for_maps(img_path, content_hash_map, perceptual_hash_map)
+            self._process_image_for_maps(img_path, content_hash_map,
+                                         perceptual_hash_map)
 
         return content_hash_map, perceptual_hash_map
 
@@ -139,7 +141,8 @@ class ImageHasher:
         Returns:
             Image.Image: The processed image ready for hashing.
         """
-        return img.convert("L").resize((self.hash_size, self.hash_size), Image.Resampling.LANCZOS)
+        return img.convert("L").resize((self.hash_size, self.hash_size),
+                                       Image.Resampling.LANCZOS)
 
     @staticmethod
     def _calculate_average_pixel_value(pixels: List[int]) -> float:
@@ -185,7 +188,8 @@ class ImageHasher:
         for chunk in iter(lambda: file_handle.read(4096), b""):
             file_hash.update(chunk)
 
-    def _process_image_for_maps(self, img_path: str, content_hash_map: Dict[str, List[str]],
+    def _process_image_for_maps(self, img_path: str,
+                                content_hash_map: Dict[str, List[str]],
                                 perceptual_hash_map: Dict[str, List[str]]) -> None:
         """
         Processes a single image file and updates both hash maps.
@@ -248,7 +252,8 @@ class DuplicationManager:
         duplicates = self._find_exact_duplicates(content_hash_map)
 
         # Then process perceptual duplicates
-        duplicates = self._process_perceptual_duplicates(perceptual_hash_map, duplicates)
+        duplicates = self._process_perceptual_duplicates(perceptual_hash_map,
+                                                         duplicates)
 
         return duplicates
 
@@ -303,7 +308,8 @@ class DuplicationManager:
         ]
 
     @staticmethod
-    def _find_exact_duplicates(content_hash_map: Dict[str, List[str]]) -> Dict[str, List[str]]:
+    def _find_exact_duplicates(content_hash_map: Dict[str, List[str]]) -> Dict[
+        str, List[str]]:
         """
         Identifies exact duplicate images based on their content hashes.
 
@@ -343,9 +349,9 @@ class DuplicationManager:
         return False
 
     def _process_perceptual_duplicates(
-            self,
-            perceptual_hash_map: Dict[str, List[str]],
-            existing_duplicates: Dict[str, List[str]]
+        self,
+        perceptual_hash_map: Dict[str, List[str]],
+        existing_duplicates: Dict[str, List[str]]
     ) -> Dict[str, List[str]]:
         """
         Processes perceptual duplicates and merges them with a dictionary of existing exact duplicates.
@@ -395,13 +401,15 @@ class DuplicationManager:
         """
         try:
             os.remove(duplicate_path)
-            logger.info(f"Removed duplicate image: {duplicate_path} (duplicate of {original_path})")
+            logger.info(
+                f"Removed duplicate image: {duplicate_path} (duplicate of {original_path})")
             return True
         except (OSError, IOError, PermissionError) as ose:
             logger.warning(f"Failed to remove duplicate {duplicate_path}: {ose}")
             return False
         except Exception as e:
-            logger.warning(f"An unexpected error occurred while removing duplicate {duplicate_path}: {e}")
+            logger.warning(
+                f"An unexpected error occurred while removing duplicate {duplicate_path}: {e}")
             return False
 
 
@@ -447,7 +455,8 @@ class ImageValidator:
             logger.error(f"Corrupted image detected: {image_path} - {str(e)}")
             return False
         except Exception as e:
-            logger.error(f"An unexpected error occurred during image validation: {image_path} - {str(e)}")
+            logger.error(
+                f"An unexpected error occurred during image validation: {image_path} - {str(e)}")
             return False
 
     def count_valid(self, directory: str) -> Tuple[int, int, List[str]]:
@@ -468,7 +477,8 @@ class ImageValidator:
         if not directory_path.exists():
             return 0, 0, []
 
-        for file_path in tqdm(directory_path.iterdir(), desc="Validating", leave=False, unit="file"):
+        for file_path in tqdm(directory_path.iterdir(), desc="Validating", leave=False,
+                              unit="file"):
             if file_path.is_file() and valid_image_ext(file_path):
                 total_count += 1
                 if self.validate(str(file_path)):
@@ -572,7 +582,8 @@ class ImageValidator:
         except OSError as ose:
             logger.warning(f"Error removing corrupted image {file_path}: {ose}")
         except Exception as e:
-            logger.warning(f"An unexpected error occurred while removing corrupted image {file_path}: {e}")
+            logger.warning(
+                f"An unexpected error occurred while removing corrupted image {file_path}: {e}")
 
 
 class IntegrityProcessor:
@@ -585,8 +596,8 @@ class IntegrityProcessor:
         self.validator = ImageValidator()
         self.duplication_manager = DuplicationManager()
 
-    def process_dataset(self, directory: str, remove_duplicates: bool = True, 
-                       remove_corrupted: bool = True) -> Dict[str, Any]:
+    def process_dataset(self, directory: str, remove_duplicates: bool = True,
+                        remove_corrupted: bool = True) -> Dict[str, Any]:
         """
         Process a dataset for integrity issues.
 
@@ -599,7 +610,7 @@ class IntegrityProcessor:
             Dict containing processing results
         """
         logger.info(f"Starting integrity processing for {directory}")
-        
+
         results = {
             'directory': directory,
             'validation': {},
@@ -608,7 +619,8 @@ class IntegrityProcessor:
         }
 
         # Validate images
-        valid_count, total_count, corrupted_files = self.validator.count_valid(directory)
+        valid_count, total_count, corrupted_files = self.validator.count_valid(
+            directory)
         results['validation'] = {
             'valid_count': valid_count,
             'total_count': total_count,
@@ -623,11 +635,13 @@ class IntegrityProcessor:
                     os.remove(corrupted_file)
                     logger.info(f"Removed corrupted image: {corrupted_file}")
                 except Exception as e:
-                    logger.warning(f"Failed to remove corrupted image {corrupted_file}: {e}")
+                    logger.warning(
+                        f"Failed to remove corrupted image {corrupted_file}: {e}")
 
         # Handle duplicates
         if remove_duplicates:
-            removed_count, originals_kept = self.duplication_manager.remove_duplicates(directory)
+            removed_count, originals_kept = self.duplication_manager.remove_duplicates(
+                directory)
             results['duplicates'] = {
                 'removed_count': removed_count,
                 'originals_kept_count': len(originals_kept),
@@ -674,8 +688,8 @@ def remove_duplicates(directory: str) -> Tuple[int, List[str]]:
     return manager.remove_duplicates(directory)
 
 
-def process_integrity(directory: str, remove_duplicates: bool = True, 
-                     remove_corrupted: bool = True) -> Dict[str, Any]:
+def process_integrity(directory: str, remove_duplicates: bool = True,
+                      remove_corrupted: bool = True) -> Dict[str, Any]:
     """
     Process a dataset for all integrity issues.
 

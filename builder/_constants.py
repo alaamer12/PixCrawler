@@ -1,6 +1,6 @@
 """
 This module defines constants for the PixCrawler application and provides centralized logging.
-It includes default file paths, supported search engines, image extensions, and ASCII art 
+It includes default file paths, supported search engines, image extensions, and ASCII art
 for the application banner. Uses the centralized logging_config package for consistent logging.
 
 Classes:
@@ -37,7 +37,8 @@ DEFAULT_LOG_FILE: str = "pixcrawler.log"
 ENGINES: Final[List[str]] = ["google", "bing", "baidu", "ddgs"]
 
 # Image extensions supported by the application
-IMAGE_EXTENSIONS: Final[Set[str]] = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff'}
+IMAGE_EXTENSIONS: Final[Set[str]] = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp',
+                                     '.tiff'}
 
 # Suppress all warnings to prevent them from appearing in the console
 warnings.filterwarnings("ignore")
@@ -47,12 +48,12 @@ logger = get_logger("builder")
 
 # ASCII Art for Pixcrawler
 PIXCRAWLER_ASCII: Final[str] = """
-    ____  _       ______                    __           
-   / __ \\(_)_  __/ ____/________ __      __/ /__  _____  
-  / /_/ / /| |/_/ /   / ___/ __ `/ | /| / / / _ \\/ ___/  
- / ____/ / >  </ /___/ /  / /_/ /| |/ |/ / /  __/ /      
-/_/   /_/_/_/|_|\\____/_/   \\__,_/ |__/|__/_/\\___/_/       
-                                                        
+    ____  _       ______                    __
+   / __ \\(_)_  __/ ____/________ __      __/ /__  _____
+  / /_/ / /| |/_/ /   / ___/ __ `/ | /| / / / _ \\/ ___/
+ / ____/ / >  </ /___/ /  / /_/ /| |/ |/ / /  __/ /
+/_/   /_/_/_/|_|\\____/_/   \\__,_/ |__/|__/_/\\___/_/
+
 """
 
 

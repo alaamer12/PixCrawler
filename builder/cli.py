@@ -23,10 +23,11 @@ from typing import Optional
 
 from builder._config import DatasetGenerationConfig
 from builder._constants import Colors, PIXCRAWLER_ASCII, DEFAULT_LOG_FILE
-from builder._constants import DEFAULT_CACHE_FILE, DEFAULT_CONFIG_FILE, KEYWORD_MODE, AI_MODELS
+from builder._constants import DEFAULT_CACHE_FILE, DEFAULT_CONFIG_FILE, KEYWORD_MODE, \
+    AI_MODELS
+from builder._exceptions import PixCrawlerError
 from builder._generator import generate_dataset, update_logfile
 from builder._jupyter_support import is_running_in_notebook, print_help_colored
-from builder._exceptions import PixCrawlerError
 
 __all__ = [
     'parse_args',
@@ -48,7 +49,8 @@ def parse_args(parser: argparse.ArgumentParser) -> Optional[argparse.Namespace]:
         Optional[argparse.Namespace]: Parsed arguments as a Namespace object, or None if help was requested.
     """
     # Add help argument manually
-    parser.add_argument('-h', '--help', action='store_true', help='Show this help message and exit')
+    parser.add_argument('-h', '--help', action='store_true',
+                        help='Show this help message and exit')
 
     # First handle the case where we're in a notebook
     if is_running_in_notebook():
@@ -146,7 +148,8 @@ def run_from_jupyter(config_path: str = DEFAULT_CONFIG_FILE,
     output_dir = config.output_dir or "dataset"
     print(f"\n{Colors.GREEN}✅ Dataset generation complete!{Colors.ENDC}")
     print(f"   - {Colors.BOLD}Output directory:{Colors.ENDC} {output_dir}")
-    print(f"   - {Colors.BOLD}See the REPORT.md file in the output directory for detailed statistics{Colors.ENDC}")
+    print(
+        f"   - {Colors.BOLD}See the REPORT.md file in the output directory for detailed statistics{Colors.ENDC}")
 
 
 def create_arg_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
@@ -301,7 +304,8 @@ def main() -> None:
     print(f"{Colors.CYAN}{PIXCRAWLER_ASCII}{Colors.ENDC}")
 
     # Create the argument parser
-    parser = argparse.ArgumentParser(description="PixCrawler: Image Dataset Generator", add_help=False)
+    parser = argparse.ArgumentParser(description="PixCrawler: Image Dataset Generator",
+                                     add_help=False)
     parser = create_arg_parser(parser)
 
     # Parse arguments safely (works in both scripts and notebooks)
@@ -344,7 +348,8 @@ def main() -> None:
     print(f"\n{Colors.GREEN}✅ Dataset generation complete!{Colors.ENDC}")
     print(f"   - {Colors.BOLD}Output directory:{Colors.ENDC} {output_dir}")
     print(f"   - {Colors.BOLD}Log file:{Colors.ENDC} {args.log_file}")
-    print(f"   - {Colors.BOLD}See the REPORT.md file in the output directory for detailed statistics{Colors.ENDC}")
+    print(
+        f"   - {Colors.BOLD}See the REPORT.md file in the output directory for detailed statistics{Colors.ENDC}")
 
 
 if __name__ == "__main__":

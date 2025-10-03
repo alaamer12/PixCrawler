@@ -22,7 +22,6 @@ Features:
     - Detailed error reporting and logging
 """
 
-import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -36,7 +35,7 @@ logger = get_logger(__name__)
 
 __all__ = [
     'CheckMode',
-    'DuplicateAction', 
+    'DuplicateAction',
     'ValidationConfig',
     'DuplicateResult',
     'IntegrityResult',
@@ -47,15 +46,15 @@ __all__ = [
 
 class CheckMode(Enum):
     """Enumeration of available validation modes"""
-    STRICT = auto()      # Fail on any issues
-    LENIENT = auto()     # Log warnings but continue
-    REPORT_ONLY = auto() # Only report, no actions
+    STRICT = auto()  # Fail on any issues
+    LENIENT = auto()  # Log warnings but continue
+    REPORT_ONLY = auto()  # Only report, no actions
 
 
 class DuplicateAction(Enum):
     """Actions to take when duplicates are found"""
-    REMOVE = auto()      # Remove duplicate files
-    REPORT_ONLY = auto() # Only report duplicates
+    REMOVE = auto()  # Remove duplicate files
+    REPORT_ONLY = auto()  # Only report duplicates
     QUARANTINE = auto()  # Move duplicates to quarantine directory
 
 
@@ -64,7 +63,8 @@ class ValidationConfig:
     """Configuration for validation operations"""
     mode: CheckMode = CheckMode.LENIENT
     duplicate_action: DuplicateAction = DuplicateAction.REMOVE
-    supported_extensions: Tuple[str, ...] = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif')
+    supported_extensions: Tuple[str, ...] = (
+    '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif')
     max_file_size_mb: Optional[int] = None
     min_file_size_bytes: int = 1024  # 1KB minimum
     quarantine_dir: Optional[str] = None
@@ -115,7 +115,7 @@ class CheckManager:
     """
     Enhanced manager for checking image duplicates and integrity with comprehensive
     tracking, configurable behavior, and detailed reporting.
-    
+
     This class provides a unified interface for all validation operations including
     duplicate detection, integrity checking, and comprehensive reporting.
     """
@@ -129,7 +129,7 @@ class CheckManager:
         """
         self.config = config or ValidationConfig()
         self.stats = CheckStats()
-        
+
         # Initialize validation components
         self.duplication_manager = DuplicationManager()
         self.image_validator = ImageValidator(
@@ -139,7 +139,7 @@ class CheckManager:
 
         # Setup quarantine directory if specified
         if (self.config.duplicate_action == DuplicateAction.QUARANTINE and
-                self.config.quarantine_dir):
+            self.config.quarantine_dir):
             Path(self.config.quarantine_dir).mkdir(parents=True, exist_ok=True)
 
     def _is_valid_image_file(self, file_path: Path) -> bool:
@@ -158,7 +158,7 @@ class CheckManager:
                 return False
 
             if (self.config.max_file_size_mb and
-                    file_size > self.config.max_file_size_mb * 1024 * 1024):
+                file_size > self.config.max_file_size_mb * 1024 * 1024):
                 return False
 
             return True
@@ -199,10 +199,13 @@ class CheckManager:
                     duplicate_path = Path(keyword_path) / duplicate_file
 
                     if self.config.duplicate_action == DuplicateAction.REMOVE:
-                        removed_count = self._unlink(duplicate_path, removed_count, duplicate_file)
+                        removed_count = self._unlink(duplicate_path, removed_count,
+                                                     duplicate_file)
 
                     elif self.config.duplicate_action == DuplicateAction.QUARANTINE:
-                        removed_count = self._unlink_quarantine(duplicate_path, removed_count, duplicate_file)
+                        removed_count = self._unlink_quarantine(duplicate_path,
+                                                                removed_count,
+                                                                duplicate_file)
 
         except Exception as e:
             logger.error(f"Error handling duplicates: {e}")
@@ -218,7 +221,8 @@ class CheckManager:
             logger.debug(f"Removed duplicate: {duplicate_file}")
         return removed_count
 
-    def _unlink_quarantine(self, duplicate_path: Path, removed_count: int, duplicate_file: str) -> int:
+    def _unlink_quarantine(self, duplicate_path: Path, removed_count: int,
+                           duplicate_file: str) -> int:
         """Move a duplicate file to quarantine"""
         if duplicate_path.exists() and self.config.quarantine_dir:
             quarantine_path = Path(self.config.quarantine_dir) / duplicate_file
@@ -228,7 +232,8 @@ class CheckManager:
             logger.debug(f"Quarantined duplicate: {duplicate_file}")
         return removed_count
 
-    def check_duplicates(self, directory: str, category_name: str = "", keyword: str = "") -> DuplicateResult:
+    def check_duplicates(self, directory: str, category_name: str = "",
+                         keyword: str = "") -> DuplicateResult:
         """
         Enhanced duplicate checking with comprehensive result tracking.
 
@@ -278,7 +283,7 @@ class CheckManager:
             error_msg = f"Failed to check duplicates: {e}"
             if category_name and keyword:
                 error_msg = f"Failed to check duplicates for {category_name}/{keyword}: {e}"
-            
+
             logger.error(error_msg)
             result.errors.append(error_msg)
             self.stats.failed_checks += 1
@@ -303,8 +308,8 @@ class CheckManager:
 
         return result
 
-    def check_integrity(self, directory: str, expected_count: int = 0, 
-                       category_name: str = "", keyword: str = "") -> IntegrityResult:
+    def check_integrity(self, directory: str, expected_count: int = 0,
+                        category_name: str = "", keyword: str = "") -> IntegrityResult:
         """
         Enhanced integrity checking with detailed result tracking.
 
@@ -322,7 +327,8 @@ class CheckManager:
 
         try:
             # Count valid images
-            valid_count, total_count, corrupted_files = self.image_validator.count_valid(directory)
+            valid_count, total_count, corrupted_files = self.image_validator.count_valid(
+                directory)
 
             result.total_images = total_count
             result.valid_images = valid_count
@@ -336,10 +342,12 @@ class CheckManager:
                     file_size = file_path.stat().st_size
 
                     if file_size < self.config.min_file_size_bytes:
-                        result.size_violations.append(f"{file_path.name} (too small: {file_size} bytes)")
+                        result.size_violations.append(
+                            f"{file_path.name} (too small: {file_size} bytes)")
                     elif (self.config.max_file_size_mb and
                           file_size > self.config.max_file_size_mb * 1024 * 1024):
-                        result.size_violations.append(f"{file_path.name} (too large: {file_size} bytes)")
+                        result.size_violations.append(
+                            f"{file_path.name} (too large: {file_size} bytes)")
 
             # Update statistics
             self.stats.total_corrupted_found += result.corrupted_images
@@ -358,7 +366,7 @@ class CheckManager:
             error_msg = f"Failed to check integrity: {e}"
             if category_name and keyword:
                 error_msg = f"Failed to check integrity for {category_name}/{keyword}: {e}"
-                
+
             logger.error(error_msg)
             result.errors.append(error_msg)
             self.stats.failed_checks += 1
@@ -385,7 +393,8 @@ class CheckManager:
         return result
 
     def check_all(self, directory: str, expected_count: int = 0,
-                  category_name: str = "", keyword: str = "") -> Tuple[DuplicateResult, IntegrityResult]:
+                  category_name: str = "", keyword: str = "") -> Tuple[
+        DuplicateResult, IntegrityResult]:
         """
         Perform both duplicate and integrity checks in sequence.
 
@@ -406,11 +415,13 @@ class CheckManager:
         duplicate_result = self.check_duplicates(directory, category_name, keyword)
 
         # Then check integrity
-        integrity_result = self.check_integrity(directory, expected_count, category_name, keyword)
+        integrity_result = self.check_integrity(directory, expected_count,
+                                                category_name, keyword)
 
         return duplicate_result, integrity_result
 
-    def _update_duplicate_statistics(self, result: DuplicateResult, category_name: str, keyword: str):
+    def _update_duplicate_statistics(self, result: DuplicateResult, category_name: str,
+                                     keyword: str):
         """Update statistics after duplicate check"""
         self.stats.total_duplicates_found += result.duplicates_found
         self.stats.total_duplicates_removed += result.duplicates_removed

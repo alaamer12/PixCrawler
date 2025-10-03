@@ -7,7 +7,9 @@ for generating image datasets with various configurations.
 
 import json
 from pathlib import Path
+
 from builder import Builder
+
 
 def create_sample_config():
     """Create a sample configuration file for demonstration."""
@@ -33,6 +35,7 @@ def create_sample_config():
 
     return str(config_path)
 
+
 def example_basic_usage():
     """Example 1: Basic usage with config file."""
     print("=== Example 1: Basic Usage ===")
@@ -55,6 +58,7 @@ def example_basic_usage():
     finally:
         # Cleanup
         Path(config_path).unlink(missing_ok=True)
+
 
 def example_advanced_usage():
     """Example 2: Advanced usage with custom configuration."""
@@ -88,6 +92,7 @@ def example_advanced_usage():
 
     finally:
         Path(config_path).unlink(missing_ok=True)
+
 
 def example_individual_operations():
     """Example 3: Using individual operations."""
@@ -123,6 +128,7 @@ def example_individual_operations():
 
     finally:
         Path(config_path).unlink(missing_ok=True)
+
 
 def example_monorepo_usage():
     """Example 4: Usage across monorepo packages."""
@@ -168,6 +174,7 @@ def example_monorepo_usage():
 
     finally:
         Path(config_path).unlink(missing_ok=True)
+
 
 if __name__ == "__main__":
     print("PixCrawler Builder Class Examples")

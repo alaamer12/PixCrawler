@@ -17,11 +17,12 @@ Features:
 """
 
 from typing import Optional, Dict, Any
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from backend.services.supabase_auth import SupabaseAuthService
 from backend.core.exceptions import AuthenticationError
+from backend.services.supabase_auth import SupabaseAuthService
 
 __all__ = [
     'get_current_user',

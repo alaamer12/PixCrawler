@@ -7,37 +7,37 @@ name = "pixcrawler-validator"
 version = "0.1.0"
 description = "Image validation, integrity checking, and duplicate detection for PixCrawler"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = { file = "LICENSE" }
 authors = [
-    {name = "PixCrawler Team", email = "team@pixcrawler.com"}
+  { name = "PixCrawler Team", email = "team@pixcrawler.com" }
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Scientific/Engineering :: Image Processing",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Scientific/Engineering :: Image Processing",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 keywords = ["image", "validation", "integrity", "duplicate", "detection", "dataset", "machine-learning"]
 requires-python = ">=3.10"
 
 dependencies = [
-    "pillow>=10.0.0",
-    "tqdm>=4.65.0",
-    "pixcrawler-logging",
+  "pillow>=10.0.0",
+  "tqdm>=4.65.0",
+  "pixcrawler-logging",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "ruff>=0.1.0",
-    "mypy>=1.5.0",
+  "pytest>=7.0.0",
+  "pytest-cov>=4.0.0",
+  "ruff>=0.1.0",
+  "mypy>=1.5.0",
 ]
 
 [project.urls]
@@ -53,18 +53,18 @@ packages = ["validator"]
 line-length = 88
 target-version = "py310"
 select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "B",  # flake8-bugbear
-    "C4", # flake8-comprehensions
-    "UP", # pyupgrade
+  "E", # pycodestyle errors
+  "W", # pycodestyle warnings
+  "F", # pyflakes
+  "I", # isort
+  "B", # flake8-bugbear
+  "C4", # flake8-comprehensions
+  "UP", # pyupgrade
 ]
 ignore = [
-    "E501",  # line too long, handled by black
-    "B008",  # do not perform function calls in argument defaults
-    "C901",  # too complex
+  "E501", # line too long, handled by black
+  "B008", # do not perform function calls in argument defaults
+  "C901", # too complex
 ]
 
 [tool.ruff.per-file-ignores]
@@ -90,8 +90,8 @@ warn_unreachable = true
 
 [[tool.mypy.overrides]]
 module = [
-    "PIL.*",
-    "tqdm.*",
+  "PIL.*",
+  "tqdm.*",
 ]
 ignore_missing_imports = true
 
@@ -101,14 +101,14 @@ python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = [
-    "--strict-markers",
-    "--strict-config",
-    "--cov=validator",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-report=xml",
+  "--strict-markers",
+  "--strict-config",
+  "--cov=validator",
+  "--cov-report=term-missing",
+  "--cov-report=html",
+  "--cov-report=xml",
 ]
 markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "integration: marks tests as integration tests",
 ]

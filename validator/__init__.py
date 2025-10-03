@@ -21,11 +21,11 @@ Functions:
 Example:
     ```python
     from validator import IntegrityProcessor, ValidationConfig
-    
+
     # Simple validation
     processor = IntegrityProcessor()
     results = processor.process_dataset("./dataset", remove_duplicates=True)
-    
+
     # Advanced validation with custom config
     config = ValidationConfig(
         mode=CheckMode.STRICT,
@@ -72,10 +72,10 @@ __email__ = "team@pixcrawler.com"
 __all__ = [
     # Core integrity classes
     "ImageHasher",
-    "DuplicationManager", 
+    "DuplicationManager",
     "ImageValidator",
     "IntegrityProcessor",
-    
+
     # Validation management
     "CheckManager",
     "ValidationConfig",
@@ -84,7 +84,7 @@ __all__ = [
     "DuplicateResult",
     "IntegrityResult",
     "CheckStats",
-    
+
     # Convenience functions
     "validate_dataset",
     "remove_duplicates",

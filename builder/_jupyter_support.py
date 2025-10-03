@@ -30,7 +30,8 @@ def is_running_in_notebook() -> bool:
     try:
         import IPython  # type: ignore
         ipython = IPython.get_ipython()
-        if ipython is not None and ('IPKernelApp' in ipython.config or 'google.colab' in str(ipython)):
+        if ipython is not None and (
+            'IPKernelApp' in ipython.config or 'google.colab' in str(ipython)):
             return True
         return False
     except ImportError:
@@ -48,7 +49,8 @@ def print_help_colored(parser: argparse.ArgumentParser) -> None:
     print(f"{Colors.CYAN}{PIXCRAWLER_ASCII}{Colors.ENDC}")
 
     # Print description
-    print(f"{Colors.BOLD}{Colors.GREEN}PixCrawler: Image Dataset Generator{Colors.ENDC}\n")
+    print(
+        f"{Colors.BOLD}{Colors.GREEN}PixCrawler: Image Dataset Generator{Colors.ENDC}\n")
 
     # Get the help text
     help_text = parser.format_help()
@@ -69,7 +71,8 @@ def print_help_colored(parser: argparse.ArgumentParser) -> None:
         else:
             print(line)
 
-    print(f"\n{Colors.BOLD}For more information, visit: https://github.com/yourusername/pixcrawler{Colors.ENDC}\n")
+    print(
+        f"\n{Colors.BOLD}For more information, visit: https://github.com/yourusername/pixcrawler{Colors.ENDC}\n")
 
 
 def colorize_output(text: str, style: str = None) -> str:

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Initial project structure
 - Multi-engine support (Google, Bing, Baidu, DuckDuckGo)
 - Parallel image downloading
@@ -20,18 +21,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive documentation
 
 ### Changed
+
 - Enhanced argument parsing with organized groups
 - Improved error handling and logging
 - Better report structure with tables and collapsible sections
 
 ### Fixed
+
 - Race conditions in parallel downloads
 - CLI arguments properly override config file options
 
 ## [0.1.0] - 2023-11-01
 
 ### Added
+
 - Initial release
 
 [Unreleased]: https://github.com/yourusername/pixcrawler/compare/v0.1.0...HEAD
+
 [0.1.0]: https://github.com/yourusername/pixcrawler/releases/tag/v0.1.0 

@@ -105,7 +105,8 @@ def _download_images_with_crawler(engine_name: str, crawler_class: Type, keyword
 
                 # Basic count of downloaded files - validation moved to validator package
                 try:
-                    files = [f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'))]
+                    files = [f for f in os.listdir(out_dir) if f.lower().endswith(
+                        ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'))]
                     downloaded_count = len(files) - file_idx_offset
                 except OSError:
                     downloaded_count = 0
@@ -144,7 +145,8 @@ def _download_images_with_crawler(engine_name: str, crawler_class: Type, keyword
 
 def download_google_images(keyword: str, variations: List[str], out_dir: str,
                            max_num: int,
-                           config: SearchEngineConfig, image_downloader: Any) -> EngineResult:
+                           config: SearchEngineConfig,
+                           image_downloader: Any) -> EngineResult:
     """Download images using Google Image Crawler."""
     return _download_images_with_crawler("google", GoogleImageCrawler, keyword,
                                          variations, out_dir, max_num, config,
@@ -153,7 +155,8 @@ def download_google_images(keyword: str, variations: List[str], out_dir: str,
 
 def download_bing_images(keyword: str, variations: List[str], out_dir: str,
                          max_num: int,
-                         config: SearchEngineConfig, image_downloader: Any) -> EngineResult:
+                         config: SearchEngineConfig,
+                         image_downloader: Any) -> EngineResult:
     """Download images using Bing Image Crawler."""
     return _download_images_with_crawler("bing", BingImageCrawler, keyword,
                                          variations, out_dir, max_num, config,
@@ -162,7 +165,8 @@ def download_bing_images(keyword: str, variations: List[str], out_dir: str,
 
 def download_baidu_images(keyword: str, variations: List[str], out_dir: str,
                           max_num: int,
-                          config: SearchEngineConfig, image_downloader: Any) -> EngineResult:
+                          config: SearchEngineConfig,
+                          image_downloader: Any) -> EngineResult:
     """Download images using Baidu Image Crawler."""
     return _download_images_with_crawler("baidu", BaiduImageCrawler, keyword,
                                          variations, out_dir, max_num, config,
