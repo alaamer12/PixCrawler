@@ -72,11 +72,10 @@ class Settings(BaseSettings):
     port: int = Field(default=8000, description="Server port")
     log_level: str = Field(default="INFO", description="Logging level")
 
-    # Security settings
-    secret_key: str = Field(..., description="Secret key for JWT tokens")
-    access_token_expire_minutes: int = Field(default=30, description="Access token expiration")
-    refresh_token_expire_days: int = Field(default=7, description="Refresh token expiration")
-    algorithm: str = Field(default="HS256", description="JWT algorithm")
+    # Supabase settings
+    supabase_url: str = Field(..., description="Supabase project URL")
+    supabase_service_role_key: str = Field(..., description="Supabase service role key")
+    supabase_anon_key: str = Field(..., description="Supabase anonymous key")
 
     # CORS settings
     allowed_origins: List[str] = Field(

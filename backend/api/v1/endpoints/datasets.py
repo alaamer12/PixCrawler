@@ -2,12 +2,13 @@
 Dataset management endpoints.
 """
 
+from typing import Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.models.base import PaginatedResponse, PaginationParams
-from backend.models.dataset import DatasetCreate, DatasetResponse, DatasetStats, \
-    DatasetUpdate
+from backend.models.dataset import DatasetCreate, DatasetResponse, DatasetStats, DatasetUpdate
 from backend.services.dataset import DatasetService
+from backend.api.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -15,6 +16,7 @@ router = APIRouter()
 @router.post("/", response_model=DatasetResponse, status_code=status.HTTP_201_CREATED)
 async def create_dataset(
     dataset_create: DatasetCreate,
+    current_user: Dict[str, Any] = Depends(get_current_user),
     dataset_service: DatasetService = Depends(),
 ) -> DatasetResponse:
     """
