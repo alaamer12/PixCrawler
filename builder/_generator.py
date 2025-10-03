@@ -40,13 +40,12 @@ import re
 import threading
 import time
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, auto
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Tuple, Final, Iterator, Union, Set
 
 import jsonschema
 from PIL import Image
-from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler
 from jsonschema import validate
 
 from builder._exceptions import PixCrawlerError, ConfigurationError, DownloadError, GenerationError
@@ -57,7 +56,7 @@ from builder._config import get_basic_variations, get_quality_variations, get_ge
     get_time_period_variations, get_condition_age_variations, get_emotional_aesthetic_variations, \
     get_quantity_arrangement_variations, get_camera_technique_variations, get_focus_sharpness_variations, \
     get_texture_material_variations
-from builder._constants import DEFAULT_CACHE_FILE, DEFAULT_LOG_FILE, ENGINES, \
+from builder._constants import DEFAULT_CACHE_FILE, ENGINES, \
     logger, IMAGE_EXTENSIONS
 from builder._downloader import ImageDownloader, download_images_ddgs
 from builder._helpers import ReportGenerator, DatasetTracker, ProgressManager, progress, valid_image_ext
@@ -113,63 +112,6 @@ def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, An
             logger.info(f"Applied {option_name}={new_value} from config file")
         elif not is_using_default:
             logger.debug(f"CLI argument overriding config file for {option_name}")
-
-
-def _download_with_engine(engine_name: str, keyword: str, out_dir: str, max_num: int,
-                          offset: int = 0, file_idx_offset: int = 0) -> bool:
-    """
-    Downloads images using a specific search engine.
-
-    Args:
-        engine_name (str): Name of the search engine to use ("google", "bing", "baidu", "ddgs").
-        keyword (str): Search term for images.
-        out_dir (str): Output directory path.
-        max_num (int): Maximum number of images to download.
-        offset (int): Search offset to avoid duplicate results (default is 0).
-        file_idx_offset (int): Starting index for file naming (default is 0).
-
-    Returns:
-        bool: True if download was successful, False otherwise.
-
-    Raises:
-        DownloadError: If the download fails for any reason.
-    """
-    try:
-        if engine_name == "ddgs":
-            success, _ = download_images_ddgs(keyword=keyword, out_dir=out_dir, max_num=max_num)
-            if not success:
-                raise DownloadError(f"DuckDuckGo download failed for {keyword}")
-            return success
-
-        # Configure crawler based on engine
-        crawler_class = {
-            "google": GoogleImageCrawler,
-            "bing": BingImageCrawler,
-            "baidu": BaiduImageCrawler
-        }.get(engine_name)
-
-        if not crawler_class:
-            raise DownloadError(f"Unknown engine: {engine_name}")
-
-        crawler = crawler_class(
-            storage={'root_dir': out_dir},
-            log_level=logging.WARNING,
-            feeder_threads=1,
-            parser_threads=1,
-            downloader_threads=3
-        )
-
-        crawler.crawl(
-            keyword=keyword,
-            max_num=max_num,
-            min_size=(100, 100),
-            offset=offset,
-            file_idx_offset=file_idx_offset
-        )
-        return True
-    except Exception as e:
-        logger.warning(f"{engine_name.capitalize()}ImageCrawler failed: {e}")
-        raise DownloadError(f"{engine_name.capitalize()}ImageCrawler failed for {keyword}: {e}") from e
 
 
 # noinspection PyArgumentList
@@ -887,16 +829,16 @@ class ConfigManager:
 
 class CheckMode(Enum):
     """Enumeration of available check modes"""
-    STRICT = "strict"  # Fail on any issues
-    LENIENT = "lenient"  # Log warnings but continue
-    REPORT_ONLY = "report_only"  # Only report, no actions
+    STRICT = auto()  # Fail on any issues
+    LENIENT = auto()  # Log warnings but continue
+    REPORT_ONLY = auto()  # Only report, no actions
 
 
 class DuplicateAction(Enum):
     """Actions to take when duplicates are found"""
-    REMOVE = "remove"
-    REPORT_ONLY = "report_only"
-    QUARANTINE = "quarantine"
+    REMOVE = auto()
+    REPORT_ONLY = auto()
+    QUARANTINE = auto()
 
 
 @dataclass
@@ -1303,15 +1245,15 @@ def update_logfile(log_file: str) -> None:
     Args:
         log_file (str): The absolute path to the desired log file.
     """
-    if log_file != DEFAULT_LOG_FILE:
-        for handler in logger.handlers:
-            if isinstance(handler, logging.FileHandler):
-                handler.close()
-                logger.removeHandler(handler)
+    # if log_file != DEFAULT_LOG_FILE:
+    #     for handler in logger.handlers:
+    #         if isinstance(handler, logging.FileHandler):
+    #             handler.close()
+    #             logger.removeHandler(handler)
 
-        # Use centralized logging system - no need to manually configure handlers
-        from logging_config import get_logger
-        logger = get_logger('builder.generator')
+    # Use centralized logging system - no need to manually configure handlers
+    from logging_config import get_logger
+    logger = get_logger('builder.generator')
 
 
 def validate_keywords(keywords: List[str]) -> List[str]:
