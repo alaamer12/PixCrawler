@@ -32,6 +32,7 @@ from typing import List, Tuple, Optional, Final
 import requests
 from ddgs import DDGS
 
+from _search_engines import download_images_ddgs
 from builder._config import get_search_variations
 from builder._constants import logger
 from builder._engine import EngineProcessor
@@ -44,7 +45,6 @@ __all__ = [
     'ABC',
     'SearchEngine',
     'DDGSImageDownloader',
-    'download_images_ddgs',
     'ImageDownloader',
     'APIDownloader',
     'AioHttpDownloader'
@@ -363,50 +363,6 @@ class DDGSImageDownloader(SearchEngine):
         except Exception as e:
             logger.error(f"An unexpected error occurred while downloading images for '{keyword}': {e}")
             raise DownloadError(f"Unexpected error during download for '{keyword}': {e}") from e
-
-
-def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
-    """
-    Downloads images directly using the DuckDuckGo search engine.
-    This function serves as a wrapper for the `DuckDuckGo` class.
-
-    Args:
-        keyword (str): The search term for images.
-        out_dir (str): The output directory path where images will be saved.
-        max_num (int): The maximum number of images to download.
-
-    Returns:
-        Tuple[bool, int]: A tuple where the first element is True if any images were downloaded,
-                         and the second element is the total count of downloaded images.
-    """
-    try:
-        # Create the output directory if it doesn't exist
-        Path(out_dir).mkdir(parents=True, exist_ok=True)
-
-        # Initialize the DuckDuckGo downloader with parallel processing
-        ddg_downloader = DDGSImageDownloader(max_workers=6)
-
-        # Get the current count of images in the directory
-        initial_count = len([f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
-
-        logger.info(f"Using DuckDuckGo to download up to {max_num} images for '{keyword}'")
-
-        # Download images
-        _ = ddg_downloader.download(keyword, out_dir, max_num)
-
-        # Get the new count of images
-        final_count = len([f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
-        actual_downloaded = final_count - initial_count
-
-        logger.info(f"DuckDuckGo download complete: {actual_downloaded} new images")
-
-        return True, actual_downloaded
-    except DownloadError as de:
-        logger.error(f"DuckDuckGo download failed for '{keyword}': {de}")
-        return False, 0
-    except Exception as e:
-        logger.error(f"An unexpected error occurred during DuckDuckGo download for '{keyword}': {e}")
-        return False, 0
 
 
 class ImageDownloader(IDownloader):

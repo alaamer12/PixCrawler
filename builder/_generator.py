@@ -58,9 +58,10 @@ from builder._config import get_basic_variations, get_quality_variations, get_ge
     get_texture_material_variations
 from builder._constants import DEFAULT_CACHE_FILE, ENGINES, \
     logger, IMAGE_EXTENSIONS
-from builder._downloader import ImageDownloader, download_images_ddgs
+from builder._downloader import ImageDownloader
+from _search_engines import download_images_ddgs
 from builder._helpers import ReportGenerator, DatasetTracker, ProgressManager, progress, valid_image_ext
-from builder._utilities import ProgressCache, rename_images_sequentially, DuplicationManager, image_validator
+from builder._utilities import rename_images_sequentially
 
 __all__ = [
     'retry_download',
@@ -75,9 +76,11 @@ __all__ = [
     'ConfigManager',
 ]
 
+from progress import ProgressCache
+
 BACKOFF_DELAY: Final[float] = 0.5
 
-duplicate_manager = DuplicationManager()
+# Integrity management moved to backend package
 
 
 def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, Any]) -> None:

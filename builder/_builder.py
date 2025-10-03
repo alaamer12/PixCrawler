@@ -47,7 +47,7 @@ from builder._exceptions import (
 )
 from builder._generator import DatasetGenerator, ConfigManager
 from builder._helpers import ReportGenerator, ProgressManager
-from builder._utilities import image_validator
+# Image validation moved to backend package
 
 __all__ = ['Builder']
 
@@ -246,6 +246,7 @@ class Builder:
     def validate(directory: str, remove_invalid: bool = True) -> Dict[str, Any]:
         """
         Validate integrity of images in a directory.
+        Note: This functionality has been moved to the backend package.
 
         Args:
             directory (str): Directory containing images to validate
@@ -259,11 +260,14 @@ class Builder:
         """
         try:
             logger.info(f"Validating images in: {directory}")
-
-            results = image_validator(directory, remove_invalid=remove_invalid)
-
-            logger.info(f"Validation completed: {results}")
-            return results
+            logger.warning("Image validation functionality moved to backend package. Use backend.validate_dataset() instead.")
+            
+            # For backward compatibility, return empty results
+            return {
+                'valid_count': 0,
+                'total_count': 0,
+                'corrupted_files': []
+            }
 
         except Exception as e:
             logger.error(f"Image validation failed: {e}")

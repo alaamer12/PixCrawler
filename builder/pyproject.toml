@@ -34,6 +34,7 @@ dependencies = [
     "icrawler",
     "tqdm",
     "g4f",
+    "pixcrawler-logging",
 ]
 
 [tool.hatch.build.targets.wheel]
