@@ -34,14 +34,15 @@ backend/
 ## Features
 
 - **RESTful API**: Clean, versioned REST endpoints with OpenAPI documentation
-- **Authentication**: JWT-based authentication with refresh tokens
-- **Database**: Async PostgreSQL with SQLAlchemy ORM
-- **Caching**: Redis integration for sessions and caching
-- **Background Jobs**: Celery integration for dataset processing
+- **Supabase Integration**: Seamless integration with Supabase Auth and PostgreSQL
+- **Shared Database**: Direct connection to Supabase PostgreSQL with SQLAlchemy ORM
+- **Real-time Updates**: Leverages Supabase real-time for job status updates
+- **Background Jobs**: Async crawl job execution with progress tracking
+- **Builder Integration**: Uses PixCrawler builder package for image crawling
 - **Logging**: Centralized logging with structured output
 - **Validation**: Comprehensive request/response validation with Pydantic
 - **Error Handling**: Structured error responses with proper HTTP status codes
-- **Security**: Built-in security headers and CORS configuration
+- **Security**: Supabase Auth integration with service role key management
 
 ## Quick Start
 
@@ -84,10 +85,10 @@ The API will be available at `http://localhost:8000` with interactive documentat
 ### Health Check
 - `GET /api/v1/health/` - Service health status
 
-### Authentication
-- `POST /api/v1/auth/login` - User login
-- `POST /api/v1/auth/refresh` - Refresh access token
-- `POST /api/v1/auth/logout` - User logout
+### Authentication (Supabase Integration)
+- `GET /api/v1/auth/me` - Get current user profile
+- `POST /api/v1/auth/verify-token` - Verify Supabase JWT token
+- `POST /api/v1/auth/sync-profile` - Sync user profile from Supabase Auth
 
 ### Users
 - `POST /api/v1/users/` - Create user account
@@ -96,14 +97,15 @@ The API will be available at `http://localhost:8000` with interactive documentat
 - `PUT /api/v1/users/{id}` - Update user
 - `DELETE /api/v1/users/{id}` - Delete user
 
-### Datasets
+### Crawl Jobs (Image Dataset Generation)
+- `POST /api/v1/jobs/` - Create and start crawl job
+- `GET /api/v1/jobs/{id}` - Get crawl job status and progress
+- `POST /api/v1/jobs/{id}/cancel` - Cancel running crawl job
+
+### Legacy Datasets (Deprecated)
 - `POST /api/v1/datasets/` - Create dataset generation job
 - `GET /api/v1/datasets/` - List datasets (paginated)
 - `GET /api/v1/datasets/stats` - Get dataset statistics
-- `GET /api/v1/datasets/{id}` - Get dataset by ID
-- `PUT /api/v1/datasets/{id}` - Update dataset
-- `DELETE /api/v1/datasets/{id}` - Delete dataset
-- `POST /api/v1/datasets/{id}/cancel` - Cancel dataset processing
 
 ## Configuration
 
