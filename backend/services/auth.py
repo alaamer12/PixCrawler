@@ -3,7 +3,7 @@ Authentication service for user authentication and authorization.
 """
 
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Dict
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -13,6 +13,10 @@ from backend.core.exceptions import AuthenticationError
 from backend.models.user import TokenResponse
 
 from .base import BaseService
+
+__all__ = [
+    'AuthService'
+]
 
 
 class AuthService(BaseService):
@@ -48,7 +52,7 @@ class AuthService(BaseService):
         """
         return self.pwd_context.hash(password)
 
-    def create_access_token(self, data: dict[str, Any]) -> str:
+    def create_access_token(self, data: Dict[str, Any]) -> str:
         """
         Create a JWT access token.
 
@@ -69,7 +73,7 @@ class AuthService(BaseService):
             algorithm=self.settings.algorithm
         )
 
-    def create_refresh_token(self, data: dict[str, Any]) -> str:
+    def create_refresh_token(self, data: Dict[str, Any]) -> str:
         """
         Create a JWT refresh token.
 
@@ -90,7 +94,7 @@ class AuthService(BaseService):
             algorithm=self.settings.algorithm
         )
 
-    def verify_token(self, token: str, token_type: str = "access") -> dict[str, Any]:
+    def verify_token(self, token: str, token_type: str = "access") -> Dict[str, Any]:
         """
         Verify and decode a JWT token.
 

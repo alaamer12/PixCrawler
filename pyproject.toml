@@ -24,7 +24,7 @@ classifiers = [
     "Topic :: Software Development :: Code Generators",
 ]
 dependencies = [
-    "backend",
+    "pixcrawler-backend",
     "builder",
     "pixcrawler-logging"
 ]
@@ -41,7 +41,7 @@ Issues = "https://github.com/pixcrawler/pixcrawler/issues"
 members = ["backend", "builder", "logging_config"]
 
 [tool.uv.sources]
-backend = { workspace = true }
+pixcrawler-backend = { workspace = true }
 builder = { workspace = true }
 pixcrawler-logging = { workspace = true }
 
