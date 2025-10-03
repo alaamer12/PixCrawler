@@ -26,6 +26,7 @@ Features:
 - Comprehensive report generation for dataset overview
 
 Note: Image integrity checking and duplicate detection have been moved to the validator package.
+Note: Report generation has been moved to the src package.
 """
 
 import contextlib
@@ -47,23 +48,21 @@ from jsonschema import validate
 
 from _search_engines import download_images_ddgs
 from builder._config import DatasetGenerationConfig, CONFIG_SCHEMA
-from builder._config import get_basic_variations, get_quality_variations, \
-    get_generic_quality_variations, get_search_variations, \
-    get_lighting_variations, get_location_variations, get_background_variations, \
-    get_professional_variations, \
-    get_color_variations, get_style_variations, get_meme_culture_variations, \
-    get_size_format_variations, \
-    get_time_period_variations, get_condition_age_variations, \
-    get_emotional_aesthetic_variations, \
-    get_quantity_arrangement_variations, get_camera_technique_variations, \
-    get_focus_sharpness_variations, \
-    get_texture_material_variations
+from _predefined_variations import get_basic_variations, get_quality_variations, \
+    get_style_variations, get_time_period_variations, \
+    get_emotional_aesthetic_variations, get_meme_culture_variations, \
+    get_professional_variations, get_camera_technique_variations, \
+    get_focus_sharpness_variations, get_color_variations, get_lighting_variations, \
+    get_location_variations, get_background_variations, get_size_format_variations, \
+    get_texture_material_variations, get_condition_age_variations, \
+    get_quantity_arrangement_variations, get_generic_quality_variations, \
+    get_search_variations
 from builder._constants import DEFAULT_CACHE_FILE, ENGINES, \
     logger, IMAGE_EXTENSIONS
 from builder._downloader import ImageDownloader
 from builder._exceptions import ConfigurationError, DownloadError, \
     GenerationError
-from builder._helpers import ReportGenerator, DatasetTracker, ProgressManager, progress, \
+from builder._helpers import DatasetTracker, ProgressManager, progress, \
     valid_image_ext
 from builder._utilities import rename_images_sequentially
 
@@ -104,15 +103,15 @@ def _apply_config_options(config: DatasetGenerationConfig,
     config_mappings = {
         'max_images': (config.max_images == 10, lambda: options.get('max_images')),
         'output_dir': (config.output_dir is None, lambda: options.get('output_dir')),
-        'integrity': (config.integrity is True, lambda: options.get('integrity')),
         'max_retries': (config.max_retries == 5, lambda: options.get('max_retries')),
         'cache_file': (
-        config.cache_file == DEFAULT_CACHE_FILE, lambda: options.get('cache_file')),
+            config.cache_file == DEFAULT_CACHE_FILE, lambda: options.get('cache_file')),
         'keyword_generation': (
-        config.keyword_generation == "auto", lambda: options.get('keyword_generation')),
+            config.keyword_generation == "auto",
+            lambda: options.get('keyword_generation')),
         'ai_model': (config.ai_model == "gpt4-mini", lambda: options.get('ai_model')),
         'generate_labels': (
-        config.generate_labels is True, lambda: options.get('generate_labels'))
+            config.generate_labels is True, lambda: options.get('generate_labels'))
     }
 
     # Apply each config option if its CLI argument is using the default value
@@ -654,7 +653,7 @@ class Retry:
 
 # Backward compatibility function
 def retry_download(keyword: str, out_dir: str, max_num: int, max_retries: int = 5) -> \
-Tuple[bool, int]:
+    Tuple[bool, int]:
     """
     Backward compatibility function that maintains the original API.
 
@@ -1527,8 +1526,8 @@ class KeywordManagement:
                 with contextlib.suppress(Exception):
                     # Parse as Python list
                     keywords = eval(list_str)
-                    if isinstance(keywords, list) and all(
-                        isinstance(k, str) for k in keywords):
+                    if not (not isinstance(keywords, list) or not all(
+                        isinstance(k, str) for k in keywords)):
                         return self._clean_and_deduplicate_keywords(keywords, category)
 
             # If we couldn't parse a proper list, try to extract keywords line by line
@@ -1608,7 +1607,6 @@ class DatasetGenerator:
         self.root_dir = self._setup_output_directory()
         self.tracker = DatasetTracker()
         self.progress_cache = self._initialize_progress_cache()
-        self.report = self._initialize_report()
         self.label_generator = LabelGenerator() if self.config.generate_labels else None
 
         # Initialize KeywordManagement instance
@@ -1654,7 +1652,7 @@ class DatasetGenerator:
 
         # Generate keyword statistics for reporting
         keyword_stats_ = keyword_stats(all_keyword_results)
-        self._record_keyword_statistics(keyword_stats_)
+        # Report generation moved to src package
 
         # Start the download/generation step
         self.progress.start_step("download", total=total_keywords)
@@ -1665,14 +1663,7 @@ class DatasetGenerator:
             self.progress.start_subtask(f"Category: {category_name}",
                                         total=len(keyword_result['keywords']))
 
-            # Record keyword generation in report if any generation occurred
-            if keyword_result['generation_occurred']:
-                self.report.record_keyword_generation(
-                    category_name,
-                    keyword_result['original_keywords'],
-                    keyword_result['generated_keywords'],
-                    self.config.ai_model
-                )
+            # Report generation moved to src package
 
             self._process_category(category_name, keyword_result['keywords'])
             self.progress.close_subtask()
@@ -1685,11 +1676,7 @@ class DatasetGenerator:
             logger.info("Generating labels for the dataset")
             self.label_generator.generate_dataset_labels(str(self.root_dir))
 
-        # Start the report generation step
-        self.progress.start_step("report")
-        logger.info("Generating dataset report")
-        self.report.generate()
-        self.progress.update_step(1)
+        # Report generation moved to src package
         self.progress.close()
 
         # Start the finalizing step
@@ -1731,31 +1718,6 @@ class DatasetGenerator:
             f"Continuing from previous run. Already completed: {stats['total_completed']} items across {stats['categories']} categories.")
         return progress_cache
 
-    def _initialize_report(self) -> ReportGenerator:
-        """
-        Initializes the ReportGenerator and populates it with initial dataset information.
-
-        Returns:
-            ReportGenerator: An instance of the ReportGenerator.
-        """
-        report = ReportGenerator(str(self.root_dir))
-        report.add_summary(f"Dataset name: {self.dataset_name}")
-        report.add_summary(f"Configuration: {self.config.config_path}")
-        report.add_summary(f"Categories: {len(self.categories)}")
-        report.add_summary(f"Max images per keyword: {self.config.max_images}")
-        report.add_summary(f"Keyword generation mode: {self.config.keyword_generation}")
-
-        if self.config.keyword_generation != "disabled":
-            report.add_summary(
-                f"AI model for keyword generation: {self.config.ai_model}")
-
-        if self.config.continue_from_last and self.progress_cache:
-            stats = self.progress_cache.get_completion_stats()
-            report.add_summary(
-                f"Continuing from previous run with {stats['total_completed']} completed items")
-
-        return report
-
     def _load_and_validate_config(self) -> Union[Dict[str, Any], ConfigManager]:
         """
         Loads and validates the dataset configuration from the specified config file.
@@ -1773,25 +1735,6 @@ class DatasetGenerator:
             _apply_config_options(self.config, options)
 
         return dataset_config
-
-    def _record_keyword_statistics(self, stats: Dict[str, Any]) -> None:
-        """
-        Records keyword generation statistics in the report.
-
-        Args:
-            stats (Dict[str, Any]): Statistics about keyword generation.
-        """
-        self.report.add_summary(f"Keyword generation statistics:")
-        self.report.add_summary(f"  - Total categories: {stats['total_categories']}")
-        self.report.add_summary(
-            f"  - Categories with generation: {stats['categories_with_generation']}")
-        self.report.add_summary(
-            f"  - Total original keywords: {stats['total_original_keywords']}")
-        self.report.add_summary(
-            f"  - Total generated keywords: {stats['total_generated_keywords']}")
-        self.report.add_summary(
-            f"  - Total final keywords: {stats['total_final_keywords']}")
-        self.report.add_summary(f"  - Generation rate: {stats['generation_rate']:.2%}")
 
     def _process_category(self, category_name: str, keywords: List[str]) -> None:
         """
@@ -1890,7 +1833,6 @@ class DatasetGenerator:
         else:
             error_msg = "Failed to download any valid images after retries"
             self.tracker.record_download_failure(download_context, error_msg)
-            self.report.record_error(f"{category_name}/{keyword} download", error_msg)
 
 
 def generate_dataset(config: DatasetGenerationConfig) -> None:

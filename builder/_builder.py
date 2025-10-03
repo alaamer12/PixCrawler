@@ -35,7 +35,8 @@ import os
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
-from builder._config import DatasetGenerationConfig, get_engines, get_search_variations
+from builder._config import DatasetGenerationConfig, get_engines
+from _predefined_variations import get_search_variations
 from builder._constants import logger, KEYWORD_MODE, AI_MODELS
 from builder._downloader import DDGSImageDownloader
 from builder._engine import EngineProcessor
@@ -44,7 +45,7 @@ from builder._exceptions import (
     GenerationError
 )
 from builder._generator import DatasetGenerator, ConfigManager
-from builder._helpers import ReportGenerator, ProgressManager
+from builder._helpers import ProgressManager
 
 # Image validation moved to backend package
 
@@ -70,7 +71,6 @@ class Builder:
         config (DatasetGenerationConfig): Configuration object for dataset generation
         dataset_generator (DatasetGenerator): Internal dataset generator instance
         engine_processor (EngineProcessor): Engine processor for multi-engine downloads
-        report_generator (ReportGenerator): Report generator instance
         progress_manager (ProgressManager): Progress tracking manager
     """
 
@@ -124,7 +124,6 @@ class Builder:
         # Initialize internal components
         self.dataset_generator: Optional[DatasetGenerator] = None
         self.engine_processor: Optional[EngineProcessor] = None
-        self.report_generator: Optional[ReportGenerator] = None
         self.progress_manager: Optional[ProgressManager] = None
 
         # Load and validate configuration
@@ -273,6 +272,8 @@ class Builder:
         """
         Generate a comprehensive report for the dataset.
 
+        Note: Report generation functionality has been moved to the src package.
+
         Args:
             dataset_dir (str): Directory containing the dataset
 
@@ -282,19 +283,9 @@ class Builder:
         Raises:
             GenerationError: If report generation fails
         """
-        try:
-            logger.info(f"Generating report for dataset: {dataset_dir}")
-
-            self.report_generator = ReportGenerator(dataset_dir)
-            self.report_generator.generate()
-            report_path = self.report_generator.report_file
-
-            logger.info(f"Report generated: {report_path}")
-            return report_path
-
-        except Exception as e:
-            logger.error(f"Report generation failed: {e}")
-            raise GenerationError(f"Failed to generate report: {e}") from e
+        logger.warning("Report generation functionality moved to src package. Use src.report_generator.ReportGenerator directly.")
+        logger.info(f"Dataset directory: {dataset_dir}")
+        return ""
 
     def set_ai_model(self, model: AI_MODELS) -> None:
         """

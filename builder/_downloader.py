@@ -33,7 +33,7 @@ import requests
 from ddgs import DDGS
 
 from _search_engines import download_images_ddgs
-from builder._config import get_search_variations
+from _predefined_variations import get_search_variations
 from builder._constants import logger
 from builder._engine import EngineProcessor
 from builder._exceptions import DownloadError

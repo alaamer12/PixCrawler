@@ -208,7 +208,8 @@ class EngineProcessor:
             logger.info(f"  Total Processing Time: {stats.total_processing_time:.2f}s")
             logger.info("-" * 40)
 
-    def _get_downloader(self, config_name: str):
+    @staticmethod
+    def _get_downloader(config_name: str):
         engine_downloaders = {
             "google": download_google_images,
             "bing": download_bing_images,
@@ -230,7 +231,8 @@ class EngineProcessor:
                 out_dir, per_engine_target, max_num
             )
 
-    def _handle_future_result(self, future, config):
+    @staticmethod
+    def _handle_future_result(future, config) -> EngineResult:
         try:
             result = future.result(timeout=300)  # 5 minute timeout per engine
             logger.info(
@@ -423,6 +425,28 @@ class EngineProcessor:
         for future in futures_dict.keys():
             if not future.done():
                 future.cancel()
+
+    def create_crawler(self, crawler_class: Type[Any], out_dir: str) -> Any:
+        """
+        Creates a crawler instance with proper configuration.
+
+        Args:
+            crawler_class: The crawler class to instantiate
+            out_dir: Output directory for downloaded images
+
+        Returns:
+            Any: Configured crawler instance
+        """
+        try:
+            return crawler_class(
+                storage={'root_dir': out_dir},
+                log_level=self.image_downloader.log_level,
+                feeder_threads=self.image_downloader.feeder_threads,
+                parser_threads=self.image_downloader.parser_threads,
+                downloader_threads=self.image_downloader.downloader_threads
+            )
+        except Exception as e:
+            raise CrawlerInitializationError(f"Failed to create crawler: {e}") from e
 
     @staticmethod
     def get_crawler_class(engine_name: str) -> Type[
