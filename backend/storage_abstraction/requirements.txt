@@ -1,0 +1,3 @@
+boto3>=1.28,<2  # optional, only needed if using S3 provider
+python-dotenv>=1.0,<2  # for loading .env in examples
+pytest>=8,<9  # for running tests
