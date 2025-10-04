@@ -3,12 +3,14 @@ Dataset management endpoints.
 """
 
 from typing import Dict, Any
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from backend.models.base import PaginatedResponse, PaginationParams
-from backend.models.dataset import DatasetCreate, DatasetResponse, DatasetStats, DatasetUpdate
-from backend.services.dataset import DatasetService
 from backend.api.dependencies import get_current_user
+from backend.models.base import PaginatedResponse, PaginationParams
+from backend.models.dataset import DatasetCreate, DatasetResponse, DatasetStats, \
+    DatasetUpdate
+from backend.services.dataset import DatasetService
 
 router = APIRouter()
 

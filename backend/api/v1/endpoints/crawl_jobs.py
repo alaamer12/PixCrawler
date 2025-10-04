@@ -6,14 +6,14 @@ including creation, status monitoring, and execution control.
 """
 
 from typing import Dict, Any, List
+
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models.base import PaginatedResponse, PaginationParams
+from backend.api.dependencies import get_current_user
 from backend.database.connection import get_session
 from backend.services.crawl_job import CrawlJobService, execute_crawl_job
-from backend.api.dependencies import get_current_user
-from pydantic import BaseModel, Field
 
 __all__ = ['router']
 
@@ -28,7 +28,8 @@ class CrawlJobCreate(BaseModel):
     keywords: List[str] = Field(..., min_items=1, description="Search keywords")
     max_images: int = Field(default=100, ge=1, le=10000, description="Maximum images")
     search_engine: str = Field(default="duckduckgo", description="Search engine")
-    config: Dict[str, Any] = Field(default_factory=dict, description="Additional config")
+    config: Dict[str, Any] = Field(default_factory=dict,
+                                   description="Additional config")
 
 
 class CrawlJobResponse(BaseModel):

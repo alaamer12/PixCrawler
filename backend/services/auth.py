@@ -11,7 +11,6 @@ from passlib.context import CryptContext
 from backend.core.config import get_settings
 from backend.core.exceptions import AuthenticationError
 from backend.models.user import TokenResponse
-
 from .base import BaseService
 
 __all__ = [

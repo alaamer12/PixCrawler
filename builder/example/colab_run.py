@@ -10,8 +10,8 @@ Features:
     - Provides a direct way to initiate dataset generation from interactive environments.
 """
 
-from builder.cli import run_from_jupyter as run
 from builder._jupyter_support import Colors, PIXCRAWLER_ASCII
+from builder.cli import run_from_jupyter as run
 
 
 # noinspection PyIncorrectDocstring
@@ -38,7 +38,8 @@ if __name__ == "__main__":
     # If run as a script, show usage information
     print(f"{Colors.CYAN}{PIXCRAWLER_ASCII}{Colors.ENDC}")
     print(f"{Colors.GREEN}PixCrawler for Google Colab{Colors.ENDC}")
-    print(f"\n{Colors.YELLOW}This script is designed to be imported in Google Colab, not run directly.{Colors.ENDC}")
+    print(
+        f"\n{Colors.YELLOW}This script is designed to be imported in Google Colab, not run directly.{Colors.ENDC}")
     print(f"\n{Colors.BOLD}Usage example:{Colors.ENDC}")
     print("""
     # Install dependencies

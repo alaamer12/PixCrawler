@@ -1,6 +1,8 @@
 # Builder 🕷️ - Configurable Image Dataset Builder
 
-Builder is a customizable image dataset builder that crawls the web using popular search engines like Google, Bing, and DuckDuckGo. It enables researchers, ML engineers, and developers to automate the collection of images for training datasets using a simple JSON-based configuration file.
+Builder is a customizable image dataset builder that crawls the web using popular search engines like Google, Bing, and
+DuckDuckGo. It enables researchers, ML engineers, and developers to automate the collection of images for training
+datasets using a simple JSON-based configuration file.
 
 ## 📚 Features
 
@@ -18,7 +20,8 @@ Builder is a customizable image dataset builder that crawls the web using popula
   * Supports multiple formats: TXT, JSON, CSV, and YAML.
   * Maintains a hierarchical structure that mirrors the image dataset for machine learning readiness.
 * **Image Integrity Checks**: Verifies the validity and integrity of downloaded images.
-* **Comprehensive Reporting**: Generates detailed reports on the dataset generation process, including download statistics, duplicate findings, and integrity check results.
+* **Comprehensive Reporting**: Generates detailed reports on the dataset generation process, including download
+  statistics, duplicate findings, and integrity check results.
 
 ## 🔧 Usage
 
@@ -48,7 +51,8 @@ Create a config file following the example in `config.json.example`:
 
 ### Configuration Options
 
-You can specify options either in the config file or via command-line arguments. Command-line arguments take precedence over config file options.
+You can specify options either in the config file or via command-line arguments. Command-line arguments take precedence
+over config file options.
 
 **Config File Options:**
 

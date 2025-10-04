@@ -32,19 +32,21 @@ from typing import List, Tuple, Optional, Final
 import requests
 from ddgs import DDGS
 
-from builder._config import get_search_variations
+from _search_engines import download_images_ddgs
+from _predefined_variations import get_search_variations
 from builder._constants import logger
 from builder._engine import EngineProcessor
-from builder._exceptions import DownloadError, ImageValidationError
+from builder._exceptions import DownloadError
 from builder._helpers import progress
-from builder._utilities import rename_images_sequentially, image_validator
+from builder._utilities import rename_images_sequentially
+
+# Image validation moved to validator package
 
 __all__ = [
     'IDownloader',
     'ABC',
     'SearchEngine',
     'DDGSImageDownloader',
-    'download_images_ddgs',
     'ImageDownloader',
     'APIDownloader',
     'AioHttpDownloader'
@@ -79,8 +81,7 @@ class IDownloader(ABC):
             Tuple[bool, int]: (success, downloaded_count)
 
         Raises:
-            DownloadError: For unrecoverable download failures
-            ImageValidationError: For validation failures
+            DownloadError: For download and validation failures
         """
         pass
 
@@ -147,33 +148,36 @@ class DDGSImageDownloader(SearchEngine):
             # Check content type and file size before saving
             content_type = response.headers.get('Content-Type', '')
             if not content_type.startswith('image/'):
-                raise ImageValidationError(f"Skipping non-image content type: {content_type}")
+                raise DownloadError(f"Skipping non-image content type: {content_type}")
 
             if len(response.content) < self.min_file_size:
-                raise ImageValidationError(f"Skipping too small image ({len(response.content)} bytes)")
+                raise DownloadError(
+                    f"Skipping too small image ({len(response.content)} bytes)")
 
             with open(file_path, "wb") as f:
                 f.write(response.content)
 
-            # Validate the downloaded image
-            if not image_validator.validate(file_path):
-                # Remove corrupted image
+            # Basic validation - check if file exists and has content
+            if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+                # Remove empty or missing file
                 try:
                     os.remove(file_path)
                     logger.warning(f"Removed corrupted image: {file_path}")
                 except OSError as ose:
                     logger.error(f"Error removing corrupted image {file_path}: {ose}")
-                raise ImageValidationError(f"Downloaded image failed validation: {file_path}")
+                raise DownloadError(f"Downloaded image failed validation: {file_path}")
             return True
 
         except requests.exceptions.RequestException as req_e:
             logger.warning(f"Network or request error downloading {image_url}: {req_e}")
-            raise DownloadError(f"Network or request error downloading {image_url}: {req_e}") from req_e
-        except ImageValidationError as ive:
-            logger.warning(f"Image validation error for {image_url}: {ive}")
-            raise ive
+            raise DownloadError(
+                f"Network or request error downloading {image_url}: {req_e}") from req_e
+        except DownloadError as de:
+            logger.warning(f"Download error for {image_url}: {de}")
+            raise de
         except Exception as e:
-            logger.warning(f"An unexpected error occurred while downloading {image_url}: {e}")
+            logger.warning(
+                f"An unexpected error occurred while downloading {image_url}: {e}")
             raise DownloadError(f"Unexpected error downloading {image_url}: {e}") from e
 
     def _download_single_image(self, result: dict, out_dir: str, index: int) -> bool:
@@ -204,7 +208,8 @@ class DDGSImageDownloader(SearchEngine):
 
         return success
 
-    def _search_and_download_parallel(self, keyword: str, out_dir: str, max_count: int) -> int:
+    def _search_and_download_parallel(self, keyword: str, out_dir: str,
+                                      max_count: int) -> int:
         """
         Searches for images using a keyword and downloads them in parallel.
 
@@ -250,7 +255,8 @@ class DDGSImageDownloader(SearchEngine):
             logger.info(f"Found {len(results)} potential images for '{keyword}'")
             return results
 
-    def _execute_parallel_downloads(self, results: List[dict], out_dir: str, max_count: int) -> int:
+    def _execute_parallel_downloads(self, results: List[dict], out_dir: str,
+                                    max_count: int) -> int:
         """
         Executes parallel downloads of images from a list of search results.
 
@@ -265,7 +271,8 @@ class DDGSImageDownloader(SearchEngine):
         downloaded = 0
 
         # Create a thread pool for parallel downloads
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.max_workers) as executor:
             # Submit download tasks
             futures = []
             for i, result in enumerate(results):
@@ -289,11 +296,13 @@ class DDGSImageDownloader(SearchEngine):
                     if future.result():
                         with self.lock:
                             downloaded += 1
-                            logger.info(f"Downloaded image from DuckDuckGo [{downloaded}/{max_count}]")
-                except (DownloadError, ImageValidationError) as e:
+                            logger.info(
+                                f"Downloaded image from DuckDuckGo [{downloaded}/{max_count}]")
+                except DownloadError as e:
                     logger.warning(f"Error downloading image: {e}")
                 except Exception as e:
-                    logger.error(f"An unexpected error occurred during parallel download: {e}")
+                    logger.error(
+                        f"An unexpected error occurred during parallel download: {e}")
 
         return downloaded
 
@@ -328,7 +337,8 @@ class DDGSImageDownloader(SearchEngine):
             Path(out_dir).mkdir(parents=True, exist_ok=True)
 
             # Try with the original keyword first
-            downloaded_count: int = self._search_and_download_parallel(keyword, out_dir, max_num)
+            downloaded_count: int = self._search_and_download_parallel(keyword, out_dir,
+                                                                       max_num)
 
             # Try additional search terms if we still don't have enough images
             if downloaded_count < max_num:
@@ -361,52 +371,10 @@ class DDGSImageDownloader(SearchEngine):
             logger.error(f"A download-specific error occurred for '{keyword}': {de}")
             raise de
         except Exception as e:
-            logger.error(f"An unexpected error occurred while downloading images for '{keyword}': {e}")
-            raise DownloadError(f"Unexpected error during download for '{keyword}': {e}") from e
-
-
-def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
-    """
-    Downloads images directly using the DuckDuckGo search engine.
-    This function serves as a wrapper for the `DuckDuckGo` class.
-
-    Args:
-        keyword (str): The search term for images.
-        out_dir (str): The output directory path where images will be saved.
-        max_num (int): The maximum number of images to download.
-
-    Returns:
-        Tuple[bool, int]: A tuple where the first element is True if any images were downloaded,
-                         and the second element is the total count of downloaded images.
-    """
-    try:
-        # Create the output directory if it doesn't exist
-        Path(out_dir).mkdir(parents=True, exist_ok=True)
-
-        # Initialize the DuckDuckGo downloader with parallel processing
-        ddg_downloader = DDGSImageDownloader(max_workers=6)
-
-        # Get the current count of images in the directory
-        initial_count = len([f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
-
-        logger.info(f"Using DuckDuckGo to download up to {max_num} images for '{keyword}'")
-
-        # Download images
-        _ = ddg_downloader.download(keyword, out_dir, max_num)
-
-        # Get the new count of images
-        final_count = len([f for f in os.listdir(out_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))])
-        actual_downloaded = final_count - initial_count
-
-        logger.info(f"DuckDuckGo download complete: {actual_downloaded} new images")
-
-        return True, actual_downloaded
-    except DownloadError as de:
-        logger.error(f"DuckDuckGo download failed for '{keyword}': {de}")
-        return False, 0
-    except Exception as e:
-        logger.error(f"An unexpected error occurred during DuckDuckGo download for '{keyword}': {e}")
-        return False, 0
+            logger.error(
+                f"An unexpected error occurred while downloading images for '{keyword}': {e}")
+            raise DownloadError(
+                f"Unexpected error during download for '{keyword}': {e}") from e
 
 
 class ImageDownloader(IDownloader):
@@ -495,23 +463,30 @@ class ImageDownloader(IDownloader):
             progress.set_subtask_postfix(target=max_num)
 
             # Generate search variations
-            variations = [template.format(keyword=keyword) for template in self.search_variations]
+            variations = [template.format(keyword=keyword) for template in
+                          self.search_variations]
 
             # Shuffle variations to get more diverse results
             random.shuffle(variations)
 
             if self.use_all_engines:
                 # Use all engines in parallel for maximum speed
-                progress.set_subtask_description(f"Downloading with parallel engines: {keyword}")
-                self.engine_processor.download_with_parallel_engines(keyword, variations, out_dir, max_num)
+                progress.set_subtask_description(
+                    f"Downloading with parallel engines: {keyword}")
+                self.engine_processor.download_with_parallel_engines(keyword,
+                                                                     variations,
+                                                                     out_dir, max_num)
             else:
                 # Use engines in sequence with fallbacks (original approach)
                 progress.set_subtask_description(f"Downloading sequentially: {keyword}")
-                self.engine_processor.download_with_sequential_engines(keyword, variations, out_dir, max_num)
+                self.engine_processor.download_with_sequential_engines(keyword,
+                                                                       variations,
+                                                                       out_dir, max_num)
 
             # If we still don't have enough images, try DuckDuckGo as final fallback
             if self.total_downloaded < max_num:
-                progress.set_subtask_description(f"Using DuckDuckGo fallback: {keyword}")
+                progress.set_subtask_description(
+                    f"Using DuckDuckGo fallback: {keyword}")
                 self._try_duckduckgo_fallback(
                     keyword=keyword,
                     out_dir=out_dir,
@@ -528,17 +503,21 @@ class ImageDownloader(IDownloader):
             self.engine_processor.log_engine_stats()
 
             # Update progress with results
-            progress.set_subtask_description(f"Downloaded {self.total_downloaded}/{max_num} images for {keyword}")
+            progress.set_subtask_description(
+                f"Downloaded {self.total_downloaded}/{max_num} images for {keyword}")
 
             return self.total_downloaded > 0, self.total_downloaded
 
         except Exception as e:
-            logger.warning(f"All crawlers failed with error: {e}. Trying DuckDuckGo as fallback.")
-            progress.set_subtask_description(f"Error occurred, using final fallback: {keyword}")
+            logger.warning(
+                f"All crawlers failed with error: {e}. Trying DuckDuckGo as fallback.")
+            progress.set_subtask_description(
+                f"Error occurred, using final fallback: {keyword}")
             return self._final_duckduckgo_fallback(keyword, out_dir, max_num)
 
     @staticmethod
-    def _try_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int, total_downloaded: int) -> int:
+    def _try_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int,
+                                 total_downloaded: int) -> int:
         """
         Attempts to use DuckDuckGo as a fallback option if other engines haven't downloaded enough images.
 
@@ -554,7 +533,8 @@ class ImageDownloader(IDownloader):
         if total_downloaded >= max_num:
             return total_downloaded
 
-        logger.info(f"Crawlers downloaded {total_downloaded}/{max_num} images. Trying DuckDuckGo as fallback.")
+        logger.info(
+            f"Crawlers downloaded {total_downloaded}/{max_num} images. Trying DuckDuckGo as fallback.")
         ddgs_success, ddgs_count = download_images_ddgs(
             keyword=keyword,
             out_dir=out_dir,
@@ -565,7 +545,8 @@ class ImageDownloader(IDownloader):
         return total_downloaded
 
     @staticmethod
-    def _final_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
+    def _final_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int) -> Tuple[
+        bool, int]:
         """
         Performs a final fallback to DuckDuckGo when all other download methods have failed.
 

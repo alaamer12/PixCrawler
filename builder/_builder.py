@@ -20,7 +20,6 @@ Example:
         config_path="config.json",
         max_images=50,
         output_dir="./my_dataset",
-        integrity=True,
         generate_labels=True
     )
     builder.generate()
@@ -36,18 +35,19 @@ import os
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
-from builder._config import DatasetGenerationConfig, get_engines, get_search_variations
+from builder._config import DatasetGenerationConfig, get_engines
+from _predefined_variations import get_search_variations
 from builder._constants import logger, KEYWORD_MODE, AI_MODELS
 from builder._downloader import DDGSImageDownloader
 from builder._engine import EngineProcessor
 from builder._exceptions import (
     DownloadError,
-    ImageValidationError,
     GenerationError
 )
 from builder._generator import DatasetGenerator, ConfigManager
-from builder._helpers import ReportGenerator, ProgressManager
-from builder._utilities import image_validator
+from builder._helpers import ProgressManager
+
+# Image validation moved to backend package
 
 __all__ = ['Builder']
 
@@ -62,7 +62,6 @@ class Builder:
     Features:
         - Dataset generation with multiple search engines
         - AI-powered keyword generation
-        - Image integrity checking
         - Label file generation
         - Progress tracking and resumption
         - Comprehensive reporting
@@ -72,7 +71,6 @@ class Builder:
         config (DatasetGenerationConfig): Configuration object for dataset generation
         dataset_generator (DatasetGenerator): Internal dataset generator instance
         engine_processor (EngineProcessor): Engine processor for multi-engine downloads
-        report_generator (ReportGenerator): Report generator instance
         progress_manager (ProgressManager): Progress tracking manager
     """
 
@@ -81,7 +79,6 @@ class Builder:
         config_path: str,
         max_images: int = 10,
         output_dir: Optional[str] = None,
-        integrity: bool = True,
         max_retries: int = 5,
         continue_from_last: bool = False,
         cache_file: str = "progress_cache.json",
@@ -96,7 +93,6 @@ class Builder:
             config_path (str): Path to the JSON configuration file
             max_images (int): Maximum number of images to download per keyword
             output_dir (Optional[str]): Custom output directory (None uses dataset_name from config)
-            integrity (bool): Whether to perform image integrity checks
             max_retries (int): Maximum number of retry attempts for failed downloads
             continue_from_last (bool): Whether to continue from the last incomplete run
             cache_file (str): Path to the progress cache file
@@ -117,7 +113,6 @@ class Builder:
             config_path=config_path,
             max_images=max_images,
             output_dir=output_dir,
-            integrity=integrity,
             max_retries=max_retries,
             continue_from_last=continue_from_last,
             cache_file=cache_file,
@@ -129,7 +124,6 @@ class Builder:
         # Initialize internal components
         self.dataset_generator: Optional[DatasetGenerator] = None
         self.engine_processor: Optional[EngineProcessor] = None
-        self.report_generator: Optional[ReportGenerator] = None
         self.progress_manager: Optional[ProgressManager] = None
 
         # Load and validate configuration
@@ -147,7 +141,8 @@ class Builder:
             if 'dataset_name' in config_manager:
                 self.config.dataset_name = config_manager['dataset_name']
 
-            logger.info(f"Configuration loaded successfully: {self.config.dataset_name}")
+            logger.info(
+                f"Configuration loaded successfully: {self.config.dataset_name}")
         except Exception as e:
             raise ValueError(f"Failed to load configuration: {e}") from e
 
@@ -217,7 +212,8 @@ class Builder:
             # Create output directory
             Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-            logger.info(f"Downloading {max_count} images for '{keyword}' using engines: {engines}")
+            logger.info(
+                f"Downloading {max_count} images for '{keyword}' using engines: {engines}")
 
             total_downloaded = 0
             for engine in engines:
@@ -225,7 +221,8 @@ class Builder:
                     # Use DuckDuckGo downloader for now (can be extended for other engines)
                     if engine.lower() == 'duckduckgo':
                         downloader = DDGSImageDownloader()
-                        success, downloaded = downloader.download(keyword, output_dir, max_count)
+                        success, downloaded = downloader.download(keyword, output_dir,
+                                                                  max_count)
                         if success:
                             total_downloaded += downloaded
                             logger.info(f"Downloaded {downloaded} images from {engine}")
@@ -240,34 +237,8 @@ class Builder:
 
         except Exception as e:
             logger.error(f"Image download failed: {e}")
-            raise DownloadError(f"Failed to download images for '{keyword}': {e}") from e
-
-    @staticmethod
-    def validate(directory: str, remove_invalid: bool = True) -> Dict[str, Any]:
-        """
-        Validate integrity of images in a directory.
-
-        Args:
-            directory (str): Directory containing images to validate
-            remove_invalid (bool): Whether to remove invalid images
-
-        Returns:
-            Dict[str, Any]: Validation results with statistics
-
-        Raises:
-            ImageValidationError: If validation process fails
-        """
-        try:
-            logger.info(f"Validating images in: {directory}")
-
-            results = image_validator(directory, remove_invalid=remove_invalid)
-
-            logger.info(f"Validation completed: {results}")
-            return results
-
-        except Exception as e:
-            logger.error(f"Image validation failed: {e}")
-            raise ImageValidationError(f"Failed to validate images: {e}") from e
+            raise DownloadError(
+                f"Failed to download images for '{keyword}': {e}") from e
 
     @staticmethod
     def generate_labels(dataset_dir: str, formats: List[str] = None) -> None:
@@ -301,6 +272,8 @@ class Builder:
         """
         Generate a comprehensive report for the dataset.
 
+        Note: Report generation functionality has been moved to the src package.
+
         Args:
             dataset_dir (str): Directory containing the dataset
 
@@ -310,19 +283,9 @@ class Builder:
         Raises:
             GenerationError: If report generation fails
         """
-        try:
-            logger.info(f"Generating report for dataset: {dataset_dir}")
-
-            self.report_generator = ReportGenerator(dataset_dir)
-            self.report_generator.generate()
-            report_path = self.report_generator.report_file
-
-            logger.info(f"Report generated: {report_path}")
-            return report_path
-
-        except Exception as e:
-            logger.error(f"Report generation failed: {e}")
-            raise GenerationError(f"Failed to generate report: {e}") from e
+        logger.warning("Report generation functionality moved to src package. Use src.report_generator.ReportGenerator directly.")
+        logger.info(f"Dataset directory: {dataset_dir}")
+        return ""
 
     def set_ai_model(self, model: AI_MODELS) -> None:
         """
@@ -372,16 +335,6 @@ class Builder:
         self.config.output_dir = output_dir
         logger.info(f"Output directory set to: {output_dir}")
 
-    def enable_integrity(self, enabled: bool = True) -> None:
-        """
-        Enable or disable image integrity checking.
-
-        Args:
-            enabled (bool): Whether to enable integrity checking
-        """
-        self.config.integrity = enabled
-        logger.info(f"Image integrity checking: {'enabled' if enabled else 'disabled'}")
-
     def enable_label_generation(self, enabled: bool = True) -> None:
         """
         Enable or disable label file generation.
@@ -403,9 +356,12 @@ class Builder:
             return {}
 
         return {
-            'dataset_name': self.dataset_config['dataset_name'] if 'dataset_name' in self.dataset_config else '',
-            'categories': list(self.dataset_config['categories'].keys()) if 'categories' in self.dataset_config else [],
-            'category_count': len(self.dataset_config['categories']) if 'categories' in self.dataset_config else 0,
+            'dataset_name': self.dataset_config[
+                'dataset_name'] if 'dataset_name' in self.dataset_config else '',
+            'categories': list(self.dataset_config[
+                                   'categories'].keys()) if 'categories' in self.dataset_config else [],
+            'category_count': len(self.dataset_config[
+                                      'categories']) if 'categories' in self.dataset_config else 0,
             'total_keywords': sum(
                 len(keywords) for keywords in self.dataset_config['categories'].values()
             ) if 'categories' in self.dataset_config else 0
@@ -446,7 +402,6 @@ class Builder:
             f"Builder(config_path='{self.config.config_path}', "
             f"max_images={self.config.max_images}, "
             f"output_dir='{self.config.output_dir}', "
-            f"integrity={self.config.integrity}, "
             f"keyword_generation='{self.config.keyword_generation}', "
             f"ai_model='{self.config.ai_model}', "
             f"generate_labels={self.config.generate_labels})"

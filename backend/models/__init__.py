@@ -24,15 +24,6 @@ from .base import (
     ErrorDetail,
     HealthCheck
 )
-from .user import (
-    UserBase,
-    UserCreate,
-    UserUpdate,
-    UserResponse,
-    UserLogin,
-    TokenResponse,
-    TokenRefresh
-)
 from .dataset import (
     DatasetStatus,
     SearchEngine,
@@ -41,6 +32,15 @@ from .dataset import (
     DatasetUpdate,
     DatasetResponse,
     DatasetStats
+)
+from .user import (
+    UserBase,
+    UserCreate,
+    UserUpdate,
+    UserResponse,
+    UserLogin,
+    TokenResponse,
+    TokenRefresh
 )
 
 __all__ = [

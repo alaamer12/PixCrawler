@@ -17,7 +17,7 @@ from backend.core.middleware import setup_middleware
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     settings = get_settings()
-    
+
     app = FastAPI(
         title="PixCrawler API",
         description="Automated image dataset builder platform",
@@ -25,7 +25,7 @@ def create_app() -> FastAPI:
         docs_url="/docs" if settings.environment != "production" else None,
         redoc_url="/redoc" if settings.environment != "production" else None,
     )
-    
+
     # Setup CORS
     app.add_middleware(
         CORSMiddleware,
@@ -34,16 +34,16 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     # Setup custom middleware
     setup_middleware(app)
-    
+
     # Setup exception handlers
     setup_exception_handlers(app)
-    
+
     # Include API routes
     app.include_router(api_router, prefix="/api")
-    
+
     return app
 
 

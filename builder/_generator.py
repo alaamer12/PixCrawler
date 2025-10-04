@@ -4,7 +4,6 @@ This module orchestrates the entire process of generating image datasets, includ
 - Loading configurations
 - Generating keywords (with AI assistance)
 - Downloading images from various search engines
-- Performing integrity checks on downloaded images
 - Generating comprehensive reports
 - Creating label files for machine learning tasks
 
@@ -16,19 +15,18 @@ Functions:
     retry_download_images: Attempts to download images with retries and alternative terms.
     load_config: Loads and validates dataset configuration from a JSON file.
     generate_keywords: Generates search keywords using an AI model.
-    check_duplicates: Checks for and removes duplicate images.
-    check_image_integrity: Verifies the integrity of downloaded images.
     update_logfile: Updates the logging configuration to a specified file.
     generate_dataset: Main entry point to start the dataset generation process.
 
 Features:
 - Multi-engine image downloading (Google, Bing, Baidu, DuckDuckGo)
 - AI-powered keyword generation for diverse image collection
-- Duplicate image detection and removal
-- Image integrity checking
 - Progress tracking and caching for resuming interrupted runs
 - Automatic label file generation in multiple formats (TXT, JSON, CSV, YAML)
 - Comprehensive report generation for dataset overview
+
+Note: Image integrity checking and duplicate detection have been moved to the validator package.
+Note: Report generation has been moved to the src package.
 """
 
 import contextlib
@@ -40,27 +38,33 @@ import re
 import threading
 import time
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import Enum
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple, Final, Iterator, Union, Set
+from typing import Optional, List, Dict, Any, Tuple, Final, Iterator, Union
 
 import jsonschema
 from PIL import Image
 from jsonschema import validate
 
-from builder._exceptions import PixCrawlerError, ConfigurationError, DownloadError, GenerationError
+from _search_engines import download_images_ddgs
 from builder._config import DatasetGenerationConfig, CONFIG_SCHEMA
-from builder._config import get_basic_variations, get_quality_variations, get_generic_quality_variations, get_search_variations, \
-    get_lighting_variations, get_location_variations, get_background_variations, get_professional_variations, \
-    get_color_variations, get_style_variations, get_meme_culture_variations, get_size_format_variations, \
-    get_time_period_variations, get_condition_age_variations, get_emotional_aesthetic_variations, \
-    get_quantity_arrangement_variations, get_camera_technique_variations, get_focus_sharpness_variations, \
-    get_texture_material_variations
+from _predefined_variations import get_basic_variations, get_quality_variations, \
+    get_style_variations, get_time_period_variations, \
+    get_emotional_aesthetic_variations, get_meme_culture_variations, \
+    get_professional_variations, get_camera_technique_variations, \
+    get_focus_sharpness_variations, get_color_variations, get_lighting_variations, \
+    get_location_variations, get_background_variations, get_size_format_variations, \
+    get_texture_material_variations, get_condition_age_variations, \
+    get_quantity_arrangement_variations, get_generic_quality_variations, \
+    get_search_variations
 from builder._constants import DEFAULT_CACHE_FILE, ENGINES, \
     logger, IMAGE_EXTENSIONS
-from builder._downloader import ImageDownloader, download_images_ddgs
-from builder._helpers import ReportGenerator, DatasetTracker, ProgressManager, progress, valid_image_ext
-from builder._utilities import ProgressCache, rename_images_sequentially, DuplicationManager, image_validator
+from builder._downloader import ImageDownloader
+from builder._exceptions import ConfigurationError, DownloadError, \
+    GenerationError
+from builder._helpers import DatasetTracker, ProgressManager, progress, \
+    valid_image_ext
+from builder._utilities import rename_images_sequentially
 
 __all__ = [
     'retry_download',
@@ -70,17 +74,20 @@ __all__ = [
     'LabelGenerator',
     'KeywordManagement',
     'DatasetGenerator',
-    'CheckManager',
     'generate_dataset',
     'ConfigManager',
 ]
 
+from progress import ProgressCache
+
 BACKOFF_DELAY: Final[float] = 0.5
 
-duplicate_manager = DuplicationManager()
+
+# Integrity management moved to backend package
 
 
-def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, Any]) -> None:
+def _apply_config_options(config: DatasetGenerationConfig,
+                          options: Dict[str, Any]) -> None:
     """
     Applies configuration options from a loaded config file to the DatasetGenerationConfig object.
     This function selectively overrides default configuration values with values from the config file,
@@ -96,12 +103,15 @@ def _apply_config_options(config: DatasetGenerationConfig, options: Dict[str, An
     config_mappings = {
         'max_images': (config.max_images == 10, lambda: options.get('max_images')),
         'output_dir': (config.output_dir is None, lambda: options.get('output_dir')),
-        'integrity': (config.integrity is True, lambda: options.get('integrity')),
         'max_retries': (config.max_retries == 5, lambda: options.get('max_retries')),
-        'cache_file': (config.cache_file == DEFAULT_CACHE_FILE, lambda: options.get('cache_file')),
-        'keyword_generation': (config.keyword_generation == "auto", lambda: options.get('keyword_generation')),
+        'cache_file': (
+            config.cache_file == DEFAULT_CACHE_FILE, lambda: options.get('cache_file')),
+        'keyword_generation': (
+            config.keyword_generation == "auto",
+            lambda: options.get('keyword_generation')),
         'ai_model': (config.ai_model == "gpt4-mini", lambda: options.get('ai_model')),
-        'generate_labels': (config.generate_labels is True, lambda: options.get('generate_labels'))
+        'generate_labels': (
+            config.generate_labels is True, lambda: options.get('generate_labels'))
     }
 
     # Apply each config option if its CLI argument is using the default value
@@ -164,7 +174,8 @@ class AlternativeTermsGenerator:
 
             for variation in variations:
                 # Remove {keyword} and clean up the remaining text
-                clean_term = variation.replace("{keyword} ", "").replace("{keyword}", "").strip()
+                clean_term = variation.replace("{keyword} ", "").replace("{keyword}",
+                                                                         "").strip()
                 if clean_term and clean_term not in clean_terms[category]:
                     clean_terms[category].append(clean_term)
 
@@ -189,7 +200,8 @@ class AlternativeTermsGenerator:
         Strategy 2: Multiple quality terms + emotional
         Example: "stunning high resolution 4K detailed cat"
         """
-        quality_terms = random.sample(self.clean_terms['quality'], min(2, len(self.clean_terms['quality'])))
+        quality_terms = random.sample(self.clean_terms['quality'],
+                                      min(2, len(self.clean_terms['quality'])))
         emotional_term = random.choice(self.clean_terms['emotional_aesthetic'])
 
         if retry_count <= 5:
@@ -309,7 +321,8 @@ class AlternativeTermsGenerator:
         strategies = self._get_strategies()
 
         # Generate multiple alternatives using different strategies
-        num_alternatives = min(15, 3 + retry_count)  # More alternatives for higher retry counts
+        num_alternatives = min(15,
+                               3 + retry_count)  # More alternatives for higher retry counts
 
         for i in range(num_alternatives):
             strategy_num = self._progressive_strategy_selection(retry_count + i)
@@ -463,14 +476,8 @@ class Retry:
         if len(image_files) == 1:
             return 1
 
-        # Remove duplicates
-        try:
-            removed = duplicate_manager.remove_duplicates(out_dir)
-            if removed[0] > 0:
-                self.stats.duplicates_removed += removed[0]
-                logger.info(f"Removed {removed[0]} duplicate images")
-        except Exception as e:
-            logger.warning(f"Error removing duplicates: {str(e)}")
+        # Duplicate removal moved to validator package
+        # Basic duplicate removal can be done post-processing if needed
 
         # Count remaining images
         remaining_images = self._get_image_files(out_dir)
@@ -478,7 +485,8 @@ class Retry:
 
     def _initial_download(self, max_num: int, keyword: str, out_dir: str) -> int:
         """Perform the initial download attempt"""
-        logger.info(f"Attempting to download {max_num} images for '{keyword}' using parallel processing")
+        logger.info(
+            f"Attempting to download {max_num} images for '{keyword}' using parallel processing")
 
         downloader = ImageDownloader(
             feeder_threads=self.config.feeder_threads,
@@ -499,7 +507,8 @@ class Retry:
             self.stats.failed_attempts += 1
             return count
 
-    def _attempt_retry(self, retries: int, keyword: str, out_dir: str, images_needed: int) -> int:
+    def _attempt_retry(self, retries: int, keyword: str, out_dir: str,
+                       images_needed: int) -> int:
         """Perform a single retry attempt"""
         if self.config.backoff_delay > 0:
             time.sleep(self.config.backoff_delay)
@@ -520,24 +529,29 @@ class Retry:
             success = False
 
             if self.config.strategy == RetryStrategy.DDGS_ONLY:
-                logger.info(f"Retry #{retries}: Using DuckDuckGo with term '{retry_term}'")
+                logger.info(
+                    f"Retry #{retries}: Using DuckDuckGo with term '{retry_term}'")
                 success, _ = download_images_ddgs(retry_term, out_dir, images_needed)
 
             elif self.config.strategy == RetryStrategy.ENGINE_ONLY:
                 retry_engine = ENGINES[retries % len(ENGINES)]
-                logger.info(f"Retry #{retries}: Using {retry_engine} with term '{retry_term}'")
+                logger.info(
+                    f"Retry #{retries}: Using {retry_engine} with term '{retry_term}'")
                 downloader = ImageDownloader(use_all_engines=False)
                 success, _ = downloader.download(retry_term, out_dir, images_needed)
 
             else:  # ALTERNATING strategy (default)
                 if retries % 2 == 0:
                     retry_engine = ENGINES[retries % len(ENGINES)]
-                    logger.info(f"Retry #{retries}: Using {retry_engine} with term '{retry_term}'")
+                    logger.info(
+                        f"Retry #{retries}: Using {retry_engine} with term '{retry_term}'")
                     downloader = ImageDownloader(use_all_engines=False)
                     success, _ = downloader.download(retry_term, out_dir, images_needed)
                 else:
-                    logger.info(f"Retry #{retries}: Using DuckDuckGo with term '{retry_term}'")
-                    success, _ = download_images_ddgs(retry_term, out_dir, images_needed)
+                    logger.info(
+                        f"Retry #{retries}: Using DuckDuckGo with term '{retry_term}'")
+                    success, _ = download_images_ddgs(retry_term, out_dir,
+                                                      images_needed)
 
             self.stats.total_attempts += 1
             result = self._update_image_count(out_dir) if success else 0
@@ -638,7 +652,8 @@ class Retry:
 
 
 # Backward compatibility function
-def retry_download(keyword: str, out_dir: str, max_num: int, max_retries: int = 5) -> Tuple[bool, int]:
+def retry_download(keyword: str, out_dir: str, max_num: int, max_retries: int = 5) -> \
+    Tuple[bool, int]:
     """
     Backward compatibility function that maintains the original API.
 
@@ -689,7 +704,8 @@ class ConfigManager:
         config = self._load_config_from_file()
         self._validate_config(config)
         self._set_defaults(config)
-        logger.info(f"Configuration from '{self.config_path}' loaded and validated successfully.")
+        logger.info(
+            f"Configuration from '{self.config_path}' loaded and validated successfully.")
         return config
 
     def _load_config_from_file(self) -> Dict[str, Any]:
@@ -707,10 +723,12 @@ class ConfigManager:
                 return json.load(f)
         except FileNotFoundError:
             logger.error(f"Configuration file not found at: {self.config_path}")
-            raise ConfigurationError(f"Configuration file not found at: {self.config_path}")
+            raise ConfigurationError(
+                f"Configuration file not found at: {self.config_path}")
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding JSON from {self.config_path}: {e}")
-            raise ConfigurationError(f"Error decoding JSON from {self.config_path}: {e}")
+            raise ConfigurationError(
+                f"Error decoding JSON from {self.config_path}: {e}")
 
     @staticmethod
     def _validate_config(config: Dict[str, Any]):
@@ -742,7 +760,8 @@ class ConfigManager:
         # Set a default for the top-level 'dataset_name'
         if 'dataset_name' not in config:
             config['dataset_name'] = 'default_dataset'
-            logger.info("Missing 'dataset_name' in config, using 'default_dataset' as default.")
+            logger.info(
+                "Missing 'dataset_name' in config, using 'default_dataset' as default.")
 
         # Ensure 'options' exists before setting defaults within it
         config.setdefault('options', {})
@@ -783,7 +802,8 @@ class ConfigManager:
         try:
             return self.config[key]
         except KeyError:
-            raise KeyError(f"Configuration key '{key}' not found. Available keys are: {list(self.config.keys())}")
+            raise KeyError(
+                f"Configuration key '{key}' not found. Available keys are: {list(self.config.keys())}")
 
     def __len__(self) -> int:
         """
@@ -825,415 +845,6 @@ class ConfigManager:
     def get_all_options(self) -> Dict[str, Any]:
         """Returns the entire options dictionary."""
         return self.config.get('options', {})
-
-
-class CheckMode(Enum):
-    """Enumeration of available check modes"""
-    STRICT = auto()  # Fail on any issues
-    LENIENT = auto()  # Log warnings but continue
-    REPORT_ONLY = auto()  # Only report, no actions
-
-
-class DuplicateAction(Enum):
-    """Actions to take when duplicates are found"""
-    REMOVE = auto()
-    REPORT_ONLY = auto()
-    QUARANTINE = auto()
-
-
-@dataclass
-class CheckConfig:
-    """Configuration for check operations"""
-    mode: CheckMode = CheckMode.LENIENT
-    duplicate_action: DuplicateAction = DuplicateAction.REMOVE
-    supported_extensions: Tuple[str, ...] = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
-    max_file_size_mb: Optional[int] = None
-    min_file_size_bytes: int = 1024  # 1KB minimum
-    quarantine_dir: Optional[str] = None
-    batch_size: int = 100  # Process images in batches
-
-
-@dataclass
-class DuplicateResult:
-    """Result of duplicate checking operation"""
-    total_images: int
-    duplicates_found: int
-    duplicates_removed: int
-    unique_kept: int
-    duplicate_groups: Dict[str, List[str]] = field(default_factory=dict)
-    processing_time: float = 0.0
-    errors: List[str] = field(default_factory=list)
-
-
-@dataclass
-class IntegrityResult:
-    """Result of integrity checking operation"""
-    total_images: int
-    valid_images: int
-    corrupted_images: int
-    corrupted_files: List[str] = field(default_factory=list)
-    size_violations: List[str] = field(default_factory=list)
-    processing_time: float = 0.0
-    errors: List[str] = field(default_factory=list)
-
-
-@dataclass
-class CheckStats:
-    """Overall statistics for check operations"""
-    total_checks: int = 0
-    successful_checks: int = 0
-    failed_checks: int = 0
-    total_duplicates_found: int = 0
-    total_duplicates_removed: int = 0
-    total_corrupted_found: int = 0
-    categories_processed: Set[str] = field(default_factory=set)
-    keywords_processed: Set[str] = field(default_factory=set)
-    processing_history: List[Dict[str, Any]] = field(default_factory=list)
-
-
-class CheckManager:
-    """
-    Enhanced manager for checking image duplicates and integrity with comprehensive
-    tracking, configurable behavior, and detailed reporting.
-    """
-
-    def __init__(self, config: Optional[CheckConfig] = None):
-        """
-        Initialize the CheckManager.
-
-        Args:
-            config: Optional CheckConfig for customizing behavior
-        """
-        self.config = config or CheckConfig()
-        self.stats = CheckStats()
-
-        # Setup quarantine directory if specified
-        if (self.config.duplicate_action == DuplicateAction.QUARANTINE and
-                self.config.quarantine_dir):
-            Path(self.config.quarantine_dir).mkdir(parents=True, exist_ok=True)
-
-    def _is_valid_image_file(self, file_path: Path) -> bool:
-        """Check if a file is a valid image file"""
-        try:
-            if not file_path.is_file():
-                return False
-
-            # Check extension
-            if not file_path.suffix.lower() in self.config.supported_extensions:
-                return False
-
-            # Check file size constraints
-            file_size = file_path.stat().st_size
-            if file_size < self.config.min_file_size_bytes:
-                return False
-
-            if (self.config.max_file_size_mb and
-                    file_size > self.config.max_file_size_mb * 1024 * 1024):
-                return False
-
-            return True
-
-        except Exception as e:
-            logger.warning(f"Error checking file {file_path}: {e}")
-            return False
-
-    def _get_image_files(self, directory_path: Path) -> List[Path]:
-        """Get all valid image files in a directory"""
-        try:
-            if not directory_path.exists():
-                logger.warning(f"Directory does not exist: {directory_path}")
-                return []
-
-            image_files = []
-            for file_path in directory_path.iterdir():
-                if self._is_valid_image_file(file_path):
-                    image_files.append(file_path)
-
-            return image_files
-
-        except Exception as e:
-            logger.error(f"Error reading directory {directory_path}: {e}")
-            return []
-
-    def _handle_duplicates(self, duplicates: Dict[str, List[str]],
-                           keyword_path: str) -> int:
-        """Handle duplicate files based on configured action"""
-        removed_count = 0
-
-        try:
-            if self.config.duplicate_action == DuplicateAction.REPORT_ONLY:
-                return 0
-
-            for original, duplicates_list in duplicates.items():
-                for duplicate_file in duplicates_list:
-                    duplicate_path = Path(keyword_path) / duplicate_file
-
-                    if self.config.duplicate_action == DuplicateAction.REMOVE:
-                        removed_count = self._unlink(duplicate_path, removed_count, duplicate_file)
-
-                    elif self.config.duplicate_action == DuplicateAction.QUARANTINE:
-                        removed_count = self._unlink_quarantine(duplicate_path, removed_count, duplicate_file)
-
-        except Exception as e:
-            logger.error(f"Error handling duplicates: {e}")
-
-        return removed_count
-
-    @staticmethod
-    def _unlink(duplicate_path, removed_count, duplicate_file) -> int:
-        if duplicate_path.exists():
-            duplicate_path.unlink()
-            removed_count += 1
-            logger.debug(f"Removed duplicate: {duplicate_file}")
-        return removed_count
-
-    def _unlink_quarantine(self, duplicate_path, removed_count, duplicate_file) -> int:
-        if duplicate_path.exists() and self.config.quarantine_dir:
-            quarantine_path = Path(self.config.quarantine_dir) / duplicate_file
-            quarantine_path.parent.mkdir(parents=True, exist_ok=True)
-            duplicate_path.rename(quarantine_path)
-            removed_count += 1
-            logger.debug(f"Quarantined duplicate: {duplicate_file}")
-        return removed_count
-
-    def duplicates(self, category_name: str, keyword: str,
-                   keyword_path: str, report: 'ReportGenerator') -> DuplicateResult:
-        """
-        Enhanced duplicate checking with comprehensive result tracking.
-
-        Args:
-            category_name: Name of the category
-            keyword: Keyword being processed
-            keyword_path: Path to the keyword directory
-            report: ReportGenerator instance for recording results
-
-        Returns:
-            DuplicateResult: Detailed results of the duplicate check
-        """
-        start_time = time.time()
-        result = DuplicateResult(total_images=0, duplicates_found=0,
-                                 duplicates_removed=0, unique_kept=0)
-
-        try:
-            # Get all image files
-            keyword_path_obj = Path(keyword_path)
-            image_files = self._get_image_files(keyword_path_obj)
-            result.total_images = len(image_files)
-
-            if not image_files:
-                logger.info(f"No images found in {keyword_path}")
-                return result
-
-            logger.info(f"Checking for duplicates in {len(image_files)} images for {category_name}/{keyword}")
-
-            duplicates = duplicate_manager.detect_duplicates(keyword_path)
-
-            result.duplicate_groups = duplicates
-            result.duplicates_found = sum(len(dups) for dups in duplicates.values())
-
-            # Handle duplicates based on configuration
-            result.duplicates_removed = self._handle_duplicates(duplicates, keyword_path)
-            result.unique_kept = result.total_images - result.duplicates_removed
-
-            # Update statistics
-            self._update_statistics(result, category_name, keyword)
-
-            # Record in report
-            report.record_duplicates(
-                category=category_name,
-                keyword=keyword,
-                total=result.total_images,
-                duplicates=result.duplicates_found,
-                kept=result.unique_kept
-            )
-
-            logger.info(f"Found {result.duplicates_found} duplicates, "
-                        f"removed {result.duplicates_removed} out of {result.total_images} images")
-
-        except Exception as e:
-            error_msg = f"Failed to check duplicates for {category_name}/{keyword}: {e}"
-            logger.error(error_msg)
-            result.errors.append(error_msg)
-            self.stats.failed_checks += 1
-
-            report.record_error(f"{category_name}/{keyword} duplicates check", str(e))
-
-            if self.config.mode == CheckMode.STRICT:
-                raise PixCrawlerError(error_msg) from e
-
-        finally:
-            result.processing_time = time.time() - start_time
-            self.stats.total_checks += 1
-
-            # Record processing history
-            self.stats.processing_history.append({
-                'operation': 'duplicate_check',
-                'category': category_name,
-                'keyword': keyword,
-                'success': not result.errors,
-                'processing_time': result.processing_time,
-                'images_processed': result.total_images,
-                'duplicates_found': result.duplicates_found
-            })
-
-        return result
-
-    def _update_statistics(self, result, category_name, keyword):
-        self.stats.total_duplicates_found += result.duplicates_found
-        self.stats.total_duplicates_removed += result.duplicates_removed
-        self.stats.categories_processed.add(category_name)
-        self.stats.keywords_processed.add(keyword)
-        self.stats.successful_checks += 1
-
-    def integrity(self, tracker: 'DatasetTracker', download_context: str,
-                  keyword_path: str, max_images: int, report: 'ReportGenerator',
-                  category_name: str, keyword: str) -> IntegrityResult:
-        """
-        Enhanced integrity checking with detailed result tracking.
-
-        Args:
-            tracker: DatasetTracker instance
-            download_context: Context description for the download
-            keyword_path: Path to the keyword directory
-            max_images: Expected maximum number of images
-            report: ReportGenerator instance
-            category_name: Name of the category
-            keyword: Keyword being processed
-
-        Returns:
-            IntegrityResult: Detailed results of the integrity check
-        """
-        start_time = time.time()
-        result = IntegrityResult(total_images=0, valid_images=0, corrupted_images=0)
-
-        try:
-            # Count valid images
-            valid_count, total_count, corrupted_files = image_validator.count_valid(keyword_path)
-
-            result.total_images = total_count
-            result.valid_images = valid_count
-            result.corrupted_images = len(corrupted_files)
-            result.corrupted_files = corrupted_files
-
-            # Check for size violations if configured
-            if self.config.max_file_size_mb or self.config.min_file_size_bytes:
-                keyword_path_obj = Path(keyword_path)
-                for file_path in self._get_image_files(keyword_path_obj):
-                    file_size = file_path.stat().st_size
-
-                    if file_size < self.config.min_file_size_bytes:
-                        result.size_violations.append(f"{file_path.name} (too small: {file_size} bytes)")
-                    elif (self.config.max_file_size_mb and
-                          file_size > self.config.max_file_size_mb * 1024 * 1024):
-                        result.size_violations.append(f"{file_path.name} (too large: {file_size} bytes)")
-
-            # Record integrity failure if needed
-            if valid_count < max_images:
-                tracker.record_integrity_failure(
-                    download_context,
-                    max_images,
-                    valid_count,
-                    corrupted_files
-                )
-
-            # Record in report
-            report.record_integrity(
-                category=category_name,
-                keyword=keyword,
-                expected=max_images,
-                actual=valid_count,
-                corrupted=corrupted_files
-            )
-
-            # Update statistics
-            self.stats.total_corrupted_found += result.corrupted_images
-            self.stats.categories_processed.add(category_name)
-            self.stats.keywords_processed.add(keyword)
-            self.stats.successful_checks += 1
-
-            logger.info(f"Integrity check for {category_name}/{keyword}: "
-                        f"{valid_count}/{total_count} valid images, "
-                        f"{result.corrupted_images} corrupted")
-
-        except Exception as e:
-            error_msg = f"Failed to check integrity for {category_name}/{keyword}: {e}"
-            logger.error(error_msg)
-            result.errors.append(error_msg)
-            self.stats.failed_checks += 1
-
-            report.record_error(f"{category_name}/{keyword} integrity check", str(e))
-
-            if self.config.mode == CheckMode.STRICT:
-                raise PixCrawlerError(error_msg) from e
-
-        finally:
-            result.processing_time = time.time() - start_time
-            self.stats.total_checks += 1
-
-            # Record processing history
-            self.stats.processing_history.append({
-                'operation': 'integrity_check',
-                'category': category_name,
-                'keyword': keyword,
-                'success': not result.errors,
-                'processing_time': result.processing_time,
-                'images_processed': result.total_images,
-                'valid_images': result.valid_images,
-                'corrupted_images': result.corrupted_images
-            })
-
-        return result
-
-    def all(self, tracker: 'DatasetTracker', download_context: str,
-            keyword_path: str, max_images: int, report: 'ReportGenerator',
-            category_name: str, keyword: str) -> Tuple[DuplicateResult, IntegrityResult]:
-        """
-        Perform both duplicate and integrity checks in sequence.
-
-        Returns:
-            Tuple[DuplicateResult, IntegrityResult]: Results of both checks
-        """
-        logger.info(f"Starting comprehensive check for {category_name}/{keyword}")
-
-        # Check duplicates first
-        duplicate_result = self.duplicates(category_name, keyword, keyword_path, report)
-
-        # Then check integrity
-        integrity_result = self.integrity(
-            tracker, download_context, keyword_path, max_images,
-            report, category_name, keyword
-        )
-
-        return duplicate_result, integrity_result
-
-    def reset(self) -> None:
-        """Reset check statistics"""
-        self.stats = CheckStats()
-
-    def update_config(self, **kwargs) -> None:
-        """Update configuration parameters"""
-        for key, value in kwargs.items():
-            if hasattr(self.config, key):
-                setattr(self.config, key, value)
-            else:
-                logger.warning(f"Unknown configuration parameter: {key}")
-
-    def get_summary_report(self) -> Dict[str, Any]:
-        """Generate a summary report of all check operations"""
-        return {
-            'total_checks': self.stats.total_checks,
-            'success_rate': (self.stats.successful_checks / self.stats.total_checks
-                             if self.stats.total_checks > 0 else 0),
-            'categories_processed': len(self.stats.categories_processed),
-            'keywords_processed': len(self.stats.keywords_processed),
-            'total_duplicates_found': self.stats.total_duplicates_found,
-            'total_duplicates_removed': self.stats.total_duplicates_removed,
-            'total_corrupted_found': self.stats.total_corrupted_found,
-            'duplicate_removal_rate': (self.stats.total_duplicates_removed /
-                                       self.stats.total_duplicates_found
-                                       if self.stats.total_duplicates_found > 0 else 0),
-            'processing_history': self.stats.processing_history
-        }
 
 
 def update_logfile(log_file: str) -> None:
@@ -1283,7 +894,8 @@ def validate_keywords(keywords: List[str]) -> List[str]:
 
         # Skip keywords with invalid characters (basic validation)
         if re.search(r'[<>:"/\\|?*]', keyword):
-            logger.warning(f"Skipping keyword '{keyword}' - contains invalid characters")
+            logger.warning(
+                f"Skipping keyword '{keyword}' - contains invalid characters")
             continue
 
         valid_keywords.append(keyword)
@@ -1319,7 +931,8 @@ def keyword_stats(category_results: Dict[str, Dict[str, Any]]) -> Dict[str, Any]
             stats['categories_with_generation'] += 1
 
     if stats['total_categories'] > 0:
-        stats['generation_rate'] = stats['categories_with_generation'] / stats['total_categories']
+        stats['generation_rate'] = stats['categories_with_generation'] / stats[
+            'total_categories']
 
     return stats
 
@@ -1346,7 +959,8 @@ class LabelGenerator:
         self.supported_formats = {"txt", "json", "csv", "yaml"}
 
         if self.format_type not in self.supported_formats:
-            logger.warning(f"Unsupported label format: {format_type}. Defaulting to 'txt'.")
+            logger.warning(
+                f"Unsupported label format: {format_type}. Defaulting to 'txt'.")
             self.format_type = "txt"
 
     def generate_dataset_labels(self, dataset_dir: str) -> None:
@@ -1357,7 +971,8 @@ class LabelGenerator:
         Args:
             dataset_dir (str): The root directory of the dataset.
         """
-        logger.info(f"Generating {self.format_type} labels for dataset at {dataset_dir}")
+        logger.info(
+            f"Generating {self.format_type} labels for dataset at {dataset_dir}")
         dataset_path = Path(dataset_dir)
 
         # Create labels directory
@@ -1365,17 +980,20 @@ class LabelGenerator:
         labels_dir.mkdir(parents=True, exist_ok=True)
 
         # Process each category directory
-        category_dirs = [d for d in dataset_path.iterdir() if d.is_dir() and d.name != "labels"]
+        category_dirs = [d for d in dataset_path.iterdir() if
+                         d.is_dir() and d.name != "labels"]
 
         # Count total images for progress tracking
         total_images = sum(
-            len([f for f in Path(keyword_dir).glob("**/*") if f.is_file() and valid_image_ext(f)])
+            len([f for f in Path(keyword_dir).glob("**/*") if
+                 f.is_file() and valid_image_ext(f)])
             for category_dir in category_dirs
             for keyword_dir in [d for d in category_dir.iterdir() if d.is_dir()]
         )
 
         # Create metadata file for the dataset with overall information
-        self._generate_dataset_metadata(dataset_path, labels_dir, len(category_dirs), total_images)
+        self._generate_dataset_metadata(dataset_path, labels_dir, len(category_dirs),
+                                        total_images)
 
         # Create category index file
         self._generate_category_index(labels_dir, [d.name for d in category_dirs])
@@ -1422,10 +1040,12 @@ class LabelGenerator:
         elif self.format_type == "yaml":
             try:
                 import yaml
-                with open(labels_dir / "dataset_metadata.yaml", "w", encoding="utf-8") as f:
+                with open(labels_dir / "dataset_metadata.yaml", "w",
+                          encoding="utf-8") as f:
                     yaml.dump(metadata, f, default_flow_style=False)
             except ImportError:
-                logger.warning("PyYAML not installed, skipping YAML metadata generation")
+                logger.warning(
+                    "PyYAML not installed, skipping YAML metadata generation")
         else:
             # For txt and csv, use simple format
             with open(labels_dir / "dataset_metadata.txt", "w", encoding="utf-8") as f:
@@ -1450,12 +1070,15 @@ class LabelGenerator:
         elif self.format_type == "yaml":
             try:
                 import yaml
-                with open(labels_dir / "category_index.yaml", "w", encoding="utf-8") as f:
+                with open(labels_dir / "category_index.yaml", "w",
+                          encoding="utf-8") as f:
                     yaml.dump(category_map, f, default_flow_style=False)
             except ImportError:
-                logger.warning("PyYAML not installed, skipping YAML category index generation")
+                logger.warning(
+                    "PyYAML not installed, skipping YAML category index generation")
         elif self.format_type == "csv":
-            with open(labels_dir / "category_index.csv", "w", encoding="utf-8", newline="") as f:
+            with open(labels_dir / "category_index.csv", "w", encoding="utf-8",
+                      newline="") as f:
                 f.write("category,id\n")
                 for name, idx in category_map.items():
                     f.write(f"{name},{idx}\n")
@@ -1486,7 +1109,8 @@ class LabelGenerator:
         for keyword_dir in keyword_dirs:
             keyword_name = keyword_dir.name
             progress.set_subtask_description(f"Keyword: {keyword_name}")
-            self._process_keyword(keyword_dir, category_name, keyword_name, category_label_dir, progress)
+            self._process_keyword(keyword_dir, category_name, keyword_name,
+                                  category_label_dir, progress)
 
     def _process_keyword(self, keyword_dir: Path, category_name: str, keyword_name: str,
                          category_label_dir: Path, progress: ProgressManager) -> None:
@@ -1520,7 +1144,8 @@ class LabelGenerator:
             )
             progress.update_step(1)  # Update main progress bar
 
-    def _generate_label_file(self, image_file: Path, label_dir: Path, category: str, keyword: str) -> None:
+    def _generate_label_file(self, image_file: Path, label_dir: Path, category: str,
+                             keyword: str) -> None:
         """
         Generates a label file for a single image based on the configured format.
         It extracts image metadata and writes the label content to the specified directory.
@@ -1542,23 +1167,31 @@ class LabelGenerator:
 
             # Generate label content based on format
             if self.format_type == "txt":
-                self._write_txt_label(label_file_path, category, keyword, image_file, image_metadata)
+                self._write_txt_label(label_file_path, category, keyword, image_file,
+                                      image_metadata)
             elif self.format_type == "json":
-                self._write_json_label(label_file_path, category, keyword, image_file, image_metadata)
+                self._write_json_label(label_file_path, category, keyword, image_file,
+                                       image_metadata)
             elif self.format_type == "csv":
-                self._write_csv_label(label_file_path, category, keyword, image_file, image_metadata)
+                self._write_csv_label(label_file_path, category, keyword, image_file,
+                                      image_metadata)
             elif self.format_type == "yaml":
-                self._write_yaml_label(label_file_path, category, keyword, image_file, image_metadata)
+                self._write_yaml_label(label_file_path, category, keyword, image_file,
+                                       image_metadata)
 
         except PermissionError as pe:
-            logger.warning(f"Permission denied when creating label file for {image_file}: {pe}")
-            raise GenerationError(f"Permission denied creating label for {image_file}: {pe}") from pe
+            logger.warning(
+                f"Permission denied when creating label file for {image_file}: {pe}")
+            raise GenerationError(
+                f"Permission denied creating label for {image_file}: {pe}") from pe
         except IOError as ioe:
             logger.warning(f"I/O error generating label for {image_file}: {ioe}")
-            raise GenerationError(f"I/O error generating label for {image_file}: {ioe}") from ioe
+            raise GenerationError(
+                f"I/O error generating label for {image_file}: {ioe}") from ioe
         except Exception as e:
             logger.warning(f"Unexpected error generating label for {image_file}: {e}")
-            raise GenerationError(f"Unexpected error generating label for {image_file}: {e}") from e
+            raise GenerationError(
+                f"Unexpected error generating label for {image_file}: {e}") from e
 
     @staticmethod
     def _extract_image_metadata(image_path: Path) -> Dict[str, Any]:
@@ -1575,7 +1208,8 @@ class LabelGenerator:
             "timestamp": time.time(),
             "size": os.path.getsize(image_path) if image_path.exists() else None,
             "filename": image_path.name,
-            "parent_dir": image_path.parent.name  # Store parent directory name for context
+            "parent_dir": image_path.parent.name
+            # Store parent directory name for context
         }
 
         # Try to get image dimensions
@@ -1657,7 +1291,8 @@ class LabelGenerator:
             logger.debug(f"Created JSON label: {label_path}")
         except Exception as e:
             logger.warning(f"Failed to write JSON label {label_path}: {e}")
-            raise GenerationError(f"Failed to write JSON label {label_path}: {e}") from e
+            raise GenerationError(
+                f"Failed to write JSON label {label_path}: {e}") from e
 
     @staticmethod
     def _write_csv_label(label_path: Path, category: str, keyword: str,
@@ -1676,7 +1311,8 @@ class LabelGenerator:
             GenerationError: If there is an error writing the file.
         """
         try:
-            headers = ["category", "keyword", "image_path", "timestamp", "filename", "width", "height", "format",
+            headers = ["category", "keyword", "image_path", "timestamp", "filename",
+                       "width", "height", "format",
                        "size"]
             values = [
                 category,
@@ -1732,7 +1368,8 @@ class LabelGenerator:
             self._write_txt_label(label_path, category, keyword, image_path, metadata)
         except Exception as e:
             logger.warning(f"Failed to write YAML label {label_path}: {e}")
-            raise GenerationError(f"Failed to write YAML label {label_path}: {e}") from e
+            raise GenerationError(
+                f"Failed to write YAML label {label_path}: {e}") from e
 
 
 class KeywordManagement:
@@ -1753,7 +1390,8 @@ class KeywordManagement:
         self.ai_model = ai_model
         self.keyword_generation = keyword_generation
 
-    def prepare_keywords(self, category_name: str, keywords: List[str]) -> Dict[str, Any]:
+    def prepare_keywords(self, category_name: str, keywords: List[str]) -> Dict[
+        str, Any]:
         """
         Prepares keywords for processing based on the configuration.
         This includes generating new keywords using an AI model if enabled and necessary.
@@ -1779,7 +1417,8 @@ class KeywordManagement:
             generated_keywords = self.generate_keywords(category_name)
             keywords = generated_keywords
             generation_occurred = True
-            logger.info(f"No keywords provided for category '{category_name}', generated {len(keywords)} keywords")
+            logger.info(
+                f"No keywords provided for category '{category_name}', generated {len(keywords)} keywords")
 
         elif not keywords and self.keyword_generation == "disabled":
             # No keywords and generation disabled, use category name as keyword
@@ -1842,12 +1481,15 @@ class KeywordManagement:
             # Extract keywords from response
             keywords = self._extract_keywords_from_response(response, category)
 
-            logger.info(f"Generated {len(keywords)} keywords for '{category}' using {self.ai_model}")
+            logger.info(
+                f"Generated {len(keywords)} keywords for '{category}' using {self.ai_model}")
             return keywords
 
         except Exception as e:
-            logger.warning(f"Failed to generate keywords using {self.ai_model}: {str(e)}")
-            raise GenerationError(f"Failed to generate keywords for '{category}' using {self.ai_model}: {e}") from e
+            logger.warning(
+                f"Failed to generate keywords using {self.ai_model}: {str(e)}")
+            raise GenerationError(
+                f"Failed to generate keywords for '{category}' using {self.ai_model}: {e}") from e
 
     @staticmethod
     def _get_prompt(category: str) -> str:
@@ -1860,7 +1502,8 @@ class KeywordManagement:
             Example format: ["keyword 1", "keyword 2", "keyword 3"]
             """
 
-    def _extract_keywords_from_response(self, response: str, category: str) -> List[str]:
+    def _extract_keywords_from_response(self, response: str, category: str) -> List[
+        str]:
         """
         Extracts a list of keywords from the raw AI model response string.
         It attempts to parse a Python list structure first, then falls back to line-by-line extraction.
@@ -1883,7 +1526,8 @@ class KeywordManagement:
                 with contextlib.suppress(Exception):
                     # Parse as Python list
                     keywords = eval(list_str)
-                    if isinstance(keywords, list) and all(isinstance(k, str) for k in keywords):
+                    if not (not isinstance(keywords, list) or not all(
+                        isinstance(k, str) for k in keywords)):
                         return self._clean_and_deduplicate_keywords(keywords, category)
 
             # If we couldn't parse a proper list, try to extract keywords line by line
@@ -1907,7 +1551,8 @@ class KeywordManagement:
             return [category]
 
     @staticmethod
-    def _clean_and_deduplicate_keywords(keywords: List[str], category: str) -> List[str]:
+    def _clean_and_deduplicate_keywords(keywords: List[str], category: str) -> List[
+        str]:
         """
         Cleans and deduplicates a list of keywords.
 
@@ -1920,7 +1565,8 @@ class KeywordManagement:
         """
         # Remove duplicates and empty strings
         keywords = [k.strip() for k in keywords if k and k.strip()]
-        keywords = list(dict.fromkeys(keywords))  # Remove duplicates while preserving order
+        keywords = list(
+            dict.fromkeys(keywords))  # Remove duplicates while preserving order
 
         # Always include the category itself
         if category not in keywords:
@@ -1961,7 +1607,6 @@ class DatasetGenerator:
         self.root_dir = self._setup_output_directory()
         self.tracker = DatasetTracker()
         self.progress_cache = self._initialize_progress_cache()
-        self.report = self._initialize_report()
         self.label_generator = LabelGenerator() if self.config.generate_labels else None
 
         # Initialize KeywordManagement instance
@@ -1991,21 +1636,23 @@ class DatasetGenerator:
         """
         Generates the dataset based on the provided configuration.
         This is the main entry point for the dataset generation process,
-        orchestrating keyword processing, image downloading, integrity checks,
+        orchestrating keyword processing, image downloading,
         label generation, and report creation.
         """
         # Pre-process all keywords to get accurate totals
         all_keyword_results = {}
         for category_name, keywords in self.categories.items():
-            keyword_result = self.keyword_manager.prepare_keywords(category_name, keywords)
+            keyword_result = self.keyword_manager.prepare_keywords(category_name,
+                                                                   keywords)
             all_keyword_results[category_name] = keyword_result
 
         # Calculate total work items for progress tracking
-        total_keywords = sum(len(result['keywords']) for result in all_keyword_results.values())
+        total_keywords = sum(
+            len(result['keywords']) for result in all_keyword_results.values())
 
         # Generate keyword statistics for reporting
         keyword_stats_ = keyword_stats(all_keyword_results)
-        self._record_keyword_statistics(keyword_stats_)
+        # Report generation moved to src package
 
         # Start the download/generation step
         self.progress.start_step("download", total=total_keywords)
@@ -2013,16 +1660,10 @@ class DatasetGenerator:
         # Process each category with prepared keywords
         for category_name, keyword_result in all_keyword_results.items():
             logger.info(f"Processing category: {category_name}")
-            self.progress.start_subtask(f"Category: {category_name}", total=len(keyword_result['keywords']))
+            self.progress.start_subtask(f"Category: {category_name}",
+                                        total=len(keyword_result['keywords']))
 
-            # Record keyword generation in report if any generation occurred
-            if keyword_result['generation_occurred']:
-                self.report.record_keyword_generation(
-                    category_name,
-                    keyword_result['original_keywords'],
-                    keyword_result['generated_keywords'],
-                    self.config.ai_model
-                )
+            # Report generation moved to src package
 
             self._process_category(category_name, keyword_result['keywords'])
             self.progress.close_subtask()
@@ -2035,11 +1676,7 @@ class DatasetGenerator:
             logger.info("Generating labels for the dataset")
             self.label_generator.generate_dataset_labels(str(self.root_dir))
 
-        # Start the report generation step
-        self.progress.start_step("report")
-        logger.info("Generating dataset report")
-        self.report.generate()
-        self.progress.update_step(1)
+        # Report generation moved to src package
         self.progress.close()
 
         # Start the finalizing step
@@ -2081,29 +1718,6 @@ class DatasetGenerator:
             f"Continuing from previous run. Already completed: {stats['total_completed']} items across {stats['categories']} categories.")
         return progress_cache
 
-    def _initialize_report(self) -> ReportGenerator:
-        """
-        Initializes the ReportGenerator and populates it with initial dataset information.
-
-        Returns:
-            ReportGenerator: An instance of the ReportGenerator.
-        """
-        report = ReportGenerator(str(self.root_dir))
-        report.add_summary(f"Dataset name: {self.dataset_name}")
-        report.add_summary(f"Configuration: {self.config.config_path}")
-        report.add_summary(f"Categories: {len(self.categories)}")
-        report.add_summary(f"Max images per keyword: {self.config.max_images}")
-        report.add_summary(f"Keyword generation mode: {self.config.keyword_generation}")
-
-        if self.config.keyword_generation != "disabled":
-            report.add_summary(f"AI model for keyword generation: {self.config.ai_model}")
-
-        if self.config.continue_from_last and self.progress_cache:
-            stats = self.progress_cache.get_completion_stats()
-            report.add_summary(f"Continuing from previous run with {stats['total_completed']} completed items")
-
-        return report
-
     def _load_and_validate_config(self) -> Union[Dict[str, Any], ConfigManager]:
         """
         Loads and validates the dataset configuration from the specified config file.
@@ -2121,21 +1735,6 @@ class DatasetGenerator:
             _apply_config_options(self.config, options)
 
         return dataset_config
-
-    def _record_keyword_statistics(self, stats: Dict[str, Any]) -> None:
-        """
-        Records keyword generation statistics in the report.
-
-        Args:
-            stats (Dict[str, Any]): Statistics about keyword generation.
-        """
-        self.report.add_summary(f"Keyword generation statistics:")
-        self.report.add_summary(f"  - Total categories: {stats['total_categories']}")
-        self.report.add_summary(f"  - Categories with generation: {stats['categories_with_generation']}")
-        self.report.add_summary(f"  - Total original keywords: {stats['total_original_keywords']}")
-        self.report.add_summary(f"  - Total generated keywords: {stats['total_generated_keywords']}")
-        self.report.add_summary(f"  - Total final keywords: {stats['total_final_keywords']}")
-        self.report.add_summary(f"  - Generation rate: {stats['generation_rate']:.2%}")
 
     def _process_category(self, category_name: str, keywords: List[str]) -> None:
         """
@@ -2158,7 +1757,8 @@ class DatasetGenerator:
             self.progress.set_subtask_description(
                 f"Category: {category_name} ({keywords.index(keyword) + 1}/{len(keywords)})")
 
-    def _process_keyword(self, category_name: str, keyword: str, category_path: Path) -> None:
+    def _process_keyword(self, category_name: str, keyword: str,
+                         category_path: Path) -> None:
         """
         Processes a single keyword, including downloading images, checking for duplicates,
         and performing integrity checks.
@@ -2173,7 +1773,7 @@ class DatasetGenerator:
 
         # Skip if already processed and continuing from last run
         if self.config.continue_from_last and self.progress_cache and self.progress_cache.is_completed(
-                category_name, keyword):
+            category_name, keyword):
             logger.info(f"Skipping already processed: {category_name}/{keyword}")
             return
 
@@ -2196,17 +1796,11 @@ class DatasetGenerator:
         )
 
         # Track results and record in report
-        self._track_download_results(download_context, success, count, category_name, keyword)
+        self._track_download_results(download_context, success, count, category_name,
+                                     keyword)
 
-        # Check and record duplicates
-        self.progress.set_subtask_description(f"Checking duplicates: {keyword}")
-        check_manager = CheckManager()
-        check_manager.duplicates(category_name, keyword, str(keyword_path), self.report)
-
-        # Check integrity if enabled
-        if self.config.integrity:
-            self.progress.set_subtask_description(f"Checking integrity: {keyword}")
-            self._check_image_integrity(download_context, str(keyword_path), category_name, keyword)
+        # Validation (duplicates and integrity) moved to validator package
+        # Can be performed post-processing if needed using the validator package
 
         # Update progress cache if continuing from last run
         if self.config.continue_from_last and self.progress_cache:
@@ -2219,7 +1813,8 @@ class DatasetGenerator:
         # Small delay to be respectful to image services
         time.sleep(0.5)
 
-    def _track_download_results(self, download_context: str, success: bool, count: int, category_name: str,
+    def _track_download_results(self, download_context: str, success: bool, count: int,
+                                category_name: str,
                                 keyword: str) -> None:
         """
         Tracks the results of image downloads, updating the dataset tracker and report.
@@ -2233,45 +1828,11 @@ class DatasetGenerator:
         """
         if success:
             self.tracker.record_download_success(download_context)
-            logger.info(f"Successfully downloaded {count} images for {download_context}")
+            logger.info(
+                f"Successfully downloaded {count} images for {download_context}")
         else:
             error_msg = "Failed to download any valid images after retries"
             self.tracker.record_download_failure(download_context, error_msg)
-            self.report.record_error(f"{category_name}/{keyword} download", error_msg)
-
-    def _check_image_integrity(self, download_context: str, keyword_path: str, category_name: str,
-                               keyword: str) -> None:
-        """
-        Checks image integrity for a given keyword directory and records the results.
-
-        Args:
-            download_context (str): A string describing the context of the download.
-            keyword_path (str): The path to the keyword's image directory.
-            category_name (str): The name of the category.
-            keyword (str): The keyword being processed.
-        """
-        self.progress.set_subtask_description(f"Checking image integrity: {keyword}")
-
-        valid_count, total_count, corrupted_files = image_validator.count_valid(keyword_path)
-
-        if valid_count < total_count:
-            self.tracker.record_integrity_failure(
-                download_context,
-                total_count,
-                valid_count,
-                corrupted_files
-            )
-            self.progress.set_subtask_postfix(valid=valid_count, corrupted=total_count - valid_count)
-        else:
-            self.progress.set_subtask_postfix(valid=valid_count, corrupted=0)
-
-        self.report.record_integrity(
-            category=category_name,
-            keyword=keyword,
-            expected=total_count,
-            actual=valid_count,
-            corrupted=corrupted_files
-        )
 
 
 def generate_dataset(config: DatasetGenerationConfig) -> None:
