@@ -35,8 +35,11 @@ dependencies = [
   "tqdm",
   "g4f",
   "pixcrawler-logging",
+  "pixcrawler-celery-core",
   "pydantic>=2.0.0",
   "pydantic-settings>=2.0.0",
+  "celery>=5.3.0",
+  "kombu>=5.3.0",
 ]
 
 [tool.hatch.build.targets.wheel]
