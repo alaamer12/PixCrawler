@@ -27,6 +27,8 @@ dependencies = [
     "pixcrawler-backend",
     "pixcrawler-builder",
     "pixcrawler-logging",
+    "pixcrawler-celery-core",
+    "pixcrawler-validator",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
 ]
@@ -40,12 +42,14 @@ Issues = "https://github.com/pixcrawler/pixcrawler/issues"
 
 
 [tool.uv.workspace]
-members = ["backend", "builder", "logging_config"]
+members = ["backend", "builder", "logging_config", "celery_core", "validator"]
 
 [tool.uv.sources]
 pixcrawler-backend = { workspace = true }
 pixcrawler-builder = { workspace = true }
 pixcrawler-logging = { workspace = true }
+pixcrawler-celery-core = { workspace = true }
+pixcrawler-validator = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/"]
