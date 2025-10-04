@@ -26,7 +26,9 @@ classifiers = [
 dependencies = [
     "pixcrawler-backend",
     "pixcrawler-builder",
-    "pixcrawler-logging"
+    "pixcrawler-logging",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
 ]
 
 [project.urls]

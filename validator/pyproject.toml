@@ -30,6 +30,8 @@ dependencies = [
   "pillow>=10.0.0",
   "tqdm>=4.65.0",
   "pixcrawler-logging",
+  "pydantic>=2.0.0",
+  "pydantic-settings>=2.0.0",
 ]
 
 [project.optional-dependencies]

@@ -1,23 +1,26 @@
 """
-This module provides configuration schema definitions and data classes for managing PixCrawler application configuration. It includes JSON schema validation for configuration files and defines the main configuration data structure.
+This module provides configuration schema definitions and Pydantic Settings for managing PixCrawler application configuration. It includes JSON schema validation for configuration files and defines the main configuration data structure using Pydantic V2.
 
 Classes:
-    DatasetGenerationConfig: Holds all configuration options for the dataset generation process.
+    DatasetGenerationConfig: Pydantic Settings for dataset generation configuration with environment variable support.
 
 Functions:
     get_search_variations: Returns a list of search variation templates.
     get_engines: Returns a list of engine configurations.
 
 Features:
+    - Uses Pydantic V2 Settings for environment-based configuration
     - Defines a JSON schema for validating configuration files.
-    - Provides a dataclass for structured access to configuration parameters.
+    - Provides type-safe configuration with validation
     - Manages predefined search variations and engine configurations.
 """
 
-from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
 
-from builder._constants import DEFAULT_CACHE_FILE, KEYWORD_MODE, AI_MODELS
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from builder._constants import KEYWORD_MODE, AI_MODELS
 
 __all__ = [
     'CONFIG_SCHEMA',
@@ -112,13 +115,13 @@ def get_engines() -> List[Dict[str, Any]]:
     ]
 
 
-@dataclass
-class DatasetGenerationConfig:
+class DatasetGenerationConfig(BaseSettings):
     """
     Configuration for dataset generation.
 
     This class holds all configuration options for the dataset generation process,
-    including paths, limits, and feature flags.
+    including paths, limits, and feature flags. Uses Pydantic V2 Settings for
+    environment variable support with PIXCRAWLER_BUILDER_ prefix.
 
     Attributes:
         config_path: Path to the configuration file
@@ -133,14 +136,72 @@ class DatasetGenerationConfig:
         dataset_name: Name of the dataset (loaded from config file)
         search_variations: List of search variation templates for image searches
     """
-    config_path: str
-    max_images: int = 10
-    output_dir: Optional[str] = None
-    max_retries: int = 5
-    continue_from_last: bool = False
-    cache_file: str = DEFAULT_CACHE_FILE
-    keyword_generation: KEYWORD_MODE = "auto"
-    ai_model: AI_MODELS = "gpt4-mini"
-    generate_labels: bool = True
-    dataset_name: str = ""
-    search_variations: list = None
+
+    model_config = SettingsConfigDict(
+        env_prefix="PIXCRAWLER_BUILDER_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    config_path: str = Field(
+        default="config.json",
+        description="Path to the configuration file"
+    )
+    max_images: int = Field(
+        default=10,
+        ge=1,
+        description="Maximum number of images to download per keyword"
+    )
+    output_dir: Optional[str] = Field(
+        default=None,
+        description="Custom output directory (None uses dataset_name from config)"
+    )
+    max_retries: int = Field(
+        default=5,
+        ge=0,
+        description="Maximum number of retry attempts for failed downloads"
+    )
+    continue_from_last: bool = Field(
+        default=False,
+        description="Whether to continue from previous run"
+    )
+    cache_file: str = Field(
+        default="download_progress.json",
+        description="Path to cache file for progress tracking"
+    )
+    keyword_generation: KEYWORD_MODE = Field(
+        default="auto",
+        description="Mode for keyword generation"
+    )
+    ai_model: AI_MODELS = Field(
+        default="gpt4-mini",
+        description="AI model to use for keyword generation"
+    )
+    generate_labels: bool = Field(
+        default=True,
+        description="Whether to generate label files for images"
+    )
+    dataset_name: str = Field(
+        default="",
+        description="Name of the dataset (loaded from config file)"
+    )
+    search_variations: Optional[List[str]] = Field(
+        default=None,
+        description="List of search variation templates for image searches"
+    )
+    @classmethod
+    @field_validator('keyword_generation')
+    def validate_keyword_generation(cls, v: str) -> str:
+        valid_modes = ["auto", "disabled", "enabled"]
+        if v not in valid_modes:
+            raise ValueError(f"keyword_generation must be one of {valid_modes}")
+        return v
+    @classmethod
+    @field_validator('ai_model')
+    def validate_ai_model(cls, v: str) -> str:
+        valid_models = ["gpt4", "gpt4-mini"]
+        if v not in valid_models:
+            raise ValueError(f"ai_model must be one of {valid_models}")
+        return v
