@@ -1,12 +1,12 @@
 """
 Configuration module for the PixCrawler validator package.
 
-This module provides configuration schemas and data classes for managing
+This module provides configuration schemas and Pydantic Settings for managing
 validation operations. It was separated from the builder package to maintain
 clean separation of concerns.
 
 Classes:
-    ValidatorConfig: Main configuration class for validation operations
+    ValidatorConfig: Pydantic Settings for validation configuration with environment variable support
 
 Functions:
     get_default_config: Returns default validation configuration
@@ -14,63 +14,91 @@ Functions:
     validate_config: Validates configuration parameters
 
 Features:
+    - Uses Pydantic V2 Settings for environment-based configuration
     - Comprehensive validation configuration options
     - Schema validation for configuration files
     - Default configuration presets
     - Configuration validation and error handling
 """
 
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 
-from validator.validation import CheckMode, DuplicateAction
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Import enums locally to avoid circular imports
+from enum import Enum, auto
 
 __all__ = [
+    'CheckMode',
+    'DuplicateAction', 
     'ValidatorConfig',
+    'get_validator_settings',
     'get_default_config',
+    'get_strict_config',
+    'get_lenient_config',
     'load_config_from_dict',
     'validate_config'
 ]
 
 
-@dataclass
-class ValidatorConfig:
+class CheckMode(Enum):
+    """Enumeration of available validation modes"""
+    STRICT = auto()  # Fail on any issues
+    LENIENT = auto()  # Log warnings but continue
+    REPORT_ONLY = auto()  # Only report, no actions
+
+
+class DuplicateAction(Enum):
+    """Actions to take when duplicates are found"""
+    REMOVE = auto()  # Remove duplicate files
+    REPORT_ONLY = auto()  # Only report duplicates
+    QUARANTINE = auto()  # Move duplicates to quarantine directory
+
+
+class ValidatorConfig(BaseSettings):
     """
     Comprehensive configuration for validator operations.
 
     This class consolidates all validation-related configuration options
-    that were previously scattered across the builder package.
+    that were previously scattered across the builder package. Uses Pydantic V2
+    Settings for environment variable support with PIXCRAWLER_VALIDATOR_ prefix.
     """
 
+    model_config = SettingsConfigDict(
+        env_prefix="PIXCRAWLER_VALIDATOR_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
     # Validation behavior
-    mode: CheckMode = CheckMode.LENIENT
-    duplicate_action: DuplicateAction = DuplicateAction.REMOVE
+    mode: CheckMode = Field(
+        default=CheckMode.LENIENT,
+        description="Validation mode (STRICT or LENIENT)"
+    )
+    duplicate_action: DuplicateAction = Field(
+        default=DuplicateAction.REMOVE,
+        description="Action to take for duplicate files"
+    )
 
     # File constraints
-    supported_extensions: Tuple[str, ...] = (
-        '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif'
+    supported_extensions: Tuple[str, ...] = Field(
+        default=('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif'),
+        description="Supported image file extensions"
     )
-    max_file_size_mb: Optional[int] = None
-    min_file_size_bytes: int = 1024  # 1KB minimum
-
-    # Image constraints
-    min_image_width: int = 50
-    min_image_height: int = 50
-
-    # Processing options
-    batch_size: int = 100
-    quarantine_dir: Optional[str] = None
-
-    # Hash settings
-    hash_size: int = 8
-
-    # Reporting options
-    generate_reports: bool = True
-    detailed_logging: bool = True
-
-    # Performance settings
-    max_concurrent_validations: int = 4
+    max_file_size_mb: Optional[int] = Field(
+        default=10,
+        ge=1,
+        description="Maximum file size in MB (None for no limit)",
+    )
+    min_file_size_bytes: int = Field(
+        default=1024,
+        ge=1,
+        description="Minimum file size in bytes"
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary"""
@@ -80,14 +108,6 @@ class ValidatorConfig:
             'supported_extensions': list(self.supported_extensions),
             'max_file_size_mb': self.max_file_size_mb,
             'min_file_size_bytes': self.min_file_size_bytes,
-            'min_image_width': self.min_image_width,
-            'min_image_height': self.min_image_height,
-            'batch_size': self.batch_size,
-            'quarantine_dir': self.quarantine_dir,
-            'hash_size': self.hash_size,
-            'generate_reports': self.generate_reports,
-            'detailed_logging': self.detailed_logging,
-            'max_concurrent_validations': self.max_concurrent_validations
         }
 
     @classmethod
@@ -109,6 +129,16 @@ class ValidatorConfig:
                 config_dict['supported_extensions'])
 
         return cls(**config_dict)
+
+
+def get_validator_settings() -> ValidatorConfig:
+    """
+    Get the validator settings instance.
+    
+    Returns:
+        ValidatorConfig: Configured settings instance
+    """
+    return ValidatorConfig()
 
 
 def get_default_config() -> ValidatorConfig:

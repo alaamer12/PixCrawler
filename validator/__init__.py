@@ -27,12 +27,12 @@ Example:
     results = processor.process_dataset("./dataset", remove_duplicates=True)
 
     # Advanced validation with custom config
-    config = ValidationConfig(
+    config = ValidatorConfig(
         mode=CheckMode.STRICT,
         duplicate_action=DuplicateAction.QUARANTINE,
         min_file_size_bytes=2048
     )
-    processor = IntegrityProcessor(config)
+    manager = CheckManager(config)
     results = processor.process_dataset("./dataset")
     ```
 
@@ -57,12 +57,18 @@ from validator.integrity import (
 
 from validator.validation import (
     CheckManager,
-    ValidationConfig,
-    CheckMode,
-    DuplicateAction,
     DuplicateResult,
     IntegrityResult,
     CheckStats
+)
+
+from validator.config import (
+    ValidatorConfig,
+    CheckMode,
+    DuplicateAction,
+    get_default_config,
+    get_strict_config,
+    get_lenient_config
 )
 
 __version__ = "0.1.0"
@@ -78,12 +84,17 @@ __all__ = [
 
     # Validation management
     "CheckManager",
-    "ValidationConfig",
+    "ValidatorConfig",
     "CheckMode",
     "DuplicateAction",
     "DuplicateResult",
     "IntegrityResult",
     "CheckStats",
+    
+    # Configuration functions
+    "get_default_config",
+    "get_strict_config", 
+    "get_lenient_config",
 
     # Convenience functions
     "validate_dataset",
