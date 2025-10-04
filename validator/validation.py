@@ -14,63 +14,75 @@ Classes:
     CheckStats: Overall statistics for validation operations
     CheckManager: Enhanced manager for validation operations
 
+TypedDict Classes:
+    ProcessingHistoryEntry: Type definition for processing history entries
+    SizeViolationInfo: Type definition for size violation information
+    IntegrityCheckContext: Type definition for integrity check context
+
 Features:
     - Configurable validation modes (strict, lenient, report-only)
     - Multiple duplicate handling strategies (remove, quarantine, report)
     - Comprehensive result tracking and statistics
     - Batch processing capabilities
     - Detailed error reporting and logging
+    - Enhanced type safety with TypedDict definitions
 """
 
 import time
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple, Set
+from typing import Optional, List, Dict, Any, Tuple, Set, TypedDict
 
 from logging_config import get_logger
 from validator.integrity import DuplicationManager, ImageValidator
+from validator.config import CheckMode, DuplicateAction, ValidatorConfig
 
 logger = get_logger(__name__)
 
 __all__ = [
-    'CheckMode',
-    'DuplicateAction',
-    'ValidationConfig',
     'DuplicateResult',
     'IntegrityResult',
     'CheckStats',
-    'CheckManager'
+    'CheckManager',
+    'ProcessingHistoryEntry',
+    'SizeViolationInfo',
+    'IntegrityCheckContext'
 ]
 
 
-class CheckMode(Enum):
-    """Enumeration of available validation modes"""
-    STRICT = auto()  # Fail on any issues
-    LENIENT = auto()  # Log warnings but continue
-    REPORT_ONLY = auto()  # Only report, no actions
+# TypedDict definitions for enhanced type safety
+class ProcessingHistoryEntry(TypedDict):
+    """Type definition for processing history entries."""
+    operation: str
+    category: str
+    keyword: str
+    success: bool
+    processing_time: float
+    images_processed: int
+    valid_images: int
+    corrupted_images: int
 
 
-class DuplicateAction(Enum):
-    """Actions to take when duplicates are found"""
-    REMOVE = auto()  # Remove duplicate files
-    REPORT_ONLY = auto()  # Only report duplicates
-    QUARANTINE = auto()  # Move duplicates to quarantine directory
+class SizeViolationInfo(TypedDict):
+    """Type definition for size violation information."""
+    file_name: str
+    file_size: int
+    violation_type: str  # 'too_small' or 'too_large'
+    threshold: int
 
 
-@dataclass
-class ValidationConfig:
-    """Configuration for validation operations"""
-    mode: CheckMode = CheckMode.LENIENT
-    duplicate_action: DuplicateAction = DuplicateAction.REMOVE
-    supported_extensions: Tuple[str, ...] = (
-    '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif')
-    max_file_size_mb: Optional[int] = None
-    min_file_size_bytes: int = 1024  # 1KB minimum
-    quarantine_dir: Optional[str] = None
-    batch_size: int = 100  # Process images in batches
-    min_image_width: int = 50
-    min_image_height: int = 50
+class IntegrityCheckContext(TypedDict):
+    """Type definition for integrity check context."""
+    directory: str
+    expected_count: int
+    category_name: str
+    keyword: str
+    start_time: float
+
+
+# Configuration is now imported from validator.config
+# Remove duplicate definitions
 
 
 @dataclass
@@ -120,14 +132,14 @@ class CheckManager:
     duplicate detection, integrity checking, and comprehensive reporting.
     """
 
-    def __init__(self, config: Optional[ValidationConfig] = None):
+    def __init__(self, config: Optional[ValidatorConfig] = None):
         """
         Initialize the CheckManager.
 
         Args:
-            config: Optional ValidationConfig for customizing behavior
+            config: Optional ValidatorConfig for customizing behavior
         """
-        self.config = config or ValidationConfig()
+        self.config = config or ValidatorConfig()
         self.stats = CheckStats()
 
         # Initialize validation components
@@ -308,6 +320,7 @@ class CheckManager:
 
         return result
 
+    # noinspection D
     def check_integrity(self, directory: str, expected_count: int = 0,
                         category_name: str = "", keyword: str = "") -> IntegrityResult:
         """
@@ -322,75 +335,218 @@ class CheckManager:
         Returns:
             IntegrityResult: Detailed results of the integrity check
         """
-        start_time = time.time()
+        context: IntegrityCheckContext = {
+            'directory': directory,
+            'expected_count': expected_count,
+            'category_name': category_name,
+            'keyword': keyword,
+            'start_time': time.time()
+        }
+
         result = IntegrityResult(total_images=0, valid_images=0, corrupted_images=0)
 
         try:
-            # Count valid images
-            valid_count, total_count, corrupted_files = self.image_validator.count_valid(
-                directory)
-
-            result.total_images = total_count
-            result.valid_images = valid_count
-            result.corrupted_images = len(corrupted_files)
-            result.corrupted_files = corrupted_files
-
-            # Check for size violations if configured
-            if self.config.max_file_size_mb or self.config.min_file_size_bytes:
-                directory_path = Path(directory)
-                for file_path in self._get_image_files(directory_path):
-                    file_size = file_path.stat().st_size
-
-                    if file_size < self.config.min_file_size_bytes:
-                        result.size_violations.append(
-                            f"{file_path.name} (too small: {file_size} bytes)")
-                    elif (self.config.max_file_size_mb and
-                          file_size > self.config.max_file_size_mb * 1024 * 1024):
-                        result.size_violations.append(
-                            f"{file_path.name} (too large: {file_size} bytes)")
-
-            # Update statistics
-            self.stats.total_corrupted_found += result.corrupted_images
-            if category_name:
-                self.stats.categories_processed.add(category_name)
-            if keyword:
-                self.stats.keywords_processed.add(keyword)
-            self.stats.successful_checks += 1
-
-            logger.info(f"Integrity check: {valid_count}/{total_count} valid images, "
-                        f"{result.corrupted_images} corrupted")
-            if category_name and keyword:
-                logger.info(f"Processed {category_name}/{keyword}")
+            self._do_check(context, result)
 
         except Exception as e:
-            error_msg = f"Failed to check integrity: {e}"
-            if category_name and keyword:
-                error_msg = f"Failed to check integrity for {category_name}/{keyword}: {e}"
-
-            logger.error(error_msg)
-            result.errors.append(error_msg)
-            self.stats.failed_checks += 1
-
-            if self.config.mode == CheckMode.STRICT:
-                raise ValueError(error_msg) from e
+            self._handle_integrity_error(context, result, e)
 
         finally:
-            result.processing_time = time.time() - start_time
-            self.stats.total_checks += 1
-
-            # Record processing history
-            self.stats.processing_history.append({
-                'operation': 'integrity_check',
-                'category': category_name,
-                'keyword': keyword,
-                'success': not result.errors,
-                'processing_time': result.processing_time,
-                'images_processed': result.total_images,
-                'valid_images': result.valid_images,
-                'corrupted_images': result.corrupted_images
-            })
+            self._finalize_integrity_check(context, result)
 
         return result
+
+    def _do_check(self, context: IntegrityCheckContext, result: IntegrityResult):
+        # Perform image validation
+        self._perform_image_validation(context, result)
+
+        # Check for size violations if configured
+        self._check_size_violations(context, result)
+
+        # Update statistics and log results
+        self._update_integrity_statistics(context, result)
+        self._log_integrity_results(context, result)
+
+    def _perform_image_validation(self, context: IntegrityCheckContext,
+                                  result: IntegrityResult) -> None:
+        """
+        Perform image validation and populate basic result metrics.
+
+        Args:
+            context: Context information for the integrity check
+            result: Result object to populate
+        """
+        valid_count, total_count, corrupted_files = self.image_validator.count_valid(
+            context['directory'])
+
+        result.total_images = total_count
+        result.valid_images = valid_count
+        result.corrupted_images = len(corrupted_files)
+        result.corrupted_files = corrupted_files
+
+    def _check_size_violations(self, context: IntegrityCheckContext,
+                               result: IntegrityResult) -> None:
+        """
+        Check for file size violations if configured.
+
+        Args:
+            context: Context information for the integrity check
+            result: Result object to populate with size violations
+        """
+        if not (self.config.max_file_size_mb or self.config.min_file_size_bytes):
+            return
+
+        directory_path = Path(context['directory'])
+        for file_path in self._get_image_files(directory_path):
+            violation_info = self._check_file_size_violation(file_path)
+            if violation_info:
+                violation_msg = self._format_size_violation_message(violation_info)
+                result.size_violations.append(violation_msg)
+
+    def _check_file_size_violation(self, file_path: Path) -> Optional[SizeViolationInfo]:
+        """
+        Check if a file violates size constraints.
+
+        Args:
+            file_path: Path to the file to check
+
+        Returns:
+            SizeViolationInfo if violation found, None otherwise
+        """
+        file_size = file_path.stat().st_size
+
+        if file_size < self.config.min_file_size_bytes:
+            return SizeViolationInfo(
+                file_name=file_path.name,
+                file_size=file_size,
+                violation_type='too_small',
+                threshold=self.config.min_file_size_bytes
+            )
+        elif (self.config.max_file_size_mb and
+              file_size > self.config.max_file_size_mb * 1024 * 1024):
+            return SizeViolationInfo(
+                file_name=file_path.name,
+                file_size=file_size,
+                violation_type='too_large',
+                threshold=self.config.max_file_size_mb * 1024 * 1024
+            )
+
+        return None
+
+    @staticmethod
+    def _format_size_violation_message(violation_info: SizeViolationInfo) -> str:
+        """
+        Format a size violation message.
+
+        Args:
+            violation_info: Information about the size violation
+
+        Returns:
+            Formatted violation message
+        """
+        if violation_info['violation_type'] == 'too_small':
+            return f"{violation_info['file_name']} (too small: {violation_info['file_size']} bytes)"
+        else:
+            return f"{violation_info['file_name']} (too large: {violation_info['file_size']} bytes)"
+
+    def _update_integrity_statistics(self, context: IntegrityCheckContext,
+                                     result: IntegrityResult) -> None:
+        """
+        Update internal statistics based on integrity check results.
+
+        Args:
+            context: Context information for the integrity check
+            result: Result object with check results
+        """
+        self.stats.total_corrupted_found += result.corrupted_images
+
+        if context['category_name']:
+            self.stats.categories_processed.add(context['category_name'])
+        if context['keyword']:
+            self.stats.keywords_processed.add(context['keyword'])
+
+        self.stats.successful_checks += 1
+
+    @staticmethod
+    def _log_integrity_results(context: IntegrityCheckContext,
+                               result: IntegrityResult) -> None:
+        """
+        Log the results of the integrity check.
+
+        Args:
+            context: Context information for the integrity check
+            result: Result object with check results
+        """
+        logger.info(f"Integrity check: {result.valid_images}/{result.total_images} valid images, "
+                    f"{result.corrupted_images} corrupted")
+
+        if context['category_name'] and context['keyword']:
+            logger.info(f"Processed {context['category_name']}/{context['keyword']}")
+
+    def _handle_integrity_error(self, context: IntegrityCheckContext,
+                                result: IntegrityResult, error: Exception) -> None:
+        """
+        Handle errors that occur during integrity checking.
+
+        Args:
+            context: Context information for the integrity check
+            result: Result object to populate with error information
+            error: The exception that occurred
+        """
+        error_msg = self._format_integrity_error_message(context, error)
+
+        logger.error(error_msg)
+        result.errors.append(error_msg)
+        self.stats.failed_checks += 1
+
+        if self.config.mode == CheckMode.STRICT:
+            raise ValueError(error_msg) from error
+
+    @staticmethod
+    def _format_integrity_error_message(context: IntegrityCheckContext,
+                                        error: Exception) -> str:
+        """
+        Format an error message for integrity check failures.
+
+        Args:
+            context: Context information for the integrity check
+            error: The exception that occurred
+
+        Returns:
+            Formatted error message
+        """
+        base_msg = f"Failed to check integrity: {error}"
+
+        if context['category_name'] and context['keyword']:
+            return f"Failed to check integrity for {context['category_name']}/{context['keyword']}: {error}"
+
+        return base_msg
+
+    def _finalize_integrity_check(self, context: IntegrityCheckContext,
+                                  result: IntegrityResult) -> None:
+        """
+        Finalize the integrity check by updating timing and recording history.
+
+        Args:
+            context: Context information for the integrity check
+            result: Result object to finalize
+        """
+        result.processing_time = time.time() - context['start_time']
+        self.stats.total_checks += 1
+
+        # Record processing history with proper typing
+        history_entry: ProcessingHistoryEntry = {
+            'operation': 'integrity_check',
+            'category': context['category_name'],
+            'keyword': context['keyword'],
+            'success': not result.errors,
+            'processing_time': result.processing_time,
+            'images_processed': result.total_images,
+            'valid_images': result.valid_images,
+            'corrupted_images': result.corrupted_images
+        }
+
+        self.stats.processing_history.append(history_entry)
 
     def check_all(self, directory: str, expected_count: int = 0,
                   category_name: str = "", keyword: str = "") -> Tuple[

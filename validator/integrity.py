@@ -10,6 +10,11 @@ Classes:
     ImageValidator: Validates image integrity and quality
     IntegrityProcessor: Main processor for integrity workflows
 
+TypedDict Classes:
+    ValidationResults: Type definition for validation results
+    DuplicateResults: Type definition for duplicate detection results
+    ProcessingResults: Type definition for overall processing results
+
 Functions:
     validate_dataset: Validates an entire dataset
     remove_duplicates: Removes duplicates from a dataset
@@ -20,7 +25,7 @@ import hashlib
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Dict, Optional, List, Tuple, TypedDict, Union
 
 from PIL import Image
 from tqdm.auto import tqdm
@@ -37,10 +42,44 @@ __all__ = [
     'DuplicationManager',
     'ImageValidator',
     'IntegrityProcessor',
+    'ValidationResults',
+    'DuplicateResults',
+    'ProcessingResults',
     'validate_dataset',
     'remove_duplicates',
     'process_integrity'
 ]
+
+
+# TypedDict definitions for enhanced type safety
+class ValidationResults(TypedDict):
+    """Type definition for validation results."""
+    valid_count: int
+    total_count: int
+    corrupted_count: int
+    corrupted_files: List[str]
+
+
+class DuplicateResults(TypedDict):
+    """Type definition for duplicate detection results."""
+    removed_count: int
+    originals_kept_count: int
+    originals_kept: List[str]
+
+
+class DuplicateDetectionResults(TypedDict):
+    """Type definition for duplicate detection results when not removing."""
+    detected_count: int
+    duplicate_groups: int
+    duplicates: Dict[str, List[str]]
+
+
+class ProcessingResults(TypedDict):
+    """Type definition for overall processing results."""
+    directory: str
+    validation: ValidationResults
+    duplicates: Union[DuplicateResults, DuplicateDetectionResults]
+    processed_at: float
 
 
 def valid_image_ext(file_path) -> bool:
@@ -597,7 +636,7 @@ class IntegrityProcessor:
         self.duplication_manager = DuplicationManager()
 
     def process_dataset(self, directory: str, remove_duplicates: bool = True,
-                        remove_corrupted: bool = True) -> Dict[str, Any]:
+                        remove_corrupted: bool = True) -> ProcessingResults:
         """
         Process a dataset for integrity issues.
 
@@ -607,21 +646,15 @@ class IntegrityProcessor:
             remove_corrupted: Whether to remove corrupted images
 
         Returns:
-            Dict containing processing results
+            ProcessingResults containing processing results
         """
         logger.info(f"Starting integrity processing for {directory}")
-
-        results = {
-            'directory': directory,
-            'validation': {},
-            'duplicates': {},
-            'processed_at': time.time()
-        }
 
         # Validate images
         valid_count, total_count, corrupted_files = self.validator.count_valid(
             directory)
-        results['validation'] = {
+
+        validation_results: ValidationResults = {
             'valid_count': valid_count,
             'total_count': total_count,
             'corrupted_count': len(corrupted_files),
@@ -642,18 +675,25 @@ class IntegrityProcessor:
         if remove_duplicates:
             removed_count, originals_kept = self.duplication_manager.remove_duplicates(
                 directory)
-            results['duplicates'] = {
+            duplicate_results: DuplicateResults = {
                 'removed_count': removed_count,
                 'originals_kept_count': len(originals_kept),
                 'originals_kept': originals_kept
             }
         else:
             duplicates = self.duplication_manager.detect_duplicates(directory)
-            results['duplicates'] = {
+            duplicate_results: DuplicateDetectionResults = {
                 'detected_count': sum(len(dups) for dups in duplicates.values()),
                 'duplicate_groups': len(duplicates),
                 'duplicates': duplicates
             }
+
+        results: ProcessingResults = {
+            'directory': directory,
+            'validation': validation_results,
+            'duplicates': duplicate_results,
+            'processed_at': time.time()
+        }
 
         logger.info(f"Integrity processing completed for {directory}")
         return results
@@ -689,7 +729,7 @@ def remove_duplicates(directory: str) -> Tuple[int, List[str]]:
 
 
 def process_integrity(directory: str, remove_duplicates: bool = True,
-                      remove_corrupted: bool = True) -> Dict[str, Any]:
+                      remove_corrupted: bool = True) -> ProcessingResults:
     """
     Process a dataset for all integrity issues.
 
@@ -699,7 +739,7 @@ def process_integrity(directory: str, remove_duplicates: bool = True,
         remove_corrupted: Whether to remove corrupted images
 
     Returns:
-        Dict containing processing results
+        ProcessingResults containing processing results
     """
     processor = IntegrityProcessor()
     return processor.process_dataset(directory, remove_duplicates, remove_corrupted)

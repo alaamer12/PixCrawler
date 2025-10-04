@@ -27,14 +27,34 @@ from typing import Optional, Dict, Any, Tuple, List
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from validator.validation import CheckMode, DuplicateAction
+# Import enums locally to avoid circular imports
+from enum import Enum, auto
 
 __all__ = [
+    'CheckMode',
+    'DuplicateAction', 
     'ValidatorConfig',
+    'get_validator_settings',
     'get_default_config',
+    'get_strict_config',
+    'get_lenient_config',
     'load_config_from_dict',
     'validate_config'
 ]
+
+
+class CheckMode(Enum):
+    """Enumeration of available validation modes"""
+    STRICT = auto()  # Fail on any issues
+    LENIENT = auto()  # Log warnings but continue
+    REPORT_ONLY = auto()  # Only report, no actions
+
+
+class DuplicateAction(Enum):
+    """Actions to take when duplicates are found"""
+    REMOVE = auto()  # Remove duplicate files
+    REPORT_ONLY = auto()  # Only report duplicates
+    QUARANTINE = auto()  # Move duplicates to quarantine directory
 
 
 class ValidatorConfig(BaseSettings):
@@ -109,6 +129,16 @@ class ValidatorConfig(BaseSettings):
                 config_dict['supported_extensions'])
 
         return cls(**config_dict)
+
+
+def get_validator_settings() -> ValidatorConfig:
+    """
+    Get the validator settings instance.
+    
+    Returns:
+        ValidatorConfig: Configured settings instance
+    """
+    return ValidatorConfig()
 
 
 def get_default_config() -> ValidatorConfig:
