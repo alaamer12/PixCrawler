@@ -1,17 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Database } from 'lucide-react'
-import { SignupForm } from './signup-form'
+import { ResetPasswordForm } from './reset-password-form'
 
-export default async function SignupPage() {
+export default async function ResetPasswordPage() {
   const supabase = await createClient()
   
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (user) {
-    redirect('/dashboard')
+  if (!user) {
+    redirect('/login')
   }
 
   return (
@@ -23,7 +23,7 @@ export default async function SignupPage() {
           </div>
           <span className="text-xl font-bold">PixCrawler</span>
         </a>
-        <SignupForm />
+        <ResetPasswordForm />
       </div>
     </div>
   )

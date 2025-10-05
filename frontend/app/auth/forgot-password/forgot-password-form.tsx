@@ -2,17 +2,14 @@
 
 import { useState } from 'react'
 import { authService } from '@/lib/auth'
-import { useRouter } from 'next/navigation'
-import { OAuthButtons } from '@/components/auth/oauth-buttons'
+import { ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
-export function SignupForm() {
+export function ForgotPasswordForm() {
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [fullName, setFullName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
-  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,8 +18,8 @@ export function SignupForm() {
     setMessage('')
 
     try {
-      await authService.signUp(email, password, fullName)
-      setMessage('Check your email for the confirmation link!')
+      await authService.resetPassword(email)
+      setMessage('Check your email for the password reset link!')
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred')
     } finally {
@@ -33,26 +30,13 @@ export function SignupForm() {
   return (
     <div className="bg-card border border-border rounded-xl shadow-lg p-6 md:p-8 space-y-6">
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
-        <p className="text-sm text-muted-foreground">Start building your image datasets today</p>
+        <h1 className="text-2xl font-bold tracking-tight">Reset your password</h1>
+        <p className="text-sm text-muted-foreground">
+          Enter your email address and we'll send you a link to reset your password
+        </p>
       </div>
 
       <form className="space-y-4" onSubmit={handleSubmit}>
-        <div className="space-y-2">
-          <label htmlFor="fullName" className="text-sm font-medium">
-            Full Name
-          </label>
-          <input
-            id="fullName"
-            name="fullName"
-            type="text"
-            required
-            className="w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-            placeholder="Enter your full name"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
-        </div>
         <div className="space-y-2">
           <label htmlFor="email" className="text-sm font-medium">
             Email
@@ -67,23 +51,6 @@ export function SignupForm() {
             placeholder="name@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <label htmlFor="password" className="text-sm font-medium">
-            Password
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            required
-            className="w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            minLength={6}
           />
         </div>
 
@@ -104,19 +71,18 @@ export function SignupForm() {
           disabled={loading}
           className="w-full py-3 px-4 bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
         >
-          {loading ? 'Creating account...' : 'Create account'}
+          {loading ? 'Sending...' : 'Send reset link'}
         </button>
       </form>
 
-      <OAuthButtons mode="signup" />
-
       <div className="text-center pt-4 border-t border-border">
-        <p className="text-sm text-muted-foreground">
-          Already have an account?{' '}
-          <a href="/login" className="font-medium text-primary hover:underline">
-            Sign in
-          </a>
-        </p>
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="size-4" />
+          Back to sign in
+        </Link>
       </div>
     </div>
   )

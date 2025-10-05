@@ -3,11 +3,10 @@
 import { useState } from 'react'
 import { authService } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
-import { OAuthButtons } from '@/components/auth/oauth-buttons'
 
-export function LoginForm() {
-  const [email, setEmail] = useState('')
+export function ResetPasswordForm() {
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -17,10 +16,21 @@ export function LoginForm() {
     setLoading(true)
     setError('')
 
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      setLoading(false)
+      return
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters')
+      setLoading(false)
+      return
+    }
+
     try {
-      await authService.signIn(email, password)
+      await authService.updatePassword(password)
       router.push('/dashboard')
-      router.refresh()
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred')
     } finally {
@@ -31,49 +41,46 @@ export function LoginForm() {
   return (
     <div className="bg-card border border-border rounded-xl shadow-lg p-6 md:p-8 space-y-6">
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
-        <p className="text-sm text-muted-foreground">Enter your credentials to access your account</p>
+        <h1 className="text-2xl font-bold tracking-tight">Set new password</h1>
+        <p className="text-sm text-muted-foreground">
+          Enter your new password below
+        </p>
       </div>
 
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium">
-            Email
+          <label htmlFor="password" className="text-sm font-medium">
+            New Password
           </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            className="w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-            placeholder="name@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label htmlFor="password" className="text-sm font-medium">
-              Password
-            </label>
-            <a
-              href="/auth/forgot-password"
-              className="text-xs text-primary hover:underline"
-            >
-              Forgot password?
-            </a>
-          </div>
           <input
             id="password"
             name="password"
             type="password"
-            autoComplete="current-password"
+            autoComplete="new-password"
             required
             className="w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            minLength={6}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="confirmPassword" className="text-sm font-medium">
+            Confirm Password
+          </label>
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            required
+            className="w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+            placeholder="••••••••"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            minLength={6}
           />
         </div>
 
@@ -88,20 +95,9 @@ export function LoginForm() {
           disabled={loading}
           className="w-full py-3 px-4 bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
         >
-          {loading ? 'Signing in...' : 'Sign in'}
+          {loading ? 'Updating password...' : 'Update password'}
         </button>
       </form>
-
-      <OAuthButtons mode="signin" />
-
-      <div className="text-center pt-4 border-t border-border">
-        <p className="text-sm text-muted-foreground">
-          Don't have an account?{' '}
-          <a href="/signup" className="font-medium text-primary hover:underline">
-            Sign up
-          </a>
-        </p>
-      </div>
     </div>
   )
 }

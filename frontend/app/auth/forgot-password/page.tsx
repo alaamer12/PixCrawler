@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Database } from 'lucide-react'
-import { SignupForm } from './signup-form'
+import { ForgotPasswordForm } from './forgot-password-form'
 
-export default async function SignupPage() {
+export default async function ForgotPasswordPage() {
   const supabase = await createClient()
   
   const {
@@ -23,7 +23,7 @@ export default async function SignupPage() {
           </div>
           <span className="text-xl font-bold">PixCrawler</span>
         </a>
-        <SignupForm />
+        <ForgotPasswordForm />
       </div>
     </div>
   )
