@@ -1,15 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import {
-	Navigation,
 	Hero,
 	Features,
 	HowItWorks,
 	UseCases,
-	TrustedBy,
-	Footer
 } from '@/components/LandingPage'
-import { HeroBackground } from '@/components/LandingPage/HeroBackground'
 
 export default async function HomePage() {
 	const supabase = await createClient()
@@ -24,17 +20,11 @@ export default async function HomePage() {
 	}
 
 	return (
-		<div className="relative min-h-screen bg-background overflow-hidden">
-			<HeroBackground />
-			<div className="relative z-10">
-				<Navigation />
-				<Hero />
-				<Features />
-				<HowItWorks />
-				<UseCases />
-				<TrustedBy />
-				<Footer />
-			</div>
-		</div>
+		<>
+			<Hero />
+			<Features />
+			<HowItWorks />
+			<UseCases />
+		</>
 	)
 }

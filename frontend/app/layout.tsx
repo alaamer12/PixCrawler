@@ -2,6 +2,9 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Manrope } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
+import { Navigation } from '@/components/LandingPage/Navigation';
+import { Footer } from '@/components/LandingPage/Footer';
+import { HeroBackground } from '@/components/LandingPage/HeroBackground';
 
 export const metadata: Metadata = {
   title: 'PixCrawler - AI-Powered Image Dataset Builder',
@@ -36,7 +39,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <div className="relative min-h-screen overflow-hidden">
+            <HeroBackground />
+            <div className="relative z-10 flex flex-col min-h-screen">
+              <Navigation />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </div>
+          </div>
         </ThemeProvider>
       </body>
     </html>

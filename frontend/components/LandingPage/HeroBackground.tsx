@@ -12,7 +12,7 @@ export const HeroBackground = memo(() => {
 			<div 
 				className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl animate-float-slow"
 				style={{
-					background: 'linear-gradient(135deg, hsl(var(--primary) / 0.3), hsl(var(--secondary) / 0.25))',
+					background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary) ))',
 					animationDuration: '20s'
 				}}
 			/>
@@ -20,7 +20,7 @@ export const HeroBackground = memo(() => {
 			<div 
 				className="absolute top-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl animate-float-slow"
 				style={{
-					background: 'linear-gradient(135deg, hsl(var(--secondary) / 0.25), hsl(var(--primary) / 0.2))',
+					background: 'linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--primary)))',	
 					animationDuration: '25s',
 					animationDelay: '2s'
 				}}
@@ -36,7 +36,7 @@ export const HeroBackground = memo(() => {
 			/>
 
 			{/* Grid pattern overlay */}
-			<div className="absolute inset-0 bg-grid-pattern opacity-[0.03] dark:opacity-[0.02]" />
+			<div className="absolute inset-0 bg-grid-pattern opacity-[0.06] dark:opacity-[0.04]" />
 			
 			{/* Radial gradient overlay */}
 			<div className="absolute inset-0 bg-radial-gradient from-transparent via-transparent to-background/80" />

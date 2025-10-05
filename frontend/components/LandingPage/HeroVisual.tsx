@@ -290,7 +290,7 @@ export const HeroVisual = memo(() => {
 
 	return (
 		<div className="relative w-full max-w-5xl mx-auto h-[800px] md:h-[850px]">
-			<div className="bg-card border border-border rounded-xl shadow-lg overflow-hidden h-full flex flex-col">
+			<div className="bg-card dark:bg-black/30 border border-border rounded-xl shadow-lg overflow-hidden h-full flex flex-col">
 				<div className="border-b border-border p-4 bg-muted/30 flex-shrink-0">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-2">
@@ -303,7 +303,7 @@ export const HeroVisual = memo(() => {
 				</div>
 
 				{/* Content area - Fixed height to prevent layout shift */}
-				<div className="p-6 md:p-8 space-y-6 flex-1 overflow-hidden">
+				<div className="p-6  md:p-8 space-y-6 flex-1 overflow-hidden">
 					{/* Query input simulation */}
 					<div className="space-y-3">
 						<div className="relative">

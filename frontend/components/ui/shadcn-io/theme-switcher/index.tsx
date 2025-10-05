@@ -1,26 +1,25 @@
 'use client';
 
 import { useControllableState } from '@radix-ui/react-use-controllable-state';
-import { Monitor, Moon, Sun } from 'lucide-react';
-import { motion } from 'motion/react';
-import { useCallback, useEffect, useState } from 'react';
+import { Monitor, Moon, Sun, ChevronDown, Check } from 'lucide-react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 const themes = [
   {
     key: 'system',
     icon: Monitor,
-    label: 'System theme',
+    label: 'System',
   },
   {
     key: 'light',
     icon: Sun,
-    label: 'Light theme',
+    label: 'Light',
   },
   {
     key: 'dark',
     icon: Moon,
-    label: 'Dark theme',
+    label: 'Dark',
   },
 ];
 
@@ -43,10 +42,13 @@ export const ThemeSwitcher = ({
     onChange,
   });
   const [mounted, setMounted] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleThemeClick = useCallback(
     (themeKey: 'light' | 'dark' | 'system') => {
       setTheme(themeKey);
+      setIsOpen(false);
     },
     [setTheme]
   );
@@ -56,44 +58,68 @@ export const ThemeSwitcher = ({
     setMounted(true);
   }, []);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
   if (!mounted) {
     return null;
   }
 
-  return (
-    <div
-      className={cn(
-        'relative isolate flex h-8 rounded-full bg-background p-1 ring-1 ring-border',
-        className
-      )}
-    >
-      {themes.map(({ key, icon: Icon, label }) => {
-        const isActive = theme === key;
+  const currentTheme = themes.find(t => t.key === theme);
+  const CurrentIcon = currentTheme?.icon || Monitor;
 
-        return (
-          <button
-            aria-label={label}
-            className="relative h-6 w-6 rounded-full"
-            key={key}
-            onClick={() => handleThemeClick(key as 'light' | 'dark' | 'system')}
-            type="button"
-          >
-            {isActive && (
-              <motion.div
-                className="absolute inset-0 rounded-full bg-secondary"
-                layoutId="activeTheme"
-                transition={{ type: 'spring', duration: 0.5 }}
-              />
-            )}
-            <Icon
-              className={cn(
-                'relative z-10 m-auto h-4 w-4',
-                isActive ? 'text-foreground' : 'text-muted-foreground'
-              )}
-            />
-          </button>
-        );
-      })}
+  return (
+    <div className={cn('relative', className)} ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-3 py-2 border border-border rounded-lg hover:bg-muted/80 hover:border-primary/30 transition-all cursor-pointer active:scale-95"
+        aria-label="Select theme"
+        type="button"
+      >
+        <CurrentIcon className="h-4 w-4 transition-colors group-hover:text-primary" />
+        <span className="text-sm">{currentTheme?.label}</span>
+        <ChevronDown className={cn('h-3 w-3 transition-transform', isOpen && 'rotate-180')} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-40 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+          {themes.map(({ key, icon: Icon, label }) => {
+            const isActive = theme === key;
+
+            return (
+              <button
+                key={key}
+                onClick={() => handleThemeClick(key as 'light' | 'dark' | 'system')}
+                className={cn(
+                  'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors cursor-pointer',
+                  isActive 
+                    ? 'bg-primary/10 text-primary font-medium' 
+                    : 'hover:bg-muted text-foreground'
+                )}
+                type="button"
+              >
+                <Icon className="h-4 w-4" />
+                <span className="flex-1 text-left">{label}</span>
+                {isActive && <Check className="h-4 w-4" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
