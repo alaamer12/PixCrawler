@@ -122,7 +122,7 @@ html {
 }
 
 .dark .hero-visual-bg {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(0, 0, 0, 0.6);
 }
 
 .footer-bg {
@@ -130,7 +130,7 @@ html {
 }
 
 .dark .footer-bg {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.7);
 }
 
 /* ===== Custom Animations ===== */

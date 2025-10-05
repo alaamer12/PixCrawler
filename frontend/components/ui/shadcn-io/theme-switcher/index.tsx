@@ -91,7 +91,7 @@ export const ThemeSwitcher = ({
         type="button"
       >
         <CurrentIcon className="h-4 w-4 transition-colors group-hover:text-primary" />
-        <span className="text-sm">{currentTheme?.label}</span>
+        {/* <span className="text-sm">{currentTheme?.label}</span> */}
         <ChevronDown className={cn('h-3 w-3 transition-transform', isOpen && 'rotate-180')} />
       </button>
 

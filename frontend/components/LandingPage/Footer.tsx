@@ -1,6 +1,7 @@
 'use client'
 
 import { memo, useMemo } from 'react'
+import { Github, Linkedin, Twitter } from 'lucide-react'
 
 interface FooterSection {
 	title: string
@@ -26,7 +27,11 @@ const footerSections: FooterSection[] = [
 	}
 ]
 
-const socialIcons = ['𝕏', 'in', 'GH']
+const socialIcons = [
+	{ icon: Twitter, href: 'https://twitter.com' },
+	{ icon: Linkedin, href: 'https://linkedin.com' },
+	{ icon: Github, href: 'https://github.com' }
+]
 
 const BrandSection = memo(() => {
 	return (
@@ -65,13 +70,27 @@ FooterLinks.displayName = 'FooterLinks'
 const SocialLinks = memo(() => {
 	return (
 		<div className="flex gap-4">
-			{socialIcons.map((icon, i) => (
+			{socialIcons.map(({ icon: Icon, href }, i) => (
 				<a
 					key={i}
-					href="#"
-					className="w-8 h-8 border border-border rounded flex items-center justify-center text-sm hover:bg-muted transition-colors"
+					href={href}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="
+						group w-9 h-9 border border-border rounded-lg 
+						flex items-center justify-center 
+						transition-all duration-200 ease-out
+						hover:bg-muted hover:border-foreground hover:scale-110 hover:shadow-md
+					"
 				>
-					{icon}
+					<Icon
+						size={18}
+						className="
+							text-muted-foreground 
+							transition-colors duration-200 
+							group-hover:text-foreground
+						"
+					/>
 				</a>
 			))}
 		</div>
@@ -80,10 +99,8 @@ const SocialLinks = memo(() => {
 SocialLinks.displayName = 'SocialLinks'
 
 export const Footer = memo(() => {
-	const footerLinkSections = useMemo(() => 
-		footerSections.map((section, i) => (
-			<FooterLinks key={i} {...section} />
-		)),
+	const footerLinkSections = useMemo(
+		() => footerSections.map((section, i) => <FooterLinks key={i} {...section} />),
 		[]
 	)
 
@@ -95,7 +112,7 @@ export const Footer = memo(() => {
 					{footerLinkSections}
 				</div>
 
-				<div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+				<div className="border-t border-border pt-2 flex flex-col md:flex-row justify-between items-center gap-4">
 					<p className="text-xs text-muted-foreground">
 						© 2025 PixCrawler. All rights reserved.
 					</p>
