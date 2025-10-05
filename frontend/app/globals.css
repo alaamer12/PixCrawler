@@ -115,6 +115,24 @@ html {
   outline-offset: 2px;
 }
 
+/* ===== Custom Utilities ===== */
+
+.hero-visual-bg {
+  background-color: hsl(var(--card));
+}
+
+.dark .hero-visual-bg {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.footer-bg {
+  background-color: hsl(var(--card));
+}
+
+.dark .footer-bg {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
 /* ===== Custom Animations ===== */
 
 @keyframes float {

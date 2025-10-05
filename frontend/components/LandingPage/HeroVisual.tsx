@@ -290,7 +290,7 @@ export const HeroVisual = memo(() => {
 
 	return (
 		<div className="relative w-full max-w-5xl mx-auto h-[800px] md:h-[850px]">
-			<div className="bg-card dark:bg-black/30 border border-border rounded-xl shadow-lg overflow-hidden h-full flex flex-col">
+			<div className="hero-visual-bg border border-border rounded-xl shadow-lg overflow-hidden h-full flex flex-col">
 				<div className="border-b border-border p-4 bg-muted/30 flex-shrink-0">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-2">

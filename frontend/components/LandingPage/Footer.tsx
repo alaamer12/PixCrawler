@@ -88,7 +88,7 @@ export const Footer = memo(() => {
 	)
 
 	return (
-		<footer className="py-2 bg-black/50 md:py-4">
+		<footer className="py-2 footer-bg md:py-4">
 			<div className="container mx-auto px-4 pt-4 lg:px-8">
 				<div className="grid grid-cols-2 md:grid-cols-5 gap-8 md:gap-12 mb-12">
 					<BrandSection />
