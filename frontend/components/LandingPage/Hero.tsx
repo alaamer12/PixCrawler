@@ -2,11 +2,13 @@
 
 import Link from 'next/link'
 import { memo } from 'react'
+import { HeroVisual } from './HeroVisual'
+import { HeroBackground } from './HeroBackground'
 
 export const Hero = memo(() => {
 	return (
-		<section className="border-b border-border py-16 md:py-24 lg:py-32">
-			<div className="container mx-auto px-4 lg:px-8 text-center">
+		<section className="relative border-b border-border py-16 md:py-24 lg:py-32">
+			<div className="container relative mx-auto px-4 lg:px-8 text-center">
 				<h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 max-w-4xl mx-auto leading-tight">
 					Build ML Datasets in Minutes
 				</h1>
@@ -30,11 +32,7 @@ export const Hero = memo(() => {
 					</a>
 				</div>
 
-				<div className="max-w-5xl mx-auto h-[300px] md:h-[450px] border-2 border-dashed border-border rounded-lg bg-muted/30 flex items-center justify-center">
-					<div className="text-muted-foreground text-sm">
-						Hero Visual: Animated Dashboard Preview
-					</div>
-				</div>
+				<HeroVisual />
 			</div>
 		</section>
 	)

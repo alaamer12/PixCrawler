@@ -28,16 +28,9 @@ const AuthButtons = memo(() => (
 		<ThemeToggle />
 		<Link
 			href="/login"
-			className="hidden sm:block px-5 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
+			className="px-5 py-2 text-sm border border-border rounded-lg hover:bg-muted transition-colors"
 		>
 			Sign In
-		</Link>
-		<Link
-			href="/signup"
-			className="px-5 py-2 text-sm rounded-lg font-medium"
-			style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
-		>
-			Get Started
 		</Link>
 	</div>
 ))
@@ -99,19 +92,12 @@ export const Navigation = memo(() => {
 						>
 							Blog
 						</a>
-						<div className="border-t border-border pt-4 mt-2 flex flex-col gap-3">
+						<div className="border-t border-border pt-4 mt-2">
 							<Link
 								href="/login"
-								className="px-5 py-3 text-center border border-border rounded-lg hover:bg-muted transition-colors"
+								className="px-5 py-3 text-center border border-border rounded-lg hover:bg-muted transition-colors block"
 							>
 								Sign In
-							</Link>
-							<Link
-								href="/signup"
-								className="px-5 py-3 text-center rounded-lg font-medium"
-								style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
-							>
-								Get Started
 							</Link>
 						</div>
 					</div>
