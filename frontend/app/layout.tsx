@@ -25,9 +25,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`bg-white dark:bg-gray-950 text-black dark:text-white ${manrope.variable}`}
+      className={manrope.variable}
+      suppressHydrationWarning
     >
-      <body className="min-h-[100dvh] bg-gray-50 font-sans">
+      <body className="min-h-screen bg-background text-foreground antialiased">
         {children}
       </body>
     </html>
