@@ -37,11 +37,16 @@ export function LoginForm() {
   }
 
   return (
-    <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-      <div className="rounded-md shadow-sm -space-y-px">
-        <div>
-          <label htmlFor="email" className="sr-only">
-            Email address
+    <div className="bg-card border border-border rounded-xl shadow-lg p-6 md:p-8 space-y-6">
+      <div className="space-y-2 text-center">
+        <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
+        <p className="text-sm text-muted-foreground">Enter your credentials to access your account</p>
+      </div>
+
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <div className="space-y-2">
+          <label htmlFor="email" className="text-sm font-medium">
+            Email
           </label>
           <input
             id="email"
@@ -49,14 +54,14 @@ export function LoginForm() {
             type="email"
             autoComplete="email"
             required
-            className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-            placeholder="Email address"
+            className="w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+            placeholder="name@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        <div>
-          <label htmlFor="password" className="sr-only">
+        <div className="space-y-2">
+          <label htmlFor="password" className="text-sm font-medium">
             Password
           </label>
           <input
@@ -65,36 +70,36 @@ export function LoginForm() {
             type="password"
             autoComplete="current-password"
             required
-            className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-            placeholder="Password"
+            className="w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+            placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-      </div>
 
-      {error && (
-        <div className="text-red-600 text-sm text-center">{error}</div>
-      )}
+        {error && (
+          <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg p-3 text-center">
+            {error}
+          </div>
+        )}
 
-      <div>
         <button
           type="submit"
           disabled={loading}
-          className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-3 px-4 bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
         >
           {loading ? 'Signing in...' : 'Sign in'}
         </button>
-      </div>
+      </form>
 
-      <div className="text-center">
-        <p className="text-sm text-gray-600">
+      <div className="text-center pt-4 border-t border-border">
+        <p className="text-sm text-muted-foreground">
           Don't have an account?{' '}
-          <a href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+          <a href="/signup" className="font-medium text-primary hover:underline">
             Sign up
           </a>
         </p>
       </div>
-    </form>
+    </div>
   )
 }
