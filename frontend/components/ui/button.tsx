@@ -22,7 +22,7 @@ const buttonVariants = cva(
         ghost: 'hover:bg-accent hover:text-accent-foreground active:bg-accent/80',
         link: 'text-primary underline-offset-4 hover:underline active:text-primary/80',
         brand:
-          'bg-gradient-to-r from-primary via-accent to-secondary text-primary-foreground shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden',
+          'bg-primary text-primary-foreground shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden',
         success:
           'bg-success text-success-foreground shadow-sm hover:bg-success/90 active:bg-success/80',
         warning:
