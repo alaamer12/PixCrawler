@@ -36,7 +36,7 @@ export const HeroBackground = memo(() => {
         }}
       />
       {/* Grid pattern overlay */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-[0.1] dark:opacity-[0.04]"/>
+      <div className="absolute inset-0 bg-grid-pattern opacity-[0.1] dark:opacity-[0.06]"/>
 
       {/* Radial gradient overlay */}
       <div className="absolute inset-0 bg-radial-gradient from-transparent via-transparent to-background/80"/>

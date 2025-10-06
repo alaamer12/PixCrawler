@@ -7,18 +7,18 @@
 :root {
 
   /* Semantic Colors - Light Mode */
-  --background: 210 20% 98%;
-  --foreground: 210 15% 20%;
-  --card: 210 20% 97%;
-  --card-foreground: 210 15% 20%;
-  --popover: 210 20% 97%;
-  --popover-foreground: 210 15% 20%;
+  --background: 45 20% 88%;
+  --foreground: 210 25% 12%;
+  --card: 50 25% 92%;
+  --card-foreground: 210 25% 12%;
+  --popover: 50 25% 92%;
+  --popover-foreground: 210 25% 12%;
   --primary: 210 25% 40%;
   --primary-foreground: 0 0% 100%;
   --secondary: 150 20% 45%;
   --secondary-foreground: 0 0% 100%;
-  --muted: 210 15% 94%;
-  --muted-foreground: 210 10% 50%;
+  --muted: 45 18% 85%;
+  --muted-foreground: 210 12% 35%;
   --accent: 210 25% 40%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 50% 55%;
@@ -27,8 +27,8 @@
   --success-foreground: 0 0% 98%;
   --warning: 35 60% 60%;
   --warning-foreground: 0 0% 98%;
-  --border: 210 15% 88%;
-  --input: 210 15% 88%;
+  --border: 45 15% 78%;
+  --input: 50 20% 86%;
   --ring: 210 25% 40%;
   --radius: 0.5rem;
 }
