@@ -7,9 +7,9 @@ import { Button, IconButton } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
 
 const NAV_ITEMS = [
-  { href: '/#features', label: 'Features' },
+  { href: '/', label: 'Home' },
+  { href: '/about', label: 'About' },
   { href: '/pricing', label: 'Pricing' },
-  { href: '/docs', label: 'Docs' },
   { href: '/examples', label: 'Examples' },
 ] as const
 
@@ -58,22 +58,17 @@ const NavLinks = memo(() => {
   const [activeSection, setActiveSection] = useState('')
 
   useEffect(() => {
-    const handleHashChange = () => {
-      setActiveSection(window.location.hash)
+    const updateActiveSection = () => {
+      if (typeof window !== 'undefined') {
+        setActiveSection(window.location.pathname)
+      }
     }
 
-    const handlePathChange = () => {
-      setActiveSection(window.location.pathname + window.location.hash)
-    }
-
-    handleHashChange()
-    handlePathChange()
-    window.addEventListener('hashchange', handleHashChange)
-    window.addEventListener('popstate', handlePathChange)
+    updateActiveSection()
+    window.addEventListener('popstate', updateActiveSection)
     
     return () => {
-      window.removeEventListener('hashchange', handleHashChange)
-      window.removeEventListener('popstate', handlePathChange)
+      window.removeEventListener('popstate', updateActiveSection)
     }
   }, [])
 
@@ -84,7 +79,7 @@ const NavLinks = memo(() => {
           key={item.href}
           href={item.href}
           label={item.label}
-          isActive={activeSection === item.href || (item.href.startsWith('/#') && activeSection === item.href.substring(1))}
+          isActive={activeSection === item.href}
         />
       ))}
     </div>
