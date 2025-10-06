@@ -1,6 +1,7 @@
 'use client'
 
 import {ArrowLeft, Clock, DollarSign, Lightbulb, Rocket} from 'lucide-react'
+import {Button} from '@/components/ui/button'
 import type {DatasetConfig} from '@/app/welcome/welcome-flow'
 
 interface LaunchStepProps {
@@ -74,20 +75,23 @@ export function LaunchStep({config, onLaunch, onBack}: LaunchStepProps) {
 
       {/* Action Buttons */}
       <div className="flex gap-4">
-        <button
+        <Button
           onClick={onBack}
-          className="flex items-center gap-2 px-6 py-3 border border-border rounded-lg hover:bg-accent transition-colors"
+          variant="outline"
+          leftIcon={<ArrowLeft className="w-4 h-4"/>}
         >
-          <ArrowLeft className="w-4 h-4"/>
           Adjust Settings
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={onLaunch}
-          className="flex-1 py-4 px-6 bg-gradient-to-r from-primary to-secondary text-primary-foreground font-semibold rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-lg hover:shadow-xl"
+          variant="brand"
+          size="lg"
+          className="flex-1"
+          rightIcon={<span>🎉</span>}
         >
-          Create Full Dataset 🎉
-        </button>
+          Create Full Dataset
+        </Button>
       </div>
 
       {/* Help Card */}

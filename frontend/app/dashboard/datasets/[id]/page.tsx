@@ -2,6 +2,7 @@
 
 import {useParams} from 'next/navigation'
 import {ArrowLeft, Pause, X} from 'lucide-react'
+import {Button} from '@/components/ui/button'
 import Link from 'next/link'
 
 export default function DatasetDetailPage() {
@@ -37,16 +38,12 @@ export default function DatasetDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            className="flex items-center gap-2 px-3 py-2 border border-border rounded-lg hover:bg-accent transition-colors">
-            <Pause className="w-4 h-4"/>
+          <Button variant="outline" leftIcon={<Pause className="w-4 h-4"/>}>
             Pause
-          </button>
-          <button
-            className="flex items-center gap-2 px-3 py-2 border border-destructive text-destructive rounded-lg hover:bg-destructive/10 transition-colors">
-            <X className="w-4 h-4"/>
+          </Button>
+          <Button variant="destructive" leftIcon={<X className="w-4 h-4"/>}>
             Cancel
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -122,15 +119,14 @@ export default function DatasetDetailPage() {
           Your dataset is being processed. You can monitor the progress here and will be notified when it's complete.
         </p>
         <div className="flex justify-center gap-4">
-          <Link
-            href="/dashboard"
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            Go to Dashboard
-          </Link>
-          <button className="px-4 py-2 border border-border rounded-lg hover:bg-accent transition-colors">
+          <Button asChild>
+            <Link href="/dashboard">
+              Go to Dashboard
+            </Link>
+          </Button>
+          <Button variant="outline">
             Learn More
-          </button>
+          </Button>
         </div>
       </div>
     </div>

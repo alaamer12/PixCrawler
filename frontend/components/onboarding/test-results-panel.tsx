@@ -1,6 +1,7 @@
 'use client'
 
 import {AlertTriangle, Check, RotateCcw} from 'lucide-react'
+import {Button} from '@/components/ui/button'
 import type {TestResult} from '@/app/welcome/welcome-flow'
 
 interface TestResultsPanelProps {
@@ -80,13 +81,13 @@ export function TestResultsPanel({result, onRetry}: TestResultsPanelProps) {
           </div>
         )}
 
-        <button
+        <Button
           onClick={onRetry}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          variant="default"
+          leftIcon={<RotateCcw className="w-4 h-4"/>}
         >
-          <RotateCcw className="w-4 h-4"/>
           Retry Test Crawl
-        </button>
+        </Button>
       </div>
     </div>
   )

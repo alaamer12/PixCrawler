@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import {memo} from 'react'
+import {Button} from '@/components/ui/button'
 import {HeroVisual} from './HeroVisual'
 
 export const Hero = memo(() => {
@@ -16,19 +17,16 @@ export const Hero = memo(() => {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-          <Link
-            href="/signup"
-            className="px-8 py-4 text-base rounded-lg font-medium"
-            style={{backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)'}}
-          >
-            Get Started Free
-          </Link>
-          <a
-            href="#features"
-            className="px-8 py-4 text-base border border-border rounded-lg font-medium hover:bg-muted transition-colors"
-          >
-            View Demo
-          </a>
+          <Button asChild variant="brand" size="lg">
+            <Link href="/signup">
+              Get Started Free
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <a href="#features">
+              View Demo
+            </a>
+          </Button>
         </div>
 
         <HeroVisual/>

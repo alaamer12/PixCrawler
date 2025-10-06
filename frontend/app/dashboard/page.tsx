@@ -2,6 +2,7 @@
 
 import {useAuth} from '@/lib/auth/hooks'
 import {Activity, Download, FolderOpen, Plus} from 'lucide-react'
+import {Button} from '@/components/ui/button'
 import Link from 'next/link'
 
 export default function DashboardPage() {
@@ -18,13 +19,12 @@ export default function DashboardPage() {
             Manage your image datasets and crawling projects
           </p>
         </div>
-        <Link
-          href="/dashboard/projects/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="size-4"/>
-          New Project
-        </Link>
+        <Button asChild>
+          <Link href="/dashboard/projects/new" className="inline-flex items-center gap-2">
+            <Plus className="size-4"/>
+            New Project
+          </Link>
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

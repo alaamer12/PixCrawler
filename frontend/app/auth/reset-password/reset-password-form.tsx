@@ -3,6 +3,7 @@
 import {useState} from 'react'
 import {authService} from '@/lib/auth'
 import {useRouter} from 'next/navigation'
+import {Button} from '@/components/ui/button'
 
 export function ResetPasswordForm() {
   const [password, setPassword] = useState('')
@@ -91,13 +92,16 @@ export function ResetPasswordForm() {
           </div>
         )}
 
-        <button
+        <Button
           type="submit"
-          disabled={loading}
-          className="w-full py-3 px-4 bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+          loading={loading}
+          loadingText="Updating password..."
+          variant="brand"
+          size="lg"
+          className="w-full"
         >
-          {loading ? 'Updating password...' : 'Update password'}
-        </button>
+          Update password
+        </Button>
       </form>
     </div>
   )

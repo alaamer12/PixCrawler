@@ -1,6 +1,7 @@
 'use client'
 
 import {Database} from 'lucide-react'
+import {Button} from '@/components/ui/button'
 import {ProgressIndicator} from './progress-indicator'
 
 interface OnboardingLayoutProps {
@@ -30,12 +31,14 @@ export function OnboardingLayout({
             <span className="text-xl font-bold">PixCrawler</span>
           </div>
 
-          <button
+          <Button
             onClick={onSkip}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-md hover:bg-accent"
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground"
           >
             Skip to Dashboard →
-          </button>
+          </Button>
         </div>
       </div>
 

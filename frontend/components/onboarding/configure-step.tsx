@@ -1,6 +1,7 @@
 'use client'
 
 import {useEffect, useState} from 'react'
+import {Button} from '@/components/ui/button'
 import {CodePreview} from './code-preview'
 import type {DatasetConfig} from '@/app/welcome/welcome-flow'
 
@@ -123,12 +124,15 @@ export function ConfigureStep({
       <CodePreview config={localConfig}/>
 
       {/* Next Button */}
-      <button
+      <Button
         onClick={onNext}
-        className="w-full py-4 px-6 bg-gradient-to-r from-primary to-secondary text-primary-foreground font-semibold rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-lg hover:shadow-xl"
+        variant="brand"
+        size="lg"
+        className="w-full"
+        rightIcon={<span>→</span>}
       >
-        Configure Dataset →
-      </button>
+        Configure Dataset
+      </Button>
     </div>
   )
 }

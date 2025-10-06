@@ -3,6 +3,7 @@
 import {useState} from 'react'
 import {authService} from '@/lib/auth'
 import {ArrowLeft} from 'lucide-react'
+import {Button} from '@/components/ui/button'
 import Link from 'next/link'
 
 export function ForgotPasswordForm() {
@@ -67,13 +68,16 @@ export function ForgotPasswordForm() {
           </div>
         )}
 
-        <button
+        <Button
           type="submit"
-          disabled={loading}
-          className="w-full py-3 px-4 bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+          loading={loading}
+          loadingText="Sending..."
+          variant="brand"
+          size="lg"
+          className="w-full"
         >
-          {loading ? 'Sending...' : 'Send reset link'}
-        </button>
+          Send reset link
+        </Button>
       </form>
 
       <div className="text-center pt-4 border-t border-border">

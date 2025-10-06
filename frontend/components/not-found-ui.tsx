@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import {Button} from '@/components/ui/button'
 
 /**
  * Reusable 404 UI component
@@ -17,19 +18,16 @@ export function NotFoundUI() {
         </div>
 
         <div className="flex gap-4 justify-center">
-          <Link
-            href="/"
-            className="px-6 py-3 rounded-lg font-medium transition-colors"
-            style={{backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)'}}
-          >
-            Go Home
-          </Link>
-          <Link
-            href="/datasets"
-            className="px-6 py-3 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors"
-          >
-            View Datasets
-          </Link>
+          <Button asChild>
+            <Link href="/">
+              Go Home
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/datasets">
+              View Datasets
+            </Link>
+          </Button>
         </div>
       </div>
     </div>

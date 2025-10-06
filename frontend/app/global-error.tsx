@@ -1,6 +1,7 @@
 'use client'
 
 import {useEffect} from 'react'
+import {Button} from '@/components/ui/button'
 
 /**
  * Global error boundary - catches errors in root layout
@@ -35,12 +36,9 @@ export default function GlobalError({
           )}
         </div>
 
-        <button
-          onClick={reset}
-          className="px-6 py-3 rounded-lg font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
-        >
+        <Button onClick={reset} variant="destructive">
           Reload Application
-        </button>
+        </Button>
       </div>
     </div>
     </body>

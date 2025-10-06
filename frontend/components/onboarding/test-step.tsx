@@ -2,6 +2,7 @@
 
 import {useState} from 'react'
 import {ArrowLeft, TestTube} from 'lucide-react'
+import {Button} from '@/components/ui/button'
 import {TestResultsPanel} from './test-results-panel'
 import type {DatasetConfig, TestResult} from '@/app/welcome/welcome-flow'
 
@@ -69,13 +70,16 @@ export function TestStep({
 
       {/* Test Button */}
       {!testResult && (
-        <button
+        <Button
           onClick={handleRunTest}
-          disabled={isLoading}
-          className="w-full py-4 px-6 bg-gradient-to-r from-primary to-secondary text-primary-foreground font-semibold rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+          loading={isLoading}
+          loadingText="Running Test Crawl..."
+          variant="brand"
+          size="lg"
+          className="w-full"
         >
-          {isLoading ? 'Running Test Crawl...' : 'Run Test Crawl'}
-        </button>
+          Run Test Crawl
+        </Button>
       )}
 
       {/* Loading State */}
@@ -103,21 +107,24 @@ export function TestStep({
 
       {/* Navigation Buttons */}
       <div className="flex gap-4">
-        <button
+        <Button
           onClick={onBack}
-          className="flex items-center gap-2 px-6 py-3 border border-border rounded-lg hover:bg-accent transition-colors"
+          variant="outline"
+          leftIcon={<ArrowLeft className="w-4 h-4"/>}
         >
-          <ArrowLeft className="w-4 h-4"/>
           Back
-        </button>
+        </Button>
 
         {testResult?.success && (
-          <button
+          <Button
             onClick={onNext}
-            className="flex-1 py-3 px-6 bg-gradient-to-r from-primary to-secondary text-primary-foreground font-semibold rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-lg hover:shadow-xl"
+            variant="brand"
+            size="lg"
+            className="flex-1"
+            rightIcon={<span>→</span>}
           >
-            Looks Good! →
-          </button>
+            Looks Good!
+          </Button>
         )}
       </div>
     </div>

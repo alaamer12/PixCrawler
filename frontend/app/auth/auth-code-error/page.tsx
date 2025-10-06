@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import {AlertCircle, ArrowLeft} from 'lucide-react'
+import {Button} from '@/components/ui/button'
 
 export default function AuthCodeErrorPage() {
   return (
@@ -18,19 +19,17 @@ export default function AuthCodeErrorPage() {
         </div>
 
         <div className="space-y-3">
-          <Link
-            href="/login"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-          >
-            Try Again
-          </Link>
-          <Link
-            href="/"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-          >
-            <ArrowLeft className="size-4"/>
-            Back to Home
-          </Link>
+          <Button asChild className="w-full">
+            <Link href="/login">
+              Try Again
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/" className="inline-flex items-center gap-2">
+              <ArrowLeft className="size-4"/>
+              Back to Home
+            </Link>
+          </Button>
         </div>
       </div>
     </div>

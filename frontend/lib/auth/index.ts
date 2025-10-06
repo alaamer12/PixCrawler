@@ -1,5 +1,4 @@
 import {createClient} from '@/lib/supabase/client'
-import {createClient as createServerClient} from '@/lib/supabase/server'
 import type {User} from '@supabase/supabase-js'
 
 export interface AuthUser extends User {
@@ -113,25 +112,6 @@ export class AuthService {
   }
 }
 
-// Server-side auth utilities
-export async function getServerUser(): Promise<AuthUser | null> {
-  const supabase = await createServerClient()
-
-  const {data: {user}, error} = await supabase.auth.getUser()
-
-  if (error || !user) return null
-
-  // Fetch user profile
-  const {data: profile} = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
-  return {
-    ...user,
-    profile,
-  }
-}
+// Note: Server-side auth utilities moved to /lib/auth/server.ts
 
 export const authService = new AuthService()

@@ -1,6 +1,7 @@
 'use client'
 
 import {useEffect} from 'react'
+import {Button} from '@/components/ui/button'
 
 interface ErrorBoundaryProps {
   error: Error & { digest?: string }
@@ -34,19 +35,14 @@ export function ErrorBoundary({error, reset}: ErrorBoundaryProps) {
         </div>
 
         <div className="flex gap-4 justify-center">
-          <button
-            onClick={reset}
-            className="px-6 py-3 rounded-lg font-medium transition-colors"
-            style={{backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)'}}
-          >
+          <Button onClick={reset}>
             Try Again
-          </button>
-          <a
-            href="/"
-            className="px-6 py-3 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors"
-          >
-            Go Home
-          </a>
+          </Button>
+          <Button asChild variant="outline">
+            <a href="/">
+              Go Home
+            </a>
+          </Button>
         </div>
       </div>
     </div>

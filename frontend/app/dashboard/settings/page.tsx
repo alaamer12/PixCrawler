@@ -2,6 +2,7 @@
 
 import {useAuth} from '@/lib/auth/hooks'
 import {Bell, Palette, Shield, User} from 'lucide-react'
+import {Button} from '@/components/ui/button'
 
 export default function SettingsPage() {
   const {user} = useAuth()
@@ -46,10 +47,9 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            <button
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
+            <Button>
               Save Changes
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -65,9 +65,9 @@ export default function SettingsPage() {
               <p className="text-sm text-muted-foreground mb-2">
                 Change your password to keep your account secure
               </p>
-              <button className="px-4 py-2 border border-border rounded-lg hover:bg-accent transition-colors">
+              <Button variant="outline">
                 Change Password
-              </button>
+              </Button>
             </div>
 
             <div>
@@ -75,9 +75,9 @@ export default function SettingsPage() {
               <p className="text-sm text-muted-foreground mb-2">
                 Add an extra layer of security to your account
               </p>
-              <button className="px-4 py-2 border border-border rounded-lg hover:bg-accent transition-colors">
+              <Button variant="outline">
                 Enable 2FA
-              </button>
+              </Button>
             </div>
           </div>
         </div>

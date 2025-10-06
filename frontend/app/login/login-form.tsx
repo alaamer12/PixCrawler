@@ -3,6 +3,7 @@
 import {useState} from 'react'
 import {authService} from '@/lib/auth'
 import {useRouter} from 'next/navigation'
+import {Button} from '@/components/ui/button'
 import {OAuthButtons} from '@/components/auth/oauth-buttons'
 
 export function LoginForm() {
@@ -84,13 +85,16 @@ export function LoginForm() {
           </div>
         )}
 
-        <button
+        <Button
           type="submit"
-          disabled={loading}
-          className="w-full py-3 px-4 bg-gradient-to-r from-primary to-secondary text-primary-foreground font-medium rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+          loading={loading}
+          loadingText="Signing in..."
+          variant="brand"
+          size="lg"
+          className="w-full"
         >
-          {loading ? 'Signing in...' : 'Sign in'}
-        </button>
+          Sign in
+        </Button>
       </form>
 
       <OAuthButtons mode="signin"/>

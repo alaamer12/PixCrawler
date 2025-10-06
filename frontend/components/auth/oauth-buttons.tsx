@@ -3,6 +3,7 @@
 import {useState} from 'react'
 import {authService} from '@/lib/auth'
 import {Github} from 'lucide-react'
+import {Button} from '@/components/ui/button'
 
 interface OAuthButtonsProps {
   mode?: 'signin' | 'signup'
@@ -37,29 +38,24 @@ export function OAuthButtons({mode = 'signin', className = ''}: OAuthButtonsProp
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <button
+        <Button
           type="button"
           onClick={() => handleOAuthSignIn('github')}
-          disabled={loading === 'github'}
-          className="w-full inline-flex justify-center items-center px-4 py-2 border border-border rounded-lg shadow-sm bg-background text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          loading={loading === 'github'}
+          variant="outline"
+          className="w-full"
+          leftIcon={<Github className="w-4 h-4"/>}
         >
-          {loading === 'github' ? (
-            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"/>
-          ) : (
-            <Github className="w-4 h-4"/>
-          )}
-          <span className="ml-2">{actionText} with GitHub</span>
-        </button>
+          {actionText} with GitHub
+        </Button>
 
-        <button
+        <Button
           type="button"
           onClick={() => handleOAuthSignIn('google')}
-          disabled={loading === 'google'}
-          className="w-full inline-flex justify-center items-center px-4 py-2 border border-border rounded-lg shadow-sm bg-background text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {loading === 'google' ? (
-            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"/>
-          ) : (
+          loading={loading === 'google'}
+          variant="outline"
+          className="w-full"
+          leftIcon={
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path
                 fill="currentColor"
@@ -78,9 +74,10 @@ export function OAuthButtons({mode = 'signin', className = ''}: OAuthButtonsProp
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-          )}
-          <span className="ml-2">{actionText} with Google</span>
-        </button>
+          }
+        >
+          {actionText} with Google
+        </Button>
       </div>
     </div>
   )
