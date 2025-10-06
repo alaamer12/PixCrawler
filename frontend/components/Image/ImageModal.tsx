@@ -2,7 +2,7 @@
 
 import {memo, useEffect, useState} from 'react'
 import {createPortal} from 'react-dom'
-import Image from 'next/image'
+import {NextImage} from './NextImage'
 import {ChevronLeft, ChevronRight, Download, Info, Maximize2, Minimize2, X, ZoomIn, ZoomOut} from 'lucide-react'
 
 // Types
@@ -245,14 +245,13 @@ const ImageDisplay = memo(({
         maxHeight: isFullscreen ? '100vh' : '80vh'
       }}
     >
-      <Image
+      <NextImage
         src={image.src}
         alt={image.alt}
         width={1200}
         height={800}
         className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
         priority
-        draggable={false}
       />
     </div>
   </div>
@@ -331,7 +330,7 @@ const ThumbnailStrip = memo(({
                   : 'hover:scale-105 opacity-70 hover:opacity-100'
               }`}
             >
-              <Image
+              <NextImage
                 src={img.src}
                 alt={img.alt}
                 width={48}

@@ -2,6 +2,7 @@
 
 import {memo, useMemo} from 'react'
 import {Button} from '@/components/ui/button'
+import {NextImage} from '@/components/Image'
 import {Clock, Download, Eye, Star} from 'lucide-react'
 
 // Types
@@ -137,9 +138,11 @@ interface CardImageProps {
 
 const CardImage = memo(({src, alt}: CardImageProps) => (
   <div className="relative overflow-hidden">
-    <img
+    <NextImage
       src={src}
       alt={alt}
+      width={400}
+      height={250}
       className="w-full h-52 object-cover group-hover:scale-110 transition-transform duration-500"
     />
     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent"/>
