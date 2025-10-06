@@ -1,43 +1,6 @@
-@import "tailwindcss";
-
-@theme {
-  --color-border: #e5e5e5;
-  --color-input: #e5e5e5;
-  --color-ring: #fb82f6;
-  --color-background: #fafafa;
-  --color-foreground: #171717;
-  --color-primary: #fb82f6;
-  --color-primary-foreground: #000000;
-  --color-secondary: #a855f7;
-  --color-secondary-foreground: #ffffff;
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #ffffff;
-  --color-success: #22c55e;
-  --color-success-foreground: #ffffff;
-  --color-warning: #f97316;
-  --color-warning-foreground: #ffffff;
-  --color-muted: #f5f5f5;
-  --color-muted-foreground: #737373;
-  --color-accent: #fb82f6;
-  --color-accent-foreground: #000000;
-  --color-popover: #fafafa;
-  --color-popover-foreground: #171717;
-  --color-card: #fafafa;
-  --color-card-foreground: #171717;
-}
-
-@theme dark {
-  --color-background: #0a0a0a;
-  --color-foreground: #fafafa;
-  --color-card: #171717;
-  --color-card-foreground: #fafafa;
-  --color-popover: #171717;
-  --color-popover-foreground: #fafafa;
-  --color-muted: #262626;
-  --color-muted-foreground: #a3a3a3;
-  --color-border: #262626;
-  --color-input: #262626;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* ===== PixCrawler Design System - Single Source of Truth ===== */
 
@@ -84,62 +47,62 @@
   --color-error-500: #ef4444;
 
   /* Semantic Colors - Light Mode */
-  --background: var(--color-neutral-50);
-  --foreground: var(--color-neutral-900);
-  --card: var(--color-neutral-50);
-  --card-foreground: var(--color-neutral-900);
-  --popover: var(--color-neutral-50);
-  --popover-foreground: var(--color-neutral-900);
-  --primary: var(--color-primary-500);
-  --primary-foreground: #000000;
-  --secondary: var(--color-secondary-500);
-  --secondary-foreground: #ffffff;
-  --muted: var(--color-neutral-100);
-  --muted-foreground: var(--color-neutral-500);
-  --accent: var(--color-primary-500);
-  --accent-foreground: #000000;
-  --destructive: var(--color-error-500);
-  --destructive-foreground: #ffffff;
-  --success: var(--color-success-500);
-  --success-foreground: #ffffff;
-  --warning: var(--color-warning-500);
-  --warning-foreground: #ffffff;
-  --border: var(--color-neutral-200);
-  --input: var(--color-neutral-200);
-  --ring: var(--color-primary-500);
+  --background: 0 0% 98%;
+  --foreground: 0 0% 9%;
+  --card: 0 0% 98%;
+  --card-foreground: 0 0% 9%;
+  --popover: 0 0% 98%;
+  --popover-foreground: 0 0% 9%;
+  --primary: 316 73% 69%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 262 83% 58%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 316 73% 69%;
+  --accent-foreground: 0 0% 0%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --success: 142 76% 36%;
+  --success-foreground: 0 0% 98%;
+  --warning: 25 95% 53%;
+  --warning-foreground: 0 0% 98%;
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 316 73% 69%;
   --radius: 0.5rem;
 }
 
 .dark {
   /* Semantic Colors - Dark Mode */
-  --background: var(--color-neutral-950);
-  --foreground: var(--color-neutral-50);
-  --card: var(--color-neutral-900);
-  --card-foreground: var(--color-neutral-50);
-  --popover: var(--color-neutral-900);
-  --popover-foreground: var(--color-neutral-50);
-  --primary: var(--color-primary-500);
-  --primary-foreground: #000000;
-  --secondary: var(--color-secondary-500);
-  --secondary-foreground: #ffffff;
-  --muted: var(--color-neutral-800);
-  --muted-foreground: var(--color-neutral-400);
-  --accent: var(--color-primary-500);
-  --accent-foreground: #000000;
-  --destructive: var(--color-error-700);
-  --destructive-foreground: #ffffff;
-  --border: var(--color-neutral-800);
-  --input: var(--color-neutral-800);
-  --ring: var(--color-primary-500);
+  --background: 0 0% 4%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 316 73% 69%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 262 83% 58%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 64%;
+  --accent: 316 73% 69%;
+  --accent-foreground: 0 0% 0%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 15%;
+  --input: 0 0% 15%;
+  --ring: 316 73% 69%;
 }
 
 * {
-  border-color: var(--border);
+  border-color: hsl(var(--border));
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
   font-family: var(--font-manrope), Inter, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -150,7 +113,7 @@ html {
 }
 
 *:focus-visible {
-  outline: 2px solid var(--ring);
+  outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
 
@@ -255,14 +218,14 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--muted);
+  background: hsl(var(--muted));
   border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
   border-radius: 6px;
-  border: 2px solid var(--muted);
+  border: 2px solid hsl(var(--muted));
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -276,19 +239,19 @@ html {
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--primary) var(--muted);
+  scrollbar-color: hsl(var(--primary)) hsl(var(--muted));
 }
 
 /* ===== Text Selection - Brand Colors ===== */
 
 ::selection {
-  background-color: var(--primary);
-  color: var(--primary-foreground);
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 ::-moz-selection {
-  background-color: var(--primary);
-  color: var(--primary-foreground);
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 /* ===== Custom Slider Styles for Onboarding ===== */
@@ -303,7 +266,7 @@ html {
 }
 
 .slider::-webkit-slider-track {
-  background: var(--muted);
+  background: hsl(var(--muted));
   height: 8px;
   border-radius: 4px;
 }
@@ -311,7 +274,7 @@ html {
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  background: var(--primary);
+  background: hsl(var(--primary));
   height: 20px;
   width: 20px;
   border-radius: 50%;
@@ -327,14 +290,14 @@ html {
 }
 
 .slider::-moz-range-track {
-  background: var(--muted);
+  background: hsl(var(--muted));
   height: 8px;
   border-radius: 4px;
   border: none;
 }
 
 .slider::-moz-range-thumb {
-  background: var(--primary);
+  background: hsl(var(--primary));
   height: 20px;
   width: 20px;
   border-radius: 50%;
