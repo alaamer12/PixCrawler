@@ -8,6 +8,19 @@ export async function middleware(request: NextRequest) {
     },
   })
 
+  // Skip middleware for dev pages in development
+  if (process.env.NODE_ENV === 'development' && request.nextUrl.pathname.startsWith('/dev')) {
+    return response
+  }
+
+  // Check for dev bypass in development mode - skip ALL auth logic if enabled
+  const isDevBypass = process.env.NODE_ENV === 'development' && 
+    request.nextUrl.searchParams.get('dev_bypass') === 'true'
+
+  if (isDevBypass) {
+    return response
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
