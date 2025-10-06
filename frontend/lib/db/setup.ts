@@ -28,6 +28,8 @@ async function setupDatabase() {
           full_name VARCHAR(100),
           avatar_url TEXT,
           role VARCHAR(20) NOT NULL DEFAULT 'user',
+          onboarding_completed BOOLEAN NOT NULL DEFAULT FALSE,
+          onboarding_completed_at TIMESTAMP WITH TIME ZONE,
           created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
         );

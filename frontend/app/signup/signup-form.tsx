@@ -23,6 +23,7 @@ export function SignupForm() {
     try {
       await authService.signUp(email, password, fullName)
       setMessage('Check your email for the confirmation link!')
+      // Note: User will be redirected to /welcome after email confirmation
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred')
     } finally {

@@ -18,6 +18,8 @@ export const profiles = pgTable('profiles', {
   fullName: varchar('full_name', { length: 100 }),
   avatarUrl: text('avatar_url'),
   role: varchar('role', { length: 20 }).notNull().default('user'),
+  onboardingCompleted: boolean('onboarding_completed').notNull().default(false),
+  onboardingCompletedAt: timestamp('onboarding_completed_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

@@ -59,7 +59,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Protected routes that require authentication
-  const protectedPaths = ['/dashboard']
+  const protectedPaths = ['/dashboard', '/welcome']
   const isProtectedPath = protectedPaths.some(path =>
     request.nextUrl.pathname.startsWith(path)
   )
@@ -70,6 +70,9 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith(path)
   )
 
+  // Welcome page - only for authenticated users
+  const isWelcomePage = request.nextUrl.pathname === '/welcome'
+
   // Redirect to login if accessing protected route without authentication
   if (isProtectedPath && !user) {
     const redirectUrl = new URL('/login', request.url)
@@ -77,8 +80,33 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
+  // Check onboarding status for authenticated users
+  if (user && !isWelcomePage && !isAuthPath) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarding_completed')
+      .eq('id', user.id)
+      .single()
+
+    // Redirect to welcome if onboarding not completed
+    if (profile && !profile.onboarding_completed) {
+      return NextResponse.redirect(new URL('/welcome', request.url))
+    }
+  }
+
   // Redirect to dashboard if accessing auth routes while authenticated
   if (isAuthPath && user) {
+    // Check if user needs onboarding
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('onboarding_completed')
+      .eq('id', user.id)
+      .single()
+
+    if (profile && !profile.onboarding_completed) {
+      return NextResponse.redirect(new URL('/welcome', request.url))
+    }
+    
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
