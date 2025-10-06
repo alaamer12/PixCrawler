@@ -1,8 +1,8 @@
 'use client'
 
 import { memo, useState, useCallback } from 'react'
-import { OptimizedNextImage } from './OptimizedNextImage'
-import { SimpleImageModal } from './SimpleImageModal'
+import { NextImage } from './NextImage'
+import { ImageModal } from './ImageModal'
 
 interface ImageData {
   src: string
@@ -10,7 +10,7 @@ interface ImageData {
   title?: string
 }
 
-interface SimpleImageGalleryProps {
+interface ImageGalleryProps {
   images: ImageData[]
   className?: string
   itemClassName?: string
@@ -18,13 +18,13 @@ interface SimpleImageGalleryProps {
   onImageClick?: (index: number) => void
 }
 
-export const SimpleImageGallery = memo(({
+export const ImageGallery = memo(({
   images,
   className = '',
   itemClassName = '',
   enableModal = true,
   onImageClick
-}: SimpleImageGalleryProps) => {
+}: ImageGalleryProps) => {
   const [modalOpen, setModalOpen] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
 
@@ -49,7 +49,7 @@ export const SimpleImageGallery = memo(({
     <>
       <div className={className}>
         {images.map((image, index) => (
-          <OptimizedNextImage
+          <NextImage
             key={`${image.src}-${index}`}
             src={image.src}
             alt={image.alt}
@@ -61,7 +61,7 @@ export const SimpleImageGallery = memo(({
       </div>
 
       {enableModal && (
-        <SimpleImageModal
+        <ImageModal
           isOpen={modalOpen}
           onClose={handleCloseModal}
           images={images}
@@ -73,4 +73,4 @@ export const SimpleImageGallery = memo(({
   )
 })
 
-SimpleImageGallery.displayName = 'SimpleImageGallery'
+ImageGallery.displayName = 'ImageGallery'

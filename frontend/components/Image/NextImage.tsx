@@ -4,7 +4,7 @@ import { memo, useState } from 'react'
 import Image from 'next/image'
 import { Loader2, AlertCircle } from 'lucide-react'
 
-interface OptimizedNextImageProps {
+interface NextImageProps {
   src: string
   alt: string
   className?: string
@@ -16,7 +16,7 @@ interface OptimizedNextImageProps {
   onError?: () => void
 }
 
-export const OptimizedNextImage = memo(({
+export const NextImage = memo(({
   src,
   alt,
   className = '',
@@ -26,7 +26,7 @@ export const OptimizedNextImage = memo(({
   onClick,
   onLoad,
   onError
-}: OptimizedNextImageProps) => {
+}: NextImageProps) => {
   const [isLoaded, setIsLoaded] = useState(false)
   const [hasError, setHasError] = useState(false)
 
@@ -41,7 +41,7 @@ export const OptimizedNextImage = memo(({
   }
 
   const handleClick = (e: React.MouseEvent) => {
-    console.log('OptimizedNextImage clicked:', { src, hasError, hasOnClick: !!onClick })
+    console.log('NextImage clicked:', { src, hasError, hasOnClick: !!onClick })
     e.stopPropagation()
     if (!hasError && onClick) {
       onClick()
@@ -78,11 +78,11 @@ export const OptimizedNextImage = memo(({
         priority={priority}
         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
       />
-      
+
       {/* Clickable overlay for better click handling */}
       {onClick && (
-        <div 
-          className="absolute inset-0 cursor-pointer" 
+        <div
+          className="absolute inset-0 cursor-pointer"
           onClick={handleClick}
           role="button"
           tabIndex={0}
@@ -98,4 +98,4 @@ export const OptimizedNextImage = memo(({
   )
 })
 
-OptimizedNextImage.displayName = 'OptimizedNextImage'
+NextImage.displayName = 'NextImage'

@@ -560,8 +560,6 @@ components/ui/
 ```
 components/features/
 ├── DatasetCard.tsx            (Dataset preview card)
-├── ImageGallery.tsx           (Grid/Masonry image display)
-├── ImageModal.tsx             (Lightbox for full-size images)
 ├── ProcessingIndicator.tsx    (Real-time job status)
 ├── StatsCard.tsx              (Dashboard statistics)
 ├── FeatureCard.tsx            (Landing page features)
