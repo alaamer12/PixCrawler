@@ -3,6 +3,8 @@
 import React, {Fragment, memo, useCallback, useEffect, useState} from 'react'
 import {Check, CheckCircle2, Database, Loader2, Search} from 'lucide-react'
 import {AnimatePresence, motion} from 'framer-motion'
+import { OptimizedNextImage } from '@/components/ui/OptimizedNextImage'
+import { SimpleImageModal } from '@/components/ui/SimpleImageModal'
 
 interface Step {
   label: string
@@ -16,6 +18,12 @@ interface LoadedImage {
   loaded: boolean
 }
 
+interface GalleryImage {
+  src: string
+  alt: string
+  title?: string
+}
+
 const categories = [
   {name: 'nature', id: 1},
   {name: 'architecture', id: 2},
@@ -27,37 +35,32 @@ const categories = [
   {name: 'business', id: 8}
 ]
 
-const ImageThumbnail = memo(({image}: { image: LoadedImage }) => {
-  const [isLoaded, setIsLoaded] = useState(false)
-  const [error, setError] = useState(false)
+const ImageThumbnail = memo(({image, onClick}: { image: LoadedImage, onClick?: () => void }) => {
+  const handleClick = () => {
+    console.log('ImageThumbnail handleClick called for image:', image.id)
+    onClick?.()
+  }
 
-  return (
-    <div
-      className="aspect-square bg-muted rounded-lg border border-border relative overflow-hidden group transition-opacity duration-300 animate-in fade-in">
-      {!image.loaded ? (
+  if (!image.loaded) {
+    return (
+      <div className="aspect-square bg-muted rounded-lg border border-border relative overflow-hidden group transition-opacity duration-300 animate-in fade-in">
         <div className="absolute inset-0 flex items-center justify-center">
           <Loader2 className="w-4 h-4 text-muted-foreground animate-spin"/>
         </div>
-      ) : error ? (
-        <div className="absolute inset-0 bg-muted"/>
-      ) : (
-        <>
-          <img
-            src={image.url}
-            alt={`Dataset image ${image.id + 1}`}
-            className={`w-full h-full object-cover transition-all duration-500 ${
-              isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-            }`}
-            onLoad={() => setIsLoaded(true)}
-            onError={() => setError(true)}
-            loading="lazy"
-          />
-          {isLoaded && (
-            <div
-              className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"/>
-          )}
-        </>
-      )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="aspect-square bg-muted rounded-lg border border-border relative overflow-hidden group transition-opacity duration-300 animate-in fade-in">
+      <OptimizedNextImage
+        src={image.url}
+        alt={`Dataset image ${image.id + 1}`}
+        className="w-full h-full object-cover transition-all duration-500"
+        onClick={handleClick}
+        priority={image.id < 6}
+      />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"/>
     </div>
   )
 })
@@ -67,9 +70,12 @@ export const HeroVisual = memo(() => {
   const [mounted, setMounted] = useState(false)
   const [currentCategory, setCurrentCategory] = useState(categories[0])
   const [images, setImages] = useState<LoadedImage[]>([])
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([])
   const [progress, setProgress] = useState(0)
   const [isBuilding, setIsBuilding] = useState(false)
   const [loadedCount, setLoadedCount] = useState(0)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [steps, setSteps] = useState<Step[]>([
     {label: 'Define Query', icon: Search, status: 'pending'},
     {label: 'Build Dataset', icon: Database, status: 'pending'},
@@ -109,6 +115,7 @@ export const HeroVisual = memo(() => {
     // Reset state
     setIsBuilding(true)
     setImages([])
+    setGalleryImages([])
     setProgress(0)
     setLoadedCount(0)
     setStats({sources: 0, quality: 0, time: 0})
@@ -191,6 +198,16 @@ export const HeroVisual = memo(() => {
         return updated
       })
 
+      // Update gallery images for NextImageGallery
+      setGalleryImages(prev => [
+        ...prev,
+        {
+          src: imageUrl,
+          alt: `${randomCategory.name} dataset image ${i + 1}`,
+          title: `${randomCategory.name} #${i + 1}`
+        }
+      ])
+
       setLoadedCount(i + 1)
       setProgress(Math.round(((i + 1) / totalImages) * 100))
     }
@@ -235,6 +252,7 @@ export const HeroVisual = memo(() => {
     // Clear data
     setProgress(0)
     setImages([])
+    setGalleryImages([])
     setLoadedCount(0)
     setStats({sources: 0, quality: 0, time: 0})
 
@@ -317,10 +335,23 @@ export const HeroVisual = memo(() => {
                 animate={{opacity: isResetting ? 0.5 : 1}}
                 transition={{duration: 0.3}}
               />
-              <div
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-md flex items-center gap-2">
-                {isBuilding && <Loader2 className="w-3 h-3 animate-spin"/>}
-                {isBuilding ? 'Building...' : 'Build'}
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
+                {process.env.NODE_ENV === 'development' && galleryImages.length > 0 && (
+                  <button
+                    onClick={() => {
+                      console.log('Test modal button clicked')
+                      setCurrentImageIndex(0)
+                      setModalOpen(true)
+                    }}
+                    className="px-2 py-1 bg-secondary text-secondary-foreground text-xs rounded"
+                  >
+                    Test Modal
+                  </button>
+                )}
+                <div className="px-4 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-md flex items-center gap-2">
+                  {isBuilding && <Loader2 className="w-3 h-3 animate-spin"/>}
+                  {isBuilding ? 'Building...' : 'Build'}
+                </div>
               </div>
             </div>
           </div>
@@ -454,8 +485,27 @@ export const HeroVisual = memo(() => {
 							</span>
             </div>
             <div className="grid grid-cols-6 md:grid-cols-8 gap-2 transition-all duration-300">
-              {images.map((image) => (
-                <ImageThumbnail key={image.id} image={image}/>
+              {images.map((image, index) => (
+                <ImageThumbnail 
+                  key={image.id} 
+                  image={image}
+                  onClick={() => {
+                    console.log('ImageThumbnail clicked:', {
+                      imageId: image.id,
+                      index,
+                      loaded: image.loaded,
+                      hasGalleryImage: !!galleryImages[index],
+                      galleryImagesLength: galleryImages.length
+                    })
+                    if (image.loaded && galleryImages[index]) {
+                      console.log('Opening modal for image:', index, galleryImages[index])
+                      setCurrentImageIndex(index)
+                      setModalOpen(true)
+                    } else {
+                      console.log('Cannot open modal - image not loaded or gallery image missing')
+                    }
+                  }}
+                />
               ))}
             </div>
           </div>
@@ -486,6 +536,25 @@ export const HeroVisual = memo(() => {
           </div>
         </div>
       </div>
+
+      {/* Image Modal */}
+      <SimpleImageModal
+        isOpen={modalOpen}
+        onClose={() => {
+          console.log('Closing modal')
+          setModalOpen(false)
+        }}
+        images={galleryImages}
+        currentIndex={currentImageIndex}
+        onIndexChange={setCurrentImageIndex}
+      />
+      
+      {/* Debug info */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed bottom-4 left-4 bg-black/80 text-white p-2 rounded text-xs z-50">
+          Modal: {modalOpen ? 'Open' : 'Closed'} | Images: {galleryImages.length} | Index: {currentImageIndex}
+        </div>
+      )}
 
       {/* Subtle decorative elements */}
       <motion.div
