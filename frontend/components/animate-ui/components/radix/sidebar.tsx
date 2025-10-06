@@ -18,13 +18,13 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/animate-ui/components/radix/sheet';
+} from '@/components/ui/sheet';
 import {
   TooltipProvider,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@/components/animate-ui/components/animate/tooltip';
+} from '@/components/ui/tooltip';
 import {
   Highlight,
   HighlightItem,
