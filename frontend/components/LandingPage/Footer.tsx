@@ -19,7 +19,7 @@ const FOOTER_SECTIONS: FooterSection[] = [
     title: 'Product',
     links: [
       { label: 'Features', href: '/#features' },
-      { label: 'Pricing', href: '/#pricing' },
+      { label: 'Pricing', href: '/pricing' },
       { label: 'Documentation', href: '/docs' },
       { label: 'API Reference', href: '/docs/api' }
     ]
@@ -35,7 +35,7 @@ const FOOTER_SECTIONS: FooterSection[] = [
     title: 'Resources',
     links: [
       { label: 'Examples', href: '/examples' },
-      { label: 'FAQ', href: '/#faq' }
+      { label: 'FAQ', href: '/pricing#faq' }
     ]
   },
   {
