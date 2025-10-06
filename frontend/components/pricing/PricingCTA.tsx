@@ -1,9 +1,9 @@
 'use client'
 
-import { memo } from 'react'
+import {memo} from 'react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { ArrowRight, MessageCircle } from 'lucide-react'
+import {Button} from '@/components/ui/button'
+import {ArrowRight, MessageCircle} from 'lucide-react'
 
 export const PricingCTA = memo(() => {
   return (
@@ -17,26 +17,26 @@ export const PricingCTA = memo(() => {
             </span>
           </h2>
           <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join thousands of developers, researchers, and companies who trust PixCrawler 
+            Join thousands of developers, researchers, and companies who trust PixCrawler
             for their machine learning and computer vision projects.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button asChild size="lg" className="min-w-[200px]">
               <Link href="/signup">
                 Start Free Trial
-                <ArrowRight className="w-4 h-4 ml-2" />
+                <ArrowRight className="w-4 h-4 ml-2"/>
               </Link>
             </Button>
-            
+
             <Button asChild variant="outline" size="lg" className="min-w-[200px]">
               <Link href="/contact">
-                <MessageCircle className="w-4 h-4 mr-2" />
+                <MessageCircle className="w-4 h-4 mr-2"/>
                 Talk to Sales
               </Link>
             </Button>
           </div>
-          
+
           <div className="mt-8 text-sm text-muted-foreground">
             <p>No credit card required • 14-day free trial • Cancel anytime</p>
           </div>

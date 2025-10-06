@@ -1,15 +1,7 @@
 'use client'
 
-import { memo, useState, useCallback } from 'react'
-import { 
-  Rocket, 
-  CreditCard, 
-  Settings, 
-  Shield, 
-  Code, 
-  HelpCircle,
-  Filter
-} from 'lucide-react'
+import {memo} from 'react'
+import {Code, CreditCard, Filter, Rocket, Settings, Shield} from 'lucide-react'
 
 interface FAQCategory {
   id: string
@@ -23,42 +15,42 @@ const FAQ_CATEGORIES: FAQCategory[] = [
   {
     id: 'all',
     name: 'All Questions',
-    icon: <Filter className="w-5 h-5" />,
+    icon: <Filter className="w-5 h-5"/>,
     count: 32,
     description: 'Browse all frequently asked questions'
   },
   {
     id: 'getting-started',
     name: 'Getting Started',
-    icon: <Rocket className="w-5 h-5" />,
+    icon: <Rocket className="w-5 h-5"/>,
     count: 8,
     description: 'Account setup, first steps, and basic usage'
   },
   {
     id: 'billing',
     name: 'Billing & Plans',
-    icon: <CreditCard className="w-5 h-5" />,
+    icon: <CreditCard className="w-5 h-5"/>,
     count: 6,
     description: 'Pricing, payments, upgrades, and refunds'
   },
   {
     id: 'features',
     name: 'Features & Usage',
-    icon: <Settings className="w-5 h-5" />,
+    icon: <Settings className="w-5 h-5"/>,
     count: 10,
     description: 'Platform features, limits, and best practices'
   },
   {
     id: 'security',
     name: 'Security & Privacy',
-    icon: <Shield className="w-5 h-5" />,
+    icon: <Shield className="w-5 h-5"/>,
     count: 4,
     description: 'Data protection, privacy, and compliance'
   },
   {
     id: 'technical',
     name: 'Technical',
-    icon: <Code className="w-5 h-5" />,
+    icon: <Code className="w-5 h-5"/>,
     count: 4,
     description: 'API, integrations, and troubleshooting'
   }
@@ -69,7 +61,7 @@ interface FAQCategoriesProps {
   onCategoryChange: (category: string) => void
 }
 
-export const FAQCategories = memo(({ selectedCategory, onCategoryChange }: FAQCategoriesProps) => {
+export const FAQCategories = memo(({selectedCategory, onCategoryChange}: FAQCategoriesProps) => {
   return (
     <section className="py-12 bg-muted/30">
       <div className="container mx-auto px-4 lg:px-8">

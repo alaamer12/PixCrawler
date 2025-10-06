@@ -1,9 +1,9 @@
 'use client'
 
-import React, { memo, useCallback, useEffect, useState } from 'react'
-import { Check, CheckCircle2, Database, Loader2, Search } from 'lucide-react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { NextImage, ImageModal } from '@/components/Image'
+import React, {memo, useCallback, useEffect, useState} from 'react'
+import {Check, CheckCircle2, Database, Loader2, Search} from 'lucide-react'
+import {AnimatePresence, motion} from 'framer-motion'
+import {NextImage, ImageModal} from '@/components/Image'
 
 // Types
 interface Step {
@@ -37,23 +37,23 @@ interface BuildStats {
 
 // Constants
 const CATEGORIES: Category[] = [
-  { name: 'nature', id: 1 },
-  { name: 'architecture', id: 2 },
-  { name: 'technology', id: 3 },
-  { name: 'animals', id: 4 },
-  { name: 'food', id: 5 },
-  { name: 'travel', id: 6 },
-  { name: 'abstract', id: 7 },
-  { name: 'business', id: 8 }
+  {name: 'nature', id: 1},
+  {name: 'architecture', id: 2},
+  {name: 'technology', id: 3},
+  {name: 'animals', id: 4},
+  {name: 'food', id: 5},
+  {name: 'travel', id: 6},
+  {name: 'abstract', id: 7},
+  {name: 'business', id: 8}
 ]
 
 const TOTAL_IMAGES = 24
 const PRIORITY_THUMBNAIL_COUNT = 6
 
 const STEP_CONFIGS: Omit<Step, 'status'>[] = [
-  { label: 'Define Query', icon: Search },
-  { label: 'Build Dataset', icon: Database },
-  { label: 'Complete', icon: CheckCircle2 }
+  {label: 'Define Query', icon: Search},
+  {label: 'Build Dataset', icon: Database},
+  {label: 'Complete', icon: CheckCircle2}
 ]
 
 const TIMING = {
@@ -70,7 +70,7 @@ const TIMING = {
   STATS_INTERVAL: 200
 } as const
 
-const QUALITY_RANGE = { MIN: 90, MAX: 98 } as const
+const QUALITY_RANGE = {MIN: 90, MAX: 98} as const
 
 // Utility Functions
 const getRandomCategory = (): Category =>
@@ -89,21 +89,21 @@ const createGalleryImage = (url: string, category: string, index: number): Galle
 })
 
 const createEmptyImages = (count: number): LoadedImage[] =>
-  Array.from({ length: count }, (_, i) => ({
+  Array.from({length: count}, (_, i) => ({
     id: i,
     url: '',
     loaded: false
   }))
 
 const createSteps = (statuses: Step['status'][]): Step[] =>
-  STEP_CONFIGS.map((config, i) => ({ ...config, status: statuses[i] }))
+  STEP_CONFIGS.map((config, i) => ({...config, status: statuses[i]}))
 
 // Sub-components
 const WindowControls = memo(() => (
   <div className="flex items-center gap-2">
-    <div className="w-3 h-3 rounded-full bg-red-500/80" />
-    <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-    <div className="w-3 h-3 rounded-full bg-green-500/80" />
+    <div className="w-3 h-3 rounded-full bg-red-500/80"/>
+    <div className="w-3 h-3 rounded-full bg-yellow-500/80"/>
+    <div className="w-3 h-3 rounded-full bg-green-500/80"/>
   </div>
 ))
 WindowControls.displayName = 'WindowControls'
@@ -120,12 +120,12 @@ const LoadingState = memo(() => (
     <div className="bg-card border border-border rounded-xl shadow-lg overflow-hidden">
       <div className="border-b border-border p-4 bg-muted/30">
         <div className="flex items-center justify-between">
-          <WindowControls />
-          <AddressBar />
+          <WindowControls/>
+          <AddressBar/>
         </div>
       </div>
       <div className="p-6 md:p-8 flex items-center justify-center h-96">
-        <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+        <Loader2 className="w-8 h-8 text-muted-foreground animate-spin"/>
       </div>
     </div>
   </div>
@@ -133,12 +133,12 @@ const LoadingState = memo(() => (
 LoadingState.displayName = 'LoadingState'
 
 const QueryInput = memo(({
-  category,
-  isResetting,
-  isBuilding,
-  onTestModal,
-  showTestButton
-}: {
+                           category,
+                           isResetting,
+                           isBuilding,
+                           onTestModal,
+                           showTestButton
+                         }: {
   category: string
   isResetting: boolean
   isBuilding: boolean
@@ -152,8 +152,8 @@ const QueryInput = memo(({
         value={category}
         readOnly
         className="w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none capitalize"
-        animate={{ opacity: isResetting ? 0.5 : 1 }}
-        transition={{ duration: 0.3 }}
+        animate={{opacity: isResetting ? 0.5 : 1}}
+        transition={{duration: 0.3}}
       />
       <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
         {showTestButton && (
@@ -164,8 +164,9 @@ const QueryInput = memo(({
             Test Modal
           </button>
         )}
-        <div className="px-4 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-md flex items-center gap-2">
-          {isBuilding && <Loader2 className="w-3 h-3 animate-spin" />}
+        <div
+          className="px-4 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-md flex items-center gap-2">
+          {isBuilding && <Loader2 className="w-3 h-3 animate-spin"/>}
           {isBuilding ? 'Building...' : 'Build'}
         </div>
       </div>
@@ -174,7 +175,7 @@ const QueryInput = memo(({
 ))
 QueryInput.displayName = 'QueryInput'
 
-const ProgressBar = memo(({ progress }: { progress: number }) => (
+const ProgressBar = memo(({progress}: { progress: number }) => (
   <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
     <div className="flex justify-between text-xs">
       <span className="text-muted-foreground">Processing images...</span>
@@ -183,14 +184,14 @@ const ProgressBar = memo(({ progress }: { progress: number }) => (
     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
       <div
         className="h-full bg-primary transition-all duration-500 ease-out"
-        style={{ width: `${progress}%` }}
+        style={{width: `${progress}%`}}
       />
     </div>
   </div>
 ))
 ProgressBar.displayName = 'ProgressBar'
 
-const StepIcon = memo(({ step }: { step: Step }) => (
+const StepIcon = memo(({step}: { step: Step }) => (
   <motion.div
     className={`w-12 h-12 rounded-full flex items-center justify-center relative ${
       step.status === 'complete'
@@ -207,26 +208,26 @@ const StepIcon = memo(({ step }: { step: Step }) => (
           ? '0 10px 25px -5px rgba(var(--primary), 0.3)'
           : 'none'
     }}
-    transition={{ duration: 0.4, ease: "easeOut" }}
+    transition={{duration: 0.4, ease: "easeOut"}}
   >
     <AnimatePresence mode="wait">
       {step.status === 'complete' ? (
         <motion.div
           key="check"
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          exit={{ scale: 0, rotate: 180 }}
-          transition={{ duration: 0.4, ease: "backOut" }}
+          initial={{scale: 0, rotate: -180}}
+          animate={{scale: 1, rotate: 0}}
+          exit={{scale: 0, rotate: 180}}
+          transition={{duration: 0.4, ease: "backOut"}}
         >
-          <Check className="w-6 h-6 text-primary-foreground" strokeWidth={3} />
+          <Check className="w-6 h-6 text-primary-foreground" strokeWidth={3}/>
         </motion.div>
       ) : (
         <motion.div
           key="icon"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          exit={{ scale: 0 }}
-          transition={{ duration: 0.3 }}
+          initial={{scale: 0}}
+          animate={{scale: 1}}
+          exit={{scale: 0}}
+          transition={{duration: 0.3}}
         >
           <step.icon
             className={`w-6 h-6 transition-all duration-300 ${
@@ -243,10 +244,10 @@ const StepIcon = memo(({ step }: { step: Step }) => (
       {step.status === 'active' && (
         <motion.div
           className="absolute inset-0 rounded-full border-2 border-primary"
-          initial={{ scale: 1, opacity: 0.75 }}
-          animate={{ scale: 1.5, opacity: 0 }}
-          exit={{ scale: 1, opacity: 0 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "easeOut" }}
+          initial={{scale: 1, opacity: 0.75}}
+          animate={{scale: 1.5, opacity: 0}}
+          exit={{scale: 1, opacity: 0}}
+          transition={{duration: 1, repeat: Infinity, ease: "easeOut"}}
         />
       )}
     </AnimatePresence>
@@ -254,32 +255,33 @@ const StepIcon = memo(({ step }: { step: Step }) => (
 ))
 StepIcon.displayName = 'StepIcon'
 
-const StepConnector = memo(({ isActive }: { isActive: boolean }) => (
+const StepConnector = memo(({isActive}: { isActive: boolean }) => (
   <div className="flex-1 h-1 mx-6 bg-muted rounded-full relative overflow-hidden">
     <motion.div
       className="absolute inset-0 bg-primary rounded-full"
-      initial={{ scaleX: 0 }}
-      animate={{ scaleX: isActive ? 1 : 0 }}
-      transition={{ duration: 0.7, ease: "easeOut" }}
-      style={{ transformOrigin: 'left' }}
+      initial={{scaleX: 0}}
+      animate={{scaleX: isActive ? 1 : 0}}
+      transition={{duration: 0.7, ease: "easeOut"}}
+      style={{transformOrigin: 'left'}}
     >
       {isActive && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-shimmer" />
+        <div
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-shimmer"/>
       )}
     </motion.div>
   </div>
 ))
 StepConnector.displayName = 'StepConnector'
 
-const ProcessFlow = memo(({ steps, isResetting }: { steps: Step[]; isResetting: boolean }) => (
+const ProcessFlow = memo(({steps, isResetting}: { steps: Step[]; isResetting: boolean }) => (
   <div
     className="flex items-center py-4 relative transition-opacity duration-400"
-    style={{ opacity: isResetting ? 0.3 : 1 }}
+    style={{opacity: isResetting ? 0.3 : 1}}
   >
     {steps.map((step, i) => (
       <React.Fragment key={step.label}>
         <div className="flex flex-col items-center gap-2 relative z-10">
-          <StepIcon step={step} />
+          <StepIcon step={step}/>
           <motion.span
             className={`text-xs font-medium text-center whitespace-nowrap ${
               step.status === 'pending' ? 'text-muted-foreground' : 'text-foreground'
@@ -288,7 +290,7 @@ const ProcessFlow = memo(({ steps, isResetting }: { steps: Step[]; isResetting: 
               fontWeight: step.status === 'pending' ? 500 : 600,
               scale: step.status === 'active' ? 1.05 : 1
             }}
-            transition={{ duration: 0.3 }}
+            transition={{duration: 0.3}}
           >
             {step.label}
           </motion.span>
@@ -305,24 +307,26 @@ const ProcessFlow = memo(({ steps, isResetting }: { steps: Step[]; isResetting: 
 ProcessFlow.displayName = 'ProcessFlow'
 
 const ImageThumbnail = memo(({
-  image,
-  onClick
-}: {
+                               image,
+                               onClick
+                             }: {
   image: LoadedImage
   onClick?: () => void
 }) => {
   if (!image.loaded) {
     return (
-      <div className="aspect-square bg-muted rounded-lg border border-border relative overflow-hidden group transition-opacity duration-300 animate-in fade-in">
+      <div
+        className="aspect-square bg-muted rounded-lg border border-border relative overflow-hidden group transition-opacity duration-300 animate-in fade-in">
         <div className="absolute inset-0 flex items-center justify-center">
-          <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+          <Loader2 className="w-4 h-4 text-muted-foreground animate-spin"/>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="aspect-square bg-muted rounded-lg border border-border relative overflow-hidden group transition-opacity duration-300 animate-in fade-in">
+    <div
+      className="aspect-square bg-muted rounded-lg border border-border relative overflow-hidden group transition-opacity duration-300 animate-in fade-in">
       <NextImage
         src={image.url}
         alt={`Dataset image ${image.id + 1}`}
@@ -330,31 +334,32 @@ const ImageThumbnail = memo(({
         onClick={onClick}
         priority={image.id < PRIORITY_THUMBNAIL_COUNT}
       />
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      <div
+        className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"/>
     </div>
   )
 })
 ImageThumbnail.displayName = 'ImageThumbnail'
 
 const DatasetGrid = memo(({
-  images,
-  galleryImages,
-  loadedCount,
-  isResetting,
-  onImageClick
-}: {
+                            images,
+                            galleryImages,
+                            loadedCount,
+                            isResetting,
+                            onImageClick
+                          }: {
   images: LoadedImage[]
   galleryImages: GalleryImage[]
   loadedCount: number
   isResetting: boolean
   onImageClick: (index: number) => void
 }) => (
-  <div className="space-y-3 transition-opacity duration-400" style={{ opacity: isResetting ? 0 : 1 }}>
+  <div className="space-y-3 transition-opacity duration-400" style={{opacity: isResetting ? 0 : 1}}>
     <div className="flex items-center justify-between">
       <h3 className="text-sm font-medium">Generated Dataset</h3>
       <span
         className="text-xs text-muted-foreground font-mono transition-opacity duration-300"
-        style={{ opacity: loadedCount > 0 ? 1 : 0.5 }}
+        style={{opacity: loadedCount > 0 ? 1 : 0.5}}
       >
         {loadedCount}/{TOTAL_IMAGES} images
       </span>
@@ -376,26 +381,26 @@ const DatasetGrid = memo(({
 ))
 DatasetGrid.displayName = 'DatasetGrid'
 
-const StatsBar = memo(({ stats, isResetting }: { stats: BuildStats; isResetting: boolean }) => (
+const StatsBar = memo(({stats, isResetting}: { stats: BuildStats; isResetting: boolean }) => (
   <div
     className="flex items-center justify-between pt-4 border-t border-border text-xs text-muted-foreground transition-opacity duration-400"
-    style={{ opacity: isResetting ? 0.3 : 1 }}
+    style={{opacity: isResetting ? 0.3 : 1}}
   >
     <span
       className="font-mono transition-opacity duration-300"
-      style={{ opacity: stats.sources > 0 ? 1 : 0.5 }}
+      style={{opacity: stats.sources > 0 ? 1 : 0.5}}
     >
       Sources: {stats.sources}/3 engines
     </span>
     <span
       className="font-mono transition-opacity duration-300"
-      style={{ opacity: stats.quality > 0 ? 1 : 0.5 }}
+      style={{opacity: stats.quality > 0 ? 1 : 0.5}}
     >
       Quality: {Math.round(stats.quality)}%
     </span>
     <span
       className="font-mono transition-opacity duration-300"
-      style={{ opacity: stats.time > 0 ? 1 : 0.5 }}
+      style={{opacity: stats.time > 0 ? 1 : 0.5}}
     >
       Time: {stats.time.toFixed(1)}s
     </span>
@@ -435,10 +440,10 @@ const DecorativeBlobs = memo(() => (
 DecorativeBlobs.displayName = 'DecorativeBlobs'
 
 const DebugInfo = memo(({
-  modalOpen,
-  galleryImagesLength,
-  currentIndex
-}: {
+                          modalOpen,
+                          galleryImagesLength,
+                          currentIndex
+                        }: {
   modalOpen: boolean
   galleryImagesLength: number
   currentIndex: number
@@ -522,7 +527,7 @@ export const HeroVisual = memo(() => {
   const [modalOpen, setModalOpen] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [steps, setSteps] = useState<Step[]>(createSteps(['pending', 'pending', 'pending']))
-  const [stats, setStats] = useState<BuildStats>({ sources: 0, quality: 0, time: 0 })
+  const [stats, setStats] = useState<BuildStats>({sources: 0, quality: 0, time: 0})
   const [isResetting, setIsResetting] = useState(false)
 
   useShimmerAnimation()
@@ -536,7 +541,7 @@ export const HeroVisual = memo(() => {
     setGalleryImages([])
     setProgress(0)
     setLoadedCount(0)
-    setStats({ sources: 0, quality: 0, time: 0 })
+    setStats({sources: 0, quality: 0, time: 0})
   }, [])
 
   const buildDataset = useCallback(async () => {
@@ -569,7 +574,7 @@ export const HeroVisual = memo(() => {
 
       setImages(prev => {
         const updated = [...prev]
-        updated[i] = { id: i, url: imageUrl, loaded: true }
+        updated[i] = {id: i, url: imageUrl, loaded: true}
         return updated
       })
 
@@ -585,7 +590,7 @@ export const HeroVisual = memo(() => {
     setSteps(createSteps(['complete', 'complete', 'active']))
 
     const finalQuality = getRandomQuality()
-    setStats(prev => ({ sources: 3, quality: finalQuality, time: prev.time }))
+    setStats(prev => ({sources: 3, quality: finalQuality, time: prev.time}))
 
     await new Promise(resolve => setTimeout(resolve, TIMING.STEP_3_COMPLETE))
 
@@ -632,7 +637,7 @@ export const HeroVisual = memo(() => {
   }, [galleryImages.length])
 
   if (!mounted) {
-    return <LoadingState />
+    return <LoadingState/>
   }
 
   return (
@@ -640,8 +645,8 @@ export const HeroVisual = memo(() => {
       <div className="hero-visual-bg border border-border rounded-xl shadow-lg overflow-hidden h-full flex flex-col">
         <div className="border-b border-border p-4 bg-muted/30 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <WindowControls />
-            <AddressBar />
+            <WindowControls/>
+            <AddressBar/>
           </div>
         </div>
 
@@ -654,9 +659,9 @@ export const HeroVisual = memo(() => {
             showTestButton={process.env.NODE_ENV === 'development' && galleryImages.length > 0}
           />
 
-          {isBuilding && progress > 0 && <ProgressBar progress={progress} />}
+          {isBuilding && progress > 0 && <ProgressBar progress={progress}/>}
 
-          <ProcessFlow steps={steps} isResetting={isResetting} />
+          <ProcessFlow steps={steps} isResetting={isResetting}/>
 
           <DatasetGrid
             images={images}
@@ -666,7 +671,7 @@ export const HeroVisual = memo(() => {
             onImageClick={handleImageClick}
           />
 
-          <StatsBar stats={stats} isResetting={isResetting} />
+          <StatsBar stats={stats} isResetting={isResetting}/>
         </div>
       </div>
 
@@ -684,7 +689,7 @@ export const HeroVisual = memo(() => {
         currentIndex={currentImageIndex}
       />
 
-      <DecorativeBlobs />
+      <DecorativeBlobs/>
     </div>
   )
 })

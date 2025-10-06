@@ -1,18 +1,7 @@
 'use client'
 
-import { memo, useState, useCallback } from 'react'
-import { Button } from '@/components/ui/button'
-import { 
-  Brain, 
-  Camera, 
-  ShoppingBag, 
-  Car, 
-  Leaf, 
-  Building, 
-  Palette, 
-  Shield,
-  Filter
-} from 'lucide-react'
+import {memo} from 'react'
+import {Brain, Building, Camera, Car, Filter, Leaf, Palette, Shield, ShoppingBag} from 'lucide-react'
 
 interface Category {
   id: string
@@ -26,63 +15,63 @@ const CATEGORIES: Category[] = [
   {
     id: 'all',
     name: 'All Examples',
-    icon: <Filter className="w-5 h-5" />,
+    icon: <Filter className="w-5 h-5"/>,
     count: 50,
     description: 'Browse all available examples'
   },
   {
     id: 'computer-vision',
     name: 'Computer Vision',
-    icon: <Brain className="w-5 h-5" />,
+    icon: <Brain className="w-5 h-5"/>,
     count: 12,
     description: 'Object detection, classification, and recognition'
   },
   {
     id: 'photography',
     name: 'Photography',
-    icon: <Camera className="w-5 h-5" />,
+    icon: <Camera className="w-5 h-5"/>,
     count: 8,
     description: 'Photo enhancement, style transfer, and editing'
   },
   {
     id: 'ecommerce',
     name: 'E-commerce',
-    icon: <ShoppingBag className="w-5 h-5" />,
+    icon: <ShoppingBag className="w-5 h-5"/>,
     count: 10,
     description: 'Product catalogs, recommendation systems'
   },
   {
     id: 'automotive',
     name: 'Automotive',
-    icon: <Car className="w-5 h-5" />,
+    icon: <Car className="w-5 h-5"/>,
     count: 6,
     description: 'Autonomous driving, vehicle recognition'
   },
   {
     id: 'nature',
     name: 'Nature & Environment',
-    icon: <Leaf className="w-5 h-5" />,
+    icon: <Leaf className="w-5 h-5"/>,
     count: 7,
     description: 'Wildlife, plants, environmental monitoring'
   },
   {
     id: 'architecture',
     name: 'Architecture',
-    icon: <Building className="w-5 h-5" />,
+    icon: <Building className="w-5 h-5"/>,
     count: 5,
     description: 'Building styles, urban planning, design'
   },
   {
     id: 'art',
     name: 'Art & Design',
-    icon: <Palette className="w-5 h-5" />,
+    icon: <Palette className="w-5 h-5"/>,
     count: 4,
     description: 'Artistic styles, creative projects'
   },
   {
     id: 'security',
     name: 'Security',
-    icon: <Shield className="w-5 h-5" />,
+    icon: <Shield className="w-5 h-5"/>,
     count: 3,
     description: 'Surveillance, anomaly detection'
   }
@@ -93,7 +82,7 @@ interface ExampleCategoriesProps {
   onCategoryChange: (category: string) => void
 }
 
-export const ExampleCategories = memo(({ selectedCategory, onCategoryChange }: ExampleCategoriesProps) => {
+export const ExampleCategories = memo(({selectedCategory, onCategoryChange}: ExampleCategoriesProps) => {
   return (
     <section className="py-12 bg-muted/30">
       <div className="container mx-auto px-4 lg:px-8">

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
-import { globalImageBuffer } from '@/lib/ImageBuffer'
+import {useCallback, useRef, useState} from 'react'
+import {globalImageBuffer} from '@/lib/ImageBuffer'
 
 interface UseImageLoaderReturn {
   loadedImages: Set<number>
@@ -38,7 +38,7 @@ export const useImageLoader = (): UseImageLoaderReturn => {
 
     const loadPromise = new Promise<HTMLImageElement | null>((resolve) => {
       const img = new Image()
-      
+
       img.onload = () => {
         globalImageBuffer.put(url, img)
         setLoadedImages(prev => new Set(prev).add(index))
@@ -87,7 +87,7 @@ export const useImageLoader = (): UseImageLoaderReturn => {
     // Start preloading
     const loadPromise = new Promise<HTMLImageElement | null>((resolve) => {
       const img = new Image()
-      
+
       img.onload = () => {
         globalImageBuffer.put(url, img)
         loadingPromises.current.delete(url)

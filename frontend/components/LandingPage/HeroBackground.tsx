@@ -8,7 +8,7 @@ export const HeroBackground = memo(() => {
       {/* Base gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/20 to-background"/>
 
-       {/* Floating brand color elements */}
+      {/* Floating brand color elements */}
       <div
         className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl animate-float-slow"
         style={{

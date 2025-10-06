@@ -1,7 +1,7 @@
 'use client'
 
-import { memo } from 'react'
-import { Check, X } from 'lucide-react'
+import {memo} from 'react'
+import {Check, X} from 'lucide-react'
 
 interface ComparisonFeature {
   name: string
@@ -89,15 +89,15 @@ interface FeatureValueProps {
   value: boolean | string
 }
 
-const FeatureValue = memo(({ value }: FeatureValueProps) => {
+const FeatureValue = memo(({value}: FeatureValueProps) => {
   if (typeof value === 'boolean') {
     return value ? (
-      <Check className="w-5 h-5 text-success mx-auto" />
+      <Check className="w-5 h-5 text-success mx-auto"/>
     ) : (
-      <X className="w-5 h-5 text-muted-foreground mx-auto" />
+      <X className="w-5 h-5 text-muted-foreground mx-auto"/>
     )
   }
-  
+
   return (
     <span className="text-sm font-medium text-center block">{value}</span>
   )
@@ -117,33 +117,34 @@ export const PricingComparison = memo(() => {
             Detailed comparison of all features across our pricing tiers to help you choose the right plan.
           </p>
         </div>
-        
+
         <div className="max-w-5xl mx-auto">
           <div className="overflow-x-auto">
             <table className="w-full border border-border rounded-lg">
               <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className="text-left p-4 font-semibold">Features</th>
-                  <th className="text-center p-4 font-semibold">Starter</th>
-                  <th className="text-center p-4 font-semibold">Pro</th>
-                  <th className="text-center p-4 font-semibold">Enterprise</th>
-                </tr>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="text-left p-4 font-semibold">Features</th>
+                <th className="text-center p-4 font-semibold">Starter</th>
+                <th className="text-center p-4 font-semibold">Pro</th>
+                <th className="text-center p-4 font-semibold">Enterprise</th>
+              </tr>
               </thead>
               <tbody>
-                {COMPARISON_FEATURES.map((feature, index) => (
-                  <tr key={`feature-${index}`} className={`border-b border-border ${index % 2 === 0 ? 'bg-background' : 'bg-muted/20'}`}>
-                    <td className="p-4 font-medium">{feature.name}</td>
-                    <td className="p-4 text-center">
-                      <FeatureValue value={feature.starter} />
-                    </td>
-                    <td className="p-4 text-center">
-                      <FeatureValue value={feature.pro} />
-                    </td>
-                    <td className="p-4 text-center">
-                      <FeatureValue value={feature.enterprise} />
-                    </td>
-                  </tr>
-                ))}
+              {COMPARISON_FEATURES.map((feature, index) => (
+                <tr key={`feature-${index}`}
+                    className={`border-b border-border ${index % 2 === 0 ? 'bg-background' : 'bg-muted/20'}`}>
+                  <td className="p-4 font-medium">{feature.name}</td>
+                  <td className="p-4 text-center">
+                    <FeatureValue value={feature.starter}/>
+                  </td>
+                  <td className="p-4 text-center">
+                    <FeatureValue value={feature.pro}/>
+                  </td>
+                  <td className="p-4 text-center">
+                    <FeatureValue value={feature.enterprise}/>
+                  </td>
+                </tr>
+              ))}
               </tbody>
             </table>
           </div>

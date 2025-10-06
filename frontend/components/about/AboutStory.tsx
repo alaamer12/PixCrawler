@@ -1,7 +1,7 @@
 'use client'
 
-import { memo } from 'react'
-import { Calendar, Lightbulb, Rocket, Globe } from 'lucide-react'
+import {memo} from 'react'
+import {Calendar, Globe, Lightbulb, Rocket} from 'lucide-react'
 
 interface Milestone {
   year: string
@@ -15,25 +15,25 @@ const MILESTONES: Milestone[] = [
     year: '2023',
     title: 'The Spark',
     description: 'Founded by AI researchers frustrated with the time spent collecting training data instead of building models.',
-    icon: <Lightbulb className="w-5 h-5" />
+    icon: <Lightbulb className="w-5 h-5"/>
   },
   {
     year: '2024',
     title: 'First Launch',
     description: 'Released PixCrawler beta to a small group of developers and researchers, processing our first million images.',
-    icon: <Rocket className="w-5 h-5" />
+    icon: <Rocket className="w-5 h-5"/>
   },
   {
     year: '2024',
     title: 'Global Reach',
     description: 'Expanded to serve developers worldwide, with users in over 50 countries building diverse datasets.',
-    icon: <Globe className="w-5 h-5" />
+    icon: <Globe className="w-5 h-5"/>
   },
   {
     year: '2025',
     title: 'The Future',
     description: 'Continuing to innovate with AI-powered dataset curation and advanced quality validation systems.',
-    icon: <Calendar className="w-5 h-5" />
+    icon: <Calendar className="w-5 h-5"/>
   }
 ]
 
@@ -55,11 +55,12 @@ export const AboutStory = memo(() => {
             {MILESTONES.map((milestone, index) => (
               <div key={milestone.year} className="flex gap-6 group">
                 <div className="flex flex-col items-center">
-                  <div className="flex items-center justify-center w-12 h-12 bg-primary/10 text-primary rounded-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                  <div
+                    className="flex items-center justify-center w-12 h-12 bg-primary/10 text-primary rounded-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                     {milestone.icon}
                   </div>
                   {index < MILESTONES.length - 1 && (
-                    <div className="w-px h-16 bg-border mt-4" />
+                    <div className="w-px h-16 bg-border mt-4"/>
                   )}
                 </div>
                 <div className="flex-1 pb-8">

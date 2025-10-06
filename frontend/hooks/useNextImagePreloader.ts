@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef } from 'react'
+import {useCallback, useRef} from 'react'
 
 interface UseNextImagePreloaderReturn {
   preloadImages: (urls: string[]) => void
@@ -19,7 +19,7 @@ export const useNextImagePreloader = (): UseNextImagePreloaderReturn => {
     link.rel = 'preload'
     link.as = 'image'
     link.href = url
-    
+
     document.head.appendChild(link)
     preloadElements.current.push(link)
     preloadedUrls.current.add(url)

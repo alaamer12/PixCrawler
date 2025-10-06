@@ -1,7 +1,7 @@
 'use client'
 
-import { memo, useState, useCallback, useMemo } from 'react'
-import { ChevronDown, Search } from 'lucide-react'
+import {memo, useCallback, useMemo, useState} from 'react'
+import {ChevronDown, Search} from 'lucide-react'
 
 interface FAQItem {
   id: string
@@ -120,7 +120,7 @@ interface FAQItemProps {
   onToggle: () => void
 }
 
-const FAQItemComponent = memo(({ item, isOpen, onToggle }: FAQItemProps) => {
+const FAQItemComponent = memo(({item, isOpen, onToggle}: FAQItemProps) => {
   return (
     <div className="border border-border rounded-lg bg-card">
       <button
@@ -129,14 +129,15 @@ const FAQItemComponent = memo(({ item, isOpen, onToggle }: FAQItemProps) => {
         aria-expanded={isOpen}
       >
         <span className="font-medium pr-4">{item.question}</span>
-        <ChevronDown className={`w-5 h-5 transition-transform duration-200 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`w-5 h-5 transition-transform duration-200 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}/>
       </button>
       {isOpen && (
         <div className="px-6 pb-4 animate-fade-in">
           <p className="text-muted-foreground leading-relaxed">{item.answer}</p>
           <div className="flex flex-wrap gap-1 mt-3">
             {item.tags.map((tag) => (
-              <span 
+              <span
                 key={tag}
                 className="px-2 py-1 bg-muted text-muted-foreground text-xs rounded-md"
               >
@@ -156,7 +157,7 @@ interface FAQListProps {
   selectedCategory: string
 }
 
-export const FAQList = memo(({ selectedCategory }: FAQListProps) => {
+export const FAQList = memo(({selectedCategory}: FAQListProps) => {
   const [openItems, setOpenItems] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -183,7 +184,7 @@ export const FAQList = memo(({ selectedCategory }: FAQListProps) => {
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
-      items = items.filter(item => 
+      items = items.filter(item =>
         item.question.toLowerCase().includes(query) ||
         item.answer.toLowerCase().includes(query) ||
         item.tags.some(tag => tag.toLowerCase().includes(query))
@@ -199,7 +200,7 @@ export const FAQList = memo(({ selectedCategory }: FAQListProps) => {
         <div className="max-w-4xl mx-auto">
           {/* Search Bar */}
           <div className="relative mb-8">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"/>
             <input
               type="text"
               placeholder="Search questions..."
@@ -224,7 +225,7 @@ export const FAQList = memo(({ selectedCategory }: FAQListProps) => {
           {filteredItems.length === 0 && (
             <div className="text-center py-12">
               <p className="text-muted-foreground">
-                {searchQuery 
+                {searchQuery
                   ? `No questions found matching "${searchQuery}"`
                   : 'No questions found for this category.'
                 }

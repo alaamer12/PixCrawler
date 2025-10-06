@@ -1,8 +1,8 @@
 'use client'
 
-import { memo } from 'react'
-import { Button } from '@/components/ui/button'
-import { Code, Database, Zap } from 'lucide-react'
+import {memo} from 'react'
+import {Button} from '@/components/ui/button'
+import {Code, Database, Zap} from 'lucide-react'
 
 export const ExamplesHero = memo(() => {
   return (
@@ -16,21 +16,21 @@ export const ExamplesHero = memo(() => {
             </span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Discover how developers, researchers, and companies use PixCrawler to build 
+            Discover how developers, researchers, and companies use PixCrawler to build
             powerful image datasets for machine learning and computer vision projects.
           </p>
-          
+
           <div className="flex flex-wrap justify-center gap-6 mb-12">
             <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-3">
-              <Database className="w-5 h-5 text-primary" />
+              <Database className="w-5 h-5 text-primary"/>
               <span className="text-sm font-medium">50+ Use Cases</span>
             </div>
             <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-3">
-              <Code className="w-5 h-5 text-secondary" />
+              <Code className="w-5 h-5 text-secondary"/>
               <span className="text-sm font-medium">Code Examples</span>
             </div>
             <div className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-3">
-              <Zap className="w-5 h-5 text-warning" />
+              <Zap className="w-5 h-5 text-warning"/>
               <span className="text-sm font-medium">Ready to Use</span>
             </div>
           </div>

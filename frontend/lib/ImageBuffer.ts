@@ -23,29 +23,8 @@ export class ImageBuffer {
     this.tail = null
   }
 
-  private createNode(key: string, value: string | HTMLImageElement): CacheNode {
-    return {
-      key,
-      value,
-      prev: null,
-      next: null
-    }
-  }
-
-  private moveToFront(node: CacheNode): void {
-    if (node === this.head) return
-
-    // Remove node from its current position
-    if (node.prev) node.prev.next = node.next
-    if (node.next) node.next.prev = node.prev
-    if (node === this.tail) this.tail = node.prev
-
-    // Move to front
-    node.next = this.head
-    node.prev = null
-    if (this.head) this.head.prev = node
-    this.head = node
-    if (!this.tail) this.tail = node
+  get size(): number {
+    return this.cache.size
   }
 
   get(key: string): string | HTMLImageElement | null {
@@ -58,7 +37,7 @@ export class ImageBuffer {
 
   put(key: string, value: string | HTMLImageElement): void {
     const existingNode = this.cache.get(key)
-    
+
     if (existingNode) {
       existingNode.value = value
       this.moveToFront(existingNode)
@@ -66,7 +45,7 @@ export class ImageBuffer {
     }
 
     const newNode = this.createNode(key, value)
-    
+
     // If cache is at capacity, remove least recently used item (tail)
     if (this.cache.size >= this.capacity) {
       if (this.tail) {
@@ -94,10 +73,6 @@ export class ImageBuffer {
     this.tail = null
   }
 
-  get size(): number {
-    return this.cache.size
-  }
-
   has(key: string): boolean {
     return this.cache.has(key)
   }
@@ -109,6 +84,31 @@ export class ImageBuffer {
       capacity: this.capacity,
       hitRate: this.size / this.capacity
     }
+  }
+
+  private createNode(key: string, value: string | HTMLImageElement): CacheNode {
+    return {
+      key,
+      value,
+      prev: null,
+      next: null
+    }
+  }
+
+  private moveToFront(node: CacheNode): void {
+    if (node === this.head) return
+
+    // Remove node from its current position
+    if (node.prev) node.prev.next = node.next
+    if (node.next) node.next.prev = node.prev
+    if (node === this.tail) this.tail = node.prev
+
+    // Move to front
+    node.next = this.head
+    node.prev = null
+    if (this.head) this.head.prev = node
+    this.head = node
+    if (!this.tail) this.tail = node
   }
 }
 

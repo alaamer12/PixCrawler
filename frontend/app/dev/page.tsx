@@ -1,24 +1,12 @@
 'use client'
 
-import { useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Code, 
-  Eye, 
-  User, 
-  UserPlus,
-  Home,
-  Settings,
-  Database,
-  TestTube,
-  Palette,
-  Lock,
-  Unlock
-} from 'lucide-react'
+import {useEffect} from 'react'
+import {Button} from '@/components/ui/button'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
+import {Badge} from '@/components/ui/badge'
+import {Code, Database, Eye, Home, Lock, Palette, Settings, TestTube, Unlock, User, UserPlus} from 'lucide-react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import {useSearchParams} from 'next/navigation'
 
 interface PageInfo {
   path: string
@@ -38,9 +26,9 @@ const PAGES: PageInfo[] = [
     description: 'Main landing page with hero section',
     category: 'Public',
     requiresAuth: false,
-    icon: <Home className="size-4" />
+    icon: <Home className="size-4"/>
   },
-  
+
   // Auth Pages
   {
     path: '/login',
@@ -48,7 +36,7 @@ const PAGES: PageInfo[] = [
     description: 'User authentication login form',
     category: 'Auth',
     requiresAuth: false,
-    icon: <Lock className="size-4" />
+    icon: <Lock className="size-4"/>
   },
   {
     path: '/signup',
@@ -56,7 +44,7 @@ const PAGES: PageInfo[] = [
     description: 'User registration form',
     category: 'Auth',
     requiresAuth: false,
-    icon: <UserPlus className="size-4" />
+    icon: <UserPlus className="size-4"/>
   },
   {
     path: '/auth/forgot-password',
@@ -64,7 +52,7 @@ const PAGES: PageInfo[] = [
     description: 'Password reset request form',
     category: 'Auth',
     requiresAuth: false,
-    icon: <Unlock className="size-4" />
+    icon: <Unlock className="size-4"/>
   },
   {
     path: '/auth/reset-password',
@@ -72,7 +60,7 @@ const PAGES: PageInfo[] = [
     description: 'Password reset form with token',
     category: 'Auth',
     requiresAuth: false,
-    icon: <Unlock className="size-4" />
+    icon: <Unlock className="size-4"/>
   },
   {
     path: '/auth/auth-code-error',
@@ -80,9 +68,9 @@ const PAGES: PageInfo[] = [
     description: 'Authentication error page',
     category: 'Auth',
     requiresAuth: false,
-    icon: <Lock className="size-4" />
+    icon: <Lock className="size-4"/>
   },
-  
+
   // Onboarding Pages
   {
     path: '/welcome',
@@ -91,9 +79,9 @@ const PAGES: PageInfo[] = [
     category: 'Onboarding',
     requiresAuth: true,
     oneTime: true,
-    icon: <User className="size-4" />
+    icon: <User className="size-4"/>
   },
-  
+
   // Dashboard Pages
   {
     path: '/dashboard',
@@ -101,7 +89,7 @@ const PAGES: PageInfo[] = [
     description: 'Main dashboard overview',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <Database className="size-4" />
+    icon: <Database className="size-4"/>
   },
   {
     path: '/dashboard/projects',
@@ -109,7 +97,7 @@ const PAGES: PageInfo[] = [
     description: 'Project management interface',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <Database className="size-4" />
+    icon: <Database className="size-4"/>
   },
   {
     path: '/dashboard/projects/new',
@@ -117,7 +105,7 @@ const PAGES: PageInfo[] = [
     description: 'Create new project form',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <Database className="size-4" />
+    icon: <Database className="size-4"/>
   },
   {
     path: '/dashboard/datasets',
@@ -125,7 +113,7 @@ const PAGES: PageInfo[] = [
     description: 'Dataset management and viewing',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <Database className="size-4" />
+    icon: <Database className="size-4"/>
   },
   {
     path: '/dashboard/datasets/new',
@@ -133,7 +121,7 @@ const PAGES: PageInfo[] = [
     description: 'Create new dataset form',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <Database className="size-4" />
+    icon: <Database className="size-4"/>
   },
   {
     path: '/dashboard/profile',
@@ -141,7 +129,7 @@ const PAGES: PageInfo[] = [
     description: 'User profile and account settings',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <User className="size-4" />
+    icon: <User className="size-4"/>
   },
   {
     path: '/dashboard/settings',
@@ -149,9 +137,9 @@ const PAGES: PageInfo[] = [
     description: 'Application settings and preferences',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <Settings className="size-4" />
+    icon: <Settings className="size-4"/>
   },
-  
+
   // Demo Pages
   {
     path: '/demo',
@@ -159,7 +147,7 @@ const PAGES: PageInfo[] = [
     description: 'Product demonstration',
     category: 'Demo',
     requiresAuth: false,
-    icon: <TestTube className="size-4" />
+    icon: <TestTube className="size-4"/>
   },
   {
     path: '/demo/buttons',
@@ -167,9 +155,9 @@ const PAGES: PageInfo[] = [
     description: 'UI component demonstrations',
     category: 'Demo',
     requiresAuth: false,
-    icon: <Palette className="size-4" />
+    icon: <Palette className="size-4"/>
   },
-  
+
   // Dev Pages
   {
     path: '/dev',
@@ -177,7 +165,7 @@ const PAGES: PageInfo[] = [
     description: 'This development page navigator',
     category: 'Dev',
     requiresAuth: false,
-    icon: <Code className="size-4" />
+    icon: <Code className="size-4"/>
   }
 ]
 
@@ -193,12 +181,12 @@ const CATEGORY_COLORS = {
 export default function DevPage() {
   const searchParams = useSearchParams()
   const requestedPage = searchParams.get('page')
-  
+
   // If a specific page is requested, redirect to it with dev bypass
   useEffect(() => {
     if (requestedPage) {
       let targetPath = requestedPage
-      
+
       // Handle special cases
       if (requestedPage === 'home') {
         targetPath = ''
@@ -206,7 +194,7 @@ export default function DevPage() {
         // Decode the path
         targetPath = decodeURIComponent(requestedPage)
       }
-      
+
       const targetUrl = `/${targetPath}?dev_bypass=true`
       window.location.href = targetUrl
     }
@@ -233,7 +221,7 @@ export default function DevPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center gap-3">
-        <Code className="size-8 text-primary" />
+        <Code className="size-8 text-primary"/>
         <div>
           <h1 className="text-3xl font-bold">Development Page Navigator</h1>
           <p className="text-muted-foreground">
@@ -246,7 +234,7 @@ export default function DevPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="size-5" />
+            <Settings className="size-5"/>
             How to Use
           </CardTitle>
           <CardDescription>
@@ -255,7 +243,8 @@ export default function DevPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <div>
-            <strong>Direct Access:</strong> Click any page below to view it immediately, bypassing auth and one-time restrictions.
+            <strong>Direct Access:</strong> Click any page below to view it immediately, bypassing auth and one-time
+            restrictions.
           </div>
           <div>
             <strong>URL Format:</strong> <code className="bg-muted px-1 rounded">localhost:3000/dev?page=welcome</code>
@@ -263,8 +252,11 @@ export default function DevPage() {
           <div>
             <strong>Examples:</strong>
             <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
-              <li><code className="bg-muted px-1 rounded">/dev?page=welcome</code> - View welcome page (bypasses auth + one-time restriction)</li>
-              <li><code className="bg-muted px-1 rounded">/dev?page=dashboard</code> - View dashboard (bypasses auth)</li>
+              <li><code className="bg-muted px-1 rounded">/dev?page=welcome</code> - View welcome page (bypasses auth +
+                one-time restriction)
+              </li>
+              <li><code className="bg-muted px-1 rounded">/dev?page=dashboard</code> - View dashboard (bypasses auth)
+              </li>
               <li><code className="bg-muted px-1 rounded">/dev?page=dashboard-projects</code> - View projects page</li>
               <li><code className="bg-muted px-1 rounded">/dev?page=login</code> - View login page</li>
             </ul>
@@ -296,7 +288,7 @@ export default function DevPage() {
                       <div className="flex items-center gap-2">
                         <h3 className="font-medium truncate">{page.name}</h3>
                         {page.requiresAuth && (
-                          <Lock className="size-3 text-muted-foreground" />
+                          <Lock className="size-3 text-muted-foreground"/>
                         )}
                         {page.oneTime && (
                           <Badge variant="outline" className="text-xs">
@@ -310,11 +302,11 @@ export default function DevPage() {
                     </div>
                   </div>
                   <Button asChild size="sm" variant="ghost">
-                    <Link 
+                    <Link
                       href={getDevUrl(page)}
                       className="flex items-center gap-1"
                     >
-                      <Eye className="size-4" />
+                      <Eye className="size-4"/>
                     </Link>
                   </Button>
                 </div>

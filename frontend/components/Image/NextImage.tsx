@@ -1,8 +1,8 @@
 'use client'
 
-import { memo, useState } from 'react'
+import {memo, useState} from 'react'
 import Image from 'next/image'
-import { Loader2, AlertCircle } from 'lucide-react'
+import {AlertCircle, Loader2} from 'lucide-react'
 
 interface NextImageProps {
   src: string
@@ -17,16 +17,16 @@ interface NextImageProps {
 }
 
 export const NextImage = memo(({
-  src,
-  alt,
-  className = '',
-  width = 200,
-  height = 200,
-  priority = false,
-  onClick,
-  onLoad,
-  onError
-}: NextImageProps) => {
+                                 src,
+                                 alt,
+                                 className = '',
+                                 width = 200,
+                                 height = 200,
+                                 priority = false,
+                                 onClick,
+                                 onLoad,
+                                 onError
+                               }: NextImageProps) => {
   const [isLoaded, setIsLoaded] = useState(false)
   const [hasError, setHasError] = useState(false)
 
@@ -41,7 +41,7 @@ export const NextImage = memo(({
   }
 
   const handleClick = (e: React.MouseEvent) => {
-    console.log('NextImage clicked:', { src, hasError, hasOnClick: !!onClick })
+    console.log('NextImage clicked:', {src, hasError, hasOnClick: !!onClick})
     e.stopPropagation()
     if (!hasError && onClick) {
       onClick()
@@ -51,7 +51,7 @@ export const NextImage = memo(({
   if (hasError) {
     return (
       <div className={`flex items-center justify-center bg-muted ${className}`} onClick={handleClick}>
-        <AlertCircle className="w-4 h-4 text-muted-foreground" />
+        <AlertCircle className="w-4 h-4 text-muted-foreground"/>
       </div>
     )
   }
@@ -61,7 +61,7 @@ export const NextImage = memo(({
       {/* Loading state */}
       {!isLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted">
-          <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+          <Loader2 className="w-4 h-4 text-muted-foreground animate-spin"/>
         </div>
       )}
 
@@ -76,7 +76,7 @@ export const NextImage = memo(({
         onError={handleError}
         onClick={handleClick}
         priority={priority}
-        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        style={{width: '100%', height: '100%', objectFit: 'cover'}}
       />
 
       {/* Clickable overlay for better click handling */}

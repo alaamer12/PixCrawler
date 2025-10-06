@@ -72,9 +72,11 @@ This will:
 
 1. Go to [GitHub Developer Settings](https://github.com/settings/applications/new)
 2. Create a new OAuth App with:
-  - **Application name**: PixCrawler
-  - **Homepage URL**: `http://localhost:3000` (development) or your production URL
-  - **Authorization callback URL**: `http://localhost:3000/auth/callback`
+
+- **Application name**: PixCrawler
+- **Homepage URL**: `http://localhost:3000` (development) or your production URL
+- **Authorization callback URL**: `http://localhost:3000/auth/callback`
+
 3. Copy the Client ID and Client Secret
 4. In your Supabase dashboard, go to Authentication > Providers > GitHub
 5. Enable GitHub and add your Client ID and Client Secret
@@ -96,13 +98,15 @@ This will:
 In your Supabase dashboard:
 
 1. **Authentication Settings**:
-  - Enable email confirmations (optional)
-  - Set up custom SMTP (optional)
-  - Configure redirect URLs for your domain
+
+- Enable email confirmations (optional)
+- Set up custom SMTP (optional)
+- Configure redirect URLs for your domain
 
 2. **URL Configuration**:
-  - Add your site URL: `http://localhost:3000` (development)
-  - Add redirect URLs: `http://localhost:3000/auth/callback`
+
+- Add your site URL: `http://localhost:3000` (development)
+- Add redirect URLs: `http://localhost:3000/auth/callback`
 
 ## File Structure
 
@@ -274,19 +278,22 @@ The user profile schema can be extended by:
 ### Common Issues
 
 1. **OAuth redirect errors**:
-  - Check redirect URLs in provider settings
-  - Ensure callback URL matches exactly
-  - Verify environment variables
+
+- Check redirect URLs in provider settings
+- Ensure callback URL matches exactly
+- Verify environment variables
 
 2. **Database permission errors**:
-  - Run the database setup script
-  - Check RLS policies in Supabase
-  - Verify service role key permissions
+
+- Run the database setup script
+- Check RLS policies in Supabase
+- Verify service role key permissions
 
 3. **Session issues**:
-  - Clear browser cookies
-  - Check middleware configuration
-  - Verify Supabase client setup
+
+- Clear browser cookies
+- Check middleware configuration
+- Verify Supabase client setup
 
 ### Debug Mode
 

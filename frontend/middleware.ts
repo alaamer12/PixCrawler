@@ -1,5 +1,5 @@
-import {createServerClient, type CookieOptions} from '@supabase/ssr'
-import {NextResponse, type NextRequest} from 'next/server'
+import {type CookieOptions, createServerClient} from '@supabase/ssr'
+import {type NextRequest, NextResponse} from 'next/server'
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -14,7 +14,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check for dev bypass in development mode - skip ALL auth logic if enabled
-  const isDevBypass = process.env.NODE_ENV === 'development' && 
+  const isDevBypass = process.env.NODE_ENV === 'development' &&
     request.nextUrl.searchParams.get('dev_bypass') === 'true'
 
   if (isDevBypass) {

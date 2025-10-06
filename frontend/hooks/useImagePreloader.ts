@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef } from 'react'
+import {useCallback, useRef} from 'react'
 
 interface PreloaderConfig {
   preloadBuffer: number
@@ -21,21 +21,21 @@ const defaultConfig: PreloaderConfig = {
   idleTimeout: 1000
 }
 
-export const useImagePreloader = ({ 
-  preloadImage, 
-  config = {} 
-}: UseImagePreloaderProps) => {
-  const finalConfig = { ...defaultConfig, ...config }
+export const useImagePreloader = ({
+                                    preloadImage,
+                                    config = {}
+                                  }: UseImagePreloaderProps) => {
+  const finalConfig = {...defaultConfig, ...config}
   const preloadingRef = useRef<Set<string>>(new Set())
 
   const preloadImages = useCallback((
-    images: Array<{ src: string; [key: string]: any }>, 
-    startIndex: number, 
+    images: Array<{ src: string; [key: string]: any }>,
+    startIndex: number,
     direction: 'up' | 'down' = 'down'
   ) => {
     if (!images.length) return
 
-    const { preloadBuffer, batchSize, batchDelay, idleTimeout } = finalConfig
+    const {preloadBuffer, batchSize, batchDelay, idleTimeout} = finalConfig
 
     let startPreload: number
     let endPreload: number
@@ -63,7 +63,7 @@ export const useImagePreloader = ({
 
     const loadBatch = (batchStart = 0) => {
       const currentBatch = sortedIndices.slice(batchStart, batchStart + batchSize)
-      
+
       if (currentBatch.length === 0) return
 
       // Load current batch
@@ -85,7 +85,7 @@ export const useImagePreloader = ({
 
     // Use requestIdleCallback for better performance
     if ('requestIdleCallback' in window) {
-      requestIdleCallback(() => loadBatch(), { timeout: idleTimeout })
+      requestIdleCallback(() => loadBatch(), {timeout: idleTimeout})
     } else {
       // Fallback for browsers without requestIdleCallback
       setTimeout(() => loadBatch(), 0)

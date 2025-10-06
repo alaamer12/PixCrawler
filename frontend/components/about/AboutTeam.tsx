@@ -1,7 +1,7 @@
 'use client'
 
-import { memo } from 'react'
-import { Github, Linkedin, Twitter } from 'lucide-react'
+import {memo} from 'react'
+import {Github, Linkedin, Twitter} from 'lucide-react'
 
 interface TeamMember {
   name: string
@@ -84,7 +84,7 @@ interface TeamMemberCardProps {
   member: TeamMember
 }
 
-const TeamMemberCard = memo(({ member }: TeamMemberCardProps) => {
+const TeamMemberCard = memo(({member}: TeamMemberCardProps) => {
   return (
     <div className="bg-card border border-border rounded-lg p-6 text-center hover:shadow-lg transition-shadow">
       <img
@@ -95,7 +95,7 @@ const TeamMemberCard = memo(({ member }: TeamMemberCardProps) => {
       <h3 className="text-lg font-semibold mb-1">{member.name}</h3>
       <p className="text-primary text-sm font-medium mb-3">{member.role}</p>
       <p className="text-muted-foreground text-sm mb-4 leading-relaxed">{member.bio}</p>
-      
+
       <div className="flex justify-center gap-3">
         {member.social.github && (
           <a
@@ -103,7 +103,7 @@ const TeamMemberCard = memo(({ member }: TeamMemberCardProps) => {
             className="p-2 text-muted-foreground hover:text-foreground transition-colors"
             aria-label={`${member.name} GitHub`}
           >
-            <Github className="w-4 h-4" />
+            <Github className="w-4 h-4"/>
           </a>
         )}
         {member.social.linkedin && (
@@ -112,7 +112,7 @@ const TeamMemberCard = memo(({ member }: TeamMemberCardProps) => {
             className="p-2 text-muted-foreground hover:text-foreground transition-colors"
             aria-label={`${member.name} LinkedIn`}
           >
-            <Linkedin className="w-4 h-4" />
+            <Linkedin className="w-4 h-4"/>
           </a>
         )}
         {member.social.twitter && (
@@ -121,7 +121,7 @@ const TeamMemberCard = memo(({ member }: TeamMemberCardProps) => {
             className="p-2 text-muted-foreground hover:text-foreground transition-colors"
             aria-label={`${member.name} Twitter`}
           >
-            <Twitter className="w-4 h-4" />
+            <Twitter className="w-4 h-4"/>
           </a>
         )}
       </div>
@@ -140,14 +140,14 @@ export const AboutTeam = memo(() => {
             Meet Our Team
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            We're a diverse group of engineers, researchers, and designers united by our passion 
+            We're a diverse group of engineers, researchers, and designers united by our passion
             for making AI development more accessible and efficient.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {TEAM_MEMBERS.map((member) => (
-            <TeamMemberCard key={member.name} member={member} />
+            <TeamMemberCard key={member.name} member={member}/>
           ))}
         </div>
       </div>

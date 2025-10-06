@@ -92,8 +92,8 @@ FlowArrow.displayName = 'FlowArrow'
 
 export const HowItWorks = memo(() => {
   return (
-    <section id="how-it-works" 
-    className="relative border-b border-border py-20 md:py-32 overflow-hidden">
+    <section id="how-it-works"
+             className="relative border-b border-border py-20 md:py-32 overflow-hidden">
       {/* Decorative background elements */}
       <div className="absolute inset-0 "/>
       <div

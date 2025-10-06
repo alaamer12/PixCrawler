@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import {NextRequest} from 'next/server'
 
 /**
  * Check if dev bypass is enabled for server-side pages

@@ -1,8 +1,7 @@
 'use client'
 
-import { memo } from 'react'
-import { Button } from '@/components/ui/button'
-import { Check } from 'lucide-react'
+import {memo} from 'react'
+import {Check} from 'lucide-react'
 
 export const PricingHero = memo(() => {
   return (
@@ -18,18 +17,18 @@ export const PricingHero = memo(() => {
           <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Choose the perfect plan for your image dataset needs. Start free and scale as you grow.
           </p>
-          
+
           <div className="flex flex-wrap justify-center gap-4 mb-12">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Check className="w-4 h-4 text-success" />
+              <Check className="w-4 h-4 text-success"/>
               No setup fees
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Check className="w-4 h-4 text-success" />
+              <Check className="w-4 h-4 text-success"/>
               Cancel anytime
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Check className="w-4 h-4 text-success" />
+              <Check className="w-4 h-4 text-success"/>
               14-day free trial
             </div>
           </div>

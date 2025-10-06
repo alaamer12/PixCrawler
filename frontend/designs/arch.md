@@ -238,10 +238,14 @@ WelcomePage/
 
 ```tsx
 // Database schema addition
-User {
-  ...
-  onboarding_completed: boolean (default: false)
-  onboarding_completed_at: timestamp (nullable)
+User
+{
+...
+  onboarding_completed: boolean(
+default:
+  false
+)
+  onboarding_completed_at: timestamp(nullable)
 }
 
 // Routing logic
@@ -577,12 +581,26 @@ components/features/
 ### Using Zustand (Recommended for this architecture)
 
 ```tsx
-stores/
-├── authStore.ts               (User session, auth state)
-├── datasetStore.ts            (Datasets list, current dataset)
-├── jobStore.ts                (Active jobs, real-time updates)
-├── uiStore.ts                 (Theme, sidebar collapsed, modals)
-└── onboardingStore.ts         (Onboarding progress, completed steps)
+stores /
+├── authStore.ts(User
+session, auth
+state
+)
+├── datasetStore.ts(Datasets
+list, current
+dataset
+)
+├── jobStore.ts(Active
+jobs, real - time
+updates
+)
+├── uiStore.ts(Theme, sidebar
+collapsed, modals
+)
+└── onboardingStore.ts(Onboarding
+progress, completed
+steps
+)
 
 ```
 
@@ -672,14 +690,33 @@ export const radius = {
 ## 🔌 API Integration Layer
 
 ```tsx
-lib/api/
-├── client.ts                  (Axios instance with auth interceptor)
-├── datasets.ts                (Dataset CRUD operations)
-├── jobs.ts                    (Job management)
-├── auth.ts                    (Supabase auth helpers)
-├── storage.ts                 (File upload/download)
-├── onboarding.ts              (Test crawl, onboarding completion)
-└── websocket.ts               (Real-time job updates)
+lib / api /
+├── client.ts(Axios
+instance
+with auth interceptor
+)
+├── datasets.ts(Dataset
+CRUD
+operations
+)
+├── jobs.ts(Job
+management
+)
+├── auth.ts(Supabase
+auth
+helpers
+)
+├── storage.ts(File
+upload / download
+)
+├── onboarding.ts(Test
+crawl, onboarding
+completion
+)
+└── websocket.ts(Real - time
+job
+updates
+)
 
 ```
 
@@ -724,11 +761,31 @@ export async function runTestCrawl(config: {
 
 ```css
 /* Mobile First Approach */
-sm: 640px   /* Small tablets */
-md: 768px   /* Tablets */
-lg: 1024px  /* Laptops */
-xl: 1280px  /* Desktops */
-2xl: 1536px /* Large screens */
+sm:
+
+640
+px /* Small tablets */
+md:
+
+768
+px /* Tablets */
+lg:
+
+1024
+px /* Laptops */
+xl:
+
+1280
+px
+
+/* Desktops */
+2
+xl:
+
+1536
+px
+
+/* Large screens */
 
 ```
 
@@ -799,9 +856,9 @@ graph TD
 - [ ]  Implement authentication flow (Sign in/up pages with Supabase)
 - [ ]  Build landing page (Hero section, features, CTA)
 - [ ]  **Create `/welcome` onboarding flow** (3-step wizard)
-  - [ ]  Step 1: Configuration form with live JSON preview
-  - [ ]  Step 2: Test crawl functionality with real-time feedback
-  - [ ]  Step 3: Launch summary with estimated metrics
+- [ ]  Step 1: Configuration form with live JSON preview
+- [ ]  Step 2: Test crawl functionality with real-time feedback
+- [ ]  Step 3: Launch summary with estimated metrics
 - [ ]  Add onboarding completion tracking to user metadata
 - [ ]  Implement routing logic (redirect logic based on `onboarding_completed`)
 

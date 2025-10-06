@@ -1,19 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Button, IconButton, LoadingButton, GradientButton } from '@/components/ui/button'
-import { 
-  Download, 
-  Heart, 
-  Star, 
-  Trash2, 
-  Settings, 
-  Plus,
-  ArrowRight,
-  Check,
-  AlertTriangle,
-  Info
-} from 'lucide-react'
+import {useState} from 'react'
+import {Button, GradientButton, IconButton, LoadingButton} from '@/components/ui/button'
+import {AlertTriangle, ArrowRight, Check, Download, Heart, Info, Plus, Settings, Star, Trash2} from 'lucide-react'
 
 export default function ButtonDemoPage() {
   const [loading, setLoading] = useState(false)
@@ -88,25 +77,25 @@ export default function ButtonDemoPage() {
         <section className="space-y-6">
           <h2 className="text-2xl font-semibold">Buttons with Icons</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <Button leftIcon={<Download className="w-4 h-4" />}>
+            <Button leftIcon={<Download className="w-4 h-4"/>}>
               Download
             </Button>
-            <Button rightIcon={<ArrowRight className="w-4 h-4" />}>
+            <Button rightIcon={<ArrowRight className="w-4 h-4"/>}>
               Continue
             </Button>
-            <Button 
-              leftIcon={<Plus className="w-4 h-4" />}
-              rightIcon={<ArrowRight className="w-4 h-4" />}
+            <Button
+              leftIcon={<Plus className="w-4 h-4"/>}
+              rightIcon={<ArrowRight className="w-4 h-4"/>}
             >
               Add & Continue
             </Button>
-            <Button variant="outline" leftIcon={<Settings className="w-4 h-4" />}>
+            <Button variant="outline" leftIcon={<Settings className="w-4 h-4"/>}>
               Settings
             </Button>
-            <Button variant="destructive" leftIcon={<Trash2 className="w-4 h-4" />}>
+            <Button variant="destructive" leftIcon={<Trash2 className="w-4 h-4"/>}>
               Delete
             </Button>
-            <Button variant="success" leftIcon={<Check className="w-4 h-4" />}>
+            <Button variant="success" leftIcon={<Check className="w-4 h-4"/>}>
               Confirm
             </Button>
           </div>
@@ -116,12 +105,12 @@ export default function ButtonDemoPage() {
         <section className="space-y-6">
           <h2 className="text-2xl font-semibold">Icon Buttons</h2>
           <div className="flex flex-wrap gap-4">
-            <IconButton icon={<Heart className="w-4 h-4" />} />
-            <IconButton icon={<Star className="w-4 h-4" />} variant="outline" />
-            <IconButton icon={<Settings className="w-4 h-4" />} variant="secondary" />
-            <IconButton icon={<Trash2 className="w-4 h-4" />} variant="destructive" />
-            <IconButton icon={<Plus className="w-4 h-4" />} size="icon-sm" />
-            <IconButton icon={<Download className="w-4 h-4" />} size="icon-lg" />
+            <IconButton icon={<Heart className="w-4 h-4"/>}/>
+            <IconButton icon={<Star className="w-4 h-4"/>} variant="outline"/>
+            <IconButton icon={<Settings className="w-4 h-4"/>} variant="secondary"/>
+            <IconButton icon={<Trash2 className="w-4 h-4"/>} variant="destructive"/>
+            <IconButton icon={<Plus className="w-4 h-4"/>} size="icon-sm"/>
+            <IconButton icon={<Download className="w-4 h-4"/>} size="icon-lg"/>
           </div>
         </section>
 
@@ -139,11 +128,11 @@ export default function ButtonDemoPage() {
         {/* Contextual Usage */}
         <section className="space-y-6">
           <h2 className="text-2xl font-semibold">Contextual Usage Examples</h2>
-          
+
           {/* Alert Actions */}
           <div className="bg-card border border-border rounded-lg p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-warning" />
+              <AlertTriangle className="w-5 h-5 text-warning"/>
               <h3 className="font-semibold">Confirm Deletion</h3>
             </div>
             <p className="text-muted-foreground">
@@ -151,7 +140,7 @@ export default function ButtonDemoPage() {
             </p>
             <div className="flex gap-3">
               <Button variant="outline">Cancel</Button>
-              <Button variant="destructive" leftIcon={<Trash2 className="w-4 h-4" />}>
+              <Button variant="destructive" leftIcon={<Trash2 className="w-4 h-4"/>}>
                 Delete Permanently
               </Button>
             </div>
@@ -160,14 +149,14 @@ export default function ButtonDemoPage() {
           {/* Success Actions */}
           <div className="bg-card border border-border rounded-lg p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <Check className="w-5 h-5 text-success" />
+              <Check className="w-5 h-5 text-success"/>
               <h3 className="font-semibold">Task Completed</h3>
             </div>
             <p className="text-muted-foreground">
               Your dataset has been successfully created and is ready for download.
             </p>
             <div className="flex gap-3">
-              <Button variant="success" leftIcon={<Download className="w-4 h-4" />}>
+              <Button variant="success" leftIcon={<Download className="w-4 h-4"/>}>
                 Download Dataset
               </Button>
               <Button variant="outline">View Details</Button>
@@ -177,16 +166,16 @@ export default function ButtonDemoPage() {
           {/* Info Actions */}
           <div className="bg-card border border-border rounded-lg p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <Info className="w-5 h-5 text-primary" />
+              <Info className="w-5 h-5 text-primary"/>
               <h3 className="font-semibold">Welcome to PixCrawler</h3>
             </div>
             <p className="text-muted-foreground">
               Get started by creating your first image dataset. It only takes a few minutes!
             </p>
             <div className="flex gap-3">
-              <GradientButton 
-                leftIcon={<Plus className="w-4 h-4" />}
-                rightIcon={<ArrowRight className="w-4 h-4" />}
+              <GradientButton
+                leftIcon={<Plus className="w-4 h-4"/>}
+                rightIcon={<ArrowRight className="w-4 h-4"/>}
               >
                 Create First Dataset
               </GradientButton>

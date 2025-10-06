@@ -1,10 +1,10 @@
 'use client'
 
 import * as React from 'react'
-import { Slot } from '@radix-ui/react-slot'
-import { cva, type VariantProps } from 'class-variance-authority'
-import { cn } from '@/lib/utils'
-import { Loader2 } from 'lucide-react'
+import {Slot} from '@radix-ui/react-slot'
+import {cva, type VariantProps} from 'class-variance-authority'
+import {cn} from '@/lib/utils'
+import {Loader2} from 'lucide-react'
 
 const buttonVariants = cva(
   'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] select-none',
@@ -84,7 +84,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     if (asChild) {
       return (
         <Comp
-          className={cn(buttonVariants({ variant, size, loading, className }))}
+          className={cn(buttonVariants({variant, size, loading, className}))}
           ref={ref}
           disabled={isDisabled}
           {...props}
@@ -96,31 +96,32 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, loading, className }))}
+        className={cn(buttonVariants({variant, size, loading, className}))}
         ref={ref}
         disabled={isDisabled}
         {...props}
       >
         {/* Brand variant shimmer effect */}
         {variant === 'brand' && (
-          <div className="absolute inset-0 -top-[2px] -bottom-[2px] bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+          <div
+            className="absolute inset-0 -top-[2px] -bottom-[2px] bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"/>
         )}
-        
+
         {/* Loading state */}
         {loading && (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin"/>
         )}
-        
+
         {/* Left icon */}
         {!loading && leftIcon && (
           <span className="flex-shrink-0">{leftIcon}</span>
         )}
-        
+
         {/* Button content */}
         <span className={cn(loading && 'opacity-70')}>
           {loading && loadingText ? loadingText : children}
         </span>
-        
+
         {/* Right icon */}
         {!loading && rightIcon && (
           <span className="flex-shrink-0">{rightIcon}</span>
@@ -135,7 +136,7 @@ Button.displayName = 'Button'
 const IconButton = React.forwardRef<
   HTMLButtonElement,
   Omit<ButtonProps, 'leftIcon' | 'rightIcon'> & { icon: React.ReactNode }
->(({ icon, className, size = 'icon', ...props }, ref) => (
+>(({icon, className, size = 'icon', ...props}, ref) => (
   <Button ref={ref} size={size} className={className} {...props}>
     {icon}
   </Button>
@@ -145,7 +146,7 @@ IconButton.displayName = 'IconButton'
 const LoadingButton = React.forwardRef<
   HTMLButtonElement,
   ButtonProps & { isLoading?: boolean }
->(({ isLoading, children, ...props }, ref) => (
+>(({isLoading, children, ...props}, ref) => (
   <Button ref={ref} loading={isLoading} {...props}>
     {children}
   </Button>
@@ -153,7 +154,7 @@ const LoadingButton = React.forwardRef<
 LoadingButton.displayName = 'LoadingButton'
 
 const GradientButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, ...props }, ref) => (
+  ({className, ...props}, ref) => (
     <Button
       ref={ref}
       variant="brand"
@@ -169,4 +170,4 @@ const GradientButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
 )
 GradientButton.displayName = 'GradientButton'
 
-export { Button, IconButton, LoadingButton, GradientButton, buttonVariants }
+export {Button, IconButton, LoadingButton, GradientButton, buttonVariants}

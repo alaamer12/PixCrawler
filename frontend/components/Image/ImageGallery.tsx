@@ -1,8 +1,8 @@
 'use client'
 
-import { memo, useState, useCallback } from 'react'
-import { NextImage } from './NextImage'
-import { ImageModal } from './ImageModal'
+import {memo, useCallback, useState} from 'react'
+import {NextImage} from './NextImage'
+import {ImageModal} from './ImageModal'
 
 interface ImageData {
   src: string
@@ -19,12 +19,12 @@ interface ImageGalleryProps {
 }
 
 export const ImageGallery = memo(({
-  images,
-  className = '',
-  itemClassName = '',
-  enableModal = true,
-  onImageClick
-}: ImageGalleryProps) => {
+                                    images,
+                                    className = '',
+                                    itemClassName = '',
+                                    enableModal = true,
+                                    onImageClick
+                                  }: ImageGalleryProps) => {
   const [modalOpen, setModalOpen] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
 

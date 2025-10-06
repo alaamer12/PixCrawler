@@ -1,8 +1,8 @@
 'use client'
 
-import { memo, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Send } from 'lucide-react'
+import {memo, useState} from 'react'
+import {Button} from '@/components/ui/button'
+import {Send} from 'lucide-react'
 
 export const ContactForm = memo(() => {
   const [formData, setFormData] = useState({
@@ -124,7 +124,7 @@ export const ContactForm = memo(() => {
                 </div>
 
                 <Button type="submit" size="lg" className="w-full">
-                  <Send className="w-4 h-4 mr-2" />
+                  <Send className="w-4 h-4 mr-2"/>
                   Send Message
                 </Button>
               </form>
@@ -135,17 +135,17 @@ export const ContactForm = memo(() => {
               <h2 className="text-2xl md:text-3xl font-bold mb-6">
                 Other ways to reach us
               </h2>
-              
+
               <div className="space-y-6">
                 <div className="bg-card border border-border rounded-lg p-6">
                   <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    <Mail className="w-5 h-5 text-primary" />
+                    <Mail className="w-5 h-5 text-primary"/>
                     Email Support
                   </h3>
                   <p className="text-muted-foreground mb-3">
                     Get help with technical issues, billing questions, or general inquiries.
                   </p>
-                  <a 
+                  <a
                     href="mailto:support@pixcrawler.com"
                     className="text-primary hover:underline"
                   >
@@ -158,7 +158,7 @@ export const ContactForm = memo(() => {
 
                 <div className="bg-card border border-border rounded-lg p-6">
                   <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    <MessageCircle className="w-5 h-5 text-secondary" />
+                    <MessageCircle className="w-5 h-5 text-secondary"/>
                     Live Chat
                   </h3>
                   <p className="text-muted-foreground mb-3">
@@ -174,13 +174,13 @@ export const ContactForm = memo(() => {
 
                 <div className="bg-card border border-border rounded-lg p-6">
                   <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    <Phone className="w-5 h-5 text-warning" />
+                    <Phone className="w-5 h-5 text-warning"/>
                     Enterprise Sales
                   </h3>
                   <p className="text-muted-foreground mb-3">
                     Discuss custom solutions and enterprise pricing with our sales team.
                   </p>
-                  <a 
+                  <a
                     href="mailto:sales@pixcrawler.com"
                     className="text-primary hover:underline"
                   >

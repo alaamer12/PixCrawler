@@ -1,16 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { memo, useEffect, useState } from 'react'
-import { Menu, X } from 'lucide-react'
-import { Button, IconButton } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/theme-toggle'
+import {memo, useEffect, useState} from 'react'
+import {Menu, X} from 'lucide-react'
+import {Button, IconButton} from '@/components/ui/button'
+import {ThemeToggle} from '@/components/theme-toggle'
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Home' },
-  { href: '/about', label: 'About' },
-  { href: '/pricing', label: 'Pricing' },
-  { href: '/examples', label: 'Examples' },
+  {href: '/', label: 'Home'},
+  {href: '/about', label: 'About'},
+  {href: '/pricing', label: 'Pricing'},
+  {href: '/examples', label: 'Examples'},
 ] as const
 
 interface NavLinkProps {
@@ -21,7 +21,7 @@ interface NavLinkProps {
   isMobile?: boolean
 }
 
-const NavLink = memo(({ href, label, isActive, onClick, isMobile = false }: NavLinkProps) => {
+const NavLink = memo(({href, label, isActive, onClick, isMobile = false}: NavLinkProps) => {
   if (isMobile) {
     return (
       <Link
@@ -38,14 +38,14 @@ const NavLink = memo(({ href, label, isActive, onClick, isMobile = false }: NavL
     <Link
       href={href}
       className={`text-sm transition-all relative group ${isActive
-          ? 'text-foreground font-medium'
-          : 'text-foreground/60 hover:text-foreground'
-        }`}
+        ? 'text-foreground font-medium'
+        : 'text-foreground/60 hover:text-foreground'
+      }`}
     >
       {label}
       <span
         className={`absolute -bottom-1 left-0 h-0.5 bg-primary transition-all ${isActive ? 'w-full' : 'w-0 group-hover:w-full'
-          }`}
+        }`}
       />
     </Link>
   )
@@ -87,7 +87,7 @@ NavLinks.displayName = 'NavLinks'
 
 const AuthButtons = memo(() => (
   <div className="flex items-center gap-3">
-    <ThemeToggle />
+    <ThemeToggle/>
     <Button asChild variant="outline">
       <Link href="/login">Sign In</Link>
     </Button>
@@ -105,15 +105,15 @@ export const Navigation = memo(() => {
           <Link href="/" className="text-xl font-bold">
             PixCrawler
           </Link>
-          <NavLinks />
+          <NavLinks/>
           <div className="flex items-center gap-3">
-            <AuthButtons />
+            <AuthButtons/>
             <IconButton
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden"
               variant="outline"
               size="icon-sm"
-              icon={mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              icon={mobileMenuOpen ? <X className="h-5 w-5"/> : <Menu className="h-5 w-5"/>}
             />
           </div>
         </div>

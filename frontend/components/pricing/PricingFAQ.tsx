@@ -1,7 +1,7 @@
 'use client'
 
-import { memo, useState, useCallback } from 'react'
-import { ChevronDown } from 'lucide-react'
+import {memo, useCallback, useState} from 'react'
+import {ChevronDown} from 'lucide-react'
 
 interface FAQItem {
   question: string
@@ -49,7 +49,7 @@ interface FAQItemProps {
   onToggle: () => void
 }
 
-const FAQItemComponent = memo(({ item, isOpen, onToggle }: FAQItemProps) => {
+const FAQItemComponent = memo(({item, isOpen, onToggle}: FAQItemProps) => {
   return (
     <div className="border border-border rounded-lg">
       <button
@@ -58,7 +58,7 @@ const FAQItemComponent = memo(({ item, isOpen, onToggle }: FAQItemProps) => {
         aria-expanded={isOpen}
       >
         <span className="font-medium">{item.question}</span>
-        <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}/>
       </button>
       {isOpen && (
         <div className="px-6 pb-4 animate-fade-in">
@@ -98,7 +98,7 @@ export const PricingFAQ = memo(() => {
               Everything you need to know about PixCrawler pricing and plans.
             </p>
           </div>
-          
+
           <div className="space-y-4">
             {FAQ_ITEMS.map((item, index) => (
               <FAQItemComponent

@@ -1,4 +1,4 @@
-import { Metadata } from 'next'
+import {Metadata} from 'next'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy - PixCrawler',
@@ -24,13 +24,15 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-2xl font-bold mb-4">1. Introduction</h2>
               <p className="text-muted-foreground leading-relaxed">
-                PixCrawler (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our image dataset building platform and related services.
+                PixCrawler (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy.
+                This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use
+                our image dataset building platform and related services.
               </p>
             </section>
 
             <section>
               <h2 className="text-2xl font-bold mb-4">2. Information We Collect</h2>
-              
+
               <h3 className="text-xl font-semibold mb-3">2.1 Personal Information</h3>
               <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                 <li>Account information (name, email address, password)</li>
@@ -72,7 +74,8 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-2xl font-bold mb-4">4. Information Sharing and Disclosure</h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
-                We do not sell, trade, or rent your personal information to third parties. We may share your information in the following circumstances:
+                We do not sell, trade, or rent your personal information to third parties. We may share your information
+                in the following circumstances:
               </p>
               <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                 <li><strong>Service Providers:</strong> Third-party vendors who assist in providing our services</li>
@@ -99,7 +102,9 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-2xl font-bold mb-4">6. Data Retention</h2>
               <p className="text-muted-foreground leading-relaxed">
-                We retain your personal information for as long as necessary to provide our services and fulfill the purposes outlined in this policy. Account information is retained until you delete your account. Usage data may be retained for up to 2 years for analytics and improvement purposes.
+                We retain your personal information for as long as necessary to provide our services and fulfill the
+                purposes outlined in this policy. Account information is retained until you delete your account. Usage
+                data may be retained for up to 2 years for analytics and improvement purposes.
               </p>
             </section>
 
@@ -121,28 +126,33 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-2xl font-bold mb-4">8. Cookies and Tracking</h2>
               <p className="text-muted-foreground leading-relaxed">
-                We use cookies and similar technologies to enhance your experience, analyze usage patterns, and provide personalized content. You can control cookie settings through your browser preferences.
+                We use cookies and similar technologies to enhance your experience, analyze usage patterns, and provide
+                personalized content. You can control cookie settings through your browser preferences.
               </p>
             </section>
 
             <section>
               <h2 className="text-2xl font-bold mb-4">9. International Data Transfers</h2>
               <p className="text-muted-foreground leading-relaxed">
-                Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place to protect your data in accordance with applicable data protection laws.
+                Your information may be transferred to and processed in countries other than your own. We ensure
+                appropriate safeguards are in place to protect your data in accordance with applicable data protection
+                laws.
               </p>
             </section>
 
             <section>
               <h2 className="text-2xl font-bold mb-4">10. Children&apos;s Privacy</h2>
               <p className="text-muted-foreground leading-relaxed">
-                Our services are not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13.
+                Our services are not intended for children under 13 years of age. We do not knowingly collect personal
+                information from children under 13.
               </p>
             </section>
 
             <section>
               <h2 className="text-2xl font-bold mb-4">11. Changes to This Policy</h2>
               <p className="text-muted-foreground leading-relaxed">
-                We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the new policy on this page and updating the &quot;Last updated&quot; date.
+                We may update this Privacy Policy from time to time. We will notify you of any material changes by
+                posting the new policy on this page and updating the &quot;Last updated&quot; date.
               </p>
             </section>
 
@@ -153,8 +163,8 @@ export default function PrivacyPage() {
               </p>
               <div className="mt-4 p-4 bg-muted/30 rounded-lg">
                 <p className="text-muted-foreground">
-                  <strong>Email:</strong> privacy@pixcrawler.com<br />
-                  <strong>Address:</strong> PixCrawler Inc., 123 Tech Street, San Francisco, CA 94105<br />
+                  <strong>Email:</strong> privacy@pixcrawler.com<br/>
+                  <strong>Address:</strong> PixCrawler Inc., 123 Tech Street, San Francisco, CA 94105<br/>
                   <strong>Data Protection Officer:</strong> dpo@pixcrawler.com
                 </p>
               </div>

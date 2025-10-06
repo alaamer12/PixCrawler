@@ -1,9 +1,9 @@
 'use client'
 
-import { memo } from 'react'
+import {memo} from 'react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { ArrowRight, Mail, MessageCircle } from 'lucide-react'
+import {Button} from '@/components/ui/button'
+import {ArrowRight, Mail, MessageCircle} from 'lucide-react'
 
 export const AboutCTA = memo(() => {
   return (
@@ -17,21 +17,21 @@ export const AboutCTA = memo(() => {
             </span>
           </h2>
           <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Whether you're a developer, researcher, or just curious about AI, we'd love to hear from you. 
+            Whether you're a developer, researcher, or just curious about AI, we'd love to hear from you.
             Let's build something amazing together.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             <Button asChild size="lg" className="min-w-[200px]">
               <Link href="/signup">
                 Start Building Today
-                <ArrowRight className="w-4 h-4 ml-2" />
+                <ArrowRight className="w-4 h-4 ml-2"/>
               </Link>
             </Button>
-            
+
             <Button asChild variant="outline" size="lg" className="min-w-[200px]">
               <Link href="/contact">
-                <MessageCircle className="w-4 h-4 mr-2" />
+                <MessageCircle className="w-4 h-4 mr-2"/>
                 Get in Touch
               </Link>
             </Button>
@@ -42,23 +42,23 @@ export const AboutCTA = memo(() => {
               Have questions? We're here to help.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-sm">
-              <a 
-                href="mailto:hello@pixcrawler.com" 
+              <a
+                href="mailto:hello@pixcrawler.com"
                 className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
               >
-                <Mail className="w-4 h-4" />
+                <Mail className="w-4 h-4"/>
                 hello@pixcrawler.com
               </a>
               <span className="hidden sm:block text-muted-foreground">•</span>
-              <Link 
-                href="/docs" 
+              <Link
+                href="/docs"
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 Documentation
               </Link>
               <span className="hidden sm:block text-muted-foreground">•</span>
-              <Link 
-                href="/examples" 
+              <Link
+                href="/examples"
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 Examples

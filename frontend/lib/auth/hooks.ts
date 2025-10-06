@@ -12,7 +12,7 @@ export function useAuth() {
 
   useEffect(() => {
     // Check for dev bypass
-    const isDevBypass = process.env.NODE_ENV === 'development' && 
+    const isDevBypass = process.env.NODE_ENV === 'development' &&
       searchParams.get('dev_bypass') === 'true'
 
     if (isDevBypass) {
@@ -24,7 +24,7 @@ export function useAuth() {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         app_metadata: {},
-        user_metadata: { full_name: 'Dev User' },
+        user_metadata: {full_name: 'Dev User'},
         profile: {
           id: 'dev-user-123',
           email: 'dev@pixcrawler.dev',
@@ -78,9 +78,9 @@ export function useRequireAuth(redirectTo = '/login') {
 
   useEffect(() => {
     // Skip redirect if dev bypass is enabled
-    const isDevBypass = process.env.NODE_ENV === 'development' && 
+    const isDevBypass = process.env.NODE_ENV === 'development' &&
       searchParams.get('dev_bypass') === 'true'
-    
+
     if (!loading && !user && !isDevBypass) {
       router.push(redirectTo)
     }

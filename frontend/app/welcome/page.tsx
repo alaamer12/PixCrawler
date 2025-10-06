@@ -1,13 +1,13 @@
 import {createClient} from '@/lib/supabase/server'
 import {redirect} from 'next/navigation'
 import {WelcomeFlow} from './welcome-flow'
-import { getDevBypassFromSearchParams } from '@/lib/dev-utils'
+import {getDevBypassFromSearchParams} from '@/lib/dev-utils'
 
 interface Props {
   searchParams: { [key: string]: string | string[] | undefined }
 }
 
-export default async function WelcomePage({ searchParams }: Props) {
+export default async function WelcomePage({searchParams}: Props) {
   const urlSearchParams = new URLSearchParams(
     Object.entries(searchParams).reduce((acc, [key, value]) => {
       if (typeof value === 'string') {
@@ -19,11 +19,11 @@ export default async function WelcomePage({ searchParams }: Props) {
     }, {} as Record<string, string>)
   )
 
-  const { isEnabled: isDevBypass, mockUser } = getDevBypassFromSearchParams(urlSearchParams)
+  const {isEnabled: isDevBypass, mockUser} = getDevBypassFromSearchParams(urlSearchParams)
 
   // If dev bypass is enabled, use mock user
   if (isDevBypass) {
-    return <WelcomeFlow user={mockUser} />
+    return <WelcomeFlow user={mockUser}/>
   }
 
   const supabase = await createClient()

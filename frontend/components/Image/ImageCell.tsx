@@ -1,11 +1,11 @@
 'use client'
 
-import { memo, useEffect, useState } from 'react'
-import { Image as UnpicImage } from '@unpic/react'
-import { useInView } from 'react-intersection-observer'
-import { motion } from 'framer-motion'
-import { Eye, AlertCircle } from 'lucide-react'
-import { globalImageBuffer } from '@/lib/ImageBuffer'
+import {memo, useEffect, useState} from 'react'
+import {Image as UnpicImage} from '@unpic/react'
+import {useInView} from 'react-intersection-observer'
+import {motion} from 'framer-motion'
+import {AlertCircle, Eye} from 'lucide-react'
+import {globalImageBuffer} from '@/lib/ImageBuffer'
 
 // Types
 interface ImageData {
@@ -44,17 +44,18 @@ const IN_VIEW_CONFIG = {
 }
 
 const ANIMATION_CONFIG = {
-  initial: { opacity: 0, scale: 0.9 },
-  animate: { opacity: 1, scale: 1 },
-  transition: { duration: 0.3 },
-  hover: { scale: 1.02 },
-  tap: { scale: 0.98 }
+  initial: {opacity: 0, scale: 0.9},
+  animate: {opacity: 1, scale: 1},
+  transition: {duration: 0.3},
+  hover: {scale: 1.02},
+  tap: {scale: 0.98}
 }
 
 // Sub-components
 const LoadingSkeleton = memo(() => (
   <div className="absolute inset-0 bg-muted animate-pulse">
-    <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+    <div
+      className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent"/>
     <div className="absolute inset-0 flex items-center justify-center">
       <svg
         className="w-8 h-8 text-muted-foreground/50"
@@ -73,33 +74,35 @@ const LoadingSkeleton = memo(() => (
 ))
 LoadingSkeleton.displayName = 'LoadingSkeleton'
 
-const ErrorState = memo(({ aspectRatio, className }: { aspectRatio: string; className: string }) => (
+const ErrorState = memo(({aspectRatio, className}: { aspectRatio: string; className: string }) => (
   <div
     className={`${aspectRatio} ${className} relative overflow-hidden rounded-lg bg-muted flex items-center justify-center`}
     role="alert"
     aria-live="polite"
   >
     <div className="flex flex-col items-center text-muted-foreground">
-      <AlertCircle className="w-8 h-8 mb-2" aria-hidden="true" />
+      <AlertCircle className="w-8 h-8 mb-2" aria-hidden="true"/>
       <span className="text-sm">Failed to load</span>
     </div>
   </div>
 ))
 ErrorState.displayName = 'ErrorState'
 
-const ImageOverlay = memo(({ title }: { title?: string }) => (
+const ImageOverlay = memo(({title}: { title?: string }) => (
   <>
     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300">
-      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      <div
+        className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         <div className="flex items-center gap-2 text-white">
-          <Eye className="w-5 h-5" aria-hidden="true" />
+          <Eye className="w-5 h-5" aria-hidden="true"/>
           <span className="text-sm font-medium">View</span>
         </div>
       </div>
     </div>
 
     {title && (
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      <div
+        className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         <p className="text-white text-sm font-medium truncate" title={title}>
           {title}
         </p>
@@ -110,12 +113,12 @@ const ImageOverlay = memo(({ title }: { title?: string }) => (
 ImageOverlay.displayName = 'ImageOverlay'
 
 const OptimizedImage = memo(({
-  image,
-  isPriority,
-  imageLoaded,
-  onLoad,
-  onError
-}: {
+                               image,
+                               isPriority,
+                               imageLoaded,
+                               onLoad,
+                               onError
+                             }: {
   image: ImageData
   isPriority: boolean
   imageLoaded: boolean
@@ -166,7 +169,7 @@ const useImageLoading = (
     })
   }, [inView, isLoaded, hasFailed, image.src, index, loadImage, updateImageStatus])
 
-  return { imageLoaded, setImageLoaded }
+  return {imageLoaded, setImageLoaded}
 }
 
 const useImageHandlers = (
@@ -195,30 +198,30 @@ const useImageHandlers = (
     }
   }
 
-  return { handleImageLoad, handleImageError, handleClick }
+  return {handleImageLoad, handleImageError, handleClick}
 }
 
 // Main component
 export const ImageCell = memo(({
-  image,
-  index,
-  loadedImages,
-  failedImages,
-  loadImage,
-  updateImageStatus,
-  onImageClick,
-  aspectRatio = 'square',
-  showOverlay = true,
-  className = ''
-}: ImageCellProps) => {
+                                 image,
+                                 index,
+                                 loadedImages,
+                                 failedImages,
+                                 loadImage,
+                                 updateImageStatus,
+                                 onImageClick,
+                                 aspectRatio = 'square',
+                                 showOverlay = true,
+                                 className = ''
+                               }: ImageCellProps) => {
   const isLoaded = loadedImages.has(index)
   const hasFailed = failedImages.has(index)
   const isPriority = index < PRIORITY_THRESHOLD
   const aspectClass = ASPECT_CLASSES[aspectRatio]
 
-  const { ref, inView } = useInView(IN_VIEW_CONFIG)
+  const {ref, inView} = useInView(IN_VIEW_CONFIG)
 
-  const { imageLoaded, setImageLoaded } = useImageLoading(
+  const {imageLoaded, setImageLoaded} = useImageLoading(
     image,
     index,
     inView,
@@ -228,7 +231,7 @@ export const ImageCell = memo(({
     updateImageStatus
   )
 
-  const { handleImageLoad, handleImageError, handleClick } = useImageHandlers(
+  const {handleImageLoad, handleImageError, handleClick} = useImageHandlers(
     index,
     loadedImages,
     updateImageStatus,
@@ -238,7 +241,7 @@ export const ImageCell = memo(({
   )
 
   if (hasFailed) {
-    return <ErrorState aspectRatio={aspectClass} className={className} />
+    return <ErrorState aspectRatio={aspectClass} className={className}/>
   }
 
   return (
@@ -261,7 +264,7 @@ export const ImageCell = memo(({
         }
       }}
     >
-      {!imageLoaded && <LoadingSkeleton />}
+      {!imageLoaded && <LoadingSkeleton/>}
 
       {inView && (
         <OptimizedImage
@@ -273,7 +276,7 @@ export const ImageCell = memo(({
         />
       )}
 
-      {showOverlay && imageLoaded && <ImageOverlay title={image.title} />}
+      {showOverlay && imageLoaded && <ImageOverlay title={image.title}/>}
     </motion.div>
   )
 })
