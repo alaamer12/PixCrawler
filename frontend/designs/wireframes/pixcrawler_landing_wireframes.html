@@ -1,1039 +1,1048 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PixCrawler Landing Page Wireframes</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            background: white;
-            font-family: Arial, sans-serif;
-            font-size: 11px;
-        }
-        
-        .wireframe-section {
-            margin-bottom: 40px;
-            border: 2px solid #000;
-            background: white;
-        }
-        
-        .section-label {
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }
-        
-        /* Navigation */
-        .navigation {
-            height: 70px;
-            border-bottom: 1px solid #000;
-            display: flex;
-            align-items: center;
-            padding: 0 40px;
-            justify-content: space-between;
-        }
-        
-        .logo {
-            font-weight: bold;
-            font-size: 16px;
-        }
-        
-        .nav-links {
-            display: flex;
-            gap: 30px;
-        }
-        
-        .nav-link {
-            padding: 8px 0;
-            border-bottom: 2px solid transparent;
-        }
-        
-        .auth-buttons {
-            display: flex;
-            gap: 12px;
-        }
-        
-        .btn {
-            padding: 8px 20px;
-            border: 1px solid #000;
-            background: white;
-            font-size: 10px;
-        }
-        
-        .btn-primary {
-            background: #000;
-            color: white;
-        }
-        
-        /* Hero Section */
-        .hero {
-            padding: 80px 40px;
-            text-align: center;
-            border-bottom: 1px solid #000;
-        }
-        
-        .hero-headline {
-            font-size: 48px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
-        .hero-subheadline {
-            font-size: 18px;
-            margin-bottom: 30px;
-            color: #666;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
-        .hero-cta {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-bottom: 50px;
-        }
-        
-        .hero-visual {
-            width: 900px;
-            height: 450px;
-            border: 2px dashed #000;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #fafafa;
-            padding: 20px;
-        }
-        
-        .visual-ideas {
-            max-width: 800px;
-            text-align: left;
-        }
-        
-        .visual-option {
-            margin: 15px 0;
-            padding: 10px;
-            border-left: 3px solid #000;
-            background: white;
-        }
-        
-        .visual-option-title {
-            font-weight: bold;
-            font-size: 12px;
-            margin-bottom: 5px;
-        }
-        
-        .visual-option-desc {
-            font-size: 9px;
-            color: #666;
-            line-height: 1.4;
-        }
-        
-        /* Features Section */
-        .features {
-            padding: 80px 40px;
-            border-bottom: 1px solid #000;
-        }
-        
-        .section-title {
-            font-size: 32px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 50px;
-        }
-        
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 30px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .feature-card {
-            border: 1px solid #000;
-            padding: 25px;
-            text-align: center;
-        }
-        
-        .feature-icon {
-            width: 60px;
-            height: 60px;
-            border: 1px solid #000;
-            margin: 0 auto 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-        }
-        
-        .feature-title {
-            font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-        
-        .feature-desc {
-            font-size: 10px;
-            color: #666;
-            line-height: 1.4;
-        }
-        
-        /* How It Works */
-        .how-it-works {
-            padding: 80px 40px;
-            border-bottom: 1px solid #000;
-            background: #fafafa;
-        }
-        
-        .steps {
-            display: flex;
-            gap: 40px;
-            max-width: 1000px;
-            margin: 0 auto;
-            justify-content: center;
-        }
-        
-        .step {
-            flex: 1;
-            text-align: center;
-        }
-        
-        .step-number {
-            width: 50px;
-            height: 50px;
-            border: 2px solid #000;
-            border-radius: 50%;
-            margin: 0 auto 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 20px;
-            background: white;
-        }
-        
-        .step-title {
-            font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 10px;
-        }
-        
-        .step-desc {
-            font-size: 10px;
-            color: #666;
-            line-height: 1.4;
-        }
-        
-        .step-arrow {
-            font-size: 30px;
-            align-self: center;
-        }
-        
-        /* Use Cases */
-        .use-cases {
-            padding: 80px 40px;
-            border-bottom: 1px solid #000;
-        }
-        
-        .use-cases-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 30px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .use-case-card {
-            border: 1px solid #000;
-            padding: 30px;
-        }
-        
-        .use-case-icon {
-            font-size: 32px;
-            margin-bottom: 15px;
-        }
-        
-        .use-case-title {
-            font-weight: bold;
-            font-size: 18px;
-            margin-bottom: 15px;
-        }
-        
-        .use-case-list {
-            font-size: 10px;
-            color: #666;
-            line-height: 1.8;
-        }
-        
-        /* Trusted By */
-        .trusted-by {
-            padding: 60px 40px;
-            border-bottom: 1px solid #000;
-            background: #fafafa;
-        }
-        
-        .trusted-title {
-            text-align: center;
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 30px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .logo-cloud {
-            display: flex;
-            gap: 40px;
-            justify-content: center;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .partner-logo {
-            width: 120px;
-            height: 50px;
-            border: 1px solid #ccc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 9px;
-            color: #999;
-            background: white;
-        }
-        
-        /* Footer */
-        .footer {
-            padding: 60px 40px 40px;
-            background: #fafafa;
-        }
-        
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-            gap: 40px;
-            margin-bottom: 40px;
-        }
-        
-        .footer-section {
-            font-size: 10px;
-        }
-        
-        .footer-title {
-            font-weight: bold;
-            font-size: 12px;
-            margin-bottom: 15px;
-        }
-        
-        .footer-link {
-            margin: 8px 0;
-            color: #666;
-        }
-        
-        .footer-bottom {
-            border-top: 1px solid #ccc;
-            padding-top: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-            font-size: 9px;
-            color: #999;
-        }
-        
-        .social-icons {
-            display: flex;
-            gap: 15px;
-        }
-        
-        .social-icon {
-            width: 30px;
-            height: 30px;
-            border: 1px solid #ccc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        /* Desktop Full View */
-        .full-page {
-            width: 1400px;
-            margin: 0 auto;
-        }
-        
-        /* Mobile View */
-        .mobile-view {
-            width: 375px;
-            margin: 0 auto;
-        }
-        
-        .mobile-nav {
-            height: 60px;
-            border-bottom: 1px solid #000;
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            justify-content: space-between;
-        }
-        
-        .hamburger {
-            width: 35px;
-            height: 35px;
-            border: 1px solid #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-        
-        .mobile-hero {
-            padding: 50px 20px;
-            text-align: center;
-            border-bottom: 1px solid #000;
-        }
-        
-        .mobile-hero-headline {
-            font-size: 32px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            line-height: 1.2;
-        }
-        
-        .mobile-hero-subheadline {
-            font-size: 15px;
-            margin-bottom: 25px;
-            color: #666;
-            line-height: 1.5;
-        }
-        
-        .mobile-hero-cta {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 35px;
-        }
-        
-        .mobile-cta-btn {
-            padding: 14px 20px;
-            border: 1px solid #000;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        
-        .mobile-hero-visual {
-            width: 100%;
-            height: 220px;
-            border: 2px dashed #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #fafafa;
-            font-size: 10px;
-            color: #666;
-        }
-        
-        .mobile-features {
-            padding: 50px 20px;
-            border-bottom: 1px solid #000;
-        }
-        
-        .mobile-section-title {
-            font-size: 28px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .mobile-features-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        
-        .mobile-feature-card {
-            border: 1px solid #000;
-            padding: 20px;
-        }
-        
-        .mobile-feature-icon {
-            font-size: 32px;
-            margin-bottom: 12px;
-        }
-        
-        .mobile-feature-title {
-            font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 8px;
-        }
-        
-        .mobile-feature-desc {
-            font-size: 11px;
-            color: #666;
-            line-height: 1.5;
-        }
-        
-        .mobile-how-it-works {
-            padding: 50px 20px;
-            border-bottom: 1px solid #000;
-            background: #fafafa;
-        }
-        
-        .mobile-steps {
-            display: flex;
-            flex-direction: column;
-            gap: 30px;
-        }
-        
-        .mobile-step {
-            text-align: center;
-        }
-        
-        .mobile-step-number {
-            width: 50px;
-            height: 50px;
-            border: 2px solid #000;
-            border-radius: 50%;
-            margin: 0 auto 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 20px;
-            background: white;
-        }
-        
-        .mobile-step-title {
-            font-weight: bold;
-            font-size: 18px;
-            margin-bottom: 8px;
-        }
-        
-        .mobile-step-desc {
-            font-size: 11px;
-            color: #666;
-            line-height: 1.5;
-        }
-        
-        .mobile-use-cases {
-            padding: 50px 20px;
-            border-bottom: 1px solid #000;
-        }
-        
-        .mobile-use-case-card {
-            border: 1px solid #000;
-            padding: 25px 20px;
-            margin-bottom: 20px;
-        }
-        
-        .mobile-use-case-icon {
-            font-size: 36px;
-            margin-bottom: 15px;
-        }
-        
-        .mobile-use-case-title {
-            font-weight: bold;
-            font-size: 20px;
-            margin-bottom: 12px;
-        }
-        
-        .mobile-use-case-list {
-            font-size: 11px;
-            color: #666;
-            line-height: 1.8;
-        }
-        
-        .mobile-cta-section {
-            padding: 50px 20px;
-            text-align: center;
-            border-bottom: 1px solid #000;
-            background: #fafafa;
-        }
-        
-        .mobile-cta-title {
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-        
-        .mobile-cta-desc {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 25px;
-            line-height: 1.5;
-        }
-        
-        .mobile-footer {
-            padding: 40px 20px 30px;
-            background: #fafafa;
-        }
-        
-        .mobile-footer-brand {
-            margin-bottom: 25px;
-            padding-bottom: 25px;
-            border-bottom: 1px solid #ccc;
-        }
-        
-        .mobile-footer-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px 20px;
-            margin-bottom: 30px;
-        }
-        
-        .mobile-footer-section {
-            
-        }
-        
-        .mobile-footer-title {
-            font-weight: bold;
-            font-size: 11px;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .mobile-footer-link {
-            margin: 6px 0;
-            font-size: 10px;
-            color: #666;
-            line-height: 1.4;
-        }
-        
-        .mobile-footer-bottom {
-            border-top: 1px solid #ccc;
-            padding-top: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            align-items: center;
-        }
-        
-        .mobile-social-icons {
-            display: flex;
-            gap: 12px;
-        }
-        
-        .mobile-copyright {
-            font-size: 9px;
-            color: #999;
-            text-align: center;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>PixCrawler Landing Page Wireframes</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: white;
+      font-family: Arial, sans-serif;
+      font-size: 11px;
+    }
+
+    .wireframe-section {
+      margin-bottom: 40px;
+      border: 2px solid #000;
+      background: white;
+    }
+
+    .section-label {
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+
+    /* Navigation */
+    .navigation {
+      height: 70px;
+      border-bottom: 1px solid #000;
+      display: flex;
+      align-items: center;
+      padding: 0 40px;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 30px;
+    }
+
+    .nav-link {
+      padding: 8px 0;
+      border-bottom: 2px solid transparent;
+    }
+
+    .auth-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 8px 20px;
+      border: 1px solid #000;
+      background: white;
+      font-size: 10px;
+    }
+
+    .btn-primary {
+      background: #000;
+      color: white;
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 80px 40px;
+      text-align: center;
+      border-bottom: 1px solid #000;
+    }
+
+    .hero-headline {
+      font-size: 48px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-subheadline {
+      font-size: 18px;
+      margin-bottom: 30px;
+      color: #666;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-cta {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-bottom: 50px;
+    }
+
+    .hero-visual {
+      width: 900px;
+      height: 450px;
+      border: 2px dashed #000;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fafafa;
+      padding: 20px;
+    }
+
+    .visual-ideas {
+      max-width: 800px;
+      text-align: left;
+    }
+
+    .visual-option {
+      margin: 15px 0;
+      padding: 10px;
+      border-left: 3px solid #000;
+      background: white;
+    }
+
+    .visual-option-title {
+      font-weight: bold;
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .visual-option-desc {
+      font-size: 9px;
+      color: #666;
+      line-height: 1.4;
+    }
+
+    /* Features Section */
+    .features {
+      padding: 80px 40px;
+      border-bottom: 1px solid #000;
+    }
+
+    .section-title {
+      font-size: 32px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 50px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .feature-card {
+      border: 1px solid #000;
+      padding: 25px;
+      text-align: center;
+    }
+
+    .feature-icon {
+      width: 60px;
+      height: 60px;
+      border: 1px solid #000;
+      margin: 0 auto 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .feature-title {
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .feature-desc {
+      font-size: 10px;
+      color: #666;
+      line-height: 1.4;
+    }
+
+    /* How It Works */
+    .how-it-works {
+      padding: 80px 40px;
+      border-bottom: 1px solid #000;
+      background: #fafafa;
+    }
+
+    .steps {
+      display: flex;
+      gap: 40px;
+      max-width: 1000px;
+      margin: 0 auto;
+      justify-content: center;
+    }
+
+    .step {
+      flex: 1;
+      text-align: center;
+    }
+
+    .step-number {
+      width: 50px;
+      height: 50px;
+      border: 2px solid #000;
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+      background: white;
+    }
+
+    .step-title {
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .step-desc {
+      font-size: 10px;
+      color: #666;
+      line-height: 1.4;
+    }
+
+    .step-arrow {
+      font-size: 30px;
+      align-self: center;
+    }
+
+    /* Use Cases */
+    .use-cases {
+      padding: 80px 40px;
+      border-bottom: 1px solid #000;
+    }
+
+    .use-cases-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .use-case-card {
+      border: 1px solid #000;
+      padding: 30px;
+    }
+
+    .use-case-icon {
+      font-size: 32px;
+      margin-bottom: 15px;
+    }
+
+    .use-case-title {
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+
+    .use-case-list {
+      font-size: 10px;
+      color: #666;
+      line-height: 1.8;
+    }
+
+    /* Trusted By */
+    .trusted-by {
+      padding: 60px 40px;
+      border-bottom: 1px solid #000;
+      background: #fafafa;
+    }
+
+    .trusted-title {
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 30px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .logo-cloud {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .partner-logo {
+      width: 120px;
+      height: 50px;
+      border: 1px solid #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: #999;
+      background: white;
+    }
+
+    /* Footer */
+    .footer {
+      padding: 60px 40px 40px;
+      background: #fafafa;
+    }
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-section {
+      font-size: 10px;
+    }
+
+    .footer-title {
+      font-weight: bold;
+      font-size: 12px;
+      margin-bottom: 15px;
+    }
+
+    .footer-link {
+      margin: 8px 0;
+      color: #666;
+    }
+
+    .footer-bottom {
+      border-top: 1px solid #ccc;
+      padding-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1200px;
+      margin: 0 auto;
+      font-size: 9px;
+      color: #999;
+    }
+
+    .social-icons {
+      display: flex;
+      gap: 15px;
+    }
+
+    .social-icon {
+      width: 30px;
+      height: 30px;
+      border: 1px solid #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Desktop Full View */
+    .full-page {
+      width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Mobile View */
+    .mobile-view {
+      width: 375px;
+      margin: 0 auto;
+    }
+
+    .mobile-nav {
+      height: 60px;
+      border-bottom: 1px solid #000;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      justify-content: space-between;
+    }
+
+    .hamburger {
+      width: 35px;
+      height: 35px;
+      border: 1px solid #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .mobile-hero {
+      padding: 50px 20px;
+      text-align: center;
+      border-bottom: 1px solid #000;
+    }
+
+    .mobile-hero-headline {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      line-height: 1.2;
+    }
+
+    .mobile-hero-subheadline {
+      font-size: 15px;
+      margin-bottom: 25px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .mobile-hero-cta {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 35px;
+    }
+
+    .mobile-cta-btn {
+      padding: 14px 20px;
+      border: 1px solid #000;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .mobile-hero-visual {
+      width: 100%;
+      height: 220px;
+      border: 2px dashed #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fafafa;
+      font-size: 10px;
+      color: #666;
+    }
+
+    .mobile-features {
+      padding: 50px 20px;
+      border-bottom: 1px solid #000;
+    }
+
+    .mobile-section-title {
+      font-size: 28px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .mobile-features-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .mobile-feature-card {
+      border: 1px solid #000;
+      padding: 20px;
+    }
+
+    .mobile-feature-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+
+    .mobile-feature-title {
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .mobile-feature-desc {
+      font-size: 11px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .mobile-how-it-works {
+      padding: 50px 20px;
+      border-bottom: 1px solid #000;
+      background: #fafafa;
+    }
+
+    .mobile-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .mobile-step {
+      text-align: center;
+    }
+
+    .mobile-step-number {
+      width: 50px;
+      height: 50px;
+      border: 2px solid #000;
+      border-radius: 50%;
+      margin: 0 auto 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+      background: white;
+    }
+
+    .mobile-step-title {
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .mobile-step-desc {
+      font-size: 11px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .mobile-use-cases {
+      padding: 50px 20px;
+      border-bottom: 1px solid #000;
+    }
+
+    .mobile-use-case-card {
+      border: 1px solid #000;
+      padding: 25px 20px;
+      margin-bottom: 20px;
+    }
+
+    .mobile-use-case-icon {
+      font-size: 36px;
+      margin-bottom: 15px;
+    }
+
+    .mobile-use-case-title {
+      font-weight: bold;
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .mobile-use-case-list {
+      font-size: 11px;
+      color: #666;
+      line-height: 1.8;
+    }
+
+    .mobile-cta-section {
+      padding: 50px 20px;
+      text-align: center;
+      border-bottom: 1px solid #000;
+      background: #fafafa;
+    }
+
+    .mobile-cta-title {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+
+    .mobile-cta-desc {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 25px;
+      line-height: 1.5;
+    }
+
+    .mobile-footer {
+      padding: 40px 20px 30px;
+      background: #fafafa;
+    }
+
+    .mobile-footer-brand {
+      margin-bottom: 25px;
+      padding-bottom: 25px;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .mobile-footer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px 20px;
+      margin-bottom: 30px;
+    }
+
+    .mobile-footer-section {
+
+    }
+
+    .mobile-footer-title {
+      font-weight: bold;
+      font-size: 11px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .mobile-footer-link {
+      margin: 6px 0;
+      font-size: 10px;
+      color: #666;
+      line-height: 1.4;
+    }
+
+    .mobile-footer-bottom {
+      border-top: 1px solid #ccc;
+      padding-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .mobile-social-icons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .mobile-copyright {
+      font-size: 9px;
+      color: #999;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-    <!-- Desktop Full Page View -->
-    <div class="section-label">PixCrawler Landing Page - Desktop View (1400px)</div>
-    <div class="wireframe-section full-page">
-        <!-- Navigation -->
-        <div class="navigation">
-            <div class="logo">PixCrawler</div>
-            <div class="nav-links">
-                <div class="nav-link">Features</div>
-                <div class="nav-link">Pricing</div>
-                <div class="nav-link">Docs</div>
-                <div class="nav-link">Blog</div>
-            </div>
-            <div class="auth-buttons">
-                <div class="btn">Sign In</div>
-                <div class="btn btn-primary">Get Started</div>
-            </div>
+<!-- Desktop Full Page View -->
+<div class="section-label">PixCrawler Landing Page - Desktop View (1400px)</div>
+<div class="wireframe-section full-page">
+  <!-- Navigation -->
+  <div class="navigation">
+    <div class="logo">PixCrawler</div>
+    <div class="nav-links">
+      <div class="nav-link">Features</div>
+      <div class="nav-link">Pricing</div>
+      <div class="nav-link">Docs</div>
+      <div class="nav-link">Blog</div>
+    </div>
+    <div class="auth-buttons">
+      <div class="btn">Sign In</div>
+      <div class="btn btn-primary">Get Started</div>
+    </div>
+  </div>
+
+  <!-- Hero Section -->
+  <div class="hero">
+    <div class="hero-headline">Build ML Datasets in Minutes</div>
+    <div class="hero-subheadline">
+      Automated image dataset creation for machine learning, research, and data science projects
+    </div>
+    <div class="hero-cta">
+      <div class="btn btn-primary" style="padding: 12px 30px; font-size: 12px;">Get Started Free</div>
+      <div class="btn" style="padding: 12px 30px; font-size: 12px;">View Demo</div>
+    </div>
+    <div class="hero-visual">
+      <div class="visual-ideas">
+        <div style="font-size: 14px; font-weight: bold; margin-bottom: 20px; text-align: center;">Hero Visual Ideas:
         </div>
-        
-        <!-- Hero Section -->
-        <div class="hero">
-            <div class="hero-headline">Build ML Datasets in Minutes</div>
-            <div class="hero-subheadline">
-                Automated image dataset creation for machine learning, research, and data science projects
-            </div>
-            <div class="hero-cta">
-                <div class="btn btn-primary" style="padding: 12px 30px; font-size: 12px;">Get Started Free</div>
-                <div class="btn" style="padding: 12px 30px; font-size: 12px;">View Demo</div>
-            </div>
-            <div class="hero-visual">
-                <div class="visual-ideas">
-                    <div style="font-size: 14px; font-weight: bold; margin-bottom: 20px; text-align: center;">Hero Visual Ideas:</div>
-                    
-                    <div class="visual-option">
-                        <div class="visual-option-title">Option 1: Animated Code-to-Dataset Flow</div>
-                        <div class="visual-option-desc">
-                            Show a JSON config on the left transforming into organized folders of images on the right. 
-                            Animate the flow: JSON → Processing animation → Organized image grid. 
-                            Use subtle gradient overlays and smooth transitions.
-                        </div>
-                    </div>
-                    
-                    <div class="visual-option">
-                        <div class="visual-option-title">Option 2: Live Dataset Preview Terminal</div>
-                        <div class="visual-option-desc">
-                            Terminal-style window showing real-time dataset creation:
-                            "$ pixcrawler create --categories cats,dogs --max 1000"
-                            With progress bars, download stats, and success indicators animating in.
-                            Clean monospace font, dark terminal aesthetic.
-                        </div>
-                    </div>
-                    
-                    <div class="visual-option">
-                        <div class="visual-option-title">Option 3: 3D Isometric Dataset Visualization</div>
-                        <div class="visual-option-desc">
-                            Isometric view of folders containing images, with search engines feeding into a processing pipeline,
-                            then outputting to organized storage. Show the journey: Discovery → Validation → Organization.
-                            Subtle 3D depth, clean lines, branded colors.
-                        </div>
-                    </div>
-                    
-                    <div class="visual-option">
-                        <div class="visual-option-title">Option 4: Before/After Split Screen</div>
-                        <div class="visual-option-desc">
-                            Left side: Messy, chaotic image search results from multiple sources.
-                            Right side: Clean, organized folder structure with validation badges.
-                            Clear visual contrast showing the transformation PixCrawler provides.
-                        </div>
-                    </div>
-                    
-                    <div class="visual-option">
-                        <div class="visual-option-title">Option 5: Interactive Dashboard Preview</div>
-                        <div class="visual-option-desc">
-                            Show actual PixCrawler dashboard with metrics animating:
-                            "1,847 images processed • 98% quality • 23 duplicates removed"
-                            Include mini image grid, progress indicators, and quality scores.
-                            Makes it feel real and tangible.
-                        </div>
-                    </div>
-                </div>
-            </div>
+
+        <div class="visual-option">
+          <div class="visual-option-title">Option 1: Animated Code-to-Dataset Flow</div>
+          <div class="visual-option-desc">
+            Show a JSON config on the left transforming into organized folders of images on the right.
+            Animate the flow: JSON → Processing animation → Organized image grid.
+            Use subtle gradient overlays and smooth transitions.
+          </div>
         </div>
-        
-        <!-- Features Section -->
-        <div class="features">
-            <div class="section-title">Powerful Features</div>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">🤖</div>
-                    <div class="feature-title">Intelligent Crawling</div>
-                    <div class="feature-desc">Multiple discovery methods for comprehensive image collection from various sources</div>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">✓</div>
-                    <div class="feature-title">Smart Validation</div>
-                    <div class="feature-desc">Automated quality checks and integrity verification for every image</div>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📁</div>
-                    <div class="feature-title">Auto Organization</div>
-                    <div class="feature-desc">Structured folder hierarchies and metadata generation automatically</div>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🎯</div>
-                    <div class="feature-title">AI Keywords</div>
-                    <div class="feature-desc">Intelligent search term expansion and generation powered by AI</div>
-                </div>
-            </div>
+
+        <div class="visual-option">
+          <div class="visual-option-title">Option 2: Live Dataset Preview Terminal</div>
+          <div class="visual-option-desc">
+            Terminal-style window showing real-time dataset creation:
+            "$ pixcrawler create --categories cats,dogs --max 1000"
+            With progress bars, download stats, and success indicators animating in.
+            Clean monospace font, dark terminal aesthetic.
+          </div>
         </div>
-        
-        <!-- How It Works -->
-        <div class="how-it-works">
-            <div class="section-title">How It Works</div>
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <div class="step-title">Configure</div>
-                    <div class="step-desc">Define your dataset requirements using our intuitive interface or JSON schema</div>
-                </div>
-                <div class="step-arrow">→</div>
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <div class="step-title">Process</div>
-                    <div class="step-desc">Our AI-powered system discovers, validates, and organizes your images automatically</div>
-                </div>
-                <div class="step-arrow">→</div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <div class="step-title">Download</div>
-                    <div class="step-desc">Get your processed dataset in optimized formats ready for immediate use</div>
-                </div>
-            </div>
+
+        <div class="visual-option">
+          <div class="visual-option-title">Option 3: 3D Isometric Dataset Visualization</div>
+          <div class="visual-option-desc">
+            Isometric view of folders containing images, with search engines feeding into a processing pipeline,
+            then outputting to organized storage. Show the journey: Discovery → Validation → Organization.
+            Subtle 3D depth, clean lines, branded colors.
+          </div>
         </div>
-        
-        <!-- Use Cases -->
-        <div class="use-cases">
-            <div class="section-title">Built For Everyone</div>
-            <div class="use-cases-grid">
-                <div class="use-case-card">
-                    <div class="use-case-icon">🔬</div>
-                    <div class="use-case-title">Research & Academia</div>
-                    <div class="use-case-list">
-                        • Custom datasets for CV research<br>
-                        • Balanced training sets<br>
-                        • Benchmark dataset generation<br>
-                        • Academic project support
-                    </div>
-                </div>
-                <div class="use-case-card">
-                    <div class="use-case-icon">🏢</div>
-                    <div class="use-case-title">Enterprise & Startups</div>
-                    <div class="use-case-list">
-                        • Rapid ML prototyping<br>
-                        • Product image datasets<br>
-                        • Visual content analysis<br>
-                        • Business intelligence
-                    </div>
-                </div>
-                <div class="use-case-card">
-                    <div class="use-case-icon">👨‍💻</div>
-                    <div class="use-case-title">Individual Developers</div>
-                    <div class="use-case-list">
-                        • Personal ML projects<br>
-                        • Learning & education<br>
-                        • Portfolio projects<br>
-                        • Experimentation
-                    </div>
-                </div>
-            </div>
+
+        <div class="visual-option">
+          <div class="visual-option-title">Option 4: Before/After Split Screen</div>
+          <div class="visual-option-desc">
+            Left side: Messy, chaotic image search results from multiple sources.
+            Right side: Clean, organized folder structure with validation badges.
+            Clear visual contrast showing the transformation PixCrawler provides.
+          </div>
         </div>
-        
-        <!-- Trusted By -->
-        <div class="trusted-by">
-            <div class="trusted-title">Trusted by teams at</div>
-            <div class="logo-cloud">
-                <div class="partner-logo">Company Logo</div>
-                <div class="partner-logo">Company Logo</div>
-                <div class="partner-logo">Company Logo</div>
-                <div class="partner-logo">Company Logo</div>
-                <div class="partner-logo">Company Logo</div>
-            </div>
+
+        <div class="visual-option">
+          <div class="visual-option-title">Option 5: Interactive Dashboard Preview</div>
+          <div class="visual-option-desc">
+            Show actual PixCrawler dashboard with metrics animating:
+            "1,847 images processed • 98% quality • 23 duplicates removed"
+            Include mini image grid, progress indicators, and quality scores.
+            Makes it feel real and tangible.
+          </div>
         </div>
-        
-        <!-- Footer -->
-        <div class="footer">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <div class="footer-title">PixCrawler</div>
-                    <div style="color: #666; line-height: 1.5; margin-top: 10px;">
-                        Automated image dataset builder for ML & research. Transform keywords into organized, validated datasets.
-                    </div>
-                </div>
-                <div class="footer-section">
-                    <div class="footer-title">Product</div>
-                    <div class="footer-link">Features</div>
-                    <div class="footer-link">Pricing</div>
-                    <div class="footer-link">Documentation</div>
-                    <div class="footer-link">API Reference</div>
-                </div>
-                <div class="footer-section">
-                    <div class="footer-title">Company</div>
-                    <div class="footer-link">About</div>
-                    <div class="footer-link">Blog</div>
-                    <div class="footer-link">Careers</div>
-                    <div class="footer-link">Contact</div>
-                </div>
-                <div class="footer-section">
-                    <div class="footer-title">Resources</div>
-                    <div class="footer-link">User Guide</div>
-                    <div class="footer-link">Examples</div>
-                    <div class="footer-link">FAQ</div>
-                    <div class="footer-link">Support</div>
-                </div>
-                <div class="footer-section">
-                    <div class="footer-title">Legal</div>
-                    <div class="footer-link">Privacy Policy</div>
-                    <div class="footer-link">Terms of Service</div>
-                    <div class="footer-link">Security</div>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <div>© 2025 PixCrawler. All rights reserved.</div>
-                <div class="social-icons">
-                    <div class="social-icon">𝕏</div>
-                    <div class="social-icon">in</div>
-                    <div class="social-icon">GH</div>
-                </div>
-            </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features Section -->
+  <div class="features">
+    <div class="section-title">Powerful Features</div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <div class="feature-title">Intelligent Crawling</div>
+        <div class="feature-desc">Multiple discovery methods for comprehensive image collection from various sources
         </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✓</div>
+        <div class="feature-title">Smart Validation</div>
+        <div class="feature-desc">Automated quality checks and integrity verification for every image</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📁</div>
+        <div class="feature-title">Auto Organization</div>
+        <div class="feature-desc">Structured folder hierarchies and metadata generation automatically</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-title">AI Keywords</div>
+        <div class="feature-desc">Intelligent search term expansion and generation powered by AI</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- How It Works -->
+  <div class="how-it-works">
+    <div class="section-title">How It Works</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-title">Configure</div>
+        <div class="step-desc">Define your dataset requirements using our intuitive interface or JSON schema</div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-title">Process</div>
+        <div class="step-desc">Our AI-powered system discovers, validates, and organizes your images automatically</div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-title">Download</div>
+        <div class="step-desc">Get your processed dataset in optimized formats ready for immediate use</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Use Cases -->
+  <div class="use-cases">
+    <div class="section-title">Built For Everyone</div>
+    <div class="use-cases-grid">
+      <div class="use-case-card">
+        <div class="use-case-icon">🔬</div>
+        <div class="use-case-title">Research & Academia</div>
+        <div class="use-case-list">
+          • Custom datasets for CV research<br>
+          • Balanced training sets<br>
+          • Benchmark dataset generation<br>
+          • Academic project support
+        </div>
+      </div>
+      <div class="use-case-card">
+        <div class="use-case-icon">🏢</div>
+        <div class="use-case-title">Enterprise & Startups</div>
+        <div class="use-case-list">
+          • Rapid ML prototyping<br>
+          • Product image datasets<br>
+          • Visual content analysis<br>
+          • Business intelligence
+        </div>
+      </div>
+      <div class="use-case-card">
+        <div class="use-case-icon">👨‍💻</div>
+        <div class="use-case-title">Individual Developers</div>
+        <div class="use-case-list">
+          • Personal ML projects<br>
+          • Learning & education<br>
+          • Portfolio projects<br>
+          • Experimentation
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trusted By -->
+  <div class="trusted-by">
+    <div class="trusted-title">Trusted by teams at</div>
+    <div class="logo-cloud">
+      <div class="partner-logo">Company Logo</div>
+      <div class="partner-logo">Company Logo</div>
+      <div class="partner-logo">Company Logo</div>
+      <div class="partner-logo">Company Logo</div>
+      <div class="partner-logo">Company Logo</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-content">
+      <div class="footer-section">
+        <div class="footer-title">PixCrawler</div>
+        <div style="color: #666; line-height: 1.5; margin-top: 10px;">
+          Automated image dataset builder for ML & research. Transform keywords into organized, validated datasets.
+        </div>
+      </div>
+      <div class="footer-section">
+        <div class="footer-title">Product</div>
+        <div class="footer-link">Features</div>
+        <div class="footer-link">Pricing</div>
+        <div class="footer-link">Documentation</div>
+        <div class="footer-link">API Reference</div>
+      </div>
+      <div class="footer-section">
+        <div class="footer-title">Company</div>
+        <div class="footer-link">About</div>
+        <div class="footer-link">Blog</div>
+        <div class="footer-link">Careers</div>
+        <div class="footer-link">Contact</div>
+      </div>
+      <div class="footer-section">
+        <div class="footer-title">Resources</div>
+        <div class="footer-link">User Guide</div>
+        <div class="footer-link">Examples</div>
+        <div class="footer-link">FAQ</div>
+        <div class="footer-link">Support</div>
+      </div>
+      <div class="footer-section">
+        <div class="footer-title">Legal</div>
+        <div class="footer-link">Privacy Policy</div>
+        <div class="footer-link">Terms of Service</div>
+        <div class="footer-link">Security</div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2025 PixCrawler. All rights reserved.</div>
+      <div class="social-icons">
+        <div class="social-icon">𝕏</div>
+        <div class="social-icon">in</div>
+        <div class="social-icon">GH</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile View -->
+<div style="margin-top: 60px;">
+  <div class="section-label">PixCrawler Landing Page - Mobile View (375px) - Complete</div>
+  <div class="wireframe-section mobile-view">
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav">
+      <div class="logo">PixCrawler</div>
+      <div class="hamburger">☰</div>
     </div>
 
-    <!-- Mobile View -->
-    <div style="margin-top: 60px;">
-        <div class="section-label">PixCrawler Landing Page - Mobile View (375px) - Complete</div>
-        <div class="wireframe-section mobile-view">
-            <!-- Mobile Navigation -->
-            <div class="mobile-nav">
-                <div class="logo">PixCrawler</div>
-                <div class="hamburger">☰</div>
-            </div>
-            
-            <!-- Mobile Hero -->
-            <div class="mobile-hero">
-                <div class="mobile-hero-headline">Build ML Datasets in Minutes</div>
-                <div class="mobile-hero-subheadline">
-                    Automated image dataset creation for machine learning and research projects
-                </div>
-                <div class="mobile-hero-cta">
-                    <div class="mobile-cta-btn btn-primary">Get Started Free</div>
-                    <div class="mobile-cta-btn">View Demo</div>
-                </div>
-                <div class="mobile-hero-visual">
-                    Hero Visual / Animation
-                </div>
-            </div>
-            
-            <!-- Mobile Features -->
-            <div class="mobile-features">
-                <div class="mobile-section-title">Powerful Features</div>
-                <div class="mobile-features-grid">
-                    <div class="mobile-feature-card">
-                        <div class="mobile-feature-icon">🤖</div>
-                        <div class="mobile-feature-title">Intelligent Crawling</div>
-                        <div class="mobile-feature-desc">Multiple discovery methods for comprehensive image collection from various sources</div>
-                    </div>
-                    <div class="mobile-feature-card">
-                        <div class="mobile-feature-icon">✓</div>
-                        <div class="mobile-feature-title">Smart Validation</div>
-                        <div class="mobile-feature-desc">Automated quality checks and integrity verification for every image</div>
-                    </div>
-                    <div class="mobile-feature-card">
-                        <div class="mobile-feature-icon">📁</div>
-                        <div class="mobile-feature-title">Auto Organization</div>
-                        <div class="mobile-feature-desc">Structured folder hierarchies and metadata generation automatically</div>
-                    </div>
-                    <div class="mobile-feature-card">
-                        <div class="mobile-feature-icon">🎯</div>
-                        <div class="mobile-feature-title">AI Keywords</div>
-                        <div class="mobile-feature-desc">Intelligent search term expansion and generation powered by AI</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Mobile How It Works -->
-            <div class="mobile-how-it-works">
-                <div class="mobile-section-title">How It Works</div>
-                <div class="mobile-steps">
-                    <div class="mobile-step">
-                        <div class="mobile-step-number">1</div>
-                        <div class="mobile-step-title">Configure</div>
-                        <div class="mobile-step-desc">Define your dataset requirements using our intuitive interface or JSON schema</div>
-                    </div>
-                    <div class="mobile-step">
-                        <div class="mobile-step-number">2</div>
-                        <div class="mobile-step-title">Process</div>
-                        <div class="mobile-step-desc">Our AI-powered system discovers, validates, and organizes your images automatically</div>
-                    </div>
-                    <div class="mobile-step">
-                        <div class="mobile-step-number">3</div>
-                        <div class="mobile-step-title">Download</div>
-                        <div class="mobile-step-desc">Get your processed dataset in optimized formats ready for immediate use</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Mobile Use Cases -->
-            <div class="mobile-use-cases">
-                <div class="mobile-section-title">Built For Everyone</div>
-                <div class="mobile-use-case-card">
-                    <div class="mobile-use-case-icon">🔬</div>
-                    <div class="mobile-use-case-title">Research & Academia</div>
-                    <div class="mobile-use-case-list">
-                        • Custom datasets for CV research<br>
-                        • Balanced training sets<br>
-                        • Benchmark dataset generation<br>
-                        • Academic project support
-                    </div>
-                </div>
-                <div class="mobile-use-case-card">
-                    <div class="mobile-use-case-icon">🏢</div>
-                    <div class="mobile-use-case-title">Enterprise & Startups</div>
-                    <div class="mobile-use-case-list">
-                        • Rapid ML prototyping<br>
-                        • Product image datasets<br>
-                        • Visual content analysis<br>
-                        • Business intelligence
-                    </div>
-                </div>
-                <div class="mobile-use-case-card">
-                    <div class="mobile-use-case-icon">👨‍💻</div>
-                    <div class="mobile-use-case-title">Individual Developers</div>
-                    <div class="mobile-use-case-list">
-                        • Personal ML projects<br>
-                        • Learning & education<br>
-                        • Portfolio projects<br>
-                        • Experimentation
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Mobile CTA Section -->
-            <div class="mobile-cta-section">
-                <div class="mobile-cta-title">Ready to Get Started?</div>
-                <div class="mobile-cta-desc">
-                    Join thousands of developers building better ML datasets
-                </div>
-                <div class="mobile-cta-btn btn-primary" style="width: 100%; text-align: center; margin-bottom: 12px;">Get Started Free</div>
-                <div class="mobile-cta-btn" style="width: 100%; text-align: center;">View Documentation</div>
-            </div>
-            
-            <!-- Mobile Footer -->
-            <div class="mobile-footer">
-                <div class="mobile-footer-brand">
-                    <div style="font-weight: bold; font-size: 18px; margin-bottom: 8px;">PixCrawler</div>
-                    <div style="font-size: 11px; color: #666; line-height: 1.5;">
-                        Automated image dataset builder for machine learning and research
-                    </div>
-                </div>
-                
-                <div class="mobile-footer-grid">
-                    <div class="mobile-footer-section">
-                        <div class="mobile-footer-title">Product</div>
-                        <div class="mobile-footer-link">Features</div>
-                        <div class="mobile-footer-link">Pricing</div>
-                        <div class="mobile-footer-link">Documentation</div>
-                        <div class="mobile-footer-link">API</div>
-                    </div>
-                    
-                    <div class="mobile-footer-section">
-                        <div class="mobile-footer-title">Company</div>
-                        <div class="mobile-footer-link">About</div>
-                        <div class="mobile-footer-link">Blog</div>
-                        <div class="mobile-footer-link">Careers</div>
-                        <div class="mobile-footer-link">Contact</div>
-                    </div>
-                    
-                    <div class="mobile-footer-section">
-                        <div class="mobile-footer-title">Resources</div>
-                        <div class="mobile-footer-link">User Guide</div>
-                        <div class="mobile-footer-link">Examples</div>
-                        <div class="mobile-footer-link">FAQ</div>
-                        <div class="mobile-footer-link">Support</div>
-                    </div>
-                    
-                    <div class="mobile-footer-section">
-                        <div class="mobile-footer-title">Legal</div>
-                        <div class="mobile-footer-link">Privacy</div>
-                        <div class="mobile-footer-link">Terms</div>
-                        <div class="mobile-footer-link">Security</div>
-                        <div class="mobile-footer-link">Cookies</div>
-                    </div>
-                </div>
-                
-                <div class="mobile-footer-bottom">
-                    <div class="mobile-social-icons">
-                        <div class="social-icon">𝕏</div>
-                        <div class="social-icon">in</div>
-                        <div class="social-icon">GH</div>
-                        <div class="social-icon">YT</div>
-                    </div>
-                    <div class="mobile-copyright">© 2025 PixCrawler. All rights reserved.</div>
-                </div>
-            </div>
-        </div>
+    <!-- Mobile Hero -->
+    <div class="mobile-hero">
+      <div class="mobile-hero-headline">Build ML Datasets in Minutes</div>
+      <div class="mobile-hero-subheadline">
+        Automated image dataset creation for machine learning and research projects
+      </div>
+      <div class="mobile-hero-cta">
+        <div class="mobile-cta-btn btn-primary">Get Started Free</div>
+        <div class="mobile-cta-btn">View Demo</div>
+      </div>
+      <div class="mobile-hero-visual">
+        Hero Visual / Animation
+      </div>
     </div>
+
+    <!-- Mobile Features -->
+    <div class="mobile-features">
+      <div class="mobile-section-title">Powerful Features</div>
+      <div class="mobile-features-grid">
+        <div class="mobile-feature-card">
+          <div class="mobile-feature-icon">🤖</div>
+          <div class="mobile-feature-title">Intelligent Crawling</div>
+          <div class="mobile-feature-desc">Multiple discovery methods for comprehensive image collection from various
+            sources
+          </div>
+        </div>
+        <div class="mobile-feature-card">
+          <div class="mobile-feature-icon">✓</div>
+          <div class="mobile-feature-title">Smart Validation</div>
+          <div class="mobile-feature-desc">Automated quality checks and integrity verification for every image</div>
+        </div>
+        <div class="mobile-feature-card">
+          <div class="mobile-feature-icon">📁</div>
+          <div class="mobile-feature-title">Auto Organization</div>
+          <div class="mobile-feature-desc">Structured folder hierarchies and metadata generation automatically</div>
+        </div>
+        <div class="mobile-feature-card">
+          <div class="mobile-feature-icon">🎯</div>
+          <div class="mobile-feature-title">AI Keywords</div>
+          <div class="mobile-feature-desc">Intelligent search term expansion and generation powered by AI</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile How It Works -->
+    <div class="mobile-how-it-works">
+      <div class="mobile-section-title">How It Works</div>
+      <div class="mobile-steps">
+        <div class="mobile-step">
+          <div class="mobile-step-number">1</div>
+          <div class="mobile-step-title">Configure</div>
+          <div class="mobile-step-desc">Define your dataset requirements using our intuitive interface or JSON schema
+          </div>
+        </div>
+        <div class="mobile-step">
+          <div class="mobile-step-number">2</div>
+          <div class="mobile-step-title">Process</div>
+          <div class="mobile-step-desc">Our AI-powered system discovers, validates, and organizes your images
+            automatically
+          </div>
+        </div>
+        <div class="mobile-step">
+          <div class="mobile-step-number">3</div>
+          <div class="mobile-step-title">Download</div>
+          <div class="mobile-step-desc">Get your processed dataset in optimized formats ready for immediate use</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Use Cases -->
+    <div class="mobile-use-cases">
+      <div class="mobile-section-title">Built For Everyone</div>
+      <div class="mobile-use-case-card">
+        <div class="mobile-use-case-icon">🔬</div>
+        <div class="mobile-use-case-title">Research & Academia</div>
+        <div class="mobile-use-case-list">
+          • Custom datasets for CV research<br>
+          • Balanced training sets<br>
+          • Benchmark dataset generation<br>
+          • Academic project support
+        </div>
+      </div>
+      <div class="mobile-use-case-card">
+        <div class="mobile-use-case-icon">🏢</div>
+        <div class="mobile-use-case-title">Enterprise & Startups</div>
+        <div class="mobile-use-case-list">
+          • Rapid ML prototyping<br>
+          • Product image datasets<br>
+          • Visual content analysis<br>
+          • Business intelligence
+        </div>
+      </div>
+      <div class="mobile-use-case-card">
+        <div class="mobile-use-case-icon">👨‍💻</div>
+        <div class="mobile-use-case-title">Individual Developers</div>
+        <div class="mobile-use-case-list">
+          • Personal ML projects<br>
+          • Learning & education<br>
+          • Portfolio projects<br>
+          • Experimentation
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile CTA Section -->
+    <div class="mobile-cta-section">
+      <div class="mobile-cta-title">Ready to Get Started?</div>
+      <div class="mobile-cta-desc">
+        Join thousands of developers building better ML datasets
+      </div>
+      <div class="mobile-cta-btn btn-primary" style="width: 100%; text-align: center; margin-bottom: 12px;">Get Started
+        Free
+      </div>
+      <div class="mobile-cta-btn" style="width: 100%; text-align: center;">View Documentation</div>
+    </div>
+
+    <!-- Mobile Footer -->
+    <div class="mobile-footer">
+      <div class="mobile-footer-brand">
+        <div style="font-weight: bold; font-size: 18px; margin-bottom: 8px;">PixCrawler</div>
+        <div style="font-size: 11px; color: #666; line-height: 1.5;">
+          Automated image dataset builder for machine learning and research
+        </div>
+      </div>
+
+      <div class="mobile-footer-grid">
+        <div class="mobile-footer-section">
+          <div class="mobile-footer-title">Product</div>
+          <div class="mobile-footer-link">Features</div>
+          <div class="mobile-footer-link">Pricing</div>
+          <div class="mobile-footer-link">Documentation</div>
+          <div class="mobile-footer-link">API</div>
+        </div>
+
+        <div class="mobile-footer-section">
+          <div class="mobile-footer-title">Company</div>
+          <div class="mobile-footer-link">About</div>
+          <div class="mobile-footer-link">Blog</div>
+          <div class="mobile-footer-link">Careers</div>
+          <div class="mobile-footer-link">Contact</div>
+        </div>
+
+        <div class="mobile-footer-section">
+          <div class="mobile-footer-title">Resources</div>
+          <div class="mobile-footer-link">User Guide</div>
+          <div class="mobile-footer-link">Examples</div>
+          <div class="mobile-footer-link">FAQ</div>
+          <div class="mobile-footer-link">Support</div>
+        </div>
+
+        <div class="mobile-footer-section">
+          <div class="mobile-footer-title">Legal</div>
+          <div class="mobile-footer-link">Privacy</div>
+          <div class="mobile-footer-link">Terms</div>
+          <div class="mobile-footer-link">Security</div>
+          <div class="mobile-footer-link">Cookies</div>
+        </div>
+      </div>
+
+      <div class="mobile-footer-bottom">
+        <div class="mobile-social-icons">
+          <div class="social-icon">𝕏</div>
+          <div class="social-icon">in</div>
+          <div class="social-icon">GH</div>
+          <div class="social-icon">YT</div>
+        </div>
+        <div class="mobile-copyright">© 2025 PixCrawler. All rights reserved.</div>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

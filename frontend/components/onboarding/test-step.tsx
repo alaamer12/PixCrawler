@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { TestTube, Check, AlertTriangle, ArrowLeft } from 'lucide-react'
-import { TestResultsPanel } from './test-results-panel'
-import type { DatasetConfig, TestResult } from '@/app/welcome/welcome-flow'
+import {useState} from 'react'
+import {ArrowLeft, TestTube} from 'lucide-react'
+import {TestResultsPanel} from './test-results-panel'
+import type {DatasetConfig, TestResult} from '@/app/welcome/welcome-flow'
 
 interface TestStepProps {
   config: DatasetConfig
@@ -14,19 +14,19 @@ interface TestStepProps {
 }
 
 export function TestStep({
-  config,
-  testResult,
-  onTestComplete,
-  onNext,
-  onBack,
-}: TestStepProps) {
+                           config,
+                           testResult,
+                           onTestComplete,
+                           onNext,
+                           onBack,
+                         }: TestStepProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleRunTest = async () => {
     setIsLoading(true)
-    
+
     try {
-      const { onboardingService } = await import('@/lib/api/onboarding')
+      const {onboardingService} = await import('@/lib/api/onboarding')
       const result = await onboardingService.runTestCrawl(config)
       onTestComplete(result)
     } catch (error) {
@@ -52,10 +52,10 @@ export function TestStep({
       <div className="bg-card border border-border rounded-xl shadow-lg p-8 text-center space-y-6">
         <div className="flex justify-center">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-            <TestTube className="w-8 h-8 text-primary" />
+            <TestTube className="w-8 h-8 text-primary"/>
           </div>
         </div>
-        
+
         <div className="space-y-3">
           <h2 className="text-3xl font-bold tracking-tight">
             Test Your Configuration
@@ -82,7 +82,7 @@ export function TestStep({
       {isLoading && (
         <div className="bg-card border border-border rounded-xl shadow-lg p-8">
           <div className="flex flex-col items-center space-y-4">
-            <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+            <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"/>
             <div className="text-center space-y-2">
               <p className="font-medium">Testing your configuration...</p>
               <p className="text-sm text-muted-foreground">
@@ -107,10 +107,10 @@ export function TestStep({
           onClick={onBack}
           className="flex items-center gap-2 px-6 py-3 border border-border rounded-lg hover:bg-accent transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4"/>
           Back
         </button>
-        
+
         {testResult?.success && (
           <button
             onClick={onNext}

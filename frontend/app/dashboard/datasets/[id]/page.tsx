@@ -1,7 +1,7 @@
 'use client'
 
-import { useParams } from 'next/navigation'
-import { ArrowLeft, Download, Play, Pause, X } from 'lucide-react'
+import {useParams} from 'next/navigation'
+import {ArrowLeft, Pause, X} from 'lucide-react'
 import Link from 'next/link'
 
 export default function DatasetDetailPage() {
@@ -31,18 +31,20 @@ export default function DatasetDetailPage() {
             href="/dashboard"
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4"/>
             Back to Dashboard
           </Link>
         </div>
-        
+
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-3 py-2 border border-border rounded-lg hover:bg-accent transition-colors">
-            <Pause className="w-4 h-4" />
+          <button
+            className="flex items-center gap-2 px-3 py-2 border border-border rounded-lg hover:bg-accent transition-colors">
+            <Pause className="w-4 h-4"/>
             Pause
           </button>
-          <button className="flex items-center gap-2 px-3 py-2 border border-destructive text-destructive rounded-lg hover:bg-destructive/10 transition-colors">
-            <X className="w-4 h-4" />
+          <button
+            className="flex items-center gap-2 px-3 py-2 border border-destructive text-destructive rounded-lg hover:bg-destructive/10 transition-colors">
+            <X className="w-4 h-4"/>
             Cancel
           </button>
         </div>
@@ -57,7 +59,7 @@ export default function DatasetDetailPage() {
               Categories: {dataset.categories.join(', ')}
             </p>
           </div>
-          
+
           <div className="text-right">
             <div className="text-2xl font-bold text-primary">{dataset.progress}%</div>
             <div className="text-sm text-muted-foreground">Complete</div>
@@ -71,9 +73,9 @@ export default function DatasetDetailPage() {
             <span>{dataset.estimatedTimeRemaining} remaining</span>
           </div>
           <div className="w-full bg-muted rounded-full h-2">
-            <div 
+            <div
               className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-500"
-              style={{ width: `${dataset.progress}%` }}
+              style={{width: `${dataset.progress}%`}}
             />
           </div>
         </div>
@@ -99,7 +101,7 @@ export default function DatasetDetailPage() {
       <div className="bg-card border border-border rounded-xl shadow-lg p-6">
         <h3 className="text-lg font-semibold mb-4">Live Image Stream</h3>
         <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-          {Array.from({ length: 16 }, (_, i) => (
+          {Array.from({length: 16}, (_, i) => (
             <div
               key={i}
               className="aspect-square bg-muted border border-border rounded-lg flex items-center justify-center text-xs text-muted-foreground animate-pulse"

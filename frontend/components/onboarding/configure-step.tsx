@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { CodePreview } from './code-preview'
-import type { DatasetConfig } from '@/app/welcome/welcome-flow'
+import {useEffect, useState} from 'react'
+import {CodePreview} from './code-preview'
+import type {DatasetConfig} from '@/app/welcome/welcome-flow'
 
 interface ConfigureStepProps {
   userName: string
@@ -12,11 +12,11 @@ interface ConfigureStepProps {
 }
 
 export function ConfigureStep({
-  userName,
-  config,
-  onConfigChange,
-  onNext,
-}: ConfigureStepProps) {
+                                userName,
+                                config,
+                                onConfigChange,
+                                onNext,
+                              }: ConfigureStepProps) {
   const [localConfig, setLocalConfig] = useState(config)
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export function ConfigureStep({
   }, [localConfig, onConfigChange])
 
   const handleNameChange = (name: string) => {
-    setLocalConfig(prev => ({ ...prev, name }))
+    setLocalConfig(prev => ({...prev, name}))
   }
 
   const handleCategoriesChange = (categoriesStr: string) => {
@@ -32,11 +32,11 @@ export function ConfigureStep({
       .split(',')
       .map(cat => cat.trim())
       .filter(cat => cat.length > 0)
-    setLocalConfig(prev => ({ ...prev, categories }))
+    setLocalConfig(prev => ({...prev, categories}))
   }
 
   const handleImagesChange = (imagesPerCategory: number) => {
-    setLocalConfig(prev => ({ ...prev, imagesPerCategory }))
+    setLocalConfig(prev => ({...prev, imagesPerCategory}))
   }
 
   const categoriesString = localConfig.categories.join(', ')
@@ -120,7 +120,7 @@ export function ConfigureStep({
       </div>
 
       {/* Code Preview */}
-      <CodePreview config={localConfig} />
+      <CodePreview config={localConfig}/>
 
       {/* Next Button */}
       <button

@@ -1,12 +1,12 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { WelcomeFlow } from './welcome-flow'
+import {createClient} from '@/lib/supabase/server'
+import {redirect} from 'next/navigation'
+import {WelcomeFlow} from './welcome-flow'
 
 export default async function WelcomePage() {
   const supabase = await createClient()
-  
+
   const {
-    data: { user },
+    data: {user},
   } = await supabase.auth.getUser()
 
   if (!user) {
@@ -14,7 +14,7 @@ export default async function WelcomePage() {
   }
 
   // Check if user has already completed onboarding
-  const { data: profile } = await supabase
+  const {data: profile} = await supabase
     .from('profiles')
     .select('onboarding_completed')
     .eq('id', user.id)
@@ -24,5 +24,5 @@ export default async function WelcomePage() {
     redirect('/dashboard')
   }
 
-  return <WelcomeFlow user={user} />
+  return <WelcomeFlow user={user}/>
 }

@@ -1,12 +1,12 @@
 'use client'
 
-import type { DatasetConfig } from '@/app/welcome/welcome-flow'
+import type {DatasetConfig} from '@/app/welcome/welcome-flow'
 
 interface CodePreviewProps {
   config: DatasetConfig
 }
 
-export function CodePreview({ config }: CodePreviewProps) {
+export function CodePreview({config}: CodePreviewProps) {
   const configJson = {
     name: config.name,
     categories: config.categories,

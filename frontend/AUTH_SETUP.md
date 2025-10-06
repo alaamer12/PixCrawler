@@ -5,6 +5,7 @@ This document provides a complete guide for setting up authentication in the Pix
 ## Features Implemented
 
 ### ✅ Core Authentication
+
 - **Email/Password Authentication**: Sign up, sign in, and password reset
 - **OAuth Integration**: GitHub and Google OAuth providers
 - **Session Management**: Secure session handling with Supabase Auth
@@ -12,6 +13,7 @@ This document provides a complete guide for setting up authentication in the Pix
 - **User Profiles**: Extended user profiles with metadata
 
 ### ✅ UI Components
+
 - **Modern Auth Forms**: Consistent design with Tailwind CSS
 - **OAuth Buttons**: GitHub and Google sign-in buttons
 - **User Menu**: Dropdown menu with profile and settings
@@ -19,6 +21,7 @@ This document provides a complete guide for setting up authentication in the Pix
 - **Loading States**: Proper loading and error handling
 
 ### ✅ Pages & Routes
+
 - `/login` - Sign in page
 - `/signup` - Sign up page
 - `/auth/forgot-password` - Password reset request
@@ -57,6 +60,7 @@ npm run db:setup
 ```
 
 This will:
+
 - Create the `profiles` table
 - Set up Row Level Security (RLS) policies
 - Create triggers for automatic profile creation
@@ -65,16 +69,18 @@ This will:
 ### 3. OAuth Configuration
 
 #### GitHub OAuth
+
 1. Go to [GitHub Developer Settings](https://github.com/settings/applications/new)
 2. Create a new OAuth App with:
-   - **Application name**: PixCrawler
-   - **Homepage URL**: `http://localhost:3000` (development) or your production URL
-   - **Authorization callback URL**: `http://localhost:3000/auth/callback`
+  - **Application name**: PixCrawler
+  - **Homepage URL**: `http://localhost:3000` (development) or your production URL
+  - **Authorization callback URL**: `http://localhost:3000/auth/callback`
 3. Copy the Client ID and Client Secret
 4. In your Supabase dashboard, go to Authentication > Providers > GitHub
 5. Enable GitHub and add your Client ID and Client Secret
 
 #### Google OAuth
+
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select an existing one
 3. Enable the Google+ API
@@ -90,13 +96,13 @@ This will:
 In your Supabase dashboard:
 
 1. **Authentication Settings**:
-   - Enable email confirmations (optional)
-   - Set up custom SMTP (optional)
-   - Configure redirect URLs for your domain
+  - Enable email confirmations (optional)
+  - Set up custom SMTP (optional)
+  - Configure redirect URLs for your domain
 
 2. **URL Configuration**:
-   - Add your site URL: `http://localhost:3000` (development)
-   - Add redirect URLs: `http://localhost:3000/auth/callback`
+  - Add your site URL: `http://localhost:3000` (development)
+  - Add redirect URLs: `http://localhost:3000/auth/callback`
 
 ## File Structure
 
@@ -214,21 +220,25 @@ await authService.resetPassword('user@example.com')
 ## Security Features
 
 ### Row Level Security (RLS)
+
 - All database tables have RLS enabled
 - Users can only access their own data
 - Policies enforce proper authorization
 
 ### Session Management
+
 - Secure HTTP-only cookies
 - Automatic session refresh
 - Proper session cleanup on logout
 
 ### Route Protection
+
 - Middleware-based route protection
 - Automatic redirects for unauthenticated users
 - Protected API routes
 
 ### Input Validation
+
 - Client-side form validation
 - Server-side validation with Supabase
 - Proper error handling and user feedback
@@ -236,19 +246,25 @@ await authService.resetPassword('user@example.com')
 ## Customization
 
 ### Styling
+
 The authentication components use Tailwind CSS and can be customized by:
+
 - Modifying the component classes
 - Updating the design system tokens
 - Creating custom variants
 
 ### Providers
+
 To add more OAuth providers:
+
 1. Enable the provider in Supabase dashboard
 2. Add the provider to the `OAuthButtons` component
 3. Update the `AuthService` to handle the new provider
 
 ### Database Schema
+
 The user profile schema can be extended by:
+
 1. Updating the `profiles` table in Supabase
 2. Modifying the TypeScript types in `schema.ts`
 3. Updating the profile forms and displays
@@ -258,22 +274,24 @@ The user profile schema can be extended by:
 ### Common Issues
 
 1. **OAuth redirect errors**:
-   - Check redirect URLs in provider settings
-   - Ensure callback URL matches exactly
-   - Verify environment variables
+  - Check redirect URLs in provider settings
+  - Ensure callback URL matches exactly
+  - Verify environment variables
 
 2. **Database permission errors**:
-   - Run the database setup script
-   - Check RLS policies in Supabase
-   - Verify service role key permissions
+  - Run the database setup script
+  - Check RLS policies in Supabase
+  - Verify service role key permissions
 
 3. **Session issues**:
-   - Clear browser cookies
-   - Check middleware configuration
-   - Verify Supabase client setup
+  - Clear browser cookies
+  - Check middleware configuration
+  - Verify Supabase client setup
 
 ### Debug Mode
+
 Enable debug logging by setting:
+
 ```env
 NODE_ENV=development
 ```
@@ -291,6 +309,7 @@ This will provide detailed logs for authentication flows and database operations
 ## Support
 
 For issues or questions:
+
 1. Check the Supabase documentation
 2. Review the component source code
 3. Check browser console for errors

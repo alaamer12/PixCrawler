@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { authService } from '@/lib/auth'
-import { useRouter } from 'next/navigation'
+import {useState} from 'react'
+import {authService} from '@/lib/auth'
+import {useRouter} from 'next/navigation'
 
 export function ResetPasswordForm() {
   const [password, setPassword] = useState('')
@@ -85,7 +85,8 @@ export function ResetPasswordForm() {
         </div>
 
         {error && (
-          <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg p-3 text-center">
+          <div
+            className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg p-3 text-center">
             {error}
           </div>
         )}

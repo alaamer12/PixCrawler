@@ -1,7 +1,7 @@
 'use client'
 
-import { Check } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import {Check} from 'lucide-react'
+import {cn} from '@/lib/utils'
 
 interface ProgressIndicatorProps {
   currentStep: number
@@ -10,11 +10,11 @@ interface ProgressIndicatorProps {
 
 const stepLabels = ['Configure', 'Test', 'Launch']
 
-export function ProgressIndicator({ currentStep, totalSteps }: ProgressIndicatorProps) {
+export function ProgressIndicator({currentStep, totalSteps}: ProgressIndicatorProps) {
   return (
     <div className="flex items-center justify-center">
       <div className="flex items-center gap-8">
-        {Array.from({ length: totalSteps }, (_, index) => {
+        {Array.from({length: totalSteps}, (_, index) => {
           const stepNumber = index + 1
           const isActive = stepNumber === currentStep
           const isCompleted = stepNumber < currentStep
@@ -32,7 +32,7 @@ export function ProgressIndicator({ currentStep, totalSteps }: ProgressIndicator
                   )}
                 >
                   {isCompleted ? (
-                    <Check className="size-5" />
+                    <Check className="size-5"/>
                   ) : (
                     <span className="text-sm">{stepNumber}</span>
                   )}
@@ -50,7 +50,7 @@ export function ProgressIndicator({ currentStep, totalSteps }: ProgressIndicator
                   </div>
                 </div>
               </div>
-              
+
               {!isLast && (
                 <div
                   className={cn(
@@ -63,7 +63,7 @@ export function ProgressIndicator({ currentStep, totalSteps }: ProgressIndicator
           )
         })}
       </div>
-      
+
       {/* Mobile step indicator */}
       <div className="md:hidden text-sm text-muted-foreground">
         Step {currentStep} of {totalSteps}

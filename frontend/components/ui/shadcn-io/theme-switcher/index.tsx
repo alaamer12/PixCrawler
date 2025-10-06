@@ -1,9 +1,9 @@
 'use client';
 
-import { useControllableState } from '@radix-ui/react-use-controllable-state';
-import { Monitor, Moon, Sun, ChevronDown, Check } from 'lucide-react';
-import { useCallback, useEffect, useState, useRef } from 'react';
-import { cn } from '@/lib/utils';
+import {useControllableState} from '@radix-ui/react-use-controllable-state';
+import {Check, ChevronDown, Monitor, Moon, Sun} from 'lucide-react';
+import {useCallback, useEffect, useRef, useState} from 'react';
+import {cn} from '@/lib/utils';
 
 const themes = [
   {
@@ -31,11 +31,11 @@ export type ThemeSwitcherProps = {
 };
 
 export const ThemeSwitcher = ({
-  value,
-  onChange,
-  defaultValue = 'system',
-  className,
-}: ThemeSwitcherProps) => {
+                                value,
+                                onChange,
+                                defaultValue = 'system',
+                                className,
+                              }: ThemeSwitcherProps) => {
   const [theme, setTheme] = useControllableState({
     defaultProp: defaultValue,
     prop: value,
@@ -90,14 +90,15 @@ export const ThemeSwitcher = ({
         aria-label="Select theme"
         type="button"
       >
-        <CurrentIcon className="h-4 w-4 transition-colors group-hover:text-primary" />
+        <CurrentIcon className="h-4 w-4 transition-colors group-hover:text-primary"/>
         {/* <span className="text-sm">{currentTheme?.label}</span> */}
-        <ChevronDown className={cn('h-3 w-3 transition-transform', isOpen && 'rotate-180')} />
+        <ChevronDown className={cn('h-3 w-3 transition-transform', isOpen && 'rotate-180')}/>
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-40 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-          {themes.map(({ key, icon: Icon, label }) => {
+        <div
+          className="absolute right-0 mt-2 w-40 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+          {themes.map(({key, icon: Icon, label}) => {
             const isActive = theme === key;
 
             return (
@@ -106,15 +107,15 @@ export const ThemeSwitcher = ({
                 onClick={() => handleThemeClick(key as 'light' | 'dark' | 'system')}
                 className={cn(
                   'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors cursor-pointer',
-                  isActive 
-                    ? 'bg-primary/10 text-primary font-medium' 
+                  isActive
+                    ? 'bg-primary/10 text-primary font-medium'
                     : 'hover:bg-muted text-foreground'
                 )}
                 type="button"
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4"/>
                 <span className="flex-1 text-left">{label}</span>
-                {isActive && <Check className="h-4 w-4" />}
+                {isActive && <Check className="h-4 w-4"/>}
               </button>
             );
           })}

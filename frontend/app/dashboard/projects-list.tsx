@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Project } from '@/lib/db/schema'
+import {useEffect, useState} from 'react'
+import {createClient} from '@/lib/supabase/client'
+import {Project} from '@/lib/db/schema'
 
 interface ProjectsListProps {
   userId: string
 }
 
-export function ProjectsList({ userId }: ProjectsListProps) {
+export function ProjectsList({userId}: ProjectsListProps) {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -22,11 +22,11 @@ export function ProjectsList({ userId }: ProjectsListProps) {
 
   const fetchProjects = async () => {
     try {
-      const { data, error } = await supabase
+      const {data, error} = await supabase
         .from('projects')
         .select('*')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false })
+        .order('created_at', {ascending: false})
 
       if (error) throw error
       setProjects(data || [])
@@ -42,7 +42,7 @@ export function ProjectsList({ userId }: ProjectsListProps) {
     if (!newProjectName.trim()) return
 
     try {
-      const { data, error } = await supabase
+      const {data, error} = await supabase
         .from('projects')
         .insert({
           name: newProjectName,
@@ -53,7 +53,7 @@ export function ProjectsList({ userId }: ProjectsListProps) {
         .single()
 
       if (error) throw error
-      
+
       setProjects([data, ...projects])
       setNewProjectName('')
       setNewProjectDescription('')

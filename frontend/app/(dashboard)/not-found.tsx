@@ -1,5 +1,5 @@
-import { NotFoundUI } from '@/components/not-found-ui'
+import {NotFoundUI} from '@/components/not-found-ui'
 
 export default function NotFound() {
-	return <NotFoundUI />
+  return <NotFoundUI/>
 }

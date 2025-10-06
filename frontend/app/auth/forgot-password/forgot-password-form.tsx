@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { authService } from '@/lib/auth'
-import { ArrowLeft } from 'lucide-react'
+import {useState} from 'react'
+import {authService} from '@/lib/auth'
+import {ArrowLeft} from 'lucide-react'
 import Link from 'next/link'
 
 export function ForgotPasswordForm() {
@@ -55,7 +55,8 @@ export function ForgotPasswordForm() {
         </div>
 
         {error && (
-          <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg p-3 text-center">
+          <div
+            className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg p-3 text-center">
             {error}
           </div>
         )}
@@ -80,7 +81,7 @@ export function ForgotPasswordForm() {
           href="/login"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          <ArrowLeft className="size-4" />
+          <ArrowLeft className="size-4"/>
           Back to sign in
         </Link>
       </div>

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { AlertCircle, ArrowLeft } from 'lucide-react'
+import {AlertCircle, ArrowLeft} from 'lucide-react'
 
 export default function AuthCodeErrorPage() {
   return (
@@ -7,7 +7,7 @@ export default function AuthCodeErrorPage() {
       <div className="flex w-full max-w-md flex-col gap-6 text-center">
         <div className="flex flex-col items-center gap-4">
           <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10">
-            <AlertCircle className="size-8 text-destructive" />
+            <AlertCircle className="size-8 text-destructive"/>
           </div>
           <div className="space-y-2">
             <h1 className="text-2xl font-bold tracking-tight">Authentication Error</h1>
@@ -28,7 +28,7 @@ export default function AuthCodeErrorPage() {
             href="/"
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
-            <ArrowLeft className="size-4" />
+            <ArrowLeft className="size-4"/>
             Back to Home
           </Link>
         </div>

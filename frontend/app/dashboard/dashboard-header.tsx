@@ -1,14 +1,14 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import { User } from '@supabase/supabase-js'
+import {createClient} from '@/lib/supabase/client'
+import {useRouter} from 'next/navigation'
+import {User} from '@supabase/supabase-js'
 
 interface DashboardHeaderProps {
   user: User
 }
 
-export function DashboardHeader({ user }: DashboardHeaderProps) {
+export function DashboardHeader({user}: DashboardHeaderProps) {
   const router = useRouter()
   const supabase = createClient()
 

@@ -1,10 +1,10 @@
 'use client'
 
-import { useAuth } from '@/lib/auth/hooks'
-import { Settings, User, Shield, Bell, Palette } from 'lucide-react'
+import {useAuth} from '@/lib/auth/hooks'
+import {Bell, Palette, Shield, User} from 'lucide-react'
 
 export default function SettingsPage() {
-  const { user } = useAuth()
+  const {user} = useAuth()
 
   return (
     <div className="space-y-6">
@@ -18,10 +18,10 @@ export default function SettingsPage() {
       <div className="grid gap-6">
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
           <div className="flex items-center gap-3 mb-4">
-            <User className="size-5 text-primary" />
+            <User className="size-5 text-primary"/>
             <h3 className="text-lg font-semibold">Profile Settings</h3>
           </div>
-          
+
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium">Full Name</label>
@@ -32,7 +32,7 @@ export default function SettingsPage() {
                 placeholder="Enter your full name"
               />
             </div>
-            
+
             <div>
               <label className="text-sm font-medium">Email</label>
               <input
@@ -45,8 +45,9 @@ export default function SettingsPage() {
                 Email cannot be changed. Contact support if needed.
               </p>
             </div>
-            
-            <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
+
+            <button
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
               Save Changes
             </button>
           </div>
@@ -54,10 +55,10 @@ export default function SettingsPage() {
 
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
           <div className="flex items-center gap-3 mb-4">
-            <Shield className="size-5 text-primary" />
+            <Shield className="size-5 text-primary"/>
             <h3 className="text-lg font-semibold">Security</h3>
           </div>
-          
+
           <div className="space-y-4">
             <div>
               <h4 className="font-medium">Password</h4>
@@ -68,7 +69,7 @@ export default function SettingsPage() {
                 Change Password
               </button>
             </div>
-            
+
             <div>
               <h4 className="font-medium">Two-Factor Authentication</h4>
               <p className="text-sm text-muted-foreground mb-2">
@@ -83,10 +84,10 @@ export default function SettingsPage() {
 
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
           <div className="flex items-center gap-3 mb-4">
-            <Bell className="size-5 text-primary" />
+            <Bell className="size-5 text-primary"/>
             <h3 className="text-lg font-semibold">Notifications</h3>
           </div>
-          
+
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -95,9 +96,9 @@ export default function SettingsPage() {
                   Receive email updates about your projects
                 </p>
               </div>
-              <input type="checkbox" className="rounded" defaultChecked />
+              <input type="checkbox" className="rounded" defaultChecked/>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="font-medium">Job Completion</h4>
@@ -105,9 +106,9 @@ export default function SettingsPage() {
                   Get notified when crawl jobs complete
                 </p>
               </div>
-              <input type="checkbox" className="rounded" defaultChecked />
+              <input type="checkbox" className="rounded" defaultChecked/>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="font-medium">Weekly Reports</h4>
@@ -115,24 +116,25 @@ export default function SettingsPage() {
                   Receive weekly activity summaries
                 </p>
               </div>
-              <input type="checkbox" className="rounded" />
+              <input type="checkbox" className="rounded"/>
             </div>
           </div>
         </div>
 
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
           <div className="flex items-center gap-3 mb-4">
-            <Palette className="size-5 text-primary" />
+            <Palette className="size-5 text-primary"/>
             <h3 className="text-lg font-semibold">Appearance</h3>
           </div>
-          
+
           <div className="space-y-4">
             <div>
               <h4 className="font-medium">Theme</h4>
               <p className="text-sm text-muted-foreground mb-2">
                 Choose your preferred theme
               </p>
-              <select className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
+              <select
+                className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
                 <option value="system">System</option>
                 <option value="light">Light</option>
                 <option value="dark">Dark</option>

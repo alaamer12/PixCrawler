@@ -15,7 +15,7 @@
   --color-primary-800: #fe40af;
   --color-primary-900: #fe3a8a;
   --color-primary-950: #f72554;
-  
+
   --color-secondary-50: #faf5ff;
   --color-secondary-100: #f3e8ff;
   --color-secondary-200: #e9d5ff;
@@ -27,7 +27,7 @@
   --color-secondary-800: #6b21a8;
   --color-secondary-900: #581c87;
   --color-secondary-950: #3b0764;
-  
+
   --color-neutral-50: #fafafa;
   --color-neutral-100: #f5f5f5;
   --color-neutral-200: #e5e5e5;
@@ -39,11 +39,11 @@
   --color-neutral-800: #262626;
   --color-neutral-900: #171717;
   --color-neutral-950: #0a0a0a;
-  
+
   --color-success-500: #22c55e;
   --color-warning-500: #f97316;
   --color-error-500: #ef4444;
-  
+
   /* Semantic Colors - Light Mode */
   --background: var(--color-neutral-50);
   --foreground: var(--color-neutral-900);
@@ -194,9 +194,8 @@ html {
 /* ===== Background Patterns ===== */
 
 .bg-grid-pattern {
-  background-image: 
-    linear-gradient(to right, currentColor 1px, transparent 1px),
-    linear-gradient(to bottom, currentColor 1px, transparent 1px);
+  background-image: linear-gradient(to right, currentColor 1px, transparent 1px),
+  linear-gradient(to bottom, currentColor 1px, transparent 1px);
   background-size: 40px 40px;
 }
 

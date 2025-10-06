@@ -1,15 +1,15 @@
 'use client'
 
-import { useState } from 'react'
-import { authService } from '@/lib/auth'
-import { Github } from 'lucide-react'
+import {useState} from 'react'
+import {authService} from '@/lib/auth'
+import {Github} from 'lucide-react'
 
 interface OAuthButtonsProps {
   mode?: 'signin' | 'signup'
   className?: string
 }
 
-export function OAuthButtons({ mode = 'signin', className = '' }: OAuthButtonsProps) {
+export function OAuthButtons({mode = 'signin', className = ''}: OAuthButtonsProps) {
   const [loading, setLoading] = useState<string | null>(null)
 
   const handleOAuthSignIn = async (provider: 'github' | 'google') => {
@@ -29,7 +29,7 @@ export function OAuthButtons({ mode = 'signin', className = '' }: OAuthButtonsPr
     <div className={`space-y-3 ${className}`}>
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border" />
+          <div className="w-full border-t border-border"/>
         </div>
         <div className="relative flex justify-center text-sm">
           <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
@@ -44,9 +44,9 @@ export function OAuthButtons({ mode = 'signin', className = '' }: OAuthButtonsPr
           className="w-full inline-flex justify-center items-center px-4 py-2 border border-border rounded-lg shadow-sm bg-background text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading === 'github' ? (
-            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"/>
           ) : (
-            <Github className="w-4 h-4" />
+            <Github className="w-4 h-4"/>
           )}
           <span className="ml-2">{actionText} with GitHub</span>
         </button>
@@ -58,7 +58,7 @@ export function OAuthButtons({ mode = 'signin', className = '' }: OAuthButtonsPr
           className="w-full inline-flex justify-center items-center px-4 py-2 border border-border rounded-lg shadow-sm bg-background text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading === 'google' ? (
-            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"/>
           ) : (
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path

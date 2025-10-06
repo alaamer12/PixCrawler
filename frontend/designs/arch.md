@@ -208,13 +208,13 @@ WelcomePage/
 - Executes lightweight test job (10 images max)
 - Shows real-time loading state with smooth animation
 - On success:
-    - Displays success message with checkmark
-    - Shows 3-4 thumbnail previews of found images
-    - Enables "Next" button
+  - Displays success message with checkmark
+  - Shows 3-4 thumbnail previews of found images
+  - Enables "Next" button
 - On failure:
-    - Shows friendly error message
-    - Suggests fixes (e.g., "Try different keywords")
-    - Allows retry without leaving page
+  - Shows friendly error message
+  - Suggests fixes (e.g., "Try different keywords")
+  - Allows retry without leaving page
 
 **Step 3: Launch Full Dataset**
 
@@ -801,9 +801,9 @@ graph TD
 - [ ]  Implement authentication flow (Sign in/up pages with Supabase)
 - [ ]  Build landing page (Hero section, features, CTA)
 - [ ]  **Create `/welcome` onboarding flow** (3-step wizard)
-    - [ ]  Step 1: Configuration form with live JSON preview
-    - [ ]  Step 2: Test crawl functionality with real-time feedback
-    - [ ]  Step 3: Launch summary with estimated metrics
+  - [ ]  Step 1: Configuration form with live JSON preview
+  - [ ]  Step 2: Test crawl functionality with real-time feedback
+  - [ ]  Step 3: Launch summary with estimated metrics
 - [ ]  Add onboarding completion tracking to user metadata
 - [ ]  Implement routing logic (redirect logic based on `onboarding_completed`)
 

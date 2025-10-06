@@ -1,5 +1,5 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import {createServerClient, type CookieOptions} from '@supabase/ssr'
+import {NextResponse, type NextRequest} from 'next/server'
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -55,7 +55,7 @@ export async function middleware(request: NextRequest) {
   )
 
   const {
-    data: { user },
+    data: {user},
   } = await supabase.auth.getUser()
 
   // Protected routes that require authentication
@@ -82,7 +82,7 @@ export async function middleware(request: NextRequest) {
 
   // Check onboarding status for authenticated users
   if (user && !isWelcomePage && !isAuthPath) {
-    const { data: profile } = await supabase
+    const {data: profile} = await supabase
       .from('profiles')
       .select('onboarding_completed')
       .eq('id', user.id)
@@ -97,7 +97,7 @@ export async function middleware(request: NextRequest) {
   // Redirect to dashboard if accessing auth routes while authenticated
   if (isAuthPath && user) {
     // Check if user needs onboarding
-    const { data: profile } = await supabase
+    const {data: profile} = await supabase
       .from('profiles')
       .select('onboarding_completed')
       .eq('id', user.id)
@@ -106,7 +106,7 @@ export async function middleware(request: NextRequest) {
     if (profile && !profile.onboarding_completed) {
       return NextResponse.redirect(new URL('/welcome', request.url))
     }
-    
+
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

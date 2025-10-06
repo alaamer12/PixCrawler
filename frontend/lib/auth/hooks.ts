@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { authService, type AuthUser } from './index'
+import {useEffect, useState} from 'react'
+import {useRouter} from 'next/navigation'
+import {authService, type AuthUser} from './index'
 
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -17,7 +17,7 @@ export function useAuth() {
     })
 
     // Listen for auth changes
-    const { data: { subscription } } = authService.onAuthStateChange((user) => {
+    const {data: {subscription}} = authService.onAuthStateChange((user) => {
       setUser(user)
       setLoading(false)
     })
@@ -44,7 +44,7 @@ export function useAuth() {
 }
 
 export function useRequireAuth(redirectTo = '/login') {
-  const { user, loading } = useAuth()
+  const {user, loading} = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -53,5 +53,5 @@ export function useRequireAuth(redirectTo = '/login') {
     }
   }, [user, loading, router, redirectTo])
 
-  return { user, loading }
+  return {user, loading}
 }

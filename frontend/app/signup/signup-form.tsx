@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { authService } from '@/lib/auth'
-import { useRouter } from 'next/navigation'
-import { OAuthButtons } from '@/components/auth/oauth-buttons'
+import {useState} from 'react'
+import {authService} from '@/lib/auth'
+import {useRouter} from 'next/navigation'
+import {OAuthButtons} from '@/components/auth/oauth-buttons'
 
 export function SignupForm() {
   const [email, setEmail] = useState('')
@@ -89,7 +89,8 @@ export function SignupForm() {
         </div>
 
         {error && (
-          <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg p-3 text-center">
+          <div
+            className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg p-3 text-center">
             {error}
           </div>
         )}
@@ -109,7 +110,7 @@ export function SignupForm() {
         </button>
       </form>
 
-      <OAuthButtons mode="signup" />
+      <OAuthButtons mode="signup"/>
 
       <div className="text-center pt-4 border-t border-border">
         <p className="text-sm text-muted-foreground">

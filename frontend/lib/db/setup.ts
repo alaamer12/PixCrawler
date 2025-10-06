@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
-import { config } from 'dotenv'
+import {createClient} from '@supabase/supabase-js'
+import {config} from 'dotenv'
 
 // Load environment variables
 config()
@@ -19,7 +19,7 @@ async function setupDatabase() {
 
   try {
     // Create profiles table if it doesn't exist
-    const { error: createTableError } = await supabase.rpc('exec_sql', {
+    const {error: createTableError} = await supabase.rpc('exec_sql', {
       sql: `
         -- Create profiles table
         CREATE TABLE IF NOT EXISTS profiles (
@@ -108,4 +108,4 @@ if (require.main === module) {
   setupDatabase().then(() => process.exit(0))
 }
 
-export { setupDatabase }
+export {setupDatabase}

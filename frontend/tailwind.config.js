@@ -20,36 +20,36 @@ module.exports = {
       },
       keyframes: {
         fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
+          '0%': {opacity: '0'},
+          '100%': {opacity: '1'},
         },
         fadeOut: {
-          '0%': { opacity: '1' },
-          '100%': { opacity: '0' },
+          '0%': {opacity: '1'},
+          '100%': {opacity: '0'},
         },
         slideInFromTop: {
-          '0%': { transform: 'translateY(-100%)' },
-          '100%': { transform: 'translateY(0)' },
+          '0%': {transform: 'translateY(-100%)'},
+          '100%': {transform: 'translateY(0)'},
         },
         slideInFromBottom: {
-          '0%': { transform: 'translateY(100%)' },
-          '100%': { transform: 'translateY(0)' },
+          '0%': {transform: 'translateY(100%)'},
+          '100%': {transform: 'translateY(0)'},
         },
         slideInFromLeft: {
-          '0%': { transform: 'translateX(-100%)' },
-          '100%': { transform: 'translateX(0)' },
+          '0%': {transform: 'translateX(-100%)'},
+          '100%': {transform: 'translateX(0)'},
         },
         slideInFromRight: {
-          '0%': { transform: 'translateX(100%)' },
-          '100%': { transform: 'translateX(0)' },
+          '0%': {transform: 'translateX(100%)'},
+          '100%': {transform: 'translateX(0)'},
         },
         scaleIn: {
-          '0%': { transform: 'scale(0.95)', opacity: '0' },
-          '100%': { transform: 'scale(1)', opacity: '1' },
+          '0%': {transform: 'scale(0.95)', opacity: '0'},
+          '100%': {transform: 'scale(1)', opacity: '1'},
         },
         scaleOut: {
-          '0%': { transform: 'scale(1)', opacity: '1' },
-          '100%': { transform: 'scale(0.95)', opacity: '0' },
+          '0%': {transform: 'scale(1)', opacity: '1'},
+          '100%': {transform: 'scale(0.95)', opacity: '0'},
         },
       },
       animation: {
