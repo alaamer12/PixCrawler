@@ -7,10 +7,10 @@ import { Button, IconButton } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
 
 const NAV_ITEMS = [
-  { href: '#features', label: 'Features' },
-  { href: '#pricing', label: 'Pricing' },
-  { href: '#docs', label: 'Docs' },
-  { href: '#blog', label: 'Blog' },
+  { href: '/#features', label: 'Features' },
+  { href: '/pricing', label: 'Pricing' },
+  { href: '/docs', label: 'Docs' },
+  { href: '/examples', label: 'Examples' },
 ] as const
 
 interface NavLinkProps {
@@ -24,18 +24,18 @@ interface NavLinkProps {
 const NavLink = memo(({ href, label, isActive, onClick, isMobile = false }: NavLinkProps) => {
   if (isMobile) {
     return (
-      <a
+      <Link
         href={href}
         className="text-base text-foreground/60 hover:text-foreground hover:bg-muted transition-all py-2 px-3 rounded-lg"
         onClick={onClick}
       >
         {label}
-      </a>
+      </Link>
     )
   }
 
   return (
-    <a
+    <Link
       href={href}
       className={`text-sm transition-all relative group ${
         isActive
@@ -49,22 +49,32 @@ const NavLink = memo(({ href, label, isActive, onClick, isMobile = false }: NavL
           isActive ? 'w-full' : 'w-0 group-hover:w-full'
         }`}
       />
-    </a>
+    </Link>
   )
 })
 NavLink.displayName = 'NavLink'
 
 const NavLinks = memo(() => {
-  const [activeHash, setActiveHash] = useState('')
+  const [activeSection, setActiveSection] = useState('')
 
   useEffect(() => {
     const handleHashChange = () => {
-      setActiveHash(window.location.hash)
+      setActiveSection(window.location.hash)
+    }
+
+    const handlePathChange = () => {
+      setActiveSection(window.location.pathname + window.location.hash)
     }
 
     handleHashChange()
+    handlePathChange()
     window.addEventListener('hashchange', handleHashChange)
-    return () => window.removeEventListener('hashchange', handleHashChange)
+    window.addEventListener('popstate', handlePathChange)
+    
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange)
+      window.removeEventListener('popstate', handlePathChange)
+    }
   }, [])
 
   return (
@@ -74,7 +84,7 @@ const NavLinks = memo(() => {
           key={item.href}
           href={item.href}
           label={item.label}
-          isActive={activeHash === item.href}
+          isActive={activeSection === item.href || (item.href.startsWith('/#') && activeSection === item.href.substring(1))}
         />
       ))}
     </div>

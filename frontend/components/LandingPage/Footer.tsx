@@ -18,31 +18,31 @@ const FOOTER_SECTIONS: FooterSection[] = [
   {
     title: 'Product',
     links: [
-      { label: 'Features', href: '#features' },
-      { label: 'Pricing', href: '#pricing' },
-      { label: 'Documentation', href: '#docs' },
-      { label: 'API Reference', href: '#api' }
+      { label: 'Features', href: '/#features' },
+      { label: 'Pricing', href: '/#pricing' },
+      { label: 'Documentation', href: '/docs' },
+      { label: 'API Reference', href: '/docs/api' }
     ]
   },
   {
     title: 'Company',
     links: [
-      { label: 'About', href: '#about' },
-      { label: 'Contact', href: '#contact' }
+      { label: 'About', href: '/#about' },
+      { label: 'Contact', href: '/contact' }
     ]
   },
   {
     title: 'Resources',
     links: [
-      { label: 'Examples', href: '#examples' },
-      { label: 'FAQ', href: '#faq' }
+      { label: 'Examples', href: '/examples' },
+      { label: 'FAQ', href: '/#faq' }
     ]
   },
   {
     title: 'Legal',
     links: [
-      { label: 'Privacy Policy', href: '#privacy' },
-      { label: 'Terms of Service', href: '#terms' }
+      { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Terms of Service', href: '/terms' }
     ]
   }
 ]
