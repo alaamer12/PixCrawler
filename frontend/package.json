@@ -26,6 +26,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
+    "@stripe/stripe-js": "^8.0.0",
     "@supabase/ssr": "^0.1.0",
     "@supabase/supabase-js": "^2.39.7",
     "@unpic/react": "^1.0.1",
@@ -49,6 +50,7 @@
     "react-virtualized-auto-sizer": "^1.0.26",
     "react-window": "^2.2.0",
     "server-only": "^0.0.1",
+    "stripe": "^19.1.0",
     "zod": "^3.24.4"
   },
   "devDependencies": {
