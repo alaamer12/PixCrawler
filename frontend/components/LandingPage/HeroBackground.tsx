@@ -8,35 +8,35 @@ export const HeroBackground = memo(() => {
       {/* Base gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/20 to-background"/>
 
-      {/* Animated gradient orbs - enhanced for light theme */}
+       {/* Floating brand color elements */}
       <div
         className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl animate-float-slow"
         style={{
-          background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary) ))',
+          background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)))',
+          opacity: '0.1',
           animationDuration: '20s'
         }}
       />
-
       <div
         className="absolute top-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl animate-float-slow"
         style={{
           background: 'linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--primary)))',
+          opacity: '0.08',
           animationDuration: '25s',
           animationDelay: '2s'
         }}
       />
-
       <div
-        className="absolute bottom-1/4 left-1/3 w-72 h-72 rounded-full blur-3xl animate-float-slow"
+        className="absolute bottom-1/4 left-1/3 w-64 h-64 rounded-full blur-3xl animate-float-slow"
         style={{
-          background: 'linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--secondary) / 0.15))',
-          animationDuration: '22s',
+          background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))',
+          opacity: '0.06',
+          animationDuration: '30s',
           animationDelay: '4s'
         }}
       />
-
       {/* Grid pattern overlay */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-[0.06] dark:opacity-[0.04]"/>
+      <div className="absolute inset-0 bg-grid-pattern opacity-[0.1] dark:opacity-[0.04]"/>
 
       {/* Radial gradient overlay */}
       <div className="absolute inset-0 bg-radial-gradient from-transparent via-transparent to-background/80"/>
