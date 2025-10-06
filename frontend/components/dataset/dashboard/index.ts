@@ -1,0 +1,6 @@
+export { DatasetDashboard } from '@/components/dataset/dashboard/dataset-dashboard'
+export { DatasetTopBar } from '@/components/dataset/dashboard/dataset-top-bar'
+export { DatasetFilesystem } from '@/components/dataset/dashboard/dataset-filesystem'
+export { DatasetGallery } from '@/components/dataset/dashboard/dataset-gallery'
+export { DatasetOverview } from '@/components/dataset/dashboard/dataset-overview'
+export { DatasetSettings } from '@/components/dataset/dashboard/dataset-settings'
