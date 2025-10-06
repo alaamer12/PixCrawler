@@ -37,17 +37,15 @@ const NavLink = memo(({ href, label, isActive, onClick, isMobile = false }: NavL
   return (
     <Link
       href={href}
-      className={`text-sm transition-all relative group ${
-        isActive
+      className={`text-sm transition-all relative group ${isActive
           ? 'text-foreground font-medium'
           : 'text-foreground/60 hover:text-foreground'
-      }`}
+        }`}
     >
       {label}
       <span
-        className={`absolute -bottom-1 left-0 h-0.5 bg-primary transition-all ${
-          isActive ? 'w-full' : 'w-0 group-hover:w-full'
-        }`}
+        className={`absolute -bottom-1 left-0 h-0.5 bg-primary transition-all ${isActive ? 'w-full' : 'w-0 group-hover:w-full'
+          }`}
       />
     </Link>
   )
@@ -66,7 +64,7 @@ const NavLinks = memo(() => {
 
     updateActiveSection()
     window.addEventListener('popstate', updateActiveSection)
-    
+
     return () => {
       window.removeEventListener('popstate', updateActiveSection)
     }
