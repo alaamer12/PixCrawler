@@ -10,9 +10,12 @@ from typing import Dict, Any, List
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 
 from backend.api.dependencies import get_current_user
 from backend.database.connection import get_session
+from backend.database.models import CrawlJob, Project, ActivityLog
+from backend.models.base import PaginatedResponse, PaginationParams
 from backend.services.crawl_job import CrawlJobService, execute_crawl_job
 
 __all__ = ['router']
@@ -51,6 +54,109 @@ class CrawlJobResponse(BaseModel):
     updated_at: str
     started_at: str | None = None
     completed_at: str | None = None
+
+
+class JobLogEntry(BaseModel):
+    """Schema for a single job log entry."""
+
+    action: str
+    timestamp: str
+    metadata: Dict[str, Any] | None = None
+
+
+class CrawlJobProgress(BaseModel):
+    """Schema for crawl job progress response."""
+
+    status: str
+    progress: int
+    total_images: int
+    downloaded_images: int
+    valid_images: int
+    started_at: str | None = None
+    completed_at: str | None = None
+    updated_at: str
+
+
+@router.get("/", response_model=PaginatedResponse[CrawlJobResponse])
+async def list_crawl_jobs(
+    pagination: PaginationParams = Depends(),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> PaginatedResponse[CrawlJobResponse]:
+    """
+    List crawl jobs for the current user with pagination.
+
+    Jobs are filtered by projects owned by the current user.
+
+    Args:
+        pagination: Pagination parameters
+        current_user: Current authenticated user
+        session: Database session
+
+    Returns:
+        Paginated list of crawl jobs
+    """
+    try:
+        # Count total jobs for user's projects
+        total_query = (
+            select(func.count(CrawlJob.id))
+            .select_from(CrawlJob)
+            .join(Project, Project.id == CrawlJob.project_id)
+            .where(Project.user_id == current_user["user_id"])
+        )
+        total_result = await session.execute(total_query)
+        total = int(total_result.scalar_one())
+
+        # Fetch items with pagination
+        offset = (pagination.page - 1) * pagination.size
+        items_query = (
+            select(CrawlJob)
+            .join(Project, Project.id == CrawlJob.project_id)
+            .where(Project.user_id == current_user["user_id"])
+            .order_by(CrawlJob.created_at.desc())
+            .limit(pagination.size)
+            .offset(offset)
+        )
+        items_result = await session.execute(items_query)
+        jobs: List[CrawlJob] = list(items_result.scalars().all())
+
+        job_responses: List[CrawlJobResponse] = [
+            CrawlJobResponse(
+                id=job.id,
+                project_id=job.project_id,
+                name=job.name,
+                keywords=job.keywords,
+                max_images=job.max_images,
+                search_engine=job.search_engine,
+                status=job.status,
+                progress=job.progress,
+                total_images=job.total_images,
+                downloaded_images=job.downloaded_images,
+                valid_images=job.valid_images,
+                config=job.config,
+                created_at=job.created_at.isoformat(),
+                updated_at=job.updated_at.isoformat(),
+                started_at=job.started_at.isoformat() if job.started_at else None,
+                completed_at=job.completed_at.isoformat() if job.completed_at else None,
+            )
+            for job in jobs
+        ]
+
+        pages = (total + pagination.size - 1) // pagination.size if pagination.size else 1
+
+        return PaginatedResponse[CrawlJobResponse](
+            items=job_responses,
+            total=total,
+            page=pagination.page,
+            size=pagination.size,
+            pages=pages,
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list crawl jobs: {str(e)}",
+        )
 
 
 @router.post("/", response_model=CrawlJobResponse, status_code=status.HTTP_201_CREATED)
@@ -153,6 +259,19 @@ async def get_crawl_job(
                 detail="Crawl job not found"
             )
 
+        # Ensure the job belongs to the current user via its project
+        owner_query = (
+            select(Project.user_id)
+            .where(Project.id == job.project_id)
+        )
+        owner_result = await session.execute(owner_query)
+        owner_id = owner_result.scalar_one_or_none()
+        if owner_id != current_user["user_id"]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Crawl job not found"
+            )
+
         return CrawlJobResponse(
             id=job.id,
             project_id=job.project_id,
@@ -229,4 +348,232 @@ async def cancel_crawl_job(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to cancel crawl job: {str(e)}"
+        )
+
+
+@router.post("/{job_id}/retry", response_model=CrawlJobResponse)
+async def retry_crawl_job(
+    job_id: int,
+    background_tasks: BackgroundTasks,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> CrawlJobResponse:
+    """
+    Retry a failed or cancelled crawl job.
+
+    Resets job progress and schedules execution in the background.
+
+    Args:
+        job_id: Crawl job ID
+        background_tasks: FastAPI background tasks
+        current_user: Current authenticated user
+        session: Database session
+
+    Returns:
+        Updated crawl job information
+
+    Raises:
+        HTTPException: If job not found, not owned by user, or cannot be retried
+    """
+    try:
+        service = CrawlJobService(session)
+        job = await service.get_job(job_id)
+
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Crawl job not found"
+            )
+
+        # Ensure ownership
+        owner_query = (
+            select(Project.user_id)
+            .where(Project.id == job.project_id)
+        )
+        owner_result = await session.execute(owner_query)
+        owner_id = owner_result.scalar_one_or_none()
+        if owner_id != current_user["user_id"]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Crawl job not found"
+            )
+
+        if job.status not in ["failed", "cancelled"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Only failed or cancelled jobs can be retried (current: {job.status})"
+            )
+
+        # Reset job state
+        job.status = "pending"
+        job.progress = 0
+        job.total_images = 0
+        job.downloaded_images = 0
+        job.valid_images = 0
+        job.started_at = None
+        job.completed_at = None
+
+        await session.commit()
+        await session.refresh(job)
+
+        # Requeue execution
+        background_tasks.add_task(execute_crawl_job, job.id)
+
+        return CrawlJobResponse(
+            id=job.id,
+            project_id=job.project_id,
+            name=job.name,
+            keywords=job.keywords,
+            max_images=job.max_images,
+            search_engine=job.search_engine,
+            status=job.status,
+            progress=job.progress,
+            total_images=job.total_images,
+            downloaded_images=job.downloaded_images,
+            valid_images=job.valid_images,
+            config=job.config,
+            created_at=job.created_at.isoformat(),
+            updated_at=job.updated_at.isoformat(),
+            started_at=job.started_at.isoformat() if job.started_at else None,
+            completed_at=job.completed_at.isoformat() if job.completed_at else None,
+        )
+
+
+@router.get("/{job_id}/logs", response_model=List[JobLogEntry])
+async def get_crawl_job_logs(
+    job_id: int,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> List[JobLogEntry]:
+    """
+    Get activity logs for a crawl job.
+
+    Returns activity entries associated with the job, ordered by timestamp desc.
+
+    Args:
+        job_id: Crawl job ID
+        current_user: Current authenticated user
+        session: Database session
+
+    Returns:
+        List of job log entries
+
+    Raises:
+        HTTPException: If job not found or not owned by user
+    """
+    try:
+        # Verify job exists and ownership
+        service = CrawlJobService(session)
+        job = await service.get_job(job_id)
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Crawl job not found"
+            )
+
+        owner_query = select(Project.user_id).where(Project.id == job.project_id)
+        owner_result = await session.execute(owner_query)
+        owner_id = owner_result.scalar_one_or_none()
+        if owner_id != current_user["user_id"]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Crawl job not found"
+            )
+
+        # Query activity logs for this job
+        logs_query = (
+            select(ActivityLog)
+            .where(
+                ActivityLog.resource_type == "crawl_job",
+                ActivityLog.resource_id == str(job_id),
+            )
+            .order_by(ActivityLog.timestamp.desc())
+        )
+        logs_result = await session.execute(logs_query)
+        logs: List[ActivityLog] = list(logs_result.scalars().all())
+
+        return [
+            JobLogEntry(
+                action=log.action,
+                timestamp=log.timestamp.isoformat(),
+                metadata=log.metadata,
+            )
+            for log in logs
+        ]
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve crawl job logs: {str(e)}"
+        )
+
+
+@router.get("/{job_id}/progress", response_model=CrawlJobProgress)
+async def get_crawl_job_progress(
+    job_id: int,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> CrawlJobProgress:
+    """
+    Get real-time progress for a crawl job.
+
+    Returns status and progress metrics, ensuring the job belongs to the user.
+
+    Args:
+        job_id: Crawl job ID
+        current_user: Current authenticated user
+        session: Database session
+
+    Returns:
+        CrawlJobProgress containing status and counters
+
+    Raises:
+        HTTPException: If job not found or not owned by user
+    """
+    try:
+        service = CrawlJobService(session)
+        job = await service.get_job(job_id)
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Crawl job not found"
+            )
+
+        # Ensure ownership
+        owner_query = select(Project.user_id).where(Project.id == job.project_id)
+        owner_result = await session.execute(owner_query)
+        owner_id = owner_result.scalar_one_or_none()
+        if owner_id != current_user["user_id"]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Crawl job not found"
+            )
+
+        return CrawlJobProgress(
+            status=job.status,
+            progress=job.progress,
+            total_images=job.total_images,
+            downloaded_images=job.downloaded_images,
+            valid_images=job.valid_images,
+            started_at=job.started_at.isoformat() if job.started_at else None,
+            completed_at=job.completed_at.isoformat() if job.completed_at else None,
+            updated_at=job.updated_at.isoformat(),
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve crawl job progress: {str(e)}"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retry crawl job: {str(e)}"
         )
