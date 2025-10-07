@@ -46,6 +46,19 @@
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
 
+/* Resizable Panels Styling */
+[data-panel-resize-handle-enabled] {
+  cursor: col-resize;
+}
+
+[data-panel-resize-handle-enabled]:hover {
+  background-color: hsl(var(--border));
+}
+
+[data-panel-resize-handle-enabled][data-panel-resize-handle-active] {
+  background-color: hsl(var(--primary));
+}
+
 .dark {
   /* Semantic Colors - Dark Mode */
   --background: 210 15% 8%;
