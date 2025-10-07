@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import {useState} from 'react'
+import {authService} from '@/lib/auth'
+import {useRouter} from 'next/navigation'
+import {Button} from '@/components/ui/button'
+import {OAuthButtons} from '@/components/auth/oauth-buttons'
 
 export function SignupForm() {
   const [email, setEmail] = useState('')
@@ -12,7 +14,6 @@ export function SignupForm() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const router = useRouter()
-  const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,33 +22,26 @@ export function SignupForm() {
     setMessage('')
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-        },
-      })
-
-      if (error) {
-        setError(error.message)
-      } else {
-        setMessage('Check your email for the confirmation link!')
-      }
-    } catch (err) {
-      setError('An unexpected error occurred')
+      await authService.signUp(email, password, fullName)
+      setMessage('Check your email for the confirmation link!')
+      // Note: User will be redirected to /welcome after email confirmation
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-      <div className="rounded-md shadow-sm -space-y-px">
-        <div>
-          <label htmlFor="fullName" className="sr-only">
+    <div className="bg-card border border-border rounded-xl shadow-lg p-6 md:p-8 space-y-6">
+      <div className="space-y-2 text-center">
+        <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
+        <p className="text-sm text-muted-foreground">Start building your image datasets today</p>
+      </div>
+
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <div className="space-y-2">
+          <label htmlFor="fullName" className="text-sm font-medium">
             Full Name
           </label>
           <input
@@ -55,15 +49,15 @@ export function SignupForm() {
             name="fullName"
             type="text"
             required
-            className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-            placeholder="Full Name"
+            className="w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+            placeholder="Enter your full name"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
           />
         </div>
-        <div>
-          <label htmlFor="email" className="sr-only">
-            Email address
+        <div className="space-y-2">
+          <label htmlFor="email" className="text-sm font-medium">
+            Email
           </label>
           <input
             id="email"
@@ -71,14 +65,14 @@ export function SignupForm() {
             type="email"
             autoComplete="email"
             required
-            className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-            placeholder="Email address"
+            className="w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+            placeholder="name@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        <div>
-          <label htmlFor="password" className="sr-only">
+        <div className="space-y-2">
+          <label htmlFor="password" className="text-sm font-medium">
             Password
           </label>
           <input
@@ -87,41 +81,49 @@ export function SignupForm() {
             type="password"
             autoComplete="new-password"
             required
-            className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-            placeholder="Password (min. 6 characters)"
+            className="w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+            placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             minLength={6}
           />
         </div>
-      </div>
 
-      {error && (
-        <div className="text-red-600 text-sm text-center">{error}</div>
-      )}
+        {error && (
+          <div
+            className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg p-3 text-center">
+            {error}
+          </div>
+        )}
 
-      {message && (
-        <div className="text-green-600 text-sm text-center">{message}</div>
-      )}
+        {message && (
+          <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg p-3 text-center">
+            {message}
+          </div>
+        )}
 
-      <div>
-        <button
+        <Button
           type="submit"
-          disabled={loading}
-          className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          loading={loading}
+          loadingText="Creating account..."
+          variant="brand"
+          size="lg"
+          className="w-full"
         >
-          {loading ? 'Creating account...' : 'Create account'}
-        </button>
-      </div>
+          Create account
+        </Button>
+      </form>
 
-      <div className="text-center">
-        <p className="text-sm text-gray-600">
+      <OAuthButtons mode="signup"/>
+
+      <div className="text-center pt-4 border-t border-border">
+        <p className="text-sm text-muted-foreground">
           Already have an account?{' '}
-          <a href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+          <a href="/login" className="font-medium text-primary hover:underline">
             Sign in
           </a>
         </p>
       </div>
-    </form>
+    </div>
   )
 }

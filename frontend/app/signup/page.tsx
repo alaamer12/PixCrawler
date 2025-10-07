@@ -1,12 +1,13 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { SignupForm } from './signup-form'
+import {createClient} from '@/lib/supabase/server'
+import {redirect} from 'next/navigation'
+import {Database} from 'lucide-react'
+import {SignupForm} from './signup-form'
 
 export default async function SignupPage() {
   const supabase = await createClient()
-  
+
   const {
-    data: { user },
+    data: {user},
   } = await supabase.auth.getUser()
 
   if (user) {
@@ -14,17 +15,17 @@ export default async function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your PixCrawler account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Start building your image datasets today
-          </p>
-        </div>
-        <SignupForm />
+    <div className="flex min-h-[calc(100vh-140px)] flex-col items-center justify-center gap-6 p-6 md:p-10">
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <a href="/"
+           className="flex items-center gap-2 self-center font-medium text-foreground hover:opacity-80 transition-opacity">
+          <div
+            className="bg-gradient-to-br from-primary to-secondary text-primary-foreground flex size-8 items-center justify-center rounded-lg shadow-lg">
+            <Database className="size-5"/>
+          </div>
+          <span className="text-xl font-bold">PixCrawler</span>
+        </a>
+        <SignupForm/>
       </div>
     </div>
   )

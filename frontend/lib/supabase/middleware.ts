@@ -1,5 +1,5 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import {type CookieOptions, createServerClient} from '@supabase/ssr'
+import {type NextRequest, NextResponse} from 'next/server'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -53,15 +53,17 @@ export async function updateSession(request: NextRequest) {
   // issues with users being randomly logged out.
 
   const {
-    data: { user },
+    data: {user},
   } = await supabase.auth.getUser()
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth')
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
+  // Define public routes that don't require authentication
+  const publicRoutes = ['/', '/login', '/signup', '/auth']
+  const isPublicRoute = publicRoutes.some(route =>
+    request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith('/auth')
+  )
+
+  if (!user && !isPublicRoute) {
+    // Redirect unauthenticated users trying to access protected routes
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
