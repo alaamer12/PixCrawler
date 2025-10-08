@@ -25,7 +25,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, ConfigDict
 from pydantic.types import PositiveInt, conint
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -74,93 +74,138 @@ class ValidatorConfig(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
+        validate_default=True,
+        str_strip_whitespace=True,
+        use_enum_values=True
     )
 
     # Validation behavior
     mode: CheckMode = Field(
         default=CheckMode.LENIENT,
-        description="Validation mode (STRICT, LENIENT, or REPORT_ONLY)"
+        description="Validation mode (STRICT, LENIENT, or REPORT_ONLY)",
+        examples=[CheckMode.STRICT, CheckMode.LENIENT, CheckMode.REPORT_ONLY]
     )
     duplicate_action: DuplicateAction = Field(
         default=DuplicateAction.REMOVE,
-        description="Action to take for duplicate files"
+        description="Action to take for duplicate files",
+        examples=[DuplicateAction.REMOVE, DuplicateAction.REPORT_ONLY, DuplicateAction.QUARANTINE]
     )
 
-    # File constraints
-    supported_extensions: Tuple[str, ...] = Field(
-        default=('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif'),
-        min_length=1,
-        description="Supported image file extensions"
-    )
     max_file_size_mb: Optional[PositiveInt] = Field(
         default=10,
+        le=1000,
         description="Maximum file size in MB (None for no limit)",
+        examples=[10, 50, 100, None]
     )
     min_file_size_bytes: PositiveInt = Field(
         default=1024,
-        description="Minimum file size in bytes"
+        ge=1,
+        le=1048576,  # 1MB max
+        description="Minimum file size in bytes",
+        examples=[512, 1024, 2048]
     )
 
     # Image dimension constraints
     min_image_width: PositiveInt = Field(
         default=1,
-        description="Minimum image width in pixels"
+        ge=1,
+        le=10000,
+        description="Minimum image width in pixels",
+        examples=[1, 50, 100, 200]
     )
     min_image_height: PositiveInt = Field(
         default=1,
-        description="Minimum image height in pixels"
+        ge=1,
+        le=10000,
+        description="Minimum image height in pixels",
+        examples=[1, 50, 100, 200]
     )
 
     # Processing options
     batch_size: PositiveInt = Field(
         default=100,
-        description="Number of files to process in a batch"
+        ge=1,
+        le=10000,
+        description="Number of files to process in a batch",
+        examples=[50, 100, 500, 1000]
     )
     hash_size: conint(ge=4, le=32) = Field(
         default=8,
-        description="Perceptual hash size (between 4 and 32)"
+        description="Perceptual hash size (between 4 and 32)",
+        examples=[4, 8, 16, 32]
     )
     max_concurrent_validations: PositiveInt = Field(
         default=4,
-        description="Maximum number of concurrent validation operations"
+        ge=1,
+        le=32,
+        description="Maximum number of concurrent validation operations",
+        examples=[1, 4, 8, 16]
     )
 
     # Quarantine and logging
     quarantine_dir: Optional[Path] = Field(
         default=None,
-        description="Directory for quarantined files"
+        description="Directory for quarantined files",
+        examples=[None, Path("quarantine"), Path("/tmp/quarantine")]
     )
     detailed_logging: bool = Field(
         default=False,
-        description="Enable detailed logging output"
+        description="Enable detailed logging output",
+        examples=[True, False]
     )
 
+    @field_validator('quarantine_dir')
     @classmethod
-    @field_validator('supported_extensions')
-    def validate_extensions(cls, extensions: Tuple[str, ...]) -> Tuple[str, ...]:
-        """Ensure all extensions start with a dot."""
-        for ext in extensions:
-            if not ext.startswith('.'):
-                raise ValueError(f"Extension '{ext}' must start with a dot")
-        return extensions
+    def validate_quarantine_path(cls, v: Optional[Path]) -> Optional[Path]:
+        """Validate quarantine directory path."""
+        if v is not None:
+            # Convert string to Path if needed
+            if isinstance(v, str):
+                v = Path(v)
+
+            # Validate path is not empty
+            if str(v).strip() == '':
+                raise ValueError("Quarantine directory path cannot be empty")
+
+            # Check if path is reasonable (not root, not system directories)
+            path_str = str(v).lower()
+            forbidden_paths = ['/', '\\', 'c:\\', '/usr', '/bin', '/etc', '/var', '/sys']
+            if any(path_str.startswith(fp) for fp in forbidden_paths):
+                raise ValueError(f"Quarantine directory cannot be in system path: {v}")
+
+        return v
 
     @model_validator(mode='after')
-    def validate_quarantine_dir(self) -> 'ValidatorConfig':
-        """Create quarantine directory if specified."""
-        if self.quarantine_dir:
+    def validate_config_consistency(self) -> 'ValidatorConfig':
+        """Validate configuration consistency and create quarantine directory if needed."""
+        # Validate dimension consistency
+        if self.min_image_width > 5000 or self.min_image_height > 5000:
+            raise ValueError("Minimum image dimensions seem unreasonably large")
+
+        # Validate file size consistency
+        if self.max_file_size_mb and self.min_file_size_bytes > (self.max_file_size_mb * 1024 * 1024):
+            raise ValueError("Minimum file size cannot be larger than maximum file size")
+
+        # Validate processing options
+        if self.batch_size > 5000:
+            raise ValueError("Batch size seems unreasonably large (may cause memory issues)")
+
+        # Create quarantine directory if specified and action requires it
+        if self.quarantine_dir and self.duplicate_action == DuplicateAction.QUARANTINE:
             try:
                 self.quarantine_dir.mkdir(parents=True, exist_ok=True)
             except Exception as e:
                 raise ValueError(
                     f"Cannot create quarantine directory {self.quarantine_dir}: {e}"
                 ) from e
+
         return self
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary."""
         return {
-            'mode': self.mode.name,
-            'duplicate_action': self.duplicate_action.name,
+            'mode': self.mode.name if hasattr(self.mode, 'name') else str(self.mode),
+            'duplicate_action': self.duplicate_action.name if hasattr(self.duplicate_action, 'name') else str(self.duplicate_action),
             'supported_extensions': list(self.supported_extensions),
             'max_file_size_mb': self.max_file_size_mb,
             'min_file_size_bytes': self.min_file_size_bytes,
@@ -176,28 +221,43 @@ class ValidatorConfig(BaseSettings):
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'ValidatorConfig':
         """Create configuration from dictionary."""
-        # Convert string enums back to enum values
-        if 'mode' in config_dict and isinstance(config_dict['mode'], str):
-            config_dict['mode'] = CheckMode[config_dict['mode']]
+        # Make a copy to avoid modifying the original
+        config_copy = config_dict.copy()
 
-        if 'duplicate_action' in config_dict and isinstance(
-            config_dict['duplicate_action'], str
-        ):
-            config_dict['duplicate_action'] = DuplicateAction[config_dict['duplicate_action']]
+        # Convert string enums back to enum values
+        if 'mode' in config_copy and isinstance(config_copy['mode'], str):
+            try:
+                config_copy['mode'] = CheckMode[config_copy['mode']]
+            except KeyError:
+                # Try by value if name lookup fails
+                for mode in CheckMode:
+                    if mode.name == config_copy['mode']:
+                        config_copy['mode'] = mode
+                        break
+
+        if 'duplicate_action' in config_copy and isinstance(config_copy['duplicate_action'], str):
+            try:
+                config_copy['duplicate_action'] = DuplicateAction[config_copy['duplicate_action']]
+            except KeyError:
+                # Try by value if name lookup fails
+                for action in DuplicateAction:
+                    if action.name == config_copy['duplicate_action']:
+                        config_copy['duplicate_action'] = action
+                        break
 
         # Convert list back to tuple for supported_extensions
-        if 'supported_extensions' in config_dict and isinstance(
-            config_dict['supported_extensions'], list
+        if 'supported_extensions' in config_copy and isinstance(
+            config_copy['supported_extensions'], list
         ):
-            config_dict['supported_extensions'] = tuple(config_dict['supported_extensions'])
+            config_copy['supported_extensions'] = tuple(config_copy['supported_extensions'])
 
         # Convert string to Path for quarantine_dir
-        if 'quarantine_dir' in config_dict and isinstance(
-            config_dict['quarantine_dir'], str
+        if 'quarantine_dir' in config_copy and isinstance(
+            config_copy['quarantine_dir'], str
         ):
-            config_dict['quarantine_dir'] = Path(config_dict['quarantine_dir'])
+            config_copy['quarantine_dir'] = Path(config_copy['quarantine_dir'])
 
-        return cls(**config_dict)
+        return cls(**config_copy)
 
 
 def get_validator_settings() -> ValidatorConfig:

@@ -59,47 +59,164 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
+        validate_default=True,
+        str_strip_whitespace=True
     )
 
     # Application settings
-    environment: str = Field(default="development", description="Environment name")
-    debug: bool = Field(default=False, description="Debug mode")
-    host: str = Field(default="0.0.0.0", description="Server host")
-    port: int = Field(default=8000, description="Server port")
-    log_level: str = Field(default="INFO", description="Logging level")
+    environment: str = Field(
+        default="development", 
+        pattern=r'^(development|staging|production|test)$',
+        description="Environment name",
+        examples=["development", "staging", "production"]
+    )
+    debug: bool = Field(
+        default=False, 
+        description="Debug mode flag",
+        examples=[True, False]
+    )
+    host: str = Field(
+        default="0.0.0.0", 
+        description="Server host address",
+        examples=["0.0.0.0", "127.0.0.1", "localhost"]
+    )
+    port: int = Field(
+        default=8000, 
+        ge=1024, 
+        le=65535,
+        description="Server port number",
+        examples=[8000, 8080, 3000]
+    )
+    log_level: str = Field(
+        default="INFO", 
+        pattern=r'^(DEBUG|INFO|WARNING|ERROR|CRITICAL)$',
+        description="Logging level",
+        examples=["DEBUG", "INFO", "WARNING", "ERROR"]
+    )
 
     # Supabase settings
-    supabase_url: str = Field(..., description="Supabase project URL")
-    supabase_service_role_key: str = Field(..., description="Supabase service role key")
-    supabase_anon_key: str = Field(..., description="Supabase anonymous key")
+    supabase_url: str = Field(
+        ..., 
+        min_length=1,
+        pattern=r'^https://[a-zA-Z0-9-]+\.supabase\.co$',
+        description="Supabase project URL",
+        examples=["https://your-project.supabase.co"]
+    )
+    supabase_service_role_key: str = Field(
+        ..., 
+        min_length=50,
+        description="Supabase service role key"
+    )
+    supabase_anon_key: str = Field(
+        ..., 
+        min_length=50,
+        description="Supabase anonymous key"
+    )
 
     # CORS settings
     allowed_origins: List[str] = Field(
         default=["http://localhost:3000"],
-        description="Allowed CORS origins"
+        min_length=1,
+        description="Allowed CORS origins",
+        examples=[["http://localhost:3000"], ["https://app.example.com", "https://admin.example.com"]]
     )
 
     # Database settings
-    database_url: str = Field(..., description="PostgreSQL database URL")
-    database_pool_size: int = Field(..., description="", default=10)
-    database_max_overflow: int = Field(..., description="", default=20)
+    database_url: str = Field(
+        ..., 
+        min_length=1,
+        description="PostgreSQL database connection URL",
+        examples=["postgresql://user:pass@localhost:5432/pixcrawler"]
+    )
+    database_pool_size: int = Field(
+        default=10, 
+        ge=1, 
+        le=100,
+        description="Database connection pool size",
+        examples=[5, 10, 20]
+    )
+    database_max_overflow: int = Field(
+        default=20, 
+        ge=0, 
+        le=200,
+        description="Database connection pool max overflow",
+        examples=[10, 20, 50]
+    )
 
     # Redis settings
-    redis_url: str = Field(..., description="Redis URL for caching and sessions")
-    redis_expire_seconds: int = Field(default=3600,
-                                      description="Default Redis expiration")
+    redis_url: str = Field(
+        ..., 
+        min_length=1,
+        description="Redis URL for caching and sessions",
+        examples=["redis://localhost:6379/0", "redis://user:pass@redis-server:6379/1"]
+    )
+    redis_expire_seconds: int = Field(
+        default=3600,
+        ge=60,
+        le=86400,
+        description="Default Redis key expiration in seconds",
+        examples=[3600, 7200, 86400]
+    )
 
     # Celery settings
-    celery_broker_url: str = Field(..., description="Celery broker URL")
-    celery_result_backend: str = Field(..., description="Celery result backend URL")
+    celery_broker_url: str = Field(
+        ..., 
+        min_length=1,
+        description="Celery broker URL",
+        examples=["redis://localhost:6379/0", "amqp://guest@localhost//"]
+    )
+    celery_result_backend: str = Field(
+        ..., 
+        min_length=1,
+        description="Celery result backend URL",
+        examples=["redis://localhost:6379/0", "db+postgresql://user:pass@localhost/celery"]
+    )
 
     # File storage settings
-    upload_max_size: int = Field(default=10 * 1024 * 1024,
-                                 description="Max upload size in bytes")
+    upload_max_size: int = Field(
+        default=10 * 1024 * 1024,
+        ge=1024,  # 1KB minimum
+        le=100 * 1024 * 1024,  # 100MB maximum
+        description="Maximum upload file size in bytes",
+        examples=[1048576, 10485760, 52428800]  # 1MB, 10MB, 50MB
+    )
     upload_allowed_extensions: List[str] = Field(
         default=[".jpg", ".jpeg", ".png", ".gif", ".webp"],
-        description="Allowed file extensions"
+        min_length=1,
+        description="Allowed file extensions for uploads",
+        examples=[[".jpg", ".png"], [".jpg", ".jpeg", ".png", ".gif", ".webp"]]
     )
+
+    @field_validator('allowed_origins')
+    @classmethod
+    def validate_origins(cls, v: List[str]) -> List[str]:
+        """Validate CORS origins format."""
+        validated = []
+        for origin in v:
+            origin = origin.strip()
+            if not origin:
+                continue
+            if not (origin.startswith('http://') or origin.startswith('https://')):
+                raise ValueError(f"Origin '{origin}' must start with http:// or https://")
+            validated.append(origin)
+        
+        if not validated:
+            raise ValueError("At least one valid origin is required")
+        return validated
+
+    @field_validator('upload_allowed_extensions')
+    @classmethod
+    def validate_extensions(cls, v: List[str]) -> List[str]:
+        """Validate file extensions format."""
+        validated = []
+        for ext in v:
+            ext = ext.strip().lower()
+            if not ext.startswith('.'):
+                raise ValueError(f"Extension '{ext}' must start with a dot")
+            if len(ext) < 2:
+                raise ValueError(f"Extension '{ext}' is too short")
+            validated.append(ext)
+        return validated
 
     @classmethod
     @field_validator("allowed_origins", mode="before")

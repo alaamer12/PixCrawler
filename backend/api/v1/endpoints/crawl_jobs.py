@@ -8,7 +8,7 @@ including creation, status monitoring, and execution control.
 from typing import Dict, Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.dependencies import get_current_user
@@ -23,34 +23,199 @@ router = APIRouter()
 class CrawlJobCreate(BaseModel):
     """Schema for creating a new crawl job."""
 
-    project_id: int = Field(..., description="Project ID")
-    name: str = Field(..., min_length=1, max_length=100, description="Job name")
-    keywords: List[str] = Field(..., min_items=1, description="Search keywords")
-    max_images: int = Field(default=100, ge=1, le=10000, description="Maximum images")
-    search_engine: str = Field(default="duckduckgo", description="Search engine")
-    config: Dict[str, Any] = Field(default_factory=dict,
-                                   description="Additional config")
+    model_config = {
+        'str_strip_whitespace': True,
+        'validate_assignment': True,
+        'extra': 'forbid'
+    }
+
+    project_id: int = Field(
+        ...,
+        gt=0,
+        description="Project ID",
+        examples=[1, 42, 123]
+    )
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        pattern=r'^[a-zA-Z0-9_\-\s]+$',
+        description="Job name (alphanumeric, spaces, hyphens, underscores only)",
+        examples=["Animal Photos Job", "car_images_crawl", "dataset-2024"]
+    )
+    keywords: List[str] = Field(
+        ...,
+        min_items=1,
+        max_items=20,
+        description="Search keywords",
+        examples=[["cats", "dogs"], ["red car", "blue car"]]
+    )
+    max_images: int = Field(
+        default=100,
+        ge=1,
+        le=10000,
+        description="Maximum images to collect",
+        examples=[100, 500, 1000]
+    )
+    search_engine: str = Field(
+        default="duckduckgo",
+        pattern=r'^(google|bing|baidu|duckduckgo)$',
+        description="Search engine to use",
+        examples=["google", "bing", "duckduckgo", "baidu"]
+    )
+    config: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional configuration options",
+        examples=[{}, {"quality": "high", "format": "jpg"}]
+    )
+
+    @field_validator('keywords')
+    @classmethod
+    def validate_keywords(cls, v: List[str]) -> List[str]:
+        """Validate and clean keywords."""
+        cleaned = []
+        for keyword in v:
+            cleaned_keyword = keyword.strip()
+            if not cleaned_keyword:
+                continue
+            if len(cleaned_keyword) < 2:
+                raise ValueError(f"Keyword '{cleaned_keyword}' is too short (minimum 2 characters)")
+            if len(cleaned_keyword) > 100:
+                raise ValueError(f"Keyword '{cleaned_keyword}' is too long (maximum 100 characters)")
+            cleaned.append(cleaned_keyword)
+
+        if not cleaned:
+            raise ValueError("At least one valid keyword is required")
+
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_keywords = []
+        for keyword in cleaned:
+            if keyword.lower() not in seen:
+                seen.add(keyword.lower())
+                unique_keywords.append(keyword)
+
+        return unique_keywords
 
 
 class CrawlJobResponse(BaseModel):
     """Schema for crawl job response."""
 
-    id: int
-    project_id: int
-    name: str
-    keywords: List[str]
-    max_images: int
-    search_engine: str
-    status: str
-    progress: int
-    total_images: int
-    downloaded_images: int
-    valid_images: int
-    config: Dict[str, Any]
-    created_at: str
-    updated_at: str
-    started_at: Optional[str] = None
-    completed_at: Optional[str] = None
+    model_config = {
+        'str_strip_whitespace': True,
+        'validate_assignment': True,
+        'extra': 'forbid',
+        'use_enum_values': True
+    }
+
+    id: int = Field(
+        ...,
+        gt=0,
+        description="Job ID",
+        examples=[1, 42, 123]
+    )
+    project_id: int = Field(
+        ...,
+        gt=0,
+        description="Project ID",
+        examples=[1, 42, 123]
+    )
+    name: str = Field(
+        ...,
+        min_length=1,
+        description="Job name",
+        examples=["Animal Photos Job"]
+    )
+    keywords: List[str] = Field(
+        ...,
+        min_items=1,
+        description="Search keywords",
+        examples=[["cats", "dogs"]]
+    )
+    max_images: int = Field(
+        ...,
+        ge=1,
+        description="Maximum images to collect",
+        examples=[100, 500]
+    )
+    search_engine: str = Field(
+        ...,
+        description="Search engine used",
+        examples=["google", "duckduckgo"]
+    )
+    status: str = Field(
+        ...,
+        pattern=r'^(pending|running|completed|failed|cancelled)$',
+        description="Job status",
+        examples=["pending", "running", "completed", "failed", "cancelled"]
+    )
+    progress: int = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Progress percentage",
+        examples=[0, 45, 100]
+    )
+    total_images: int = Field(
+        ...,
+        ge=0,
+        description="Total images found",
+        examples=[0, 150, 1000]
+    )
+    downloaded_images: int = Field(
+        ...,
+        ge=0,
+        description="Images successfully downloaded",
+        examples=[0, 120, 950]
+    )
+    valid_images: int = Field(
+        ...,
+        ge=0,
+        description="Valid images after processing",
+        examples=[0, 100, 900]
+    )
+    config: Dict[str, Any] = Field(
+        ...,
+        description="Job configuration",
+        examples=[{}]
+    )
+    created_at: str = Field(
+        ...,
+        description="Creation timestamp",
+        examples=["2024-01-15T10:30:00Z"]
+    )
+    updated_at: str = Field(
+        ...,
+        description="Last update timestamp",
+        examples=["2024-01-15T14:45:30Z"]
+    )
+    started_at: Optional[str] = Field(
+        None,
+        description="Job start timestamp",
+        examples=["2024-01-15T10:35:00Z", None]
+    )
+    completed_at: Optional[str] = Field(
+        None,
+        description="Job completion timestamp",
+        examples=["2024-01-15T15:00:00Z", None]
+    )
+
+    @model_validator(mode='after')
+    def validate_job_consistency(self) -> 'CrawlJobResponse':
+        """Ensure job data is consistent."""
+        if self.downloaded_images > self.total_images:
+            raise ValueError("Downloaded images cannot exceed total images")
+
+        if self.valid_images > self.downloaded_images:
+            raise ValueError("Valid images cannot exceed downloaded images")
+
+        if self.status == "completed" and self.progress != 100:
+            raise ValueError("Completed jobs must have 100% progress")
+
+        if self.status == "pending" and self.progress > 0:
+            raise ValueError("Pending jobs should have 0% progress")
+
+        return self
 
 
 @router.post("/", response_model=CrawlJobResponse, status_code=status.HTTP_201_CREATED)
