@@ -5,7 +5,7 @@ This module provides API endpoints for managing image crawling jobs,
 including creation, status monitoring, and execution control.
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from pydantic import BaseModel, Field
@@ -49,8 +49,8 @@ class CrawlJobResponse(BaseModel):
     config: Dict[str, Any]
     created_at: str
     updated_at: str
-    started_at: str | None = None
-    completed_at: str | None = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
 
 
 @router.post("/", response_model=CrawlJobResponse, status_code=status.HTTP_201_CREATED)
@@ -100,13 +100,11 @@ async def create_crawl_job(
             name=job.name,
             keywords=job.keywords,
             max_images=job.max_images,
-            search_engine=job.search_engine,
             status=job.status,
             progress=job.progress,
             total_images=job.total_images,
             downloaded_images=job.downloaded_images,
             valid_images=job.valid_images,
-            config=job.config,
             created_at=job.created_at.isoformat(),
             updated_at=job.updated_at.isoformat(),
             started_at=job.started_at.isoformat() if job.started_at else None,
@@ -159,13 +157,11 @@ async def get_crawl_job(
             name=job.name,
             keywords=job.keywords,
             max_images=job.max_images,
-            search_engine=job.search_engine,
             status=job.status,
             progress=job.progress,
             total_images=job.total_images,
             downloaded_images=job.downloaded_images,
             valid_images=job.valid_images,
-            config=job.config,
             created_at=job.created_at.isoformat(),
             updated_at=job.updated_at.isoformat(),
             started_at=job.started_at.isoformat() if job.started_at else None,

@@ -17,8 +17,7 @@ Features:
 
 import os
 import time
-from pathlib import Path
-from typing import Optional, List, TextIO, Any
+from typing import Optional, List, TextIO
 
 from logging_config import get_logger
 

@@ -43,7 +43,6 @@ try:
         config_path=config_path,
         max_images=10,
         output_dir="./test_output",
-        integrity=True,
         generate_labels=True
     )
     print("Success: Builder instantiated successfully")
@@ -53,7 +52,6 @@ try:
     builder.set_maxi(20)
     builder.set_ai_model("gpt4-mini")
     builder.enable_kwgen("auto")
-    builder.enable_integrity(True)
     builder.enable_label_generation(True)
     print("Success: Configuration methods work correctly")
 

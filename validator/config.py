@@ -11,7 +11,6 @@ Classes:
 Functions:
     get_default_config: Returns default validation configuration
     load_config_from_dict: Creates config from dictionary
-    validate_config: Validates configuration parameters
 
 Features:
     - Uses Pydantic V2 Settings for environment-based configuration
@@ -21,25 +20,26 @@ Features:
     - Configuration validation and error handling
 """
 
-from pathlib import Path
-from typing import Optional, Dict, Any, Tuple, List
-
-from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
-# Import enums locally to avoid circular imports
 from enum import Enum, auto
+from functools import lru_cache
+from pathlib import Path
+from typing import Optional, Dict, Any, Tuple
+
+from pydantic import Field, field_validator, model_validator
+from pydantic.types import PositiveInt, conint
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = [
     'CheckMode',
-    'DuplicateAction', 
+    'DuplicateAction',
     'ValidatorConfig',
     'get_validator_settings',
     'get_default_config',
     'get_strict_config',
     'get_lenient_config',
     'load_config_from_dict',
-    'validate_config'
+    'get_preset_config',
+    'CONFIG_PRESETS',
 ]
 
 
@@ -64,6 +64,8 @@ class ValidatorConfig(BaseSettings):
     This class consolidates all validation-related configuration options
     that were previously scattered across the builder package. Uses Pydantic V2
     Settings for environment variable support with PIXCRAWLER_VALIDATOR_ prefix.
+
+    All validation is handled by Pydantic's type system and validators.
     """
 
     model_config = SettingsConfigDict(
@@ -77,7 +79,7 @@ class ValidatorConfig(BaseSettings):
     # Validation behavior
     mode: CheckMode = Field(
         default=CheckMode.LENIENT,
-        description="Validation mode (STRICT or LENIENT)"
+        description="Validation mode (STRICT, LENIENT, or REPORT_ONLY)"
     )
     duplicate_action: DuplicateAction = Field(
         default=DuplicateAction.REMOVE,
@@ -87,46 +89,113 @@ class ValidatorConfig(BaseSettings):
     # File constraints
     supported_extensions: Tuple[str, ...] = Field(
         default=('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif'),
+        min_length=1,
         description="Supported image file extensions"
     )
-    max_file_size_mb: Optional[int] = Field(
+    max_file_size_mb: Optional[PositiveInt] = Field(
         default=10,
-        ge=1,
         description="Maximum file size in MB (None for no limit)",
     )
-    min_file_size_bytes: int = Field(
+    min_file_size_bytes: PositiveInt = Field(
         default=1024,
-        ge=1,
         description="Minimum file size in bytes"
     )
 
+    # Image dimension constraints
+    min_image_width: PositiveInt = Field(
+        default=1,
+        description="Minimum image width in pixels"
+    )
+    min_image_height: PositiveInt = Field(
+        default=1,
+        description="Minimum image height in pixels"
+    )
+
+    # Processing options
+    batch_size: PositiveInt = Field(
+        default=100,
+        description="Number of files to process in a batch"
+    )
+    hash_size: conint(ge=4, le=32) = Field(
+        default=8,
+        description="Perceptual hash size (between 4 and 32)"
+    )
+    max_concurrent_validations: PositiveInt = Field(
+        default=4,
+        description="Maximum number of concurrent validation operations"
+    )
+
+    # Quarantine and logging
+    quarantine_dir: Optional[Path] = Field(
+        default=None,
+        description="Directory for quarantined files"
+    )
+    detailed_logging: bool = Field(
+        default=False,
+        description="Enable detailed logging output"
+    )
+
+    @classmethod
+    @field_validator('supported_extensions')
+    def validate_extensions(cls, extensions: Tuple[str, ...]) -> Tuple[str, ...]:
+        """Ensure all extensions start with a dot."""
+        for ext in extensions:
+            if not ext.startswith('.'):
+                raise ValueError(f"Extension '{ext}' must start with a dot")
+        return extensions
+
+    @model_validator(mode='after')
+    def validate_quarantine_dir(self) -> 'ValidatorConfig':
+        """Create quarantine directory if specified."""
+        if self.quarantine_dir:
+            try:
+                self.quarantine_dir.mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                raise ValueError(
+                    f"Cannot create quarantine directory {self.quarantine_dir}: {e}"
+                ) from e
+        return self
+
     def to_dict(self) -> Dict[str, Any]:
-        """Convert configuration to dictionary"""
+        """Convert configuration to dictionary."""
         return {
             'mode': self.mode.name,
             'duplicate_action': self.duplicate_action.name,
             'supported_extensions': list(self.supported_extensions),
             'max_file_size_mb': self.max_file_size_mb,
             'min_file_size_bytes': self.min_file_size_bytes,
+            'min_image_width': self.min_image_width,
+            'min_image_height': self.min_image_height,
+            'batch_size': self.batch_size,
+            'hash_size': self.hash_size,
+            'max_concurrent_validations': self.max_concurrent_validations,
+            'quarantine_dir': str(self.quarantine_dir) if self.quarantine_dir else None,
+            'detailed_logging': self.detailed_logging,
         }
 
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'ValidatorConfig':
-        """Create configuration from dictionary"""
+        """Create configuration from dictionary."""
         # Convert string enums back to enum values
         if 'mode' in config_dict and isinstance(config_dict['mode'], str):
             config_dict['mode'] = CheckMode[config_dict['mode']]
 
         if 'duplicate_action' in config_dict and isinstance(
-            config_dict['duplicate_action'], str):
-            config_dict['duplicate_action'] = DuplicateAction[
-                config_dict['duplicate_action']]
+            config_dict['duplicate_action'], str
+        ):
+            config_dict['duplicate_action'] = DuplicateAction[config_dict['duplicate_action']]
 
         # Convert list back to tuple for supported_extensions
         if 'supported_extensions' in config_dict and isinstance(
-            config_dict['supported_extensions'], list):
-            config_dict['supported_extensions'] = tuple(
-                config_dict['supported_extensions'])
+            config_dict['supported_extensions'], list
+        ):
+            config_dict['supported_extensions'] = tuple(config_dict['supported_extensions'])
+
+        # Convert string to Path for quarantine_dir
+        if 'quarantine_dir' in config_dict and isinstance(
+            config_dict['quarantine_dir'], str
+        ):
+            config_dict['quarantine_dir'] = Path(config_dict['quarantine_dir'])
 
         return cls(**config_dict)
 
@@ -134,7 +203,7 @@ class ValidatorConfig(BaseSettings):
 def get_validator_settings() -> ValidatorConfig:
     """
     Get the validator settings instance.
-    
+
     Returns:
         ValidatorConfig: Configured settings instance
     """
@@ -189,6 +258,8 @@ def load_config_from_dict(config_dict: Dict[str, Any]) -> ValidatorConfig:
     """
     Load configuration from dictionary with validation.
 
+    Pydantic handles all validation automatically during instantiation.
+
     Args:
         config_dict: Dictionary containing configuration options
 
@@ -196,66 +267,12 @@ def load_config_from_dict(config_dict: Dict[str, Any]) -> ValidatorConfig:
         ValidatorConfig: Validated configuration instance
 
     Raises:
-        ValueError: If configuration is invalid
+        ValueError: If configuration is invalid (raised by Pydantic)
     """
     try:
-        config = ValidatorConfig.from_dict(config_dict)
-        validate_config(config)
-        return config
+        return ValidatorConfig.from_dict(config_dict)
     except Exception as e:
         raise ValueError(f"Invalid validator configuration: {e}") from e
-
-
-def validate_config(config: ValidatorConfig) -> None:
-    """
-    Validate configuration parameters.
-
-    Args:
-        config: Configuration to validate
-
-    Raises:
-        ValueError: If configuration is invalid
-    """
-    # Validate file size constraints
-    if config.min_file_size_bytes < 0:
-        raise ValueError("min_file_size_bytes must be non-negative")
-
-    if config.max_file_size_mb is not None and config.max_file_size_mb <= 0:
-        raise ValueError("max_file_size_mb must be positive")
-
-    # Validate image dimension constraints
-    if config.min_image_width < 1:
-        raise ValueError("min_image_width must be positive")
-
-    if config.min_image_height < 1:
-        raise ValueError("min_image_height must be positive")
-
-    # Validate processing options
-    if config.batch_size < 1:
-        raise ValueError("batch_size must be positive")
-
-    if config.hash_size < 4 or config.hash_size > 32:
-        raise ValueError("hash_size must be between 4 and 32")
-
-    if config.max_concurrent_validations < 1:
-        raise ValueError("max_concurrent_validations must be positive")
-
-    # Validate quarantine directory if specified
-    if config.quarantine_dir:
-        quarantine_path = Path(config.quarantine_dir)
-        try:
-            quarantine_path.mkdir(parents=True, exist_ok=True)
-        except Exception as e:
-            raise ValueError(
-                f"Cannot create quarantine directory {config.quarantine_dir}: {e}") from e
-
-    # Validate supported extensions
-    if not config.supported_extensions:
-        raise ValueError("supported_extensions cannot be empty")
-
-    for ext in config.supported_extensions:
-        if not ext.startswith('.'):
-            raise ValueError(f"Extension '{ext}' must start with a dot")
 
 
 # Configuration presets
@@ -265,7 +282,7 @@ CONFIG_PRESETS = {
     'lenient': get_lenient_config
 }
 
-
+@lru_cache()
 def get_preset_config(preset_name: str) -> ValidatorConfig:
     """
     Get a preset configuration by name.
