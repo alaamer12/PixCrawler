@@ -3,23 +3,27 @@ Storage Management API for PixCrawler
 Handles storage operations including usage stats, file info, and cleanup
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query, Path
-from fastapi.responses import FileResponse
-from typing import Optional, List
 from datetime import datetime, timedelta
+from typing import Optional, List, Union, Dict
+
+from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
-import os
-from .base import StorageProvider
-from ..dependencies import get_storage
+
+from backend.storage.base import StorageProvider
+from backend.api.dependencies import get_storage
 
 router = APIRouter(prefix="/api/v1/storage", tags=["storage"])
 
-# ============================================================================
-# Models / Schemas
-# ============================================================================
-
 class StorageUsageResponse(BaseModel):
-    """Response model for storage usage statistics"""
+    """Response model for storage usage statistics.
+    
+    Attributes:
+        total_storage_bytes: Total storage used in bytes
+        total_storage_mb: Total storage used in megabytes
+        total_storage_gb: Total storage used in gigabytes
+        file_count: Number of files in storage
+        last_updated: Timestamp of last update
+    """
     total_storage_bytes: int
     total_storage_mb: float
     total_storage_gb: float
@@ -28,7 +32,14 @@ class StorageUsageResponse(BaseModel):
 
 
 class FileInfo(BaseModel):
-    """Model for individual file information"""
+    """Model for individual file information.
+    
+    Attributes:
+        file_path: Relative path to the file in storage
+        size_bytes: File size in bytes
+        size_mb: File size in megabytes
+        last_modified: Last modification timestamp
+    """
     file_path: str
     size_bytes: int
     size_mb: float
@@ -36,13 +47,27 @@ class FileInfo(BaseModel):
 
 
 class CleanupRequest(BaseModel):
-    """Request model for cleanup operation"""
+    """Request model for cleanup operation.
+    
+    Attributes:
+        age_hours: Delete files older than this many hours
+        prefix: Optional prefix to filter files for cleanup
+    """
     age_hours: Optional[int] = 24
     prefix: Optional[str] = None
 
 
 class CleanupResponse(BaseModel):
-    """Response model for cleanup operation"""
+    """Response model for cleanup operation.
+    
+    Attributes:
+        success: Whether cleanup completed successfully
+        files_deleted: Number of files deleted
+        space_freed_bytes: Space freed in bytes
+        space_freed_mb: Space freed in megabytes
+        cleanup_duration_seconds: Duration of cleanup operation
+        timestamp: Timestamp of cleanup completion
+    """
     success: bool
     files_deleted: int
     space_freed_bytes: int
@@ -50,29 +75,43 @@ class CleanupResponse(BaseModel):
     cleanup_duration_seconds: float
     timestamp: datetime
 
-
-# ============================================================================
-# Storage Service
-# ============================================================================
-
 class StorageService:
-    """Service class handling storage operations"""
+    """Service class handling storage operations.
     
+    Provides business logic for storage management including
+    statistics, file listing, and cleanup operations.
+    
+    Attributes:
+        storage: Storage provider instance
+    """
+
     def __init__(self, storage: StorageProvider):
+        """Initialize storage service.
+        
+        Args:
+            storage: Storage provider instance
+        """
         self.storage = storage
-    
+
     async def get_storage_stats(self) -> StorageUsageResponse:
-        """Calculate and return storage statistics"""
+        """Calculate and return storage statistics.
+        
+        Returns:
+            StorageUsageResponse with usage statistics
+            
+        Raises:
+            HTTPException: If statistics calculation fails
+        """
         try:
             # Get all files
             files = self.storage.list_files()
             total_size = 0
-            
+
             # Calculate total size (simplified - in a real implementation, we'd get actual sizes)
             for file_path in files:
                 # This is a simplification - actual implementation would get file sizes
                 total_size += 1024  # Placeholder: assume 1KB per file
-            
+
             return StorageUsageResponse(
                 total_storage_bytes=total_size,
                 total_storage_mb=round(total_size / (1024 * 1024), 2),
@@ -85,12 +124,22 @@ class StorageService:
                 status_code=500,
                 detail=f"Failed to get storage stats: {str(e)}"
             )
-    
+
     async def list_files(
         self,
         prefix: Optional[str] = None
     ) -> List[FileInfo]:
-        """List files with optional prefix filtering"""
+        """List files with optional prefix filtering.
+        
+        Args:
+            prefix: Optional prefix to filter files
+            
+        Returns:
+            List of FileInfo objects
+            
+        Raises:
+            HTTPException: If file listing fails
+        """
         try:
             file_paths = self.storage.list_files(prefix)
             # This is a simplified implementation
@@ -109,26 +158,37 @@ class StorageService:
                 status_code=500,
                 detail=f"Failed to list files: {str(e)}"
             )
-    
+
     async def cleanup_files(
         self,
         age_hours: int = 24,
         prefix: Optional[str] = None
     ) -> CleanupResponse:
-        """Clean up old files based on criteria"""
-        start_time = datetime.utcnow()
+        """Clean up old files based on criteria.
         
+        Args:
+            age_hours: Delete files older than this many hours
+            prefix: Optional prefix to filter files
+            
+        Returns:
+            CleanupResponse with cleanup results
+            
+        Raises:
+            HTTPException: If cleanup operation fails
+        """
+        start_time = datetime.utcnow()
+
         try:
             # Get files matching the prefix
             files = await self.list_files(prefix)
-            
+
             # Filter by age (simplified - in a real implementation, we'd check actual file timestamps)
             files_to_delete = files  # Placeholder: would filter by age
-            
+
             # Delete files
             deleted_count = 0
             space_freed = 0
-            
+
             for file_info in files_to_delete:
                 try:
                     self.storage.delete(file_info.file_path)
@@ -137,10 +197,10 @@ class StorageService:
                 except Exception as e:
                     # Log the error but continue with other files
                     print(f"Error deleting {file_info.file_path}: {str(e)}")
-            
+
             end_time = datetime.utcnow()
             duration = (end_time - start_time).total_seconds()
-            
+
             return CleanupResponse(
                 success=True,
                 files_deleted=deleted_count,
@@ -149,27 +209,30 @@ class StorageService:
                 cleanup_duration_seconds=duration,
                 timestamp=datetime.utcnow()
             )
-            
+
         except Exception as e:
             raise HTTPException(
                 status_code=500,
                 detail=f"Cleanup operation failed: {str(e)}"
             )
 
-
-# ============================================================================
-# API Endpoints
-# ============================================================================
-
 @router.get("/usage/", response_model=StorageUsageResponse)
 async def get_storage_usage(
     storage: StorageProvider = Depends(get_storage)
 ):
-    """
-    Get storage usage statistics
+    """Get storage usage statistics.
     
+    Retrieves comprehensive storage usage information including
+    total size, file count, and last update timestamp.
+
+    Args:
+        storage: Storage provider instance (injected)
+
     Returns:
-        StorageUsageResponse: Detailed storage usage information
+        StorageUsageResponse with detailed storage usage information
+        
+    Raises:
+        HTTPException: If statistics retrieval fails
     """
     service = StorageService(storage)
     return await service.get_storage_stats()
@@ -179,15 +242,21 @@ async def get_storage_usage(
 async def list_storage_files(
     prefix: Optional[str] = Query(None, description="Filter files by prefix"),
     storage: StorageProvider = Depends(get_storage)
-):
-    """
-    List files in storage with optional prefix filtering
+) -> List[FileInfo]:
+    """List files in storage with optional prefix filtering.
     
+    Retrieves a list of all files in storage, optionally filtered
+    by a path prefix.
+
     Args:
-        prefix: Optional prefix to filter files
-        
+        prefix: Optional prefix to filter files by path
+        storage: Storage provider instance (injected)
+
     Returns:
-        List[FileInfo]: List of file information objects
+        List of FileInfo objects containing file metadata
+        
+    Raises:
+        HTTPException: If file listing fails
     """
     service = StorageService(storage)
     return await service.list_files(prefix)
@@ -197,15 +266,21 @@ async def list_storage_files(
 async def cleanup_storage(
     request: CleanupRequest,
     storage: StorageProvider = Depends(get_storage)
-):
-    """
-    Clean up old files based on specified criteria
+) -> CleanupResponse:
+    """Clean up old files based on specified criteria.
     
+    Deletes files from storage based on age and optional prefix filter,
+    freeing up storage space.
+
     Args:
-        request: Cleanup configuration (age, prefix, etc.)
-        
+        request: Cleanup configuration including age threshold and prefix
+        storage: Storage provider instance (injected)
+
     Returns:
-        CleanupResponse: Cleanup operation results
+        CleanupResponse with cleanup operation results
+        
+    Raises:
+        HTTPException: If cleanup operation fails
     """
     service = StorageService(storage)
     return await service.cleanup_files(
@@ -219,16 +294,22 @@ async def get_presigned_url(
     path: str = Query(..., description="Path to the file"),
     expires_in: int = Query(3600, description="URL expiration time in seconds"),
     storage: StorageProvider = Depends(get_storage)
-):
-    """
-    Generate a presigned URL for a file
+) -> Dict[str, Union[str, datetime]]:
+    """Generate a presigned URL for temporary file access.
     
+    Creates a time-limited URL that allows temporary access to a file
+    without requiring authentication.
+
     Args:
         path: Path to the file in storage
-        expires_in: URL expiration time in seconds
-        
+        expires_in: URL expiration time in seconds (default: 3600)
+        storage: Storage provider instance (injected)
+
     Returns:
-        dict: Contains the presigned URL and expiration time
+        Dictionary containing the presigned URL and expiration timestamp
+        
+    Raises:
+        HTTPException: If URL generation fails or file not found
     """
     try:
         url = storage.generate_presigned_url(path, expires_in=expires_in)

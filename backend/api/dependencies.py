@@ -15,6 +15,11 @@ Features:
     - Optional authentication support
     - Comprehensive error handling
 """
+from typing import Generator
+
+from backend.storage.base import StorageProvider
+from backend.storage.factory import get_storage_provider
+
 
 from typing import Optional, Dict, Any
 
@@ -132,3 +137,18 @@ async def get_current_user_optional(
     except Exception:
         # Return None for any authentication errors in optional auth
         return None
+
+
+def get_storage() -> Generator[StorageProvider, None, None]:
+    """
+    Dependency that returns the configured storage provider.
+
+    Yields:
+        StorageProvider: The configured storage provider instance
+    """
+    storage = get_storage_provider()
+    try:
+        yield storage
+    finally:
+        # Add any cleanup if needed
+        pass
