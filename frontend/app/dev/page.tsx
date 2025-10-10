@@ -4,7 +4,7 @@ import {useEffect} from 'react'
 import {Button} from '@/components/ui/button'
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
 import {Badge} from '@/components/ui/badge'
-import {Code, Database, Eye, Home, Lock, Palette, Settings, TestTube, Unlock, User, UserPlus} from 'lucide-react'
+import {Code, Database, Eye, Home, Lock, Palette, Settings, TestTube, Unlock, User, UserPlus, CreditCard, ExternalLink, Copy} from 'lucide-react'
 import Link from 'next/link'
 import {useSearchParams} from 'next/navigation'
 
@@ -12,7 +12,7 @@ interface PageInfo {
   path: string
   name: string
   description: string
-  category: 'Public' | 'Auth' | 'Dashboard' | 'Onboarding' | 'Demo' | 'Dev'
+  category: 'Public' | 'Auth' | 'Payment' | 'Dashboard' | 'Onboarding' | 'Demo' | 'Dev'
   requiresAuth: boolean
   oneTime?: boolean
   icon: React.ReactNode
@@ -27,6 +27,30 @@ const PAGES: PageInfo[] = [
     category: 'Public',
     requiresAuth: false,
     icon: <Home className="size-4"/>
+  },
+  {
+    path: '/pricing',
+    name: 'Pricing',
+    description: 'Pricing plans and subscription options',
+    category: 'Public',
+    requiresAuth: false,
+    icon: <Database className="size-4"/>
+  },
+  {
+    path: '/pricing/plans',
+    name: 'All Plans',
+    description: 'Detailed pricing with credit packages',
+    category: 'Public',
+    requiresAuth: false,
+    icon: <Database className="size-4"/>
+  },
+  {
+    path: '/examples',
+    name: 'Examples',
+    description: 'Dataset examples and use cases',
+    category: 'Public',
+    requiresAuth: false,
+    icon: <Eye className="size-4"/>
   },
 
   // Auth Pages
@@ -71,6 +95,24 @@ const PAGES: PageInfo[] = [
     icon: <Lock className="size-4"/>
   },
 
+  // Payment Pages
+  {
+    path: '/payment/success',
+    name: 'Payment Success',
+    description: 'Payment confirmation and success page',
+    category: 'Payment',
+    requiresAuth: false,
+    icon: <CreditCard className="size-4"/>
+  },
+  {
+    path: '/payment/cancelled',
+    name: 'Payment Cancelled',
+    description: 'Payment cancellation page',
+    category: 'Payment',
+    requiresAuth: false,
+    icon: <CreditCard className="size-4"/>
+  },
+
   // Onboarding Pages
   {
     path: '/welcome',
@@ -109,8 +151,16 @@ const PAGES: PageInfo[] = [
   },
   {
     path: '/dashboard/datasets',
-    name: 'Datasets',
-    description: 'Dataset management and viewing',
+    name: 'Datasets List',
+    description: 'Dataset management and listing',
+    category: 'Dashboard',
+    requiresAuth: true,
+    icon: <Database className="size-4"/>
+  },
+  {
+    path: '/dashboard/datasets/cats_dogs_001',
+    name: 'Dataset Dashboard',
+    description: 'Complete dataset dashboard with overview, gallery, files',
     category: 'Dashboard',
     requiresAuth: true,
     icon: <Database className="size-4"/>
@@ -130,6 +180,14 @@ const PAGES: PageInfo[] = [
     category: 'Dashboard',
     requiresAuth: true,
     icon: <User className="size-4"/>
+  },
+  {
+    path: '/dashboard/billing',
+    name: 'Billing',
+    description: 'Subscription and billing management',
+    category: 'Dashboard',
+    requiresAuth: true,
+    icon: <Database className="size-4"/>
   },
   {
     path: '/dashboard/settings',
@@ -172,6 +230,7 @@ const PAGES: PageInfo[] = [
 const CATEGORY_COLORS = {
   'Public': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
   'Auth': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  'Payment': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300',
   'Dashboard': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
   'Onboarding': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
   'Demo': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
@@ -230,6 +289,64 @@ export default function DevPage() {
         </div>
       </div>
 
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Object.entries(groupedPages).map(([category, pages]) => (
+          <Card key={category}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Badge className={CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS]} variant="secondary">
+                  {category}
+                </Badge>
+              </div>
+              <div className="text-2xl font-bold mt-2">{pages.length}</div>
+              <p className="text-sm text-muted-foreground">pages</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Quick Access */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Eye className="size-5"/>
+            Quick Access
+          </CardTitle>
+          <CardDescription>
+            Jump to the most commonly used pages during development
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
+              <Link href="/dashboard/datasets/cats_dogs_001">
+                <Database className="size-5"/>
+                <span className="text-sm">Dataset Dashboard</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
+              <Link href="/pricing">
+                <CreditCard className="size-5"/>
+                <span className="text-sm">Pricing</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
+              <Link href="/welcome">
+                <User className="size-5"/>
+                <span className="text-sm">Welcome Flow</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
+              <Link href="/dashboard">
+                <Home className="size-5"/>
+                <span className="text-sm">Dashboard</span>
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Info Card */}
       <Card>
         <CardHeader>
@@ -250,15 +367,11 @@ export default function DevPage() {
             <strong>URL Format:</strong> <code className="bg-muted px-1 rounded">localhost:3000/dev?page=welcome</code>
           </div>
           <div>
-            <strong>Examples:</strong>
+            <strong>New Features:</strong>
             <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
-              <li><code className="bg-muted px-1 rounded">/dev?page=welcome</code> - View welcome page (bypasses auth +
-                one-time restriction)
-              </li>
-              <li><code className="bg-muted px-1 rounded">/dev?page=dashboard</code> - View dashboard (bypasses auth)
-              </li>
-              <li><code className="bg-muted px-1 rounded">/dev?page=dashboard-projects</code> - View projects page</li>
-              <li><code className="bg-muted px-1 rounded">/dev?page=login</code> - View login page</li>
+              <li><strong>Copy URL:</strong> Click the copy icon to copy the direct page URL</li>
+              <li><strong>Open in New Tab:</strong> Click the external link icon to open in a new tab</li>
+              <li><strong>Quick Access:</strong> Use the buttons above for commonly used pages</li>
             </ul>
           </div>
         </CardContent>
@@ -276,16 +389,18 @@ export default function DevPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-1 lg:grid-cols-2">
               {pages.map((page) => (
                 <div
                   key={page.path}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                  className="border rounded-lg hover:bg-accent/50 transition-colors overflow-hidden"
                 >
-                  <div className="flex items-center gap-3 flex-1">
-                    {page.icon}
+                  <div className="flex items-center gap-3 p-3">
+                    <div className="flex-shrink-0">
+                      {page.icon}
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-medium truncate">{page.name}</h3>
                         {page.requiresAuth && (
                           <Lock className="size-3 text-muted-foreground"/>
@@ -301,14 +416,38 @@ export default function DevPage() {
                       </p>
                     </div>
                   </div>
-                  <Button asChild size="sm" variant="ghost">
-                    <Link
-                      href={getDevUrl(page)}
-                      className="flex items-center gap-1"
+                  
+                  {/* Action buttons in a separate row */}
+                  <div className="flex items-center justify-end gap-1 px-3 pb-3 pt-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}${page.path}`)
+                      }}
+                      title="Copy URL"
+                      className="h-8 w-8 p-0"
                     >
-                      <Eye className="size-4"/>
-                    </Link>
-                  </Button>
+                      <Copy className="size-4"/>
+                    </Button>
+                    <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0">
+                      <Link
+                        href={getDevUrl(page)}
+                        title="View Page"
+                      >
+                        <Eye className="size-4"/>
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm" variant="outline" className="h-8 w-8 p-0">
+                      <Link
+                        href={page.path}
+                        target="_blank"
+                        title="Open in New Tab"
+                      >
+                        <ExternalLink className="size-4"/>
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

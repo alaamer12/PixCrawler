@@ -80,11 +80,6 @@ class IntegrityCheckContext(TypedDict):
     keyword: str
     start_time: float
 
-
-# Configuration is now imported from validator.config
-# Remove duplicate definitions
-
-
 @dataclass
 class DuplicateResult:
     """Result of duplicate checking operation"""

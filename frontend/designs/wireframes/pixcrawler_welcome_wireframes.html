@@ -1,932 +1,995 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>PixCrawler Welcome Page Wireframes</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 20px;
-      background: white;
-      font-family: Arial, sans-serif;
-      font-size: 11px;
-    }
-
-    .wireframe-section {
-      margin-bottom: 50px;
-    }
-
-    .section-label {
-      text-align: center;
-      font-weight: bold;
-      margin-bottom: 15px;
-      font-size: 16px;
-    }
-
-    .container {
-      border: 2px solid #000;
-      background: white;
-      margin: 0 auto;
-    }
-
-    /* Desktop Welcome Layout */
-    .welcome-desktop {
-      width: 1200px;
-      height: 800px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .welcome-header {
-      height: 80px;
-      border-bottom: 1px solid #000;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 40px;
-    }
-
-    .logo {
-      font-weight: bold;
-      font-size: 18px;
-    }
-
-    .skip-button {
-      padding: 8px 20px;
-      border: 1px solid #000;
-      font-size: 10px;
-    }
-
-    .progress-bar-container {
-      height: 60px;
-      border-bottom: 1px solid #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .progress-steps {
-      display: flex;
-      gap: 40px;
-      align-items: center;
-    }
-
-    .progress-step {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .step-circle {
-      width: 35px;
-      height: 35px;
-      border: 2px solid #000;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 14px;
-    }
-
-    .step-circle.active {
-      background: #000;
-      color: white;
-    }
-
-    .step-circle.completed {
-      background: #f0f0f0;
-    }
-
-    .step-label {
-      font-size: 11px;
-      color: #666;
-    }
-
-    .step-label.active {
-      color: #000;
-      font-weight: bold;
-    }
-
-    .progress-line {
-      width: 80px;
-      height: 2px;
-      background: #ccc;
-    }
-
-    .progress-line.completed {
-      background: #000;
-    }
-
-    .welcome-content {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 40px;
-    }
-
-    .step-container {
-      max-width: 700px;
-      width: 100%;
-    }
-
-    /* Step 1 Styles */
-    .welcome-message {
-      text-align: center;
-      margin-bottom: 50px;
-    }
-
-    .greeting {
-      font-size: 36px;
-      font-weight: bold;
-      margin-bottom: 12px;
-    }
-
-    .tagline {
-      font-size: 16px;
-      color: #666;
-    }
-
-    .config-form {
-      border: 1px solid #000;
-      padding: 40px;
-      margin-bottom: 30px;
-    }
-
-    .form-group {
-      margin-bottom: 25px;
-    }
-
-    .form-label {
-      font-weight: bold;
-      font-size: 12px;
-      margin-bottom: 8px;
-      display: block;
-    }
-
-    .form-input {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #000;
-      font-size: 11px;
-      box-sizing: border-box;
-    }
-
-    .form-helper {
-      font-size: 9px;
-      color: #666;
-      margin-top: 5px;
-    }
-
-    .slider-container {
-      margin-top: 10px;
-    }
-
-    .slider {
-      width: 100%;
-    }
-
-    .slider-value {
-      text-align: center;
-      font-size: 16px;
-      font-weight: bold;
-      margin-top: 8px;
-    }
-
-    .code-preview {
-      border: 1px solid #000;
-      padding: 20px;
-      background: #fafafa;
-      margin-bottom: 30px;
-    }
-
-    .code-preview-title {
-      font-weight: bold;
-      font-size: 10px;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-      color: #666;
-    }
-
-    .code-block {
-      font-family: monospace;
-      font-size: 10px;
-      line-height: 1.6;
-      color: #000;
-    }
-
-    .next-button {
-      width: 100%;
-      padding: 16px;
-      border: 2px solid #000;
-      background: #000;
-      color: white;
-      font-size: 13px;
-      font-weight: bold;
-      text-align: center;
-    }
-
-    /* Step 2 Styles */
-    .instruction-card {
-      border: 1px solid #000;
-      padding: 40px;
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .instruction-icon {
-      font-size: 48px;
-      margin-bottom: 20px;
-    }
-
-    .instruction-title {
-      font-size: 28px;
-      font-weight: bold;
-      margin-bottom: 15px;
-    }
-
-    .instruction-desc {
-      font-size: 14px;
-      color: #666;
-      line-height: 1.6;
-    }
-
-    .test-button {
-      width: 100%;
-      padding: 16px;
-      border: 2px solid #000;
-      background: #000;
-      color: white;
-      font-size: 13px;
-      font-weight: bold;
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .test-results {
-      border: 1px solid #000;
-      padding: 30px;
-      margin-bottom: 30px;
-    }
-
-    .loading-state {
-      text-align: center;
-      padding: 40px;
-    }
-
-    .spinner {
-      width: 50px;
-      height: 50px;
-      border: 3px solid #f0f0f0;
-      border-top: 3px solid #000;
-      border-radius: 50%;
-      margin: 0 auto 20px;
-    }
-
-    .success-message {
-      text-align: center;
-    }
-
-    .success-icon {
-      width: 60px;
-      height: 60px;
-      border: 3px solid #000;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 30px;
-      margin: 0 auto 20px;
-    }
-
-    .success-text {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: 25px;
-    }
-
-    .preview-thumbnails {
-      display: flex;
-      gap: 15px;
-      justify-content: center;
-      margin-top: 20px;
-    }
-
-    .thumbnail {
-      width: 100px;
-      height: 100px;
-      border: 1px solid #000;
-      background: #f0f0f0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 8px;
-      color: #999;
-    }
-
-    .error-message {
-      text-align: center;
-    }
-
-    .error-icon {
-      width: 60px;
-      height: 60px;
-      border: 3px solid #000;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 30px;
-      margin: 0 auto 20px;
-    }
-
-    .error-text {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: 15px;
-    }
-
-    .fix-suggestions {
-      border-top: 1px solid #ccc;
-      padding-top: 20px;
-      margin-top: 20px;
-      text-align: left;
-    }
-
-    .suggestion-title {
-      font-weight: bold;
-      font-size: 11px;
-      margin-bottom: 10px;
-    }
-
-    .suggestion-item {
-      font-size: 10px;
-      color: #666;
-      margin: 5px 0;
-      padding-left: 15px;
-    }
-
-    /* Step 3 Styles */
-    .summary-card {
-      border: 1px solid #000;
-      padding: 40px;
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .summary-icon {
-      font-size: 48px;
-      margin-bottom: 20px;
-    }
-
-    .summary-title {
-      font-size: 28px;
-      font-weight: bold;
-      margin-bottom: 25px;
-    }
-
-    .config-summary {
-      border: 1px solid #ccc;
-      padding: 20px;
-      margin-bottom: 20px;
-      text-align: left;
-    }
-
-    .summary-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px solid #f0f0f0;
-      font-size: 11px;
-    }
-
-    .summary-row:last-child {
-      border-bottom: none;
-    }
-
-    .summary-label {
-      color: #666;
-    }
-
-    .summary-value {
-      font-weight: bold;
-    }
-
-    .action-buttons {
-      display: flex;
-      gap: 15px;
-      margin-bottom: 30px;
-    }
-
-    .launch-button {
-      flex: 1;
-      padding: 16px;
-      border: 2px solid #000;
-      background: #000;
-      color: white;
-      font-size: 13px;
-      font-weight: bold;
-      text-align: center;
-    }
-
-    .back-button {
-      padding: 16px 30px;
-      border: 1px solid #000;
-      background: white;
-      font-size: 13px;
-      text-align: center;
-    }
-
-    .help-card {
-      border: 1px solid #000;
-      padding: 25px;
-      background: #fafafa;
-    }
-
-    .help-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-
-    .help-icon {
-      font-size: 24px;
-    }
-
-    .help-title {
-      font-weight: bold;
-      font-size: 13px;
-    }
-
-    .help-bullets {
-      font-size: 10px;
-      color: #666;
-      line-height: 1.8;
-    }
-
-    .help-bullet {
-      margin: 5px 0;
-      padding-left: 15px;
-    }
-
-    /* Mobile Styles */
-    .welcome-mobile {
-      width: 375px;
-    }
-
-    .mobile-welcome-header {
-      height: 60px;
-      border-bottom: 1px solid #000;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-    }
-
-    .mobile-progress-bar {
-      height: 50px;
-      border-bottom: 1px solid #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .mobile-progress-indicator {
-      font-size: 11px;
-      color: #666;
-    }
-
-    .mobile-progress-dots {
-      display: flex;
-      gap: 8px;
-      margin-left: 10px;
-    }
-
-    .progress-dot {
-      width: 8px;
-      height: 8px;
-      border: 1px solid #000;
-      border-radius: 50%;
-    }
-
-    .progress-dot.active {
-      background: #000;
-    }
-
-    .mobile-content {
-      padding: 30px 20px;
-    }
-
-    .mobile-greeting {
-      font-size: 28px;
-      font-weight: bold;
-      margin-bottom: 10px;
-      text-align: center;
-    }
-
-    .mobile-tagline {
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 30px;
-      text-align: center;
-    }
-
-    .mobile-form-group {
-      margin-bottom: 20px;
-    }
-
-    .mobile-config-form {
-      border: 1px solid #000;
-      padding: 25px 20px;
-      margin-bottom: 20px;
-    }
-
-    .mobile-code-preview {
-      border: 1px solid #000;
-      padding: 15px;
-      background: #fafafa;
-      margin-bottom: 20px;
-    }
-
-    .mobile-next-button {
-      width: 100%;
-      padding: 14px;
-      border: 2px solid #000;
-      background: #000;
-      color: white;
-      font-size: 12px;
-      font-weight: bold;
-      text-align: center;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixCrawler Welcome Page Wireframes</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: white;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+        }
+        
+        .wireframe-section {
+            margin-bottom: 80px;
+            page-break-inside: avoid;
+        }
+        
+        .wireframe-section.mobile {
+            margin-top: 150px;
+            margin-bottom: 100px;
+        }
+        
+        .section-label {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 25px;
+            font-size: 16px;
+            padding: 15px;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+        }
+        
+        .container {
+            border: 2px solid #000;
+            background: white;
+            margin: 0 auto;
+        }
+        
+        /* Desktop Welcome Layout */
+        .welcome-desktop {
+            width: 1200px;
+            height: 800px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .welcome-header {
+            height: 80px;
+            border-bottom: 1px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+        }
+        
+        .logo {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .skip-button {
+            padding: 8px 20px;
+            border: 1px solid #000;
+            font-size: 10px;
+        }
+        
+        .progress-bar-container {
+            height: 60px;
+            border-bottom: 1px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .progress-steps {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+        
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .step-circle {
+            width: 35px;
+            height: 35px;
+            border: 2px solid #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .step-circle.active {
+            background: #000;
+            color: white;
+        }
+        
+        .step-circle.completed {
+            background: #f0f0f0;
+        }
+        
+        .step-label {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .step-label.active {
+            color: #000;
+            font-weight: bold;
+        }
+        
+        .progress-line {
+            width: 80px;
+            height: 2px;
+            background: #ccc;
+        }
+        
+        .progress-line.completed {
+            background: #000;
+        }
+        
+        .welcome-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 40px;
+        }
+        
+        .step-container {
+            max-width: 700px;
+            width: 100%;
+        }
+        
+        /* Step 1 Styles */
+        .welcome-message {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .greeting {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        
+        .tagline {
+            font-size: 16px;
+            color: #666;
+        }
+        
+        .config-form {
+            border: 1px solid #000;
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-label {
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #000;
+            font-size: 11px;
+            box-sizing: border-box;
+        }
+        
+        .form-helper {
+            font-size: 9px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .slider-container {
+            margin-top: 10px;
+        }
+        
+        .slider {
+            width: 100%;
+        }
+        
+        .slider-value {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+        
+        .code-preview {
+            border: 1px solid #000;
+            padding: 20px;
+            background: #fafafa;
+            margin-bottom: 30px;
+        }
+        
+        .code-preview-title {
+            font-weight: bold;
+            font-size: 10px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            color: #666;
+        }
+        
+        .code-block {
+            font-family: monospace;
+            font-size: 10px;
+            line-height: 1.6;
+            color: #000;
+        }
+        
+        .next-button {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #000;
+            background: #000;
+            color: white;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        /* Step 2 Styles */
+        .instruction-card {
+            border: 1px solid #000;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .instruction-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .instruction-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .instruction-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .test-button {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #000;
+            background: #000;
+            color: white;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-results {
+            border: 1px solid #000;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .loading-state {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #f0f0f0;
+            border-top: 3px solid #000;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+        }
+        
+        .success-message {
+            text-align: center;
+        }
+        
+        .success-icon {
+            width: 60px;
+            height: 60px;
+            border: 3px solid #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            margin: 0 auto 20px;
+        }
+        
+        .success-text {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 25px;
+        }
+        
+        .preview-thumbnails {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .thumbnail {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #000;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            color: #999;
+        }
+        
+        .error-message {
+            text-align: center;
+        }
+        
+        .error-icon {
+            width: 60px;
+            height: 60px;
+            border: 3px solid #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            margin: 0 auto 20px;
+        }
+        
+        .error-text {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .fix-suggestions {
+            border-top: 1px solid #ccc;
+            padding-top: 20px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .suggestion-title {
+            font-weight: bold;
+            font-size: 11px;
+            margin-bottom: 10px;
+        }
+        
+        .suggestion-item {
+            font-size: 10px;
+            color: #666;
+            margin: 5px 0;
+            padding-left: 15px;
+        }
+        
+        /* Step 3 Styles */
+        .summary-card {
+            border: 1px solid #000;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .summary-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 25px;
+        }
+        
+        .config-summary {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 11px;
+        }
+        
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+        
+        .summary-label {
+            color: #666;
+        }
+        
+        .summary-value {
+            font-weight: bold;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .launch-button {
+            flex: 1;
+            padding: 16px;
+            border: 2px solid #000;
+            background: #000;
+            color: white;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .back-button {
+            padding: 16px 30px;
+            border: 1px solid #000;
+            background: white;
+            font-size: 13px;
+            text-align: center;
+        }
+        
+        .help-card {
+            border: 1px solid #000;
+            padding: 25px;
+            background: #fafafa;
+        }
+        
+        .help-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .help-icon {
+            font-size: 24px;
+        }
+        
+        .help-title {
+            font-weight: bold;
+            font-size: 13px;
+        }
+        
+        .help-bullets {
+            font-size: 10px;
+            color: #666;
+            line-height: 1.8;
+        }
+        
+        .help-bullet {
+            margin: 5px 0;
+            padding-left: 15px;
+        }
+        
+        /* Mobile Styles */
+        .welcome-mobile {
+            width: 375px;
+        }
+        
+        .mobile-welcome-header {
+            height: 60px;
+            border-bottom: 1px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+        
+        .mobile-progress-bar {
+            height: 50px;
+            border-bottom: 1px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .mobile-progress-indicator {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .mobile-progress-dots {
+            display: flex;
+            gap: 8px;
+            margin-left: 10px;
+        }
+        
+        .progress-dot {
+            width: 8px;
+            height: 8px;
+            border: 1px solid #000;
+            border-radius: 50%;
+        }
+        
+        .progress-dot.active {
+            background: #000;
+        }
+        
+        .mobile-content {
+            padding: 30px 20px;
+        }
+        
+        .mobile-greeting {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .mobile-tagline {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .mobile-form-group {
+            margin-bottom: 20px;
+        }
+        
+        .mobile-config-form {
+            border: 1px solid #000;
+            padding: 25px 20px;
+            margin-bottom: 20px;
+        }
+        
+        .mobile-code-preview {
+            border: 1px solid #000;
+            padding: 15px;
+            background: #fafafa;
+            margin-bottom: 20px;
+        }
+        
+        .mobile-next-button {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #000;
+            background: #000;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-<!-- Desktop Step 1: Configure -->
-<div class="wireframe-section">
-  <div class="section-label">Welcome Page - Step 1: Configure First Dataset (Desktop)</div>
-  <div class="container welcome-desktop">
-    <div class="welcome-header">
-      <div class="logo">PixCrawler</div>
-      <div class="skip-button">Skip to Dashboard →</div>
-    </div>
-
-    <div class="progress-bar-container">
-      <div class="progress-steps">
-        <div class="progress-step">
-          <div class="step-circle active">1</div>
-          <div class="step-label active">Configure</div>
-        </div>
-        <div class="progress-line"></div>
-        <div class="progress-step">
-          <div class="step-circle">2</div>
-          <div class="step-label">Test</div>
-        </div>
-        <div class="progress-line"></div>
-        <div class="progress-step">
-          <div class="step-circle">3</div>
-          <div class="step-label">Launch</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="welcome-content">
-      <div class="step-container">
-        <div class="welcome-message">
-          <div class="greeting">Welcome to PixCrawler, Alex!</div>
-          <div class="tagline">Create your first dataset in 3 simple steps</div>
-        </div>
-
-        <div class="config-form">
-          <div class="form-group">
-            <label class="form-label">Dataset Name</label>
-            <input class="form-input" placeholder="my_first_dataset" type="text" value="my_first_dataset">
-            <div class="form-helper">Use lowercase letters, numbers, and underscores</div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Categories</label>
-            <input class="form-input" placeholder="cats, dogs, birds" type="text" value="cats, dogs, birds">
-            <div class="form-helper">Separate multiple categories with commas</div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Images Per Category</label>
-            <div class="slider-container">
-              <input class="slider" max="1000" min="10" type="range" value="100">
-              <div class="slider-value">100 images</div>
+    <!-- Desktop Step 1: Configure -->
+    <div class="wireframe-section">
+        <div class="section-label">Welcome Page - Step 1: Configure First Dataset (Desktop)</div>
+        <div class="container welcome-desktop">
+            <div class="welcome-header">
+                <div class="logo">PixCrawler</div>
+                <div class="skip-button">Skip to Dashboard →</div>
             </div>
-            <div class="form-helper">More images = better model training</div>
-          </div>
-        </div>
-
-        <div class="code-preview">
-          <div class="code-preview-title">Live Configuration Preview</div>
-          <div class="code-block">
-            {<br>
-            &nbsp;&nbsp;"name": "my_first_dataset",<br>
-            &nbsp;&nbsp;"categories": ["cats", "dogs", "birds"],<br>
-            &nbsp;&nbsp;"max_images_per_category": 100,<br>
-            &nbsp;&nbsp;"engines": ["primary", "secondary"],<br>
-            &nbsp;&nbsp;"quality_filters": {<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;"min_resolution": [224, 224]<br>
-            &nbsp;&nbsp;}<br>
-            }
-          </div>
-        </div>
-
-        <div class="next-button">Configure Dataset →</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Desktop Step 2: Test -->
-<div class="wireframe-section">
-  <div class="section-label">Welcome Page - Step 2: Test Configuration (Desktop)</div>
-  <div class="container welcome-desktop">
-    <div class="welcome-header">
-      <div class="logo">PixCrawler</div>
-      <div class="skip-button">Skip to Dashboard →</div>
-    </div>
-
-    <div class="progress-bar-container">
-      <div class="progress-steps">
-        <div class="progress-step">
-          <div class="step-circle completed">✓</div>
-          <div class="step-label">Configure</div>
-        </div>
-        <div class="progress-line completed"></div>
-        <div class="progress-step">
-          <div class="step-circle active">2</div>
-          <div class="step-label active">Test</div>
-        </div>
-        <div class="progress-line"></div>
-        <div class="progress-step">
-          <div class="step-circle">3</div>
-          <div class="step-label">Launch</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="welcome-content">
-      <div class="step-container">
-        <div class="instruction-card">
-          <div class="instruction-icon">🧪</div>
-          <div class="instruction-title">Test Your Configuration</div>
-          <div class="instruction-desc">
-            We'll do a quick test with 10 images to make sure everything works correctly.<br>
-            This only takes a few seconds.
-          </div>
-        </div>
-
-        <div class="test-button">Run Test Crawl</div>
-
-        <!-- Success State -->
-        <div class="test-results">
-          <div class="success-message">
-            <div class="success-icon">✓</div>
-            <div class="success-text">Found 10 images successfully!</div>
-            <div style="font-size: 11px; color: #666;">Your configuration is working perfectly</div>
-
-            <div class="preview-thumbnails">
-              <div class="thumbnail">Image 1</div>
-              <div class="thumbnail">Image 2</div>
-              <div class="thumbnail">Image 3</div>
-              <div class="thumbnail">Image 4</div>
+            
+            <div class="progress-bar-container">
+                <div class="progress-steps">
+                    <div class="progress-step">
+                        <div class="step-circle active">1</div>
+                        <div class="step-label active">Configure</div>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="progress-step">
+                        <div class="step-circle">2</div>
+                        <div class="step-label">Test</div>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="progress-step">
+                        <div class="step-circle">3</div>
+                        <div class="step-label">Launch</div>
+                    </div>
+                </div>
             </div>
-          </div>
-        </div>
-
-        <div class="next-button">Looks Good! →</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Desktop Step 2: Test - Error State -->
-<div class="wireframe-section">
-  <div class="section-label">Welcome Page - Step 2: Test Configuration - Error State (Desktop)</div>
-  <div class="container welcome-desktop">
-    <div class="welcome-header">
-      <div class="logo">PixCrawler</div>
-      <div class="skip-button">Skip to Dashboard →</div>
-    </div>
-
-    <div class="progress-bar-container">
-      <div class="progress-steps">
-        <div class="progress-step">
-          <div class="step-circle completed">✓</div>
-          <div class="step-label">Configure</div>
-        </div>
-        <div class="progress-line completed"></div>
-        <div class="progress-step">
-          <div class="step-circle active">2</div>
-          <div class="step-label active">Test</div>
-        </div>
-        <div class="progress-line"></div>
-        <div class="progress-step">
-          <div class="step-circle">3</div>
-          <div class="step-label">Launch</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="welcome-content">
-      <div class="step-container">
-        <div class="instruction-card">
-          <div class="instruction-icon">🧪</div>
-          <div class="instruction-title">Test Your Configuration</div>
-          <div class="instruction-desc">
-            We'll do a quick test with 10 images to make sure everything works correctly.
-          </div>
-        </div>
-
-        <div class="test-button">Retry Test Crawl</div>
-
-        <!-- Error State -->
-        <div class="test-results">
-          <div class="error-message">
-            <div class="error-icon">⚠</div>
-            <div class="error-text">Couldn't find enough images</div>
-            <div style="font-size: 11px; color: #666;">Only found 3 images with current settings</div>
-
-            <div class="fix-suggestions">
-              <div class="suggestion-title">Try these fixes:</div>
-              <div class="suggestion-item">• Use more common or broader search terms</div>
-              <div class="suggestion-item">• Check spelling of category names</div>
-              <div class="suggestion-item">• Try different categories (e.g., "dog" instead of "golden retriever
-                puppy")
-              </div>
-              <div class="suggestion-item">• Reduce the number of images per category</div>
+            
+            <div class="welcome-content">
+                <div class="step-container">
+                    <div class="welcome-message">
+                        <div class="greeting">Welcome to PixCrawler, Alex!</div>
+                        <div class="tagline">Create your first dataset in 3 simple steps</div>
+                    </div>
+                    
+                    <div class="config-form">
+                        <div class="form-group">
+                            <label class="form-label">Dataset Name</label>
+                            <input type="text" class="form-input" placeholder="my_first_dataset" value="my_first_dataset">
+                            <div class="form-helper">Use lowercase letters, numbers, and underscores</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Categories</label>
+                            <input type="text" class="form-input" placeholder="cats, dogs, birds" value="cats, dogs, birds">
+                            <div class="form-helper">Separate multiple categories with commas</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Images Per Category</label>
+                            <div class="slider-container">
+                                <input type="range" class="slider" min="10" max="1000" value="100">
+                                <div class="slider-value">100 images</div>
+                            </div>
+                            <div class="form-helper">More images = better model training</div>
+                        </div>
+                    </div>
+                    
+                    <div class="code-preview">
+                        <div class="code-preview-title">Live Configuration Preview</div>
+                        <div class="code-block">
+{<br>
+&nbsp;&nbsp;"name": "my_first_dataset",<br>
+&nbsp;&nbsp;"categories": ["cats", "dogs", "birds"],<br>
+&nbsp;&nbsp;"max_images_per_category": 100,<br>
+&nbsp;&nbsp;"engines": ["primary", "secondary"],<br>
+&nbsp;&nbsp;"quality_filters": {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"min_resolution": [224, 224]<br>
+&nbsp;&nbsp;}<br>
+}
+                        </div>
+                    </div>
+                    
+                    <div class="next-button">Configure Dataset →</div>
+                </div>
             </div>
-          </div>
         </div>
-
-        <div style="padding: 12px; border: 1px solid #000; background: white; text-align: center; font-size: 11px;">
-          ← Go Back and Adjust Settings
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Desktop Step 3: Launch -->
-<div class="wireframe-section">
-  <div class="section-label">Welcome Page - Step 3: Launch Full Dataset (Desktop)</div>
-  <div class="container welcome-desktop">
-    <div class="welcome-header">
-      <div class="logo">PixCrawler</div>
-      <div class="skip-button">Skip to Dashboard →</div>
     </div>
 
-    <div class="progress-bar-container">
-      <div class="progress-steps">
-        <div class="progress-step">
-          <div class="step-circle completed">✓</div>
-          <div class="step-label">Configure</div>
-        </div>
-        <div class="progress-line completed"></div>
-        <div class="progress-step">
-          <div class="step-circle completed">✓</div>
-          <div class="step-label">Test</div>
-        </div>
-        <div class="progress-line completed"></div>
-        <div class="progress-step">
-          <div class="step-circle active">3</div>
-          <div class="step-label active">Launch</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="welcome-content">
-      <div class="step-container">
-        <div class="summary-card">
-          <div class="summary-icon">🚀</div>
-          <div class="summary-title">Ready to Launch!</div>
-
-          <div class="config-summary">
-            <div class="summary-row">
-              <div class="summary-label">Dataset Name</div>
-              <div class="summary-value">my_first_dataset</div>
+    <!-- Desktop Step 2: Test -->
+    <div class="wireframe-section">
+        <div class="section-label">Welcome Page - Step 2: Test Configuration (Desktop)</div>
+        <div class="container welcome-desktop">
+            <div class="welcome-header">
+                <div class="logo">PixCrawler</div>
+                <div class="skip-button">Skip to Dashboard →</div>
             </div>
-            <div class="summary-row">
-              <div class="summary-label">Categories</div>
-              <div class="summary-value">cats, dogs, birds</div>
+            
+            <div class="progress-bar-container">
+                <div class="progress-steps">
+                    <div class="progress-step">
+                        <div class="step-circle completed">✓</div>
+                        <div class="step-label">Configure</div>
+                    </div>
+                    <div class="progress-line completed"></div>
+                    <div class="progress-step">
+                        <div class="step-circle active">2</div>
+                        <div class="step-label active">Test</div>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="progress-step">
+                        <div class="step-circle">3</div>
+                        <div class="step-label">Launch</div>
+                    </div>
+                </div>
             </div>
-            <div class="summary-row">
-              <div class="summary-label">Images Per Category</div>
-              <div class="summary-value">100 images</div>
+            
+            <div class="welcome-content">
+                <div class="step-container">
+                    <div class="instruction-card">
+                        <div class="instruction-icon">🧪</div>
+                        <div class="instruction-title">Test Your Configuration</div>
+                        <div class="instruction-desc">
+                            We'll do a quick test with 10 images to make sure everything works correctly.<br>
+                            This only takes a few seconds.
+                        </div>
+                    </div>
+                    
+                    <div class="test-button">Run Test Crawl</div>
+                    
+                    <!-- Success State -->
+                    <div class="test-results">
+                        <div class="success-message">
+                            <div class="success-icon">✓</div>
+                            <div class="success-text">Found 10 images successfully!</div>
+                            <div style="font-size: 11px; color: #666;">Your configuration is working perfectly</div>
+                            
+                            <div class="preview-thumbnails">
+                                <div class="thumbnail">Image 1</div>
+                                <div class="thumbnail">Image 2</div>
+                                <div class="thumbnail">Image 3</div>
+                                <div class="thumbnail">Image 4</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="next-button">Looks Good! →</div>
+                </div>
             </div>
-            <div class="summary-row">
-              <div class="summary-label">Total Images</div>
-              <div class="summary-value">~300 images</div>
-            </div>
-            <div class="summary-row">
-              <div class="summary-label">Estimated Time</div>
-              <div class="summary-value">~5 minutes</div>
-            </div>
-            <div class="summary-row">
-              <div class="summary-label">Cost</div>
-              <div class="summary-value">Free tier</div>
-            </div>
-          </div>
         </div>
-
-        <div class="action-buttons">
-          <div class="launch-button">Create Full Dataset 🎉</div>
-          <div class="back-button">← Adjust Settings</div>
-        </div>
-
-        <div class="help-card">
-          <div class="help-header">
-            <div class="help-icon">💡</div>
-            <div class="help-title">What happens next?</div>
-          </div>
-          <div class="help-bullets">
-            <div class="help-bullet">• Images will download and process in real-time</div>
-            <div class="help-bullet">• You can monitor progress live on the dashboard</div>
-            <div class="help-bullet">• Get notified when your dataset is complete</div>
-            <div class="help-bullet">• Download your organized dataset instantly</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Mobile Step 1 -->
-<div class="wireframe-section">
-  <div class="section-label">Welcome Page - Step 1: Configure (Mobile 375px)</div>
-  <div class="container welcome-mobile">
-    <div class="mobile-welcome-header">
-      <div class="logo">PixCrawler</div>
-      <div class="skip-button" style="font-size: 9px; padding: 6px 12px;">Skip</div>
-    </div>
-
-    <div class="mobile-progress-bar">
-      <div style="display: flex; align-items: center;">
-        <div class="mobile-progress-indicator">Step 1 of 3</div>
-        <div class="mobile-progress-dots">
-          <div class="progress-dot active"></div>
-          <div class="progress-dot"></div>
-          <div class="progress-dot"></div>
-        </div>
-      </div>
     </div>
 
-    <div class="mobile-content">
-      <div class="mobile-greeting">Welcome, Alex!</div>
-      <div class="mobile-tagline">Create your first dataset in 3 steps</div>
-
-      <div class="mobile-config-form">
-        <div class="mobile-form-group">
-          <label class="form-label">Dataset Name</label>
-          <input class="form-input" type="text" value="my_first_dataset">
+    <!-- Desktop Step 2: Test - Error State -->
+    <div class="wireframe-section">
+        <div class="section-label">Welcome Page - Step 2: Test Configuration - Error State (Desktop)</div>
+        <div class="container welcome-desktop">
+            <div class="welcome-header">
+                <div class="logo">PixCrawler</div>
+                <div class="skip-button">Skip to Dashboard →</div>
+            </div>
+            
+            <div class="progress-bar-container">
+                <div class="progress-steps">
+                    <div class="progress-step">
+                        <div class="step-circle completed">✓</div>
+                        <div class="step-label">Configure</div>
+                    </div>
+                    <div class="progress-line completed"></div>
+                    <div class="progress-step">
+                        <div class="step-circle active">2</div>
+                        <div class="step-label active">Test</div>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="progress-step">
+                        <div class="step-circle">3</div>
+                        <div class="step-label">Launch</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="welcome-content">
+                <div class="step-container">
+                    <div class="instruction-card">
+                        <div class="instruction-icon">🧪</div>
+                        <div class="instruction-title">Test Your Configuration</div>
+                        <div class="instruction-desc">
+                            We'll do a quick test with 10 images to make sure everything works correctly.
+                        </div>
+                    </div>
+                    
+                    <div class="test-button">Retry Test Crawl</div>
+                    
+                    <!-- Error State -->
+                    <div class="test-results">
+                        <div class="error-message">
+                            <div class="error-icon">⚠</div>
+                            <div class="error-text">Couldn't find enough images</div>
+                            <div style="font-size: 11px; color: #666;">Only found 3 images with current settings</div>
+                            
+                            <div class="fix-suggestions">
+                                <div class="suggestion-title">Try these fixes:</div>
+                                <div class="suggestion-item">• Use more common or broader search terms</div>
+                                <div class="suggestion-item">• Check spelling of category names</div>
+                                <div class="suggestion-item">• Try different categories (e.g., "dog" instead of "golden retriever puppy")</div>
+                                <div class="suggestion-item">• Reduce the number of images per category</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="padding: 12px; border: 1px solid #000; background: white; text-align: center; font-size: 11px;">
+                        ← Go Back and Adjust Settings
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <div class="mobile-form-group">
-          <label class="form-label">Categories</label>
-          <input class="form-input" type="text" value="cats, dogs, birds">
-        </div>
-
-        <div class="mobile-form-group">
-          <label class="form-label">Images Per Category</label>
-          <input class="slider" type="range" value="100">
-          <div class="slider-value" style="font-size: 14px;">100 images</div>
-        </div>
-      </div>
-
-      <div class="mobile-code-preview">
-        <div class="code-preview-title">Configuration</div>
-        <div class="code-block" style="font-size: 9px;">
-          {<br>
-          &nbsp;&nbsp;"name": "my_first_dataset",<br>
-          &nbsp;&nbsp;"categories": ["cats", "dogs", "birds"],<br>
-          &nbsp;&nbsp;"max_images": 100<br>
-          }
-        </div>
-      </div>
-
-      <div class="mobile-next-button">Configure Dataset →</div>
     </div>
-  </div>
-</div>
 
-<!-- Mobile Step 3 -->
-<div class="wireframe-section">
-  <div class="section-label">Welcome Page - Step 3: Launch (Mobile 375px)</div>
-  <div class="container welcome-mobile">
-    <div class="mobile-welcome-header">
-      <div class="logo">PixCrawler</div>
-      <div class="skip-button" style="font-size: 9px; padding: 6px 12px;">Skip</div>
+    <!-- Desktop Step 3: Launch -->
+    <div class="wireframe-section">
+        <div class="section-label">Welcome Page - Step 3: Launch Full Dataset (Desktop)</div>
+        <div class="container welcome-desktop">
+            <div class="welcome-header">
+                <div class="logo">PixCrawler</div>
+                <div class="skip-button">Skip to Dashboard →</div>
+            </div>
+            
+            <div class="progress-bar-container">
+                <div class="progress-steps">
+                    <div class="progress-step">
+                        <div class="step-circle completed">✓</div>
+                        <div class="step-label">Configure</div>
+                    </div>
+                    <div class="progress-line completed"></div>
+                    <div class="progress-step">
+                        <div class="step-circle completed">✓</div>
+                        <div class="step-label">Test</div>
+                    </div>
+                    <div class="progress-line completed"></div>
+                    <div class="progress-step">
+                        <div class="step-circle active">3</div>
+                        <div class="step-label active">Launch</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="welcome-content">
+                <div class="step-container">
+                    <div class="summary-card">
+                        <div class="summary-icon">🚀</div>
+                        <div class="summary-title">Ready to Launch!</div>
+                        
+                        <div class="config-summary">
+                            <div class="summary-row">
+                                <div class="summary-label">Dataset Name</div>
+                                <div class="summary-value">my_first_dataset</div>
+                            </div>
+                            <div class="summary-row">
+                                <div class="summary-label">Categories</div>
+                                <div class="summary-value">cats, dogs, birds</div>
+                            </div>
+                            <div class="summary-row">
+                                <div class="summary-label">Images Per Category</div>
+                                <div class="summary-value">100 images</div>
+                            </div>
+                            <div class="summary-row">
+                                <div class="summary-label">Total Images</div>
+                                <div class="summary-value">~300 images</div>
+                            </div>
+                            <div class="summary-row">
+                                <div class="summary-label">Estimated Time</div>
+                                <div class="summary-value">~5 minutes</div>
+                            </div>
+                            <div class="summary-row">
+                                <div class="summary-label">Cost</div>
+                                <div class="summary-value">Free tier</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <div class="launch-button">Create Full Dataset 🎉</div>
+                        <div class="back-button">← Adjust Settings</div>
+                    </div>
+                    
+                    <div class="help-card">
+                        <div class="help-header">
+                            <div class="help-icon">💡</div>
+                            <div class="help-title">What happens next?</div>
+                        </div>
+                        <div class="help-bullets">
+                            <div class="help-bullet">• Images will download and process in real-time</div>
+                            <div class="help-bullet">• You can monitor progress live on the dashboard</div>
+                            <div class="help-bullet">• Get notified when your dataset is complete</div>
+                            <div class="help-bullet">• Download your organized dataset instantly</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="mobile-progress-bar">
-      <div style="display: flex; align-items: center;">
-        <div class="mobile-progress-indicator">Step 3 of 3</div>
-        <div class="mobile-progress-dots">
-          <div class="progress-dot active"></div>
-          <div class="progress-dot
+    <!-- Mobile Step 1 -->
+    <div class="wireframe-section mobile" style="margin-top: 150px;">
+        <div class="section-label">Welcome Page - Step 1: Configure (Mobile 375px)</div>
+        <div class="container welcome-mobile">
+            <div class="mobile-welcome-header">
+                <div class="logo">PixCrawler</div>
+                <div class="skip-button" style="font-size: 9px; padding: 6px 12px;">Skip</div>
+            </div>
+            
+            <div class="mobile-progress-bar">
+                <div style="display: flex; align-items: center;">
+                    <div class="mobile-progress-indicator">Step 1 of 3</div>
+                    <div class="mobile-progress-dots">
+                        <div class="progress-dot active"></div>
+                        <div class="progress-dot active"></div>
+                        <div class="progress-dot active"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mobile-content">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div style="font-size: 40px; margin-bottom: 15px;">🚀</div>
+                    <div style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">Ready to Launch!</div>
+                </div>
+                
+                <div style="border: 1px solid #000; padding: 20px; margin-bottom: 20px;">
+                    <div class="summary-row" style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+                        <div class="summary-label">Dataset</div>
+                        <div class="summary-value">my_first_dataset</div>
+                    </div>
+                    <div class="summary-row" style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+                        <div class="summary-label">Categories</div>
+                        <div class="summary-value">3 categories</div>
+                    </div>
+                    <div class="summary-row" style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+                        <div class="summary-label">Total Images</div>
+                        <div class="summary-value">~300 images</div>
+                    </div>
+                    <div class="summary-row" style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+                        <div class="summary-label">Time</div>
+                        <div class="summary-value">~5 minutes</div>
+                    </div>
+                    <div class="summary-row" style="padding: 8px 0;">
+                        <div class="summary-label">Cost</div>
+                        <div class="summary-value">Free tier</div>
+                    </div>
+                </div>
+                
+                <div class="mobile-next-button" style="margin-bottom: 12px;">Create Full Dataset 🎉</div>
+                <div style="padding: 12px; border: 1px solid #000; text-align: center; font-size: 11px; margin-bottom: 20px;">
+                    ← Adjust Settings
+                </div>
+                
+                <div style="border: 1px solid #000; padding: 20px; background: #fafafa;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                        <div style="font-size: 20px;">💡</div>
+                        <div style="font-weight: bold; font-size: 11px;">What happens next?</div>
+                    </div>
+                    <div style="font-size: 10px; color: #666; line-height: 1.7;">
+                        • Images download in real-time<br>
+                        • Monitor progress live<br>
+                        • Get notified when complete<br>
+                        • Download instantly
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>"></div>
+                        <div class="progress-dot"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mobile-content">
+                <div class="mobile-greeting">Welcome, Alex!</div>
+                <div class="mobile-tagline">Create your first dataset in 3 steps</div>
+                
+                <div class="mobile-config-form">
+                    <div class="mobile-form-group">
+                        <label class="form-label">Dataset Name</label>
+                        <input type="text" class="form-input" value="my_first_dataset">
+                    </div>
+                    
+                    <div class="mobile-form-group">
+                        <label class="form-label">Categories</label>
+                        <input type="text" class="form-input" value="cats, dogs, birds">
+                    </div>
+                    
+                    <div class="mobile-form-group">
+                        <label class="form-label">Images Per Category</label>
+                        <input type="range" class="slider" value="100">
+                        <div class="slider-value" style="font-size: 14px;">100 images</div>
+                    </div>
+                </div>
+                
+                <div class="mobile-code-preview">
+                    <div class="code-preview-title">Configuration</div>
+                    <div class="code-block" style="font-size: 9px;">
+{<br>
+&nbsp;&nbsp;"name": "my_first_dataset",<br>
+&nbsp;&nbsp;"categories": ["cats", "dogs", "birds"],<br>
+&nbsp;&nbsp;"max_images": 100<br>
+}
+                    </div>
+                </div>
+                
+                <div class="mobile-next-button">Configure Dataset →</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Step 3 -->
+    <div class="wireframe-section mobile">
+        <div class="section-label">Welcome Page - Step 3: Launch (Mobile 375px)</div>
+        <div class="container welcome-mobile">
+            <div class="mobile-welcome-header">
+                <div class="logo">PixCrawler</div>
+                <div class="skip-button" style="font-size: 9px; padding: 6px 12px;">Skip</div>
+            </div>
+            
+            <div class="mobile-progress-bar">
+                <div style="display: flex; align-items: center;">
+                    <div class="mobile-progress-indicator">Step 3 of 3</div>
+                    <div class="mobile-progress-dots">
+                        <div class="progress-dot active"></div>
+                        <div class="progress-dot
