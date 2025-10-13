@@ -5,7 +5,7 @@ Base service class with common functionality.
 from abc import ABC
 from typing import Any
 
-from pixcrawler_logging import get_logger
+from logging_config import get_logger
 
 
 class BaseService(ABC):

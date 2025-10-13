@@ -31,7 +31,7 @@ from typing import Any, Optional, Dict
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse
-from pixcrawler_logging import get_logger
+from logging_config import get_logger
 
 __all__ = [
     'PixCrawlerException',

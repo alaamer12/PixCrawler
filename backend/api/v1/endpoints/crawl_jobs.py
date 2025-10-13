@@ -278,7 +278,7 @@ async def list_crawl_jobs(
         items_query = (
             select(CrawlJob)
             .join(Project, Project.id == CrawlJob.project_id)
-            .where(Project.user_id == str(current_user["user_id"]))
+            .where(Project.user_id == uuid.UUID(current_user["user_id"]))
             .order_by(CrawlJob.created_at.desc())
             .limit(pagination.size)
             .offset(offset)

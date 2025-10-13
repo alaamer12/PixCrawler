@@ -7,7 +7,7 @@ import uuid
 from typing import Callable
 
 from fastapi import FastAPI, Request, Response
-from pixcrawler_logging import get_logger
+from logging_config import get_logger
 
 logger = get_logger(__name__)
 
