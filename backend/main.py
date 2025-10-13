@@ -27,6 +27,7 @@ def create_app() -> FastAPI:
     )
 
     # Setup CORS
+    # noinspection PyTypeChecker
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,

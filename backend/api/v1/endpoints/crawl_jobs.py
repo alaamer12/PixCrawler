@@ -226,7 +226,7 @@ class JobLogEntry(BaseModel):
 
     action: str
     timestamp: str
-    metadata: Dict[str, Any] | None = None
+    metadata: Optional[Dict[str, Any]] = None
 
 
 class CrawlJobProgress(BaseModel):
@@ -237,10 +237,11 @@ class CrawlJobProgress(BaseModel):
     total_images: int
     downloaded_images: int
     valid_images: int
-    started_at: str | None = None
-    completed_at: str | None = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
     updated_at: str
 
+import uuid
 
 @router.get("/", response_model=PaginatedResponse[CrawlJobResponse])
 async def list_crawl_jobs(
@@ -267,17 +268,17 @@ async def list_crawl_jobs(
             select(func.count(CrawlJob.id))
             .select_from(CrawlJob)
             .join(Project, Project.id == CrawlJob.project_id)
-            .where(Project.user_id == current_user["user_id"])
+            .where(Project.user_id == uuid.UUID(current_user["user_id"]))
         )
         total_result = await session.execute(total_query)
-        total = int(total_result.scalar_one())
+        total = int(total_result.scalar_one()) or 0
 
         # Fetch items with pagination
         offset = (pagination.page - 1) * pagination.size
         items_query = (
             select(CrawlJob)
             .join(Project, Project.id == CrawlJob.project_id)
-            .where(Project.user_id == current_user["user_id"])
+            .where(Project.user_id == uuid.UUID(current_user["user_id"]))
             .order_by(CrawlJob.created_at.desc())
             .limit(pagination.size)
             .offset(offset)
@@ -292,13 +293,13 @@ async def list_crawl_jobs(
                 name=job.name,
                 keywords=job.keywords,
                 max_images=job.max_images,
-                search_engine=job.search_engine,
+                search_engine="duckduckgo",  # Default, not stored in DB
                 status=job.status,
                 progress=job.progress,
                 total_images=job.total_images,
                 downloaded_images=job.downloaded_images,
                 valid_images=job.valid_images,
-                config=job.config,
+                config={},  # Default empty config, not stored in DB
                 created_at=job.created_at.isoformat(),
                 updated_at=job.updated_at.isoformat(),
                 started_at=job.started_at.isoformat() if job.started_at else None,
@@ -371,11 +372,13 @@ async def create_crawl_job(
             name=job.name,
             keywords=job.keywords,
             max_images=job.max_images,
+            search_engine="duckduckgo",  # Default, not stored in DB
             status=job.status,
             progress=job.progress,
             total_images=job.total_images,
             downloaded_images=job.downloaded_images,
             valid_images=job.valid_images,
+            config={},  # Default empty config
             created_at=job.created_at.isoformat(),
             updated_at=job.updated_at.isoformat(),
             started_at=job.started_at.isoformat() if job.started_at else None,
@@ -429,7 +432,7 @@ async def get_crawl_job(
         )
         owner_result = await session.execute(owner_query)
         owner_id = owner_result.scalar_one_or_none()
-        if owner_id != current_user["user_id"]:
+        if str(owner_id) != str(current_user["user_id"]):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Crawl job not found"
@@ -441,11 +444,13 @@ async def get_crawl_job(
             name=job.name,
             keywords=job.keywords,
             max_images=job.max_images,
+            search_engine="duckduckgo",  # Default, not stored in DB
             status=job.status,
             progress=job.progress,
             total_images=job.total_images,
             downloaded_images=job.downloaded_images,
             valid_images=job.valid_images,
+            config={},  # Default empty config
             created_at=job.created_at.isoformat(),
             updated_at=job.updated_at.isoformat(),
             started_at=job.started_at.isoformat() if job.started_at else None,
@@ -553,7 +558,7 @@ async def retry_crawl_job(
         )
         owner_result = await session.execute(owner_query)
         owner_id = owner_result.scalar_one_or_none()
-        if owner_id != current_user["user_id"]:
+        if str(owner_id) != str(current_user["user_id"]):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Crawl job not found"
@@ -586,17 +591,25 @@ async def retry_crawl_job(
             name=job.name,
             keywords=job.keywords,
             max_images=job.max_images,
-            search_engine=job.search_engine,
+            search_engine="duckduckgo",  # Default, not stored in DB
             status=job.status,
             progress=job.progress,
             total_images=job.total_images,
             downloaded_images=job.downloaded_images,
             valid_images=job.valid_images,
-            config=job.config,
+            config={},  # Default empty config
             created_at=job.created_at.isoformat(),
             updated_at=job.updated_at.isoformat(),
             started_at=job.started_at.isoformat() if job.started_at else None,
             completed_at=job.completed_at.isoformat() if job.completed_at else None,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retry crawl job: {str(e)}"
         )
 
 
@@ -635,7 +648,7 @@ async def get_crawl_job_logs(
         owner_query = select(Project.user_id).where(Project.id == job.project_id)
         owner_result = await session.execute(owner_query)
         owner_id = owner_result.scalar_one_or_none()
-        if owner_id != current_user["user_id"]:
+        if str(owner_id) != str(current_user["user_id"]):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Crawl job not found"
@@ -706,7 +719,7 @@ async def get_crawl_job_progress(
         owner_query = select(Project.user_id).where(Project.id == job.project_id)
         owner_result = await session.execute(owner_query)
         owner_id = owner_result.scalar_one_or_none()
-        if owner_id != current_user["user_id"]:
+        if str(owner_id) != str(current_user["user_id"]):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Crawl job not found"
@@ -729,12 +742,4 @@ async def get_crawl_job_progress(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve crawl job progress: {str(e)}"
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retry crawl job: {str(e)}"
         )

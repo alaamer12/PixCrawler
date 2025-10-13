@@ -17,9 +17,8 @@ Features:
     - Progress tracking and error handling
     - Image metadata storage
 """
-
+import uuid
 from typing import Dict, Any, List, Optional
-from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -64,7 +63,7 @@ class CrawlJobService(BaseService):
         max_images: int = 100,
         search_engine: str = "duckduckgo",
         config: Optional[Dict[str, Any]] = None,
-        user_id: UUID = None
+        user_id: Optional[str] = None
     ) -> CrawlJob:
         """
         Create a new crawl job.
@@ -194,7 +193,7 @@ class CrawlJobService(BaseService):
 
     async def _log_activity(
         self,
-        user_id: UUID,
+        user_id: str,
         action: str,
         resource_type: str = None,
         resource_id: str = None,
@@ -211,7 +210,7 @@ class CrawlJobService(BaseService):
             metadata: Additional metadata
         """
         activity_log = ActivityLog(
-            user_id=user_id,
+            user_id=uuid.UUID(user_id),
             action=action,
             resource_type=resource_type,
             resource_id=resource_id,

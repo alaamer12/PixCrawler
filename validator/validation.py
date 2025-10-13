@@ -30,13 +30,12 @@ Features:
 
 import time
 from dataclasses import dataclass, field
-from enum import Enum, auto
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Tuple, Set, TypedDict
 
 from logging_config import get_logger
-from validator.integrity import DuplicationManager, ImageValidator
 from validator.config import CheckMode, DuplicateAction, ValidatorConfig
+from validator.integrity import DuplicationManager, ImageValidator
 
 logger = get_logger(__name__)
 
