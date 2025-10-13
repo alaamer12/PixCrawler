@@ -23,8 +23,8 @@ logger = get_logger(__name__)
 app = get_celery_app()
 
 
-@app.task(bind=True, base=BaseTask, name='celery_core.health_check')
-def health_check(self) -> Dict[str, Any]:
+@app.task(bind=True, base=BaseTask, name='celery_core.health_check', rate_limit='12/h')
+def health_check(self: Self) -> Dict[str, Any]:
     """
     Basic health check task for monitoring Celery workers.
 
@@ -44,7 +44,7 @@ def health_check(self) -> Dict[str, Any]:
         raise
 
 
-@app.task(bind=True, base=BaseTask, name='celery_core.cleanup_expired_results')
+@app.task(bind=True, base=BaseTask, name='celery_core.cleanup_expired_results', rate_limit='1/h')
 def cleanup_expired_results(self: Self, max_age_hours: int = 24) -> Dict[str, Any]:
     """
     Clean up expired task results from the result backend.
@@ -76,8 +76,8 @@ def cleanup_expired_results(self: Self, max_age_hours: int = 24) -> Dict[str, An
         raise
 
 
-@app.task(bind=True, base=BaseTask, name='celery_core.get_worker_stats')
-def get_worker_stats(self) -> Dict[str, Any]:
+@app.task(bind=True, base=BaseTask, name='celery_core.get_worker_stats', rate_limit='60/h')
+def get_worker_stats(self: Self) -> Dict[str, Any]:
     """
     Get basic worker statistics.
 

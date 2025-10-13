@@ -28,7 +28,7 @@ Usage:
 """
 
 from celery_core.config import CelerySettings, get_celery_settings
-from celery_core.app import CeleryApp, create_celery_app, get_celery_app
+from celery_core.app import get_celery_app, revoke_task
 from celery_core.base import (
     BaseTask,
     TaskResult,
@@ -44,6 +44,15 @@ from celery_core.manager import (
     get_task_manager,
     get_task_monitor
 )
+from celery_core.workflows import (
+    create_parallel_workflow,
+    create_sequential_workflow,
+    create_map_reduce_workflow,
+    create_callback_workflow,
+    create_crawl_and_validate_workflow,
+    get_workflow_status,
+    cancel_workflow
+)
 
 # Version information
 __version__ = "0.1.0"
@@ -57,9 +66,8 @@ __all__ = [
     'get_celery_settings',
     
     # Application
-    'CeleryApp',
-    'create_celery_app',
     'get_celery_app',
+    'revoke_task',
     
     # Base classes and utilities
     'BaseTask',
@@ -75,6 +83,15 @@ __all__ = [
     'TaskInfo',
     'get_task_manager',
     'get_task_monitor',
+    
+    # Workflows (Canvas)
+    'create_parallel_workflow',
+    'create_sequential_workflow',
+    'create_map_reduce_workflow',
+    'create_callback_workflow',
+    'create_crawl_and_validate_workflow',
+    'get_workflow_status',
+    'cancel_workflow',
     
     # Version info
     '__version__',
