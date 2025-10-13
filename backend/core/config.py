@@ -120,6 +120,19 @@ class Settings(BaseSettings):
         description="Allowed CORS origins",
         examples=[["http://localhost:3000"], ["https://app.example.com", "https://admin.example.com"]]
     )
+    
+    # Security settings
+    allowed_hosts: List[str] = Field(
+        default=["localhost", "127.0.0.1"],
+        min_length=1,
+        description="Allowed host headers (production)",
+        examples=[["localhost"], ["app.example.com", "www.app.example.com"]]
+    )
+    force_https: bool = Field(
+        default=False,
+        description="Force HTTPS redirect in production",
+        examples=[True, False]
+    )
 
     # Database settings
     database_url: str = Field(
