@@ -13,6 +13,7 @@ from typing import Dict, Any
 from datetime import datetime, timedelta
 
 from celery_core.base import BaseTask
+from celery_core.base import BaseTask as Self
 from celery_core.app import get_celery_app
 from logging_config import get_logger
 
@@ -26,7 +27,7 @@ app = get_celery_app()
 def health_check(self) -> Dict[str, Any]:
     """
     Basic health check task for monitoring Celery workers.
-    
+
     Returns:
         Dict containing health check information
     """
@@ -44,25 +45,26 @@ def health_check(self) -> Dict[str, Any]:
 
 
 @app.task(bind=True, base=BaseTask, name='celery_core.cleanup_expired_results')
-def cleanup_expired_results(self, max_age_hours: int = 24) -> Dict[str, Any]:
+def cleanup_expired_results(self: Self, max_age_hours: int = 24) -> Dict[str, Any]:
     """
     Clean up expired task results from the result backend.
-    
+
     Args:
+        self:
         max_age_hours: Maximum age of results to keep in hours
-        
+
     Returns:
         Dict containing cleanup information
     """
     try:
         cutoff_time = datetime.utcnow() - timedelta(hours=max_age_hours)
-        
+
         # This is a placeholder - actual implementation would depend on the backend
         # For Redis, you might use SCAN and DEL commands
         # For database backends, you'd run DELETE queries
-        
+
         logger.info(f"Cleaning up results older than {cutoff_time}")
-        
+
         return {
             'status': 'completed',
             'cutoff_time': cutoff_time.isoformat(),
@@ -78,14 +80,14 @@ def cleanup_expired_results(self, max_age_hours: int = 24) -> Dict[str, Any]:
 def get_worker_stats(self) -> Dict[str, Any]:
     """
     Get basic worker statistics.
-    
+
     Returns:
         Dict containing worker statistics
     """
     try:
         # Get basic worker information
         inspect = app.control.inspect()
-        
+
         stats = {
             'timestamp': datetime.utcnow().isoformat(),
             'worker_id': self.request.hostname,
@@ -97,7 +99,7 @@ def get_worker_stats(self) -> Dict[str, Any]:
                 'backend': app.conf.result_backend,
             }
         }
-        
+
         return stats
     except Exception as exc:
         logger.error(f"Failed to get worker stats: {exc}")
