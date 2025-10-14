@@ -8,14 +8,13 @@ including creation, status monitoring, and execution control.
 from typing import Dict, Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi_limiter.depends import RateLimiter
 from pydantic import BaseModel, Field, field_validator, model_validator
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.dependencies import get_current_user
-from backend.database.connection import get_session
+from backend.api.dependencies import get_current_user, get_session
 from backend.database.models import CrawlJob, Project, ActivityLog
-from backend.models.base import PaginatedResponse, PaginationParams
 from backend.services.crawl_job import CrawlJobService, execute_crawl_job
 
 __all__ = ['router']
@@ -242,20 +241,22 @@ class CrawlJobProgress(BaseModel):
     updated_at: str
 
 import uuid
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
 
-@router.get("/", response_model=PaginatedResponse[CrawlJobResponse])
+@router.get("/", response_model=Page[CrawlJobResponse])
 async def list_crawl_jobs(
-    pagination: PaginationParams = Depends(),
     current_user: Dict[str, Any] = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
-) -> PaginatedResponse[CrawlJobResponse]:
+) -> Page[CrawlJobResponse]:
     """
     List crawl jobs for the current user with pagination.
 
     Jobs are filtered by projects owned by the current user.
+    Pagination is handled automatically by fastapi-pagination.
+    Query parameters: page (default=1), size (default=50)
 
     Args:
-        pagination: Pagination parameters
         current_user: Current authenticated user
         session: Database session
 
@@ -263,60 +264,16 @@ async def list_crawl_jobs(
         Paginated list of crawl jobs
     """
     try:
-        # Count total jobs for user's projects
-        total_query = (
-            select(func.count(CrawlJob.id))
-            .select_from(CrawlJob)
-            .join(Project, Project.id == CrawlJob.project_id)
-            .where(Project.user_id == uuid.UUID(current_user["user_id"]))
-        )
-        total_result = await session.execute(total_query)
-        total = int(total_result.scalar_one()) or 0
-
-        # Fetch items with pagination
-        offset = (pagination.page - 1) * pagination.size
-        items_query = (
+        # Build query for user's crawl jobs
+        query = (
             select(CrawlJob)
             .join(Project, Project.id == CrawlJob.project_id)
             .where(Project.user_id == uuid.UUID(current_user["user_id"]))
             .order_by(CrawlJob.created_at.desc())
-            .limit(pagination.size)
-            .offset(offset)
         )
-        items_result = await session.execute(items_query)
-        jobs: List[CrawlJob] = list(items_result.scalars().all())
-
-        job_responses: List[CrawlJobResponse] = [
-            CrawlJobResponse(
-                id=job.id,
-                project_id=job.project_id,
-                name=job.name,
-                keywords=job.keywords,
-                max_images=job.max_images,
-                search_engine="duckduckgo",  # Default, not stored in DB
-                status=job.status,
-                progress=job.progress,
-                total_images=job.total_images,
-                downloaded_images=job.downloaded_images,
-                valid_images=job.valid_images,
-                config={},  # Default empty config, not stored in DB
-                created_at=job.created_at.isoformat(),
-                updated_at=job.updated_at.isoformat(),
-                started_at=job.started_at.isoformat() if job.started_at else None,
-                completed_at=job.completed_at.isoformat() if job.completed_at else None,
-            )
-            for job in jobs
-        ]
-
-        pages = (total + pagination.size - 1) // pagination.size if pagination.size else 1
-
-        return PaginatedResponse[CrawlJobResponse](
-            items=job_responses,
-            total=total,
-            page=pagination.page,
-            size=pagination.size,
-            pages=pages,
-        )
+        
+        # Use fastapi-pagination's paginate function
+        return await paginate(session, query)
 
     except Exception as e:
         raise HTTPException(
@@ -325,7 +282,12 @@ async def list_crawl_jobs(
         )
 
 
-@router.post("/", response_model=CrawlJobResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=CrawlJobResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(RateLimiter(times=10, seconds=60))]
+)
 async def create_crawl_job(
     job_create: CrawlJobCreate,
     background_tasks: BackgroundTasks,
@@ -517,7 +479,11 @@ async def cancel_crawl_job(
         )
 
 
-@router.post("/{job_id}/retry", response_model=CrawlJobResponse)
+@router.post(
+    "/{job_id}/retry",
+    response_model=CrawlJobResponse,
+    dependencies=[Depends(RateLimiter(times=5, seconds=60))]
+)
 async def retry_crawl_job(
     job_id: int,
     background_tasks: BackgroundTasks,

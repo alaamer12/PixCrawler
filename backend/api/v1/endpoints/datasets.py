@@ -5,9 +5,11 @@ Dataset management endpoints.
 from typing import Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi_limiter.depends import RateLimiter
+from fastapi_pagination import Page
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.dependencies import get_current_user
-from backend.models.base import PaginatedResponse, PaginationParams
+from backend.api.dependencies import get_current_user, get_session
 from backend.models.dataset import DatasetCreate, DatasetResponse, DatasetStats, \
     DatasetUpdate
 from backend.services.dataset import DatasetService
@@ -15,7 +17,12 @@ from backend.services.dataset import DatasetService
 router = APIRouter(prefix="/api/v1/datasets")
 
 
-@router.post("/", response_model=DatasetResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=DatasetResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(RateLimiter(times=10, seconds=60))]
+)
 async def create_dataset(
     dataset_create: DatasetCreate,
     current_user: Dict[str, Any] = Depends(get_current_user),
@@ -44,24 +51,27 @@ async def create_dataset(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/", response_model=PaginatedResponse[DatasetResponse])
+@router.get("/", response_model=Page[DatasetResponse])
 async def list_datasets(
-    pagination: PaginationParams = Depends(),
     current_user: Dict[str, Any] = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
     dataset_service: DatasetService = Depends(),
-) -> PaginatedResponse[DatasetResponse]:
+) -> Page[DatasetResponse]:
     """
     List datasets with pagination.
 
+    Pagination is handled automatically by fastapi-pagination.
+    Query parameters: page (default=1), size (default=50)
+
     Args:
-        pagination: Pagination parameters
         current_user: Current authenticated user
+        session: Database session
         dataset_service: Dataset service dependency
 
     Returns:
         Paginated list of datasets
     """
-    # TODO: Implement list_datasets in DatasetService
+    # TODO: Implement list_datasets in DatasetService with pagination
     raise HTTPException(status_code=501, detail="List datasets not implemented yet")
 
 
@@ -112,6 +122,7 @@ async def get_dataset(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
     return dataset
+
 
 @router.put("/{dataset_id}", response_model=DatasetResponse)
 async def update_dataset(
@@ -173,7 +184,11 @@ async def delete_dataset(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.post("/{dataset_id}/build", response_model=DatasetResponse)
+@router.post(
+    "/{dataset_id}/build",
+    response_model=DatasetResponse,
+    dependencies=[Depends(RateLimiter(times=5, seconds=60))]
+)
 async def start_build_job(
     dataset_id: int,
     current_user: Dict[str, Any] = Depends(get_current_user),

@@ -3,8 +3,8 @@ User management endpoints.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi_pagination import Page
 
-from backend.models.base import PaginatedResponse, PaginationParams
 from backend.models.user import UserCreate, UserResponse, UserUpdate
 from backend.services.user import UserService
 
@@ -36,16 +36,17 @@ async def create_user(
     )
 
 
-@router.get("/", response_model=PaginatedResponse[UserResponse])
+@router.get("/", response_model=Page[UserResponse])
 async def list_users(
-    pagination: PaginationParams = Depends(),
     user_service: UserService = Depends(),
-) -> PaginatedResponse[UserResponse]:
+) -> Page[UserResponse]:
     """
     List users with pagination.
 
+    Pagination is handled automatically by fastapi-pagination.
+    Query parameters: page (default=1), size (default=50)
+
     Args:
-        pagination: Pagination parameters
         user_service: User service dependency
 
     Returns:

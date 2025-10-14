@@ -199,6 +199,33 @@ class Settings(BaseSettings):
         description="Allowed file extensions for uploads",
         examples=[[".jpg", ".png"], [".jpg", ".jpeg", ".png", ".gif", ".webp"]]
     )
+    
+    # Rate limiting settings
+    rate_limit_enabled: bool = Field(
+        default=True,
+        description="Enable API rate limiting",
+        examples=[True, False]
+    )
+    rate_limit_create_dataset: str = Field(
+        default="10/60",
+        description="Rate limit for dataset creation (times/seconds)",
+        examples=["10/60", "20/120", "5/30"]
+    )
+    rate_limit_create_crawl_job: str = Field(
+        default="10/60",
+        description="Rate limit for crawl job creation (times/seconds)",
+        examples=["10/60", "15/60", "5/30"]
+    )
+    rate_limit_retry_job: str = Field(
+        default="5/60",
+        description="Rate limit for job retry (times/seconds)",
+        examples=["5/60", "10/120", "3/30"]
+    )
+    rate_limit_build_job: str = Field(
+        default="5/60",
+        description="Rate limit for build job start (times/seconds)",
+        examples=["5/60", "10/120", "3/30"]
+    )
 
     @field_validator('allowed_origins')
     @classmethod

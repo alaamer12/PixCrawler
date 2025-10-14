@@ -24,6 +24,8 @@ dependencies = [
   "supabase>=2.0.0",
   "PyJWT>=2.8.0",
   "pixcrawler-logging",
+  "fastapi-pagination", # Use Latest
+  "fastapi-limiter", # Use Latest
 ]
 
 [project.optional-dependencies]
