@@ -5,6 +5,7 @@ User management endpoints.
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi_pagination import Page
 
+from backend.api.types import CurrentUser, UserID
 from backend.models.user import UserCreate, UserResponse, UserUpdate
 from backend.services.user import UserService
 
@@ -61,7 +62,7 @@ async def list_users(
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
-    user_id: int,
+    user_id: UserID,
     user_service: UserService = Depends(),
 ) -> UserResponse:
     """
@@ -86,7 +87,7 @@ async def get_user(
 
 @router.put("/{user_id}", response_model=UserResponse)
 async def update_user(
-    user_id: int,
+    user_id: UserID,
     user_update: UserUpdate,
     user_service: UserService = Depends(),
 ) -> UserResponse:
@@ -113,7 +114,7 @@ async def update_user(
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
-    user_id: int,
+    user_id: UserID,
     user_service: UserService = Depends(),
 ) -> None:
     """

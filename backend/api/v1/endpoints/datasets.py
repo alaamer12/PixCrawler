@@ -2,16 +2,12 @@
 Dataset management endpoints.
 """
 
-from typing import Dict, Any
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi_limiter.depends import RateLimiter
 from fastapi_pagination import Page
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.dependencies import get_current_user, get_session
-from backend.models.dataset import DatasetCreate, DatasetResponse, DatasetStats, \
-    DatasetUpdate
+from backend.api.types import CurrentUser, DBSession, DatasetID
+from backend.models.dataset import DatasetCreate, DatasetResponse, DatasetStats, DatasetUpdate
 from backend.services.dataset import DatasetService
 
 router = APIRouter(prefix="/api/v1/datasets")
@@ -25,7 +21,7 @@ router = APIRouter(prefix="/api/v1/datasets")
 )
 async def create_dataset(
     dataset_create: DatasetCreate,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
 ) -> DatasetResponse:
     """
@@ -53,8 +49,8 @@ async def create_dataset(
 
 @router.get("/", response_model=Page[DatasetResponse])
 async def list_datasets(
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser,
+    session: DBSession,
     dataset_service: DatasetService = Depends(),
 ) -> Page[DatasetResponse]:
     """
@@ -99,8 +95,8 @@ async def get_dataset_stats(
 
 @router.get("/{dataset_id}", response_model=DatasetResponse)
 async def get_dataset(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
 ) -> DatasetResponse:
     """
@@ -126,9 +122,9 @@ async def get_dataset(
 
 @router.put("/{dataset_id}", response_model=DatasetResponse)
 async def update_dataset(
-    dataset_id: int,
+    dataset_id: DatasetID,
     dataset_update: DatasetUpdate,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
 ) -> DatasetResponse:
     """
@@ -159,8 +155,8 @@ async def update_dataset(
 
 @router.delete("/{dataset_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_dataset(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
 ) -> None:
     """
@@ -190,8 +186,8 @@ async def delete_dataset(
     dependencies=[Depends(RateLimiter(times=5, seconds=60))]
 )
 async def start_build_job(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
 ) -> DatasetResponse:
     """
@@ -214,8 +210,8 @@ async def start_build_job(
 
 @router.get("/{dataset_id}/status", response_model=DatasetResponse)
 async def get_dataset_status(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
 ) -> DatasetResponse:
     """
@@ -236,12 +232,12 @@ async def get_dataset_status(
     raise HTTPException(status_code=501, detail="Get build status not implemented yet")
 
 
-@router.post("/{dataset_id}/download", response_model=Dict[str, str])
+@router.post("/{dataset_id}/download", response_model=dict[str, str])
 async def generate_download_link(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Generate dataset download link.
 
@@ -262,8 +258,8 @@ async def generate_download_link(
 
 @router.post("/{dataset_id}/cancel", response_model=DatasetResponse)
 async def cancel_dataset(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
 ) -> DatasetResponse:
     """

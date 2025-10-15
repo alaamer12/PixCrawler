@@ -5,15 +5,14 @@ This module provides API endpoints for managing image crawling jobs,
 including creation, status monitoring, and execution control.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi_limiter.depends import RateLimiter
 from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.dependencies import get_current_user, get_session
+from backend.api.types import CurrentUser, DBSession, JobID
 from backend.database.models import CrawlJob, Project, ActivityLog
 from backend.services.crawl_job import CrawlJobService, execute_crawl_job
 
@@ -65,7 +64,7 @@ class CrawlJobCreate(BaseModel):
         description="Search engine to use",
         examples=["google", "bing", "duckduckgo", "baidu"]
     )
-    config: Dict[str, Any] = Field(
+    config: dict[str, Any] = Field(
         default_factory=dict,
         description="Additional configuration options",
         examples=[{}, {"quality": "high", "format": "jpg"}]
@@ -176,7 +175,7 @@ class CrawlJobResponse(BaseModel):
         description="Valid images after processing",
         examples=[0, 100, 900]
     )
-    config: Dict[str, Any] = Field(
+    config: dict[str, Any] = Field(
         ...,
         description="Job configuration",
         examples=[{}]
@@ -225,7 +224,7 @@ class JobLogEntry(BaseModel):
 
     action: str
     timestamp: str
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[dict[str, Any]] = None
 
 
 class CrawlJobProgress(BaseModel):
@@ -246,8 +245,8 @@ from fastapi_pagination.ext.sqlalchemy import paginate
 
 @router.get("/", response_model=Page[CrawlJobResponse])
 async def list_crawl_jobs(
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser,
+    session: DBSession,
 ) -> Page[CrawlJobResponse]:
     """
     List crawl jobs for the current user with pagination.
@@ -291,8 +290,8 @@ async def list_crawl_jobs(
 async def create_crawl_job(
     job_create: CrawlJobCreate,
     background_tasks: BackgroundTasks,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser,
+    session: DBSession,
 ) -> CrawlJobResponse:
     """
     Create a new crawl job.
@@ -356,9 +355,9 @@ async def create_crawl_job(
 
 @router.get("/{job_id}", response_model=CrawlJobResponse)
 async def get_crawl_job(
-    job_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    job_id: JobID,
+    current_user: CurrentUser,
+    session: DBSession,
 ) -> CrawlJobResponse:
     """
     Get crawl job by ID.
@@ -430,10 +429,10 @@ async def get_crawl_job(
 
 @router.post("/{job_id}/cancel")
 async def cancel_crawl_job(
-    job_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
-) -> Dict[str, str]:
+    job_id: JobID,
+    current_user: CurrentUser,
+    session: DBSession,
+) -> dict[str, str]:
     """
     Cancel a running crawl job.
 
@@ -485,10 +484,10 @@ async def cancel_crawl_job(
     dependencies=[Depends(RateLimiter(times=5, seconds=60))]
 )
 async def retry_crawl_job(
-    job_id: int,
+    job_id: JobID,
     background_tasks: BackgroundTasks,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser,
+    session: DBSession,
 ) -> CrawlJobResponse:
     """
     Retry a failed or cancelled crawl job.
@@ -581,9 +580,9 @@ async def retry_crawl_job(
 
 @router.get("/{job_id}/logs", response_model=List[JobLogEntry])
 async def get_crawl_job_logs(
-    job_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    job_id: JobID,
+    current_user: CurrentUser,
+    session: DBSession,
 ) -> List[JobLogEntry]:
     """
     Get activity logs for a crawl job.
