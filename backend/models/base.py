@@ -2,39 +2,36 @@
 Base Pydantic models and common schemas for the PixCrawler backend.
 
 This module provides foundational Pydantic models and schemas that are used
-throughout the application for request/response validation, pagination,
-error handling, and common data structures.
+throughout the application for request/response validation, error handling,
+and common data structures.
 
 Classes:
     BaseSchema: Base schema with common configuration
     TimestampMixin: Mixin for models with timestamp fields
-    PaginationParams: Pagination parameters for list endpoints
-    PaginatedResponse: Generic paginated response wrapper
     ErrorDetail: Error detail schema for structured error responses
     HealthCheck: Health check response schema
 
 Features:
     - Consistent model configuration across all schemas
-    - Generic pagination support with type safety
     - Structured error response format
     - Timestamp mixin for audit trails
+
+Note:
+    Pagination is now handled by fastapi-pagination library.
+    Use Page[Model] from fastapi_pagination instead of PaginatedResponse.
 """
 
 from datetime import datetime
-from typing import Any, Generic, TypeVar, Optional, List, Dict
+from typing import Any, Optional, Dict
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 __all__ = [
     'BaseSchema',
     'TimestampMixin',
-    'PaginationParams',
-    'PaginatedResponse',
     'ErrorDetail',
     'HealthCheck'
 ]
-
-DataT = TypeVar("DataT")
 
 
 class BaseSchema(BaseModel):
@@ -92,105 +89,6 @@ class TimestampMixin(BaseSchema):
         """Ensure updated_at is not before created_at."""
         if self.updated_at < self.created_at:
             raise ValueError("updated_at cannot be before created_at")
-        return self
-
-
-class PaginationParams(BaseSchema):
-    """
-    Pagination parameters for list endpoints.
-
-    Provides standard pagination parameters with validation
-    for page number and size constraints.
-
-    Attributes:
-        page: Page number (minimum 1)
-        size: Page size (1-100 items)
-    """
-
-    page: int = Field(
-        default=1, 
-        ge=1, 
-        le=10000,
-        description="Page number",
-        examples=[1, 2, 10]
-    )
-    size: int = Field(
-        default=20, 
-        ge=1, 
-        le=100, 
-        description="Page size",
-        examples=[10, 20, 50, 100]
-    )
-
-    @field_validator('page', 'size')
-    @classmethod
-    def validate_positive_integers(cls, v: int) -> int:
-        """Ensure pagination parameters are positive."""
-        if v <= 0:
-            raise ValueError("Pagination parameters must be positive")
-        return v
-
-
-class PaginatedResponse(BaseSchema, Generic[DataT]):
-    """
-    Generic paginated response wrapper.
-
-    Provides a consistent structure for paginated API responses
-    with metadata about the pagination state.
-
-    Attributes:
-        items: List of items for the current page
-        total: Total number of items across all pages
-        page: Current page number
-        size: Page size used
-        pages: Total number of pages
-    """
-
-    items: List[DataT] = Field(
-        ..., 
-        description="List of items",
-        examples=[[]]
-    )
-    total: int = Field(
-        ..., 
-        ge=0,
-        description="Total number of items",
-        examples=[0, 150, 1000]
-    )
-    page: int = Field(
-        ..., 
-        ge=1,
-        description="Current page number",
-        examples=[1, 2, 5]
-    )
-    size: int = Field(
-        ..., 
-        ge=1, 
-        le=100,
-        description="Page size",
-        examples=[10, 20, 50]
-    )
-    pages: int = Field(
-        ..., 
-        ge=0,
-        description="Total number of pages",
-        examples=[0, 8, 20]
-    )
-
-    @model_validator(mode='after')
-    def validate_pagination_consistency(self) -> 'PaginatedResponse[DataT]':
-        """Ensure pagination metadata is consistent."""
-        if self.total == 0:
-            if self.pages != 0 or len(self.items) != 0:
-                raise ValueError("Empty result should have 0 pages and no items")
-        else:
-            expected_pages = (self.total + self.size - 1) // self.size
-            if self.pages != expected_pages:
-                raise ValueError(f"Pages count {self.pages} doesn't match expected {expected_pages}")
-            
-            if self.page > self.pages:
-                raise ValueError(f"Current page {self.page} exceeds total pages {self.pages}")
-                
         return self
 
 

@@ -7,7 +7,11 @@ import uuid
 from typing import Callable
 
 from fastapi import FastAPI, Request, Response
+from starlette.middleware.gzip import GZipMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from logging_config import get_logger
+from backend.core.config import get_settings
 
 logger = get_logger(__name__)
 
@@ -69,5 +73,27 @@ async def security_headers_middleware(request: Request,
 
 def setup_middleware(app: FastAPI) -> None:
     """Setup middleware for the FastAPI application."""
+    settings = get_settings()
+
+    # GZip compression for responses > 500 bytes
+    app.add_middleware(
+        GZipMiddleware,
+        minimum_size=500,
+        compresslevel=6  # Balance between speed and compression
+    )
+
+    # Trusted host validation (production)
+    if settings.environment == "production":
+        app.add_middleware(
+            TrustedHostMiddleware,
+            allowed_hosts=settings.allowed_hosts,
+            www_redirect=True
+        )
+
+    # HTTPS redirect (production)
+    if settings.environment == "production" and settings.force_https:
+        app.add_middleware(HTTPSRedirectMiddleware)
+
+    # Custom middleware
     app.middleware("http")(request_logging_middleware)
     app.middleware("http")(security_headers_middleware)

@@ -19,8 +19,6 @@ Features:
 from .base import (
     BaseSchema,
     TimestampMixin,
-    PaginationParams,
-    PaginatedResponse,
     ErrorDetail,
     HealthCheck
 )
@@ -47,8 +45,6 @@ __all__ = [
     # Base models
     'BaseSchema',
     'TimestampMixin',
-    'PaginationParams',
-    'PaginatedResponse',
     'ErrorDetail',
     'HealthCheck',
     # User models
