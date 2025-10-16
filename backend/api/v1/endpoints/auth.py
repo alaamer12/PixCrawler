@@ -1,19 +1,25 @@
 """
-Authentication endpoints for Supabase Auth integration.
+Authentication utility endpoints for Supabase Auth integration.
 
-This module provides authentication endpoints that work with Supabase Auth,
-including user profile management and token verification endpoints.
+This module provides utility endpoints for Supabase Auth integration.
+Primary authentication (login/signup/logout) is handled directly by Supabase Auth
+from the frontend using Supabase client libraries.
 
-Note: Primary authentication (login/signup) is handled by Supabase Auth
-directly from the frontend. These endpoints provide backend integration
-and user profile management.
+These endpoints provide:
+- User profile retrieval
+- Token verification
+- Profile synchronization between Supabase Auth and profiles table
+
+Note: Authentication flow:
+1. Frontend uses Supabase Auth client for login/signup
+2. Frontend receives JWT token from Supabase
+3. Frontend sends token in Authorization header to backend
+4. Backend verifies token using get_current_user dependency
 """
-
-from typing import Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from backend.api.dependencies import get_current_user
+from backend.api.types import CurrentUser
 from backend.models.user import UserResponse
 from backend.services.supabase_auth import SupabaseAuthService
 
@@ -24,7 +30,7 @@ router = APIRouter()
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_profile(
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: CurrentUser,
     auth_service: SupabaseAuthService = Depends(),
 ) -> UserResponse:
     """
@@ -64,8 +70,8 @@ async def get_current_user_profile(
 
 @router.post("/verify-token")
 async def verify_token(
-    current_user: Dict[str, Any] = Depends(get_current_user)
-) -> Dict[str, Any]:
+    current_user: CurrentUser
+) -> dict[str, bool | dict[str, str]]:
     """
     Verify Supabase JWT token and return user information.
 
@@ -90,9 +96,9 @@ async def verify_token(
 
 @router.post("/sync-profile")
 async def sync_user_profile(
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: CurrentUser,
     auth_service: SupabaseAuthService = Depends(),
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Sync user profile from Supabase Auth to profiles table.
 
