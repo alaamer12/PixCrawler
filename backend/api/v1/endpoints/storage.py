@@ -6,6 +6,7 @@ Handles storage operations including usage stats, file info, and cleanup
 from datetime import datetime, timedelta
 from typing import Optional, List, Union, Dict
 
+import pytest
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
 
@@ -16,13 +17,13 @@ router = APIRouter(prefix="/api/v1/storage", tags=["storage"])
 
 class StorageUsageResponse(BaseModel):
     """Response model for storage usage statistics."""
-    
+
     model_config = {
         'str_strip_whitespace': True,
         'validate_assignment': True,
         'extra': 'forbid'
     }
-    
+
     total_storage_bytes: int = Field(
         ...,
         ge=0,
@@ -56,13 +57,13 @@ class StorageUsageResponse(BaseModel):
 
 class FileInfo(BaseModel):
     """Model for individual file information."""
-    
+
     model_config = {
         'str_strip_whitespace': True,
         'validate_assignment': True,
         'extra': 'forbid'
     }
-    
+
     file_path: str = Field(
         ...,
         min_length=1,
@@ -91,13 +92,13 @@ class FileInfo(BaseModel):
 
 class CleanupRequest(BaseModel):
     """Request model for cleanup operation."""
-    
+
     model_config = {
         'str_strip_whitespace': True,
         'validate_assignment': True,
         'extra': 'forbid'
     }
-    
+
     age_hours: Optional[int] = Field(
         default=24,
         ge=1,
@@ -115,13 +116,13 @@ class CleanupRequest(BaseModel):
 
 class CleanupResponse(BaseModel):
     """Response model for cleanup operation."""
-    
+
     model_config = {
         'str_strip_whitespace': True,
         'validate_assignment': True,
         'extra': 'forbid'
     }
-    
+
     success: bool = Field(
         ...,
         description="Whether cleanup completed successfully",
@@ -159,17 +160,17 @@ class CleanupResponse(BaseModel):
 
 class StorageService:
     """Service class handling storage operations.
-    
+
     Provides business logic for storage management including
     statistics, file listing, and cleanup operations.
-    
+
     Attributes:
         storage: Storage provider instance
     """
 
     def __init__(self, storage: StorageProvider):
         """Initialize storage service.
-        
+
         Args:
             storage: Storage provider instance
         """
@@ -177,10 +178,10 @@ class StorageService:
 
     async def get_storage_stats(self) -> StorageUsageResponse:
         """Calculate and return storage statistics.
-        
+
         Returns:
             StorageUsageResponse with usage statistics
-            
+
         Raises:
             HTTPException: If statistics calculation fails
         """
@@ -212,13 +213,13 @@ class StorageService:
         prefix: Optional[str] = None
     ) -> List[FileInfo]:
         """List files with optional prefix filtering.
-        
+
         Args:
             prefix: Optional prefix to filter files
-            
+
         Returns:
             List of FileInfo objects
-            
+
         Raises:
             HTTPException: If file listing fails
         """
@@ -247,14 +248,14 @@ class StorageService:
         prefix: Optional[str] = None
     ) -> CleanupResponse:
         """Clean up old files based on criteria.
-        
+
         Args:
             age_hours: Delete files older than this many hours
             prefix: Optional prefix to filter files
-            
+
         Returns:
             CleanupResponse with cleanup results
-            
+
         Raises:
             HTTPException: If cleanup operation fails
         """
@@ -303,7 +304,7 @@ async def get_storage_usage(
     storage: StorageProvider = Depends(get_storage)
 ):
     """Get storage usage statistics.
-    
+
     Retrieves comprehensive storage usage information including
     total size, file count, and last update timestamp.
 
@@ -312,7 +313,7 @@ async def get_storage_usage(
 
     Returns:
         StorageUsageResponse with detailed storage usage information
-        
+
     Raises:
         HTTPException: If statistics retrieval fails
     """
@@ -326,7 +327,7 @@ async def list_storage_files(
     storage: StorageProvider = Depends(get_storage)
 ) -> List[FileInfo]:
     """List files in storage with optional prefix filtering.
-    
+
     Retrieves a list of all files in storage, optionally filtered
     by a path prefix.
 
@@ -336,7 +337,7 @@ async def list_storage_files(
 
     Returns:
         List of FileInfo objects containing file metadata
-        
+
     Raises:
         HTTPException: If file listing fails
     """
@@ -350,7 +351,7 @@ async def cleanup_storage(
     storage: StorageProvider = Depends(get_storage)
 ) -> CleanupResponse:
     """Clean up old files based on specified criteria.
-    
+
     Deletes files from storage based on age and optional prefix filter,
     freeing up storage space.
 
@@ -360,7 +361,7 @@ async def cleanup_storage(
 
     Returns:
         CleanupResponse with cleanup operation results
-        
+
     Raises:
         HTTPException: If cleanup operation fails
     """
@@ -378,7 +379,7 @@ async def get_presigned_url(
     storage: StorageProvider = Depends(get_storage)
 ) -> Dict[str, Union[str, datetime]]:
     """Generate a presigned URL for temporary file access.
-    
+
     Creates a time-limited URL that allows temporary access to a file
     without requiring authentication.
 
@@ -389,7 +390,7 @@ async def get_presigned_url(
 
     Returns:
         Dictionary containing the presigned URL and expiration timestamp
-        
+
     Raises:
         HTTPException: If URL generation fails or file not found
     """
@@ -404,3 +405,8 @@ async def get_presigned_url(
             status_code=500,
             detail=f"Failed to generate presigned URL: {str(e)}"
         )
+
+
+# Create a test file "test_{name}"
+# Test function [case] def test_{name}()
+# Put at least one assert statment

@@ -16,6 +16,7 @@ Note: Authentication flow:
 3. Frontend sends token in Authorization header to backend
 4. Backend verifies token using get_current_user dependency
 """
+from typing import Union
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -71,7 +72,7 @@ async def get_current_user_profile(
 @router.post("/verify-token")
 async def verify_token(
     current_user: CurrentUser
-) -> dict[str, bool | dict[str, str]]:
+) -> dict[str, Union[bool, dict[str, str]]]:
     """
     Verify Supabase JWT token and return user information.
 
