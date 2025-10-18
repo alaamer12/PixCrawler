@@ -46,8 +46,6 @@ import jsonschema
 from PIL import Image
 from jsonschema import validate
 
-from _search_engines import download_images_ddgs
-from builder._config import DatasetGenerationConfig, CONFIG_SCHEMA
 from _predefined_variations import get_basic_variations, get_quality_variations, \
     get_style_variations, get_time_period_variations, \
     get_emotional_aesthetic_variations, get_meme_culture_variations, \
@@ -57,6 +55,8 @@ from _predefined_variations import get_basic_variations, get_quality_variations,
     get_texture_material_variations, get_condition_age_variations, \
     get_quantity_arrangement_variations, get_generic_quality_variations, \
     get_search_variations
+from _search_engines import download_images_ddgs
+from builder._config import DatasetGenerationConfig, CONFIG_SCHEMA
 from builder._constants import DEFAULT_CACHE_FILE, ENGINES, \
     logger, IMAGE_EXTENSIONS
 from builder._downloader import ImageDownloader
@@ -970,7 +970,7 @@ class LabelGenerator:
 
         Args:
             dataset_dir (str): The root directory of the dataset.
-            
+
         Returns:
             List[str]: List of paths to generated label files.
         """
@@ -1003,7 +1003,7 @@ class LabelGenerator:
 
         # Initialize progress manager for label generation
         progress.start_step("labels", total=total_images)
-        
+
         # Track generated files
         generated_files = []
 
@@ -1011,14 +1011,16 @@ class LabelGenerator:
         for category_dir in category_dirs:
             category_name = category_dir.name
             progress.start_subtask(f"Category: {category_name}")
-            category_files = self._process_category(category_dir, category_name, labels_dir, progress)
+            category_files = self._process_category(category_dir, category_name,
+                                                    labels_dir, progress)
             generated_files.extend(category_files)
             progress.close_subtask()
 
         # Close progress bars
         progress.close()
-        logger.info(f"Label generation completed. {len(generated_files)} labels stored in {labels_dir}")
-        
+        logger.info(
+            f"Label generation completed. {len(generated_files)} labels stored in {labels_dir}")
+
         return generated_files
 
     def _generate_dataset_metadata(self, dataset_path: Path, labels_dir: Path,
@@ -1108,14 +1110,14 @@ class LabelGenerator:
             category_name (str): The name of the category.
             labels_dir (Path): The base directory where all label files are stored.
             progress (ProgressManager): An instance of the ProgressManager for updating progress bars.
-            
+
         Returns:
             List[str]: List of paths to generated label files for this category.
         """
         # Create category label directory
         category_label_dir = labels_dir / category_name
         category_label_dir.mkdir(parents=True, exist_ok=True)
-        
+
         generated_files = []
 
         # Process each keyword directory within the category
@@ -1123,14 +1125,16 @@ class LabelGenerator:
         for keyword_dir in keyword_dirs:
             keyword_name = keyword_dir.name
             progress.set_subtask_description(f"Keyword: {keyword_name}")
-            keyword_files = self._process_keyword(keyword_dir, category_name, keyword_name,
-                                  category_label_dir, progress)
+            keyword_files = self._process_keyword(keyword_dir, category_name,
+                                                  keyword_name,
+                                                  category_label_dir, progress)
             generated_files.extend(keyword_files)
-        
+
         return generated_files
 
     def _process_keyword(self, keyword_dir: Path, category_name: str, keyword_name: str,
-                         category_label_dir: Path, progress: ProgressManager) -> List[str]:
+                         category_label_dir: Path, progress: ProgressManager) -> List[
+        str]:
         """
         Processes a keyword directory, generating label files for each image within it.
 
@@ -1140,14 +1144,14 @@ class LabelGenerator:
             keyword_name (str): The name of the keyword.
             category_label_dir (Path): The directory to store label files for this category.
             progress (ProgressManager): An instance of the ProgressManager for updating progress bars.
-            
+
         Returns:
             List[str]: List of paths to generated label files for this keyword.
         """
         # Create keyword label directory
         keyword_label_dir = category_label_dir / keyword_name
         keyword_label_dir.mkdir(parents=True, exist_ok=True)
-        
+
         generated_files = []
 
         # Get all image files regardless of naming pattern
@@ -1167,7 +1171,7 @@ class LabelGenerator:
             if label_file:
                 generated_files.append(str(label_file))
             progress.update_step(1)  # Update main progress bar
-        
+
         return generated_files
 
     def _generate_label_file(self, image_file: Path, label_dir: Path, category: str,
@@ -1181,7 +1185,7 @@ class LabelGenerator:
             label_dir (Path): The directory where the label file will be stored.
             category (str): The category name associated with the image.
             keyword (str): The keyword name associated with the image.
-            
+
         Returns:
             Optional[Path]: Path to the generated label file, or None if generation failed.
         """
@@ -1207,7 +1211,7 @@ class LabelGenerator:
             elif self.format_type == "yaml":
                 self._write_yaml_label(label_file_path, category, keyword, image_file,
                                        image_metadata)
-            
+
             return label_file_path
 
         except PermissionError as pe:

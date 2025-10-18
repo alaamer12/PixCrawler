@@ -39,10 +39,9 @@ Note: Image integrity checking and duplicate removal moved to backend package.
 """
 
 from builder._builder import Builder
-from builder.tasks import CrawlerTaskManager
 
 __version__ = "0.1.1"
 __author__ = "PixCrawler Team"
 __email__ = "team@pixcrawler.com"
 
-__all__ = ["Builder", "AsyncBuilder", "BuilderConfig", "CrawlerTaskManager"]
+__all__ = ["Builder"]

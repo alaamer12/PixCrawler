@@ -51,6 +51,7 @@ __all__ = [
     'task_allengines_build_dataset'
 ]
 
+
 def task_download_google_impl(
     keyword: str,
     output_dir: str,
@@ -76,7 +77,8 @@ def task_download_google_impl(
 
         # Get engine config
         engines = get_engines()
-        google_config = next((e for e in engines if e['name'].lower() == 'google'), None)
+        google_config = next((e for e in engines if e['name'].lower() == 'google'),
+                             None)
 
         if not google_config:
             return {
@@ -96,7 +98,8 @@ def task_download_google_impl(
             # get_search_variations() returns template strings like "{keyword} photo"
             # We need to format them with the actual keyword
             variation_templates = get_search_variations()
-            variations = [template.format(keyword=keyword) for template in variation_templates[:5]]
+            variations = [template.format(keyword=keyword) for template in
+                          variation_templates[:5]]
 
         # Create downloader
         downloader = ImageDownloader()
@@ -204,7 +207,8 @@ def task_download_bing_impl(
             # get_search_variations() returns template strings like "{keyword} photo"
             # We need to format them with the actual keyword
             variation_templates = get_search_variations()
-            variations = [template.format(keyword=keyword) for template in variation_templates[:5]]
+            variations = [template.format(keyword=keyword) for template in
+                          variation_templates[:5]]
 
         downloader = ImageDownloader()
 
@@ -310,7 +314,8 @@ def task_download_baidu_impl(
             # get_search_variations() returns template strings like "{keyword} photo"
             # We need to format them with the actual keyword
             variation_templates = get_search_variations()
-            variations = [template.format(keyword=keyword) for template in variation_templates[:5]]
+            variations = [template.format(keyword=keyword) for template in
+                          variation_templates[:5]]
 
         downloader = ImageDownloader()
 
@@ -543,6 +548,7 @@ def task_generate_keywords(
     """Celery task for AI-powered keyword generation."""
     return task_generate_keywords_impl(base_keywords, ai_model, count)
 
+
 def task_generate_labels_impl(
     dataset_dir: str,
     formats: Optional[List[str]] = None
@@ -677,7 +683,8 @@ def task_allengines_build_dataset_impl(
         if generate_labels and total_downloaded > 0:
             label_result = task_generate_labels_impl(output_dir)
 
-        logger.info(f"Dataset build completed: {total_downloaded} images from {len(engines)} engines")
+        logger.info(
+            f"Dataset build completed: {total_downloaded} images from {len(engines)} engines")
 
         return {
             'success': total_downloaded > 0,
