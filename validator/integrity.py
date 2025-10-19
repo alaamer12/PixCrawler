@@ -644,7 +644,8 @@ def remove_duplicates(directory: str) -> Tuple[int, List[str]]:
     return manager.remove_duplicates(directory)
 
 
-def process_integrity(directory: str, remove_duplicates: bool = True,
+def process_integrity(directory: str, 
+                      remove_duplicates: bool = True,
                       remove_corrupted: bool = True) -> ProcessingResults:
     """
     Process a dataset for all integrity issues.
@@ -659,3 +660,223 @@ def process_integrity(directory: str, remove_duplicates: bool = True,
     """
     processor = IntegrityProcessor()
     return processor.process_dataset(directory, remove_duplicates, remove_corrupted)
+
+
+# Integration Tests
+import pytest
+import tempfile
+import shutil
+from unittest.mock import patch, MagicMock
+
+
+@pytest.fixture
+def temp_dataset():
+    """Create temporary dataset with mocked images."""
+    temp_dir = tempfile.mkdtemp()
+    
+    # Create valid image files
+    valid_files = [
+        os.path.join(temp_dir, "valid1.jpg"),
+        os.path.join(temp_dir, "valid2.png"),
+        os.path.join(temp_dir, "valid3.gif")
+    ]
+    
+    # Create duplicate image files
+    duplicate_files = [
+        os.path.join(temp_dir, "dup1.jpg"),
+        os.path.join(temp_dir, "dup2.jpg")
+    ]
+    
+    # Create corrupted image files
+    corrupted_files = [
+        os.path.join(temp_dir, "corrupted1.jpg"),
+        os.path.join(temp_dir, "corrupted2.png")
+    ]
+    
+    all_files = valid_files + duplicate_files + corrupted_files
+    
+    for file_path in all_files:
+        with open(file_path, 'wb') as f:
+            f.write(b'fake_image_data')
+    
+    yield {
+        'dir': temp_dir,
+        'valid': valid_files,
+        'duplicates': duplicate_files,
+        'corrupted': corrupted_files
+    }
+    
+    shutil.rmtree(temp_dir, ignore_errors=True)
+
+@pytest.fixture
+def mock_hash_mapping():
+    """Mock the build_hashmp method to return controlled results"""
+    def mock_build_hashmp(image_files):
+        content_map = {}
+        perceptual_map = {}
+        
+        for img_path in image_files:
+            if 'dup' in img_path:
+                content_map.setdefault('duplicate_hash', []).append(img_path)
+                perceptual_map.setdefault('perceptual_duplicate', []).append(img_path)
+            else:
+                unique_hash = f"hash_{os.path.basename(img_path)}"
+                content_map.setdefault(unique_hash, []).append(img_path)
+                perceptual_map.setdefault(unique_hash, []).append(img_path)
+        
+        return content_map, perceptual_map
+    
+    with patch.object(ImageHasher, 'build_hashmp', side_effect=mock_build_hashmp):
+        yield
+
+@pytest.fixture
+def mock_image_validation():
+    """Mock image validation to simulate different image states."""
+    def mock_validate(image_path):
+        if 'corrupted' in image_path:
+            return False
+        return True
+    
+    with patch.object(ImageValidator, 'validate', side_effect=mock_validate):
+        yield
+
+
+@pytest.fixture
+def mock_image_hashing():
+    """Mock image hashing to simulate duplicate detection."""
+    def mock_content_hash(image_path):
+        if 'dup1.jpg' in image_path or 'dup2.jpg' in image_path:
+            return 'duplicate_hash'
+        return f'hash_{os.path.basename(image_path)}'
+    
+    def mock_perceptual_hash(image_path):
+        if 'dup1.jpg' in image_path or 'dup2.jpg' in image_path:
+            return 'duplicate_hash'
+        return f'hash_{os.path.basename(image_path)}'
+    
+    with patch.object(ImageHasher, 'compute_content_hash', side_effect=mock_content_hash), \
+            patch.object(ImageHasher, 'compute_perceptual_hash', side_effect=mock_perceptual_hash):
+        yield
+
+
+@pytest.fixture
+def mock_image_opening():
+    """Mock PIL Image.open to prevent actual image processing."""
+    mock_img = MagicMock()
+    mock_img.width = 100
+    mock_img.height = 100
+    mock_img.convert.return_value = mock_img
+    mock_img.resize.return_value = mock_img
+    mock_img.getdata.return_value = [128] * 64
+    
+    with patch('PIL.Image.open') as mock_open:
+        mock_open.return_value.__enter__.return_value = mock_img
+        yield mock_open
+
+
+
+def test_integrity_workflow_valid_images(temp_dataset, mock_image_validation, mock_image_hashing, mock_image_opening):
+    """Verify that valid images pass integrity validation without errors."""
+    results = process_integrity(temp_dataset['dir'], remove_duplicates=False, remove_corrupted=False)
+    
+    assert results['directory'] == temp_dataset['dir']
+    assert results['validation']['valid_count'] == 3
+    assert results['validation']['total_count'] == 7
+    assert results['validation']['corrupted_count'] == 2
+
+
+def test_integrity_workflow_duplicate_detection(temp_dataset, mock_image_validation, mock_image_hashing, mock_image_opening):
+    """Verify that duplicate images are correctly detected using content and perceptual hashing."""
+    results = process_integrity(temp_dataset['dir'], remove_duplicates=False, remove_corrupted=False)
+    
+    duplicates = results['duplicates']
+    assert duplicates['detected_count'] >= 1
+    assert duplicates['duplicate_groups'] >= 1
+
+def test_integrity_workflow_duplicate_removal(temp_dataset, mock_image_validation, mock_image_hashing, mock_image_opening):
+    """Verify that duplicate images are successfully removed while keeping originals."""
+    with patch('os.remove') as mock_remove:
+        results = process_integrity(temp_dataset['dir'], remove_duplicates=True, remove_corrupted=False)
+        
+        duplicates = results['duplicates']
+        assert duplicates['removed_count'] == 1
+        assert duplicates['originals_kept_count'] == 1
+        mock_remove.assert_called()
+
+
+def test_integrity_workflow_corrupted_removal(temp_dataset, mock_image_validation, mock_image_hashing, mock_image_opening):
+    """Verify that corrupted images are identified and removed from the dataset."""
+    with patch('os.remove') as mock_remove:
+        results = process_integrity(temp_dataset['dir'], remove_duplicates=False, remove_corrupted=True)
+        
+        assert results['validation']['corrupted_count'] == 2
+        assert mock_remove.call_count == 2
+
+
+def test_integrity_workflow_strict_mode(temp_dataset, mock_image_validation, mock_image_hashing, mock_image_opening):
+    """Verify that strict mode removes both duplicate and corrupted images."""
+    with patch('os.remove') as mock_remove:
+        results = process_integrity(temp_dataset['dir'], remove_duplicates=True, remove_corrupted=True)
+        
+        assert results['validation']['corrupted_count'] == 2
+        assert results['duplicates']['removed_count'] == 1
+        assert mock_remove.call_count == 3
+
+def test_integrity_workflow_lenient_mode(temp_dataset, mock_image_validation, mock_image_hashing, mock_image_opening):
+    """Verify that lenient mode detects issues without removing any files."""
+    with patch('os.remove') as mock_remove:
+        results = process_integrity(temp_dataset['dir'], remove_duplicates=False, remove_corrupted=False)
+        
+        assert results['validation']['corrupted_count'] == 2
+        assert results['duplicates']['detected_count'] == 1
+        mock_remove.assert_not_called()
+
+
+def test_integrity_workflow_report_only_mode(temp_dataset, mock_image_validation, mock_image_hashing, mock_image_opening):
+    """Verify that report-only mode provides validation results without modifications."""
+    valid_count, total_count, corrupted_files = validate_dataset(temp_dataset['dir'])
+    
+    assert valid_count == 3
+    assert total_count == 7
+    assert len(corrupted_files) == 2
+
+
+def test_batch_processing_large_dataset(mock_image_validation, mock_image_hashing, mock_image_opening):
+    """Verify that large datasets with 100+ images are processed efficiently."""
+    temp_dir = tempfile.mkdtemp()
+    
+    # Create 100 mock image files
+    for i in range(1000):
+        file_path = os.path.join(temp_dir, f"image_{i}.jpg")
+        with open(file_path, 'wb') as f:
+            f.write(b'fake_image_data')
+    
+    try:
+        results = process_integrity(temp_dir, remove_duplicates=False, remove_corrupted=False)
+        
+        assert results['validation']['total_count'] == 1000  
+        assert results['validation']['valid_count'] == 1000
+        assert results['validation']['corrupted_count'] == 0
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+    
+    try:
+        results = process_integrity(temp_dir, remove_duplicates=False, remove_corrupted=False)
+        
+        assert results['validation']['total_count'] == 100
+        assert results['validation']['valid_count'] == 100
+        assert results['validation']['corrupted_count'] == 0
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+def test_quarantine_functionality(temp_dataset, mock_image_validation, mock_image_hashing, mock_image_opening):
+    """Verify that corrupted files are identified for quarantine processing."""
+    results = process_integrity(temp_dataset['dir'], remove_duplicates=False, remove_corrupted=False)
+    
+    corrupted_files = results['validation']['corrupted_files']
+    assert len(corrupted_files) == 2
+    assert any('corrupted1.jpg' in f for f in corrupted_files)
+    assert any('corrupted2.png' in f for f in corrupted_files)
+
