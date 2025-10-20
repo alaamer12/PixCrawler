@@ -505,57 +505,73 @@ class Retry:
 
     def _update_image_count(self, out_dir: str) -> int:
         """
-        Updates the count of images in a directory after removing duplicates.
+        Fast image count - no duplicate removal during download.
+        Duplicates are removed once at the very end.
 
         Args:
             out_dir (str): The directory containing images.
 
         Returns:
-            int: The updated count of unique images remaining in the directory.
+            int: The count of images in the directory.
         """
         image_files = self._get_image_files(out_dir)
-
-        if not image_files:
-            return 0
-
-        if len(image_files) == 1:
-            return 1
-
-        # Remove duplicates
-        try:
-            removed = duplicate_manager.remove_duplicates(out_dir)
-            if removed[0] > 0:
-                self.stats.duplicates_removed += removed[0]
-                logger.info(f"Removed {removed[0]} duplicate images")
-        except Exception as e:
-            logger.warning(f"Error removing duplicates: {str(e)}")
-
-        # Count remaining images
-        remaining_images = self._get_image_files(out_dir)
-        return len(remaining_images)
+        return len(image_files)
 
     def _initial_download(self, max_num: int, keyword: str, out_dir: str) -> int:
-        """Perform the initial download attempt"""
-        logger.info(f"Attempting to download {max_num} images for '{keyword}' using parallel processing")
-
-        downloader = ImageDownloader(
-            feeder_threads=self.config.feeder_threads,
-            parser_threads=self.config.parser_threads,
-            downloader_threads=self.config.downloader_threads,
-            max_parallel_engines=self.config.max_parallel_engines,
-            max_parallel_variations=self.config.max_parallel_variations,
-            use_all_engines=self.config.use_all_engines
-        )
-
-        success, count = downloader.download(keyword, out_dir, max_num)
+        """Direct crawler call - zero overhead, maximum speed"""
+        import logging
+        from pathlib import Path
+        from icrawler.builtin import GoogleImageCrawler, BingImageCrawler
+        
+        logger.info(f"Downloading {max_num} images for '{keyword}'")
+        Path(out_dir).mkdir(parents=True, exist_ok=True)
+        
+        # Try Google first (fastest from benchmark: 22s/100 images)
+        try:
+            logger.info("Using Google...")
+            google = GoogleImageCrawler(
+                storage={'root_dir': out_dir},
+                log_level=logging.WARNING,
+                feeder_threads=1,
+                parser_threads=1,
+                downloader_threads=3
+            )
+            google.crawl(keyword=keyword, max_num=max_num, min_size=(100, 100))
+            
+            count = len(self._get_image_files(out_dir))
+            if count > 0:
+                self.stats.total_attempts += 1
+                self.stats.successful_attempts += 1
+                logger.info(f"Google: Downloaded {count} images")
+                return count
+        except Exception as e:
+            logger.warning(f"Google failed: {e}")
+        
+        # Fallback to Bing (9s/100 images - even faster!)
+        try:
+            logger.info("Trying Bing...")
+            bing = BingImageCrawler(
+                storage={'root_dir': out_dir},
+                log_level=logging.WARNING,
+                feeder_threads=1,
+                parser_threads=1,
+                downloader_threads=3
+            )
+            bing.crawl(keyword=keyword, max_num=max_num, min_size=(100, 100))
+            
+            count = len(self._get_image_files(out_dir))
+            if count > 0:
+                self.stats.total_attempts += 1
+                self.stats.successful_attempts += 1
+                logger.info(f"Bing: Downloaded {count} images")
+                return count
+        except Exception as e:
+            logger.warning(f"Bing failed: {e}")
+        
+        # Both failed
         self.stats.total_attempts += 1
-
-        if success:
-            self.stats.successful_attempts += 1
-            return self._update_image_count(out_dir) if count > 1 else count
-        else:
-            self.stats.failed_attempts += 1
-            return count
+        self.stats.failed_attempts += 1
+        return 0
 
     def _attempt_retry(self, retries: int, keyword: str, out_dir: str, images_needed: int) -> int:
         """Perform a single retry attempt"""
@@ -663,8 +679,17 @@ class Retry:
                 break
 
         # --- Finalization Phase ---
-        count = self._update_image_count(out_dir) if count > 1 else count
-
+        # Remove duplicates once at the end (not during download)
+        if count > 1:
+            try:
+                removed = duplicate_manager.remove_duplicates(out_dir)
+                if removed[0] > 0:
+                    self.stats.duplicates_removed += removed[0]
+                    logger.info(f"Removed {removed[0]} duplicate images")
+                    count = len(self._get_image_files(out_dir))
+            except Exception as e:
+                logger.warning(f"Error removing duplicates: {e}")
+        
         if count > 0:
             try:
                 renamed = rename_images_sequentially(out_dir)

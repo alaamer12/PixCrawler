@@ -297,6 +297,8 @@ def main() -> None:
     It sets up the argument parser, handles safe argument parsing for different environments,
     and calls the core dataset generation logic.
     """
+    import time
+    start = time.time()
     # Print ASCII art banner
     print(f"{Colors.CYAN}{PIXCRAWLER_ASCII}{Colors.ENDC}")
 
@@ -345,7 +347,19 @@ def main() -> None:
     print(f"   - {Colors.BOLD}Output directory:{Colors.ENDC} {output_dir}")
     print(f"   - {Colors.BOLD}Log file:{Colors.ENDC} {args.log_file}")
     print(f"   - {Colors.BOLD}See the REPORT.md file in the output directory for detailed statistics{Colors.ENDC}")
+    end = time.time()
+    print(f"Taken Time for max images ({args.max_images}): {(end - start):.2f}")
 
 
 if __name__ == "__main__":
     main()
+
+
+"""
+
+✅ Dataset generation complete!
+   - Output directory: datasets/my_dataset
+   - Log file: pixcrawler.log
+   - See the REPORT.md file in the output directory for detailed statistics
+Taken Time for total images (20): 77.00 second
+"""

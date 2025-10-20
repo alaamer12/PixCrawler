@@ -35,7 +35,6 @@ from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCra
 from config import get_engines
 from constants import logger
 from _exceptions import DownloadError, CrawlerError, CrawlerInitializationError, CrawlerExecutionError
-from utilities import count_valid_images_in_latest_batch
 
 __all__ = [
     'EngineMode',
@@ -389,9 +388,7 @@ class EngineProcessor:
             # Update global statistics
             for variation_result in result.variations:
                 self.update_stats(config.name, variation_result)
-
-            logger.info(f"Engine {config.name} completed: {result.total_downloaded}/{remaining_target} images")
-
+        
         return results
 
     def _calculate_per_engine_target(self, max_num: int) -> int:
@@ -404,14 +401,17 @@ class EngineProcessor:
         Returns:
             int: The calculated target number of images for each engine.
         """
+        # Pre-allocate equal targets to each engine to avoid lock contention
+        # Each engine works independently toward its own goal
         base_target = max_num // len(self.engine_configs)
-        # Add buffer to ensure we get enough images
-        return max(5, int(base_target * 1.3))
+        # Small buffer for duplicates/failures, but not excessive
+        return max(3, int(base_target * 1.15))
 
     def _process_engine_parallel(self, config: EngineConfig, variations: List[str],
                                  out_dir: str, per_engine_target: int, total_max: int) -> EngineResult:
         """
-        Processes a single engine in parallel mode.
+        Processes a single engine in parallel mode with pre-allocated target.
+        Each engine works independently without checking global counters.
 
         Args:
             config (EngineConfig): The configuration for the engine to process.
@@ -423,12 +423,20 @@ class EngineProcessor:
         Returns:
             EngineResult: The result of processing the engine.
         """
+        # Record initial file count for this engine
+        initial_count = self._get_current_file_count(out_dir)
+        
         engine_processor = SingleEngineProcessor(self.image_downloader, self)
-        result = engine_processor.process_engine(config, variations, out_dir, per_engine_target, total_max)
+        result = engine_processor.process_engine_with_target(
+            config, variations, out_dir, per_engine_target, initial_count
+        )
 
-        # Update statistics
-        for variation_result in result.variations:
-            self.update_stats(config.name, variation_result)
+        # Batch update: Update global counter once at the end, not per variation
+        with self.processing_lock:
+            self.image_downloader.total_downloaded += result.total_downloaded
+            # Update statistics
+            for variation_result in result.variations:
+                self.update_stats(config.name, variation_result)
 
         return result
 
@@ -456,6 +464,23 @@ class EngineProcessor:
         for future in futures_dict.keys():
             if not future.done():
                 future.cancel()
+
+    def _get_current_file_count(self, out_dir: str) -> int:
+        """Get current count of image files in directory.
+        
+        Args:
+            out_dir (str): Directory to count files in.
+            
+        Returns:
+            int: Current number of image files.
+        """
+        try:
+            from constants import IMAGE_EXTENSIONS
+            import os
+            return len([f for f in os.listdir(out_dir) 
+                       if f.lower().endswith(tuple(IMAGE_EXTENSIONS))])
+        except Exception:
+            return 0
 
     @staticmethod
     def get_crawler_class(engine_name: str) -> Type[Union[GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler, Any]]:
@@ -565,6 +590,119 @@ class SingleEngineProcessor:
         return EngineResult(
             engine_name=config.name,
             total_downloaded=downloaded_count,
+            variations_processed=len(variation_results),
+            success_rate=success_rate,
+            processing_time=processing_time,
+            variations=variation_results
+        )
+
+    def process_engine_with_target(self, config: EngineConfig, variations: List[str],
+                                   out_dir: str, target: int, initial_file_count: int) -> EngineResult:
+        """
+        Optimized: Processes engine with pre-allocated target (eliminates lock contention).
+        Each engine works independently without checking global counters.
+        
+        Key optimizations:
+        - Pre-allocated target = no global counter checks
+        - Sequential variations = no thread explosion
+        - Batch counting = count once per variation, not constantly
+        - Updates global counter only at the very end
+        
+        Args:
+            config (EngineConfig): The engine configuration.
+            variations (List[str]): Search variations.
+            out_dir (str): Output directory.
+            target (int): Pre-allocated target for THIS engine.
+            initial_file_count (int): Starting file count.
+            
+        Returns:
+            EngineResult: Processing results.
+        """
+        start_time = time.time()
+        variation_results = []
+        
+        try:
+            logger.info(f"[{config.name}] Starting with target={target}")
+            
+            variations_to_process = select_variations(variations, target)
+            downloaded_so_far = 0
+            
+            # Process variations SEQUENTIALLY (key optimization)
+            for i, variation in enumerate(variations_to_process):
+                if downloaded_so_far >= target:
+                    break
+                    
+                remaining = target - downloaded_so_far
+                if remaining <= 0:
+                    break
+                
+                var_start = time.time()
+                try:
+                    current_offset = config.random_offset + (i * config.variation_step)
+                    
+                    logger.info(f"[{config.name}] Variation {i+1}: '{variation}' (need {remaining})")
+                    
+                    crawler = self._create_enhanced_crawler(config.name, out_dir)
+                    crawler.crawl(
+                        keyword=variation,
+                        max_num=remaining,
+                        min_size=self.image_downloader.min_image_size,
+                        offset=current_offset,
+                        file_idx_offset=0
+                    )
+                    
+                    # Batch count after this variation
+                    current_file_count = self.engine_processor._get_current_file_count(out_dir)
+                    new_downloads = max(0, current_file_count - initial_file_count - downloaded_so_far)
+                    downloaded_so_far += new_downloads
+                    
+                    var_time = time.time() - var_start
+                    
+                    variation_results.append(VariationResult(
+                        variation=variation,
+                        downloaded_count=new_downloads,
+                        success=True,
+                        processing_time=var_time
+                    ))
+                    
+                    logger.info(f"[{config.name}] +{new_downloads} images ({downloaded_so_far}/{target}) in {var_time:.1f}s")
+                    
+                except Exception as e:
+                    var_time = time.time() - var_start
+                    logger.warning(f"[{config.name}] Variation failed: {e}")
+                    variation_results.append(VariationResult(
+                        variation=variation,
+                        downloaded_count=0,
+                        success=False,
+                        error=str(e),
+                        processing_time=var_time
+                    ))
+                
+                if i < len(variations_to_process) - 1:
+                    time.sleep(0.2)
+            
+            # Final count
+            final_file_count = self.engine_processor._get_current_file_count(out_dir)
+            total_downloaded = max(0, final_file_count - initial_file_count)
+            
+        except Exception as e:
+            logger.error(f"[{config.name}] Engine failed: {e}")
+            variation_results.append(VariationResult(
+                variation="engine_failure",
+                downloaded_count=0,
+                success=False,
+                error=str(e)
+            ))
+            total_downloaded = 0
+        
+        processing_time = time.time() - start_time
+        success_rate = self._calculate_success_rate(variation_results)
+        
+        logger.info(f"[{config.name}] Completed: {total_downloaded} images in {processing_time:.1f}s")
+        
+        return EngineResult(
+            engine_name=config.name,
+            total_downloaded=total_downloaded,
             variations_processed=len(variation_results),
             success_rate=success_rate,
             processing_time=processing_time,
@@ -869,8 +1007,22 @@ class SingleEngineProcessor:
         Returns:
             int: The number of valid images found.
         """
-        with self.image_downloader.lock:
-            return count_valid_images_in_latest_batch(out_dir, file_idx_offset)
+        import os
+        from constants import IMAGE_EXTENSIONS
+        
+        try:
+            # Get all image files in the directory
+            all_files = [f for f in os.listdir(out_dir) 
+                        if f.lower().endswith(tuple(IMAGE_EXTENSIONS))]
+            
+            # Count only new files (those added after the offset)
+            current_count = len(all_files)
+            new_images = max(0, current_count - file_idx_offset)
+            
+            return new_images
+        except Exception as e:
+            logger.warning(f"Error counting variation results: {e}")
+            return 0
 
     def _update_global_counters(self, result: VariationResult) -> None:
         """
