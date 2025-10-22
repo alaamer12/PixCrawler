@@ -27,7 +27,7 @@ import random
 import threading
 import time
 from dataclasses import dataclass, field
-from enum import StrEnum
+from enum import Enum
 from typing import Tuple, Optional, List, Dict, Any, Union, Type
 
 from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler
@@ -84,7 +84,7 @@ def select_variations(variations: List[str], max_num: int) -> List[str]:
     return selected
 
 
-class EngineMode(StrEnum):
+class EngineMode(str, Enum):
     """
     Enumeration for different engine processing modes.
 
