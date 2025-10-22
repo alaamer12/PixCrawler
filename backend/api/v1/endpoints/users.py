@@ -3,8 +3,9 @@ User management endpoints.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi_pagination import Page
 
-from backend.models.base import PaginatedResponse, PaginationParams
+from backend.api.types import CurrentUser, UserID
 from backend.models.user import UserCreate, UserResponse, UserUpdate
 from backend.services.user import UserService
 
@@ -36,16 +37,17 @@ async def create_user(
     )
 
 
-@router.get("/", response_model=PaginatedResponse[UserResponse])
+@router.get("/", response_model=Page[UserResponse])
 async def list_users(
-    pagination: PaginationParams = Depends(),
     user_service: UserService = Depends(),
-) -> PaginatedResponse[UserResponse]:
+) -> Page[UserResponse]:
     """
     List users with pagination.
 
+    Pagination is handled automatically by fastapi-pagination.
+    Query parameters: page (default=1), size (default=50)
+
     Args:
-        pagination: Pagination parameters
         user_service: User service dependency
 
     Returns:
@@ -60,7 +62,7 @@ async def list_users(
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
-    user_id: int,
+    user_id: UserID,
     user_service: UserService = Depends(),
 ) -> UserResponse:
     """
@@ -85,7 +87,7 @@ async def get_user(
 
 @router.put("/{user_id}", response_model=UserResponse)
 async def update_user(
-    user_id: int,
+    user_id: UserID,
     user_update: UserUpdate,
     user_service: UserService = Depends(),
 ) -> UserResponse:
@@ -112,7 +114,7 @@ async def update_user(
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
-    user_id: int,
+    user_id: UserID,
     user_service: UserService = Depends(),
 ) -> None:
     """

@@ -2,23 +2,26 @@
 Dataset management endpoints.
 """
 
-from typing import Dict, Any
-
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi_limiter.depends import RateLimiter
+from fastapi_pagination import Page
 
-from backend.api.dependencies import get_current_user
-from backend.models.base import PaginatedResponse, PaginationParams
-from backend.models.dataset import DatasetCreate, DatasetResponse, DatasetStats, \
-    DatasetUpdate
+from backend.api.types import CurrentUser, DBSession, DatasetID
+from backend.models.dataset import DatasetCreate, DatasetResponse, DatasetStats, DatasetUpdate
 from backend.services.dataset import DatasetService
 
 router = APIRouter(prefix="/api/v1/datasets")
 
 
-@router.post("/", response_model=DatasetResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=DatasetResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(RateLimiter(times=10, seconds=60))]
+)
 async def create_dataset(
     dataset_create: DatasetCreate,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
 ) -> DatasetResponse:
     """
@@ -36,7 +39,7 @@ async def create_dataset(
         HTTPException: If dataset creation fails
     """
     try:
-        dataset = await dataset_service.create_dataset(dataset_create, current_user)
+        dataset = await dataset_service.create_dataset(dataset_create, current_user["user_id"])
         return dataset
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -44,28 +47,28 @@ async def create_dataset(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/", response_model=PaginatedResponse[DatasetResponse])
+@router.get("/", response_model=Page[DatasetResponse])
 async def list_datasets(
-    pagination: PaginationParams = Depends(),
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: CurrentUser,
+    session: DBSession,
     dataset_service: DatasetService = Depends(),
-) -> PaginatedResponse[DatasetResponse]:
+) -> Page[DatasetResponse]:
     """
     List datasets with pagination.
 
+    Pagination is handled automatically by fastapi-pagination.
+    Query parameters: page (default=1), size (default=50)
+
     Args:
-        pagination: Pagination parameters
         current_user: Current authenticated user
+        session: Database session
         dataset_service: Dataset service dependency
 
     Returns:
         Paginated list of datasets
     """
-    try:
-        datasets = await dataset_service.list_datasets(pagination, current_user)
-        return datasets
-    except Exception:
-        raise HTTPException(status_code=500, detail="Internal server error")
+    # TODO: Implement list_datasets in DatasetService with pagination
+    raise HTTPException(status_code=501, detail="List datasets not implemented yet")
 
 
 @router.get("/stats", response_model=DatasetStats)
@@ -82,16 +85,18 @@ async def get_dataset_stats(
         Dataset statistics
     """
     try:
-        stats = await dataset_service.get_stats()
+        stats = await dataset_service.get_dataset_stats()
         return stats
+    except NotImplementedError:
+        raise HTTPException(status_code=501, detail="Dataset statistics not implemented yet")
     except Exception:
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{dataset_id}", response_model=DatasetResponse)
 async def get_dataset(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
 ) -> DatasetResponse:
     """
@@ -108,17 +113,18 @@ async def get_dataset(
     Raises:
         HTTPException: If dataset not found
     """
-    dataset = await dataset_service.get_dataset(dataset_id, current_user["id"])
+    dataset = await dataset_service.get_dataset_by_id(dataset_id, current_user["user_id"])
     if dataset is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
     return dataset
 
+
 @router.put("/{dataset_id}", response_model=DatasetResponse)
 async def update_dataset(
-    dataset_id: int,
+    dataset_id: DatasetID,
     dataset_update: DatasetUpdate,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
 ) -> DatasetResponse:
     """
@@ -137,7 +143,7 @@ async def update_dataset(
         HTTPException: If dataset not found or update fails
     """
     try:
-        dataset = await dataset_service.update_dataset(dataset_id, dataset_update, current_user["id"])
+        dataset = await dataset_service.update_dataset(dataset_id, dataset_update, current_user["user_id"])
         if dataset is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
@@ -149,8 +155,8 @@ async def update_dataset(
 
 @router.delete("/{dataset_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_dataset(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
 ) -> None:
     """
@@ -165,7 +171,7 @@ async def delete_dataset(
         HTTPException: If dataset not found or deletion fails
     """
     try:
-        result = await dataset_service.delete_dataset(dataset_id, current_user["id"])
+        result = await dataset_service.delete_dataset(dataset_id, current_user["user_id"])
         if result is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
@@ -174,10 +180,14 @@ async def delete_dataset(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.post("/{dataset_id}/build", response_model=DatasetResponse)
+@router.post(
+    "/{dataset_id}/build",
+    response_model=DatasetResponse,
+    dependencies=[Depends(RateLimiter(times=5, seconds=60))]
+)
 async def start_build_job(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
 ) -> DatasetResponse:
     """
@@ -194,21 +204,14 @@ async def start_build_job(
     Raises:
         HTTPException: If dataset not found or build start fails
     """
-    try:
-        dataset = await dataset_service.start_build_job(dataset_id, current_user["id"])
-        if dataset is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
-        return dataset
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    # TODO: Implement start_build_job in DatasetService
+    raise HTTPException(status_code=501, detail="Start build job not implemented yet")
 
 
 @router.get("/{dataset_id}/status", response_model=DatasetResponse)
 async def get_dataset_status(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
 ) -> DatasetResponse:
     """
@@ -225,19 +228,16 @@ async def get_dataset_status(
     Raises:
         HTTPException: If dataset not found
     """
-    dataset = await dataset_service.get_build_status(dataset_id, current_user["id"])
-    if dataset is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
-    return dataset
+    # TODO: Implement get_build_status in DatasetService
+    raise HTTPException(status_code=501, detail="Get build status not implemented yet")
 
 
-@router.post("/{dataset_id}/download", response_model=Dict[str, str])
+@router.post("/{dataset_id}/download", response_model=dict[str, str])
 async def generate_download_link(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Generate dataset download link.
 
@@ -252,21 +252,14 @@ async def generate_download_link(
     Raises:
         HTTPException: If dataset not found or link generation fails
     """
-    try:
-        link = await dataset_service.generate_download_link(dataset_id, current_user["id"])
-        if link is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
-        return {"download_url": link}
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    # TODO: Implement generate_download_link in DatasetService
+    raise HTTPException(status_code=501, detail="Generate download link not implemented yet")
 
 
 @router.post("/{dataset_id}/cancel", response_model=DatasetResponse)
 async def cancel_dataset(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
     dataset_service: DatasetService = Depends(),
 ) -> DatasetResponse:
     """
@@ -284,7 +277,7 @@ async def cancel_dataset(
         HTTPException: If dataset not found or cancellation fails
     """
     try:
-        dataset = await dataset_service.cancel_dataset(dataset_id, current_user["id"])
+        dataset = await dataset_service.cancel_dataset(dataset_id, current_user["user_id"])
         if dataset is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")

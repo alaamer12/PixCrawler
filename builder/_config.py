@@ -143,65 +143,117 @@ class DatasetGenerationConfig(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
+        validate_default=True,
+        str_strip_whitespace=True
     )
 
     config_path: str = Field(
         default="config.json",
-        description="Path to the configuration file"
+        min_length=1,
+        max_length=255,
+        description="Path to the configuration file",
+        examples=["config.json", "datasets/my_config.json", "/path/to/config.json"]
     )
     max_images: int = Field(
         default=10,
         ge=1,
-        description="Maximum number of images to download per keyword"
+        le=50000,
+        description="Maximum number of images to download per keyword",
+        examples=[10, 100, 1000, 5000]
     )
     output_dir: Optional[str] = Field(
         default=None,
-        description="Custom output directory (None uses dataset_name from config)"
+        max_length=255,
+        description="Custom output directory (None uses dataset_name from config)",
+        examples=[None, "output", "/path/to/output", "datasets/my_dataset"]
     )
     max_retries: int = Field(
         default=5,
         ge=0,
-        description="Maximum number of retry attempts for failed downloads"
+        le=20,
+        description="Maximum number of retry attempts for failed downloads",
+        examples=[0, 3, 5, 10]
     )
     continue_from_last: bool = Field(
         default=False,
-        description="Whether to continue from previous run"
+        description="Whether to continue from previous run",
+        examples=[True, False]
     )
     cache_file: str = Field(
         default="download_progress.json",
-        description="Path to cache file for progress tracking"
+        min_length=1,
+        max_length=255,
+        description="Path to cache file for progress tracking",
+        examples=["progress.json", "cache/download_progress.json"]
     )
     keyword_generation: KEYWORD_MODE = Field(
         default="auto",
-        description="Mode for keyword generation"
+        description="Mode for keyword generation",
+        examples=["auto", "enabled", "disabled"]
     )
     ai_model: AI_MODELS = Field(
         default="gpt4-mini",
-        description="AI model to use for keyword generation"
+        description="AI model to use for keyword generation",
+        examples=["gpt4", "gpt4-mini"]
     )
     generate_labels: bool = Field(
         default=True,
-        description="Whether to generate label files for images"
+        description="Whether to generate label files for images",
+        examples=[True, False]
     )
     dataset_name: str = Field(
         default="",
-        description="Name of the dataset (loaded from config file)"
+        max_length=100,
+        description="Name of the dataset (loaded from config file)",
+        examples=["", "animal_photos", "car_dataset", "my-dataset-2024"]
     )
     search_variations: Optional[List[str]] = Field(
         default=None,
-        description="List of search variation templates for image searches"
+        max_length=50,
+        description="List of search variation templates for image searches",
+        examples=[None, ["{keyword} high quality", "{keyword} professional photo"]]
     )
-    @classmethod
+
     @field_validator('keyword_generation')
+    @classmethod
     def validate_keyword_generation(cls, v: str) -> str:
+        """Validate keyword generation mode."""
         valid_modes = ["auto", "disabled", "enabled"]
         if v not in valid_modes:
             raise ValueError(f"keyword_generation must be one of {valid_modes}")
         return v
-    @classmethod
+
     @field_validator('ai_model')
+    @classmethod
     def validate_ai_model(cls, v: str) -> str:
+        """Validate AI model selection."""
         valid_models = ["gpt4", "gpt4-mini"]
         if v not in valid_models:
             raise ValueError(f"ai_model must be one of {valid_models}")
+        return v
+
+    @field_validator('search_variations')
+    @classmethod
+    def validate_search_variations(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        """Validate search variations if provided."""
+        if v is not None:
+            cleaned = []
+            for variation in v:
+                cleaned_variation = variation.strip()
+                if not cleaned_variation:
+                    continue
+                if "{keyword}" not in cleaned_variation:
+                    raise ValueError(f"Search variation '{cleaned_variation}' must contain '{{keyword}}' placeholder")
+                if len(cleaned_variation) > 200:
+                    raise ValueError(f"Search variation too long: {len(cleaned_variation)} characters (max 200)")
+                cleaned.append(cleaned_variation)
+            return cleaned if cleaned else None
+        return v
+
+    @field_validator('dataset_name')
+    @classmethod
+    def validate_dataset_name(cls, v: str) -> str:
+        """Validate dataset name if provided."""
+        if v and not v.replace('_', '').replace('-', '').replace(' ', '').isalnum():
+            raise ValueError("Dataset name can only contain alphanumeric characters, spaces, hyphens, and underscores")
         return v

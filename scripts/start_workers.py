@@ -6,21 +6,21 @@ This script starts Celery workers for different packages with
 appropriate queue configurations.
 """
 
+import argparse
 import subprocess
 import sys
-import argparse
-from pathlib import Path
+
 
 def start_worker(package: str, queues: list, concurrency: int = 4):
     """
     Start a Celery worker for a specific package.
-    
+
     Args:
         package: Package name (builder, validator, or all)
         queues: List of queues to consume
         concurrency: Number of worker processes
     """
-    
+
     # Build the celery command
     cmd = [
         'celery',
@@ -31,10 +31,10 @@ def start_worker(package: str, queues: list, concurrency: int = 4):
         f'--queues={",".join(queues)}',
         f'--hostname={package}@%h'
     ]
-    
+
     print(f"Starting {package} worker with queues: {queues}")
     print(f"Command: {' '.join(cmd)}")
-    
+
     try:
         subprocess.run(cmd, check=True)
     except KeyboardInterrupt:
@@ -45,17 +45,17 @@ def start_worker(package: str, queues: list, concurrency: int = 4):
 
 def start_flower(port: int = 5555):
     """Start Flower monitoring interface."""
-    
+
     cmd = [
         'celery',
         '-A', 'celery_core.app',
         'flower',
         f'--port={port}'
     ]
-    
+
     print(f"Starting Flower on port {port}")
     print(f"Command: {' '.join(cmd)}")
-    
+
     try:
         subprocess.run(cmd, check=True)
     except KeyboardInterrupt:
@@ -83,14 +83,14 @@ def main():
         default=5555,
         help='Port for Flower (default: 5555)'
     )
-    
+
     args = parser.parse_args()
-    
+
     # Define queue configurations
     queue_configs = {
         'builder': [
             'builder.crawling',
-            'builder.generation', 
+            'builder.generation',
             'builder.processing'
         ],
         'validator': [
@@ -108,7 +108,7 @@ def main():
             'validator.duplicates'
         ]
     }
-    
+
     if args.worker_type == 'flower':
         start_flower(args.port)
     else:

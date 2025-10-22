@@ -8,6 +8,7 @@ Functions:
     get_current_user: Get current authenticated user from Supabase token
     get_current_user_optional: Get current user or None if not authenticated
     get_supabase_auth_service: Get Supabase authentication service instance
+    get_session: Get async database session
 
 Features:
     - Supabase JWT token extraction and verification
@@ -15,19 +16,24 @@ Features:
     - Optional authentication support
     - Comprehensive error handling
 """
-
-from typing import Optional, Dict, Any
+from typing import AsyncGenerator, Generator, Optional, Dict, Any
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.exceptions import AuthenticationError
+from backend.database.connection import get_session as get_db_session
 from backend.services.supabase_auth import SupabaseAuthService
+from backend.storage.base import StorageProvider
+from backend.storage.factory import get_storage_provider
 
 __all__ = [
     'get_current_user',
     'get_current_user_optional',
-    'get_supabase_auth_service'
+    'get_supabase_auth_service',
+    'get_session',
+    'get_storage'
 ]
 
 # HTTP Bearer token scheme
@@ -132,3 +138,32 @@ async def get_current_user_optional(
     except Exception:
         # Return None for any authentication errors in optional auth
         return None
+
+
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Get async database session.
+    
+    FastAPI dependency that provides an async SQLAlchemy session
+    for database operations.
+    
+    Yields:
+        AsyncSession: Async database session
+    """
+    async for session in get_db_session():
+        yield session
+
+
+def get_storage() -> Generator[StorageProvider, None, None]:
+    """
+    Dependency that returns the configured storage provider.
+
+    Yields:
+        StorageProvider: The configured storage provider instance
+    """
+    storage = get_storage_provider()
+    try:
+        yield storage
+    finally:
+        # Add any cleanup if needed
+        pass

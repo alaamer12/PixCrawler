@@ -24,7 +24,7 @@ Features:
 from enum import Enum
 from typing import Optional, List
 
-from pydantic import Field, HttpUrl
+from pydantic import Field, HttpUrl, field_validator, model_validator
 
 from .base import BaseSchema, TimestampMixin
 
@@ -96,16 +96,75 @@ class DatasetBase(BaseSchema):
         search_engines: List of search engines to use
     """
 
-    name: str = Field(..., min_length=1, max_length=100, description="Dataset name")
-    description: Optional[str] = Field(None, max_length=500,
-                                       description="Dataset description")
-    keywords: List[str] = Field(..., min_items=1, description="Search keywords")
-    max_images: int = Field(default=100, ge=1, le=10000,
-                            description="Maximum number of images")
+    name: str = Field(
+        ..., 
+        min_length=1, 
+        max_length=100, 
+        pattern=r'^[a-zA-Z0-9_\-\s]+$',
+        description="Dataset name (alphanumeric, spaces, hyphens, underscores only)",
+        examples=["My Dataset", "animal_photos", "car-images-2024"]
+    )
+    description: Optional[str] = Field(
+        None, 
+        max_length=500,
+        description="Dataset description",
+        examples=["A collection of animal photos for ML training", None]
+    )
+    keywords: List[str] = Field(
+        ..., 
+        min_items=1, 
+        max_items=50,
+        description="Search keywords",
+        examples=[["cats", "dogs"], ["red car", "blue car", "sports car"]]
+    )
+    max_images: int = Field(
+        default=100, 
+        ge=1, 
+        le=10000,
+        description="Maximum number of images to collect",
+        examples=[100, 500, 1000]
+    )
     search_engines: List[SearchEngine] = Field(
         default=[SearchEngine.GOOGLE],
-        description="Search engines to use"
+        min_items=1,
+        max_items=4,
+        description="Search engines to use",
+        examples=[[SearchEngine.GOOGLE], [SearchEngine.GOOGLE, SearchEngine.BING]]
     )
+
+    @field_validator('keywords')
+    @classmethod
+    def validate_keywords(cls, v: List[str]) -> List[str]:
+        """Validate and clean keywords."""
+        cleaned = []
+        for keyword in v:
+            cleaned_keyword = keyword.strip()
+            if not cleaned_keyword:
+                continue
+            if len(cleaned_keyword) < 2:
+                raise ValueError(f"Keyword '{cleaned_keyword}' is too short (minimum 2 characters)")
+            if len(cleaned_keyword) > 100:
+                raise ValueError(f"Keyword '{cleaned_keyword}' is too long (maximum 100 characters)")
+            cleaned.append(cleaned_keyword)
+        
+        if not cleaned:
+            raise ValueError("At least one valid keyword is required")
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_keywords = []
+        for keyword in cleaned:
+            if keyword.lower() not in seen:
+                seen.add(keyword.lower())
+                unique_keywords.append(keyword)
+        
+        return unique_keywords
+
+    @field_validator('search_engines')
+    @classmethod
+    def validate_search_engines(cls, v: List[SearchEngine]) -> List[SearchEngine]:
+        """Remove duplicate search engines."""
+        return list(dict.fromkeys(v))  # Preserves order while removing duplicates
 
 
 class DatasetCreate(DatasetBase):
@@ -130,10 +189,27 @@ class DatasetUpdate(BaseSchema):
         description: Updated dataset description
     """
 
-    name: Optional[str] = Field(None, min_length=1, max_length=100,
-                                description="Dataset name")
-    description: Optional[str] = Field(None, max_length=500,
-                                       description="Dataset description")
+    name: Optional[str] = Field(
+        None, 
+        min_length=1, 
+        max_length=100,
+        pattern=r'^[a-zA-Z0-9_\-\s]+$',
+        description="Updated dataset name",
+        examples=["Updated Dataset Name", None]
+    )
+    description: Optional[str] = Field(
+        None, 
+        max_length=500,
+        description="Updated dataset description",
+        examples=["Updated description for the dataset", None]
+    )
+
+    @model_validator(mode='after')
+    def validate_at_least_one_field(self) -> 'DatasetUpdate':
+        """Ensure at least one field is provided for update."""
+        if self.name is None and self.description is None:
+            raise ValueError("At least one field must be provided for update")
+        return self
 
 
 class DatasetResponse(DatasetBase, TimestampMixin):
@@ -153,15 +229,67 @@ class DatasetResponse(DatasetBase, TimestampMixin):
         error_message: Error message if processing failed
     """
 
-    id: int = Field(..., description="Dataset ID")
-    user_id: int = Field(..., description="Owner user ID")
-    status: DatasetStatus = Field(..., description="Processing status")
-    progress: float = Field(default=0.0, ge=0.0, le=100.0,
-                            description="Processing progress percentage")
-    images_collected: int = Field(default=0, description="Number of images collected")
-    download_url: Optional[HttpUrl] = Field(None,
-                                            description="Download URL when completed")
-    error_message: Optional[str] = Field(None, description="Error message if failed")
+    id: int = Field(
+        ..., 
+        gt=0,
+        description="Dataset ID",
+        examples=[1, 42, 1337]
+    )
+    user_id: int = Field(
+        ..., 
+        gt=0,
+        description="Owner user ID",
+        examples=[1, 123, 456]
+    )
+    status: DatasetStatus = Field(
+        ..., 
+        description="Processing status",
+        examples=[DatasetStatus.PENDING, DatasetStatus.PROCESSING, DatasetStatus.COMPLETED]
+    )
+    progress: float = Field(
+        default=0.0, 
+        ge=0.0, 
+        le=100.0,
+        description="Processing progress percentage",
+        examples=[0.0, 45.5, 100.0]
+    )
+    images_collected: int = Field(
+        default=0, 
+        ge=0,
+        description="Number of images successfully collected",
+        examples=[0, 150, 1000]
+    )
+    download_url: Optional[HttpUrl] = Field(
+        None,
+        description="Download URL when dataset is completed",
+        examples=["https://storage.example.com/datasets/123/download", None]
+    )
+    error_message: Optional[str] = Field(
+        None, 
+        max_length=1000,
+        description="Error message if processing failed",
+        examples=["Network timeout during image download", None]
+    )
+
+    @model_validator(mode='after')
+    def validate_status_consistency(self) -> 'DatasetResponse':
+        """Ensure status and related fields are consistent."""
+        if self.status == DatasetStatus.COMPLETED:
+            if self.progress != 100.0:
+                raise ValueError("Completed datasets must have 100% progress")
+            if self.images_collected == 0:
+                raise ValueError("Completed datasets should have collected images")
+        
+        if self.status == DatasetStatus.FAILED and not self.error_message:
+            raise ValueError("Failed datasets must have an error message")
+            
+        if self.status == DatasetStatus.PENDING and self.progress > 0:
+            raise ValueError("Pending datasets should have 0% progress")
+            
+        if self.download_url and self.status != DatasetStatus.COMPLETED:
+            raise ValueError("Download URL should only be available for completed datasets")
+            
+        return self
 
 
 class DatasetStats(BaseSchema):
@@ -179,8 +307,46 @@ class DatasetStats(BaseSchema):
         total_images: Total number of images collected across all datasets
     """
 
-    total_datasets: int = Field(..., description="Total number of datasets")
-    completed_datasets: int = Field(..., description="Number of completed datasets")
-    processing_datasets: int = Field(..., description="Number of processing datasets")
-    failed_datasets: int = Field(..., description="Number of failed datasets")
-    total_images: int = Field(..., description="Total number of images collected")
+    total_datasets: int = Field(
+        ..., 
+        ge=0,
+        description="Total number of datasets in the system",
+        examples=[0, 150, 1000]
+    )
+    completed_datasets: int = Field(
+        ..., 
+        ge=0,
+        description="Number of successfully completed datasets",
+        examples=[0, 120, 800]
+    )
+    processing_datasets: int = Field(
+        ..., 
+        ge=0,
+        description="Number of currently processing datasets",
+        examples=[0, 5, 20]
+    )
+    failed_datasets: int = Field(
+        ..., 
+        ge=0,
+        description="Number of failed datasets",
+        examples=[0, 10, 50]
+    )
+    total_images: int = Field(
+        ..., 
+        ge=0,
+        description="Total number of images collected across all datasets",
+        examples=[0, 50000, 1000000]
+    )
+
+    @model_validator(mode='after')
+    def validate_stats_consistency(self) -> 'DatasetStats':
+        """Ensure statistics are mathematically consistent."""
+        calculated_total = self.completed_datasets + self.processing_datasets + self.failed_datasets
+        
+        # Allow for pending datasets not explicitly counted
+        if calculated_total > self.total_datasets:
+            raise ValueError(
+                f"Sum of status counts ({calculated_total}) cannot exceed total datasets ({self.total_datasets})"
+            )
+            
+        return self

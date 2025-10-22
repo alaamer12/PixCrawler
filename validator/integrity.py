@@ -51,6 +51,12 @@ __all__ = [
 ]
 
 
+def valid_image_ext(file_path) -> bool:
+    """Check if a file has a valid image extension."""
+    if isinstance(file_path, str):
+        file_path = Path(file_path)
+    return file_path.suffix.lower() in IMAGE_EXTENSIONS
+
 # TypedDict definitions for enhanced type safety
 class ValidationResults(TypedDict):
     """Type definition for validation results."""
@@ -80,13 +86,6 @@ class ProcessingResults(TypedDict):
     validation: ValidationResults
     duplicates: Union[DuplicateResults, DuplicateDetectionResults]
     processed_at: float
-
-
-def valid_image_ext(file_path) -> bool:
-    """Check if a file has a valid image extension."""
-    if isinstance(file_path, str):
-        file_path = Path(file_path)
-    return file_path.suffix.lower() in IMAGE_EXTENSIONS
 
 
 class ImageHasher:
@@ -526,42 +525,6 @@ class ImageValidator:
                     corrupted_files.append(str(file_path))
 
         return valid_count, total_count, corrupted_files
-
-    def count_valid_in_latest_batch(self, directory: str, previous_count: int) -> int:
-        """
-        Count valid images in the latest batch, starting from previous_count index.
-
-        Args:
-            directory: Directory path to check
-            previous_count: Number of images that existed before this batch
-
-        Returns:
-            int: Number of valid images in the latest batch
-        """
-        valid_count = 0
-
-        directory_path = Path(directory)
-        if not directory_path.exists():
-            return 0
-
-        # Get all image files
-        image_files = self._get_image_files(directory_path)
-
-        # Sort by creation time to get the latest batch
-        image_files = self._sort_by_ctime(image_files)
-
-        # Take only files that were likely created in this batch
-        latest_batch = image_files[previous_count:]
-
-        for file_path in latest_batch:
-            if self.validate(str(file_path)):
-                valid_count += 1
-            else:
-                # Remove corrupted image
-                self._remove_corrupted_image(file_path)
-
-        return valid_count
-
     def _is_image_size_valid(self, img: Image.Image, image_path: str) -> bool:
         """
         Check if image dimensions meet minimum requirements.
@@ -577,53 +540,6 @@ class ImageValidator:
             logger.warning(f"Image too small: {image_path} ({img.width}x{img.height})")
             return False
         return True
-
-    @staticmethod
-    def _get_image_files(directory_path: Path) -> List[Path]:
-        """
-        Get all image files from a directory.
-
-        Args:
-            directory_path (Path): The directory to scan.
-
-        Returns:
-            List[Path]: List of image file paths.
-        """
-        return [
-            f for f in directory_path.iterdir()
-            if f.is_file() and valid_image_ext(f)
-        ]
-
-    @staticmethod
-    def _sort_by_ctime(image_files: List[Path]) -> List[Path]:
-        """
-        Sort image files by creation time.
-
-        Args:
-            image_files (List[Path]): List of image file paths.
-
-        Returns:
-            List[Path]: Sorted list of image file paths.
-        """
-        return sorted(image_files, key=lambda x: os.path.getctime(x))
-
-    @staticmethod
-    def _remove_corrupted_image(file_path: Path) -> None:
-        """
-        Remove a corrupted image file and handle any errors.
-
-        Args:
-            file_path (Path): Path to the corrupted image file.
-        """
-        try:
-            os.remove(file_path)
-            logger.warning(f"Removed corrupted image: {file_path}")
-        except OSError as ose:
-            logger.warning(f"Error removing corrupted image {file_path}: {ose}")
-        except Exception as e:
-            logger.warning(
-                f"An unexpected error occurred while removing corrupted image {file_path}: {e}")
-
 
 class IntegrityProcessor:
     """
