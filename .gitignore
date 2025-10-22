@@ -3,3 +3,11 @@
 **/datasets/*
 **/idea/*
 config.json
+**/node_modules/*
+frontend/node_modules/*
+
+# Azure deployment temporary files
+temp_config_*.json
+cache_*.json
+*.log
+.azure/

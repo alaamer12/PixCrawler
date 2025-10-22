@@ -1,0 +1,19 @@
+# Azure deployment requirements for PixCrawler FastAPI
+# Core FastAPI dependencies
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+
+# PixCrawler core dependencies
+g4f
+jsonschema
+requests
+duckduckgo-search
+ddgs
+icrawler
+tqdm
+Pillow
+
+# Additional production dependencies
+gunicorn
