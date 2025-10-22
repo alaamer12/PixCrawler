@@ -105,7 +105,7 @@ class ImageListResponse(BaseModel):
     job_id: str
     dataset_name: str
     total_images: int
-    images: List[Dict[str, str]]
+    images: List[Dict[str, Any]]
 
 
 def run_generation_task(job_id: str, request: GenerateRequest) -> None:
@@ -375,17 +375,42 @@ async def serve_image(job_id: str, path: str) -> FileResponse:
     
     # Security check: ensure path is within output directory
     try:
-        image_path = image_path.resolve()
+        # Normalize paths to use consistent separators
         output_path = Path(output_dir).resolve()
-        if not str(image_path).startswith(str(output_path)):
+        
+        # Resolve the image path
+        if image_path.exists():
+            resolved_image_path = image_path.resolve()
+        else:
+            # If file doesn't exist, construct absolute path manually
+            resolved_image_path = Path(output_dir).resolve() / path
+        
+        # Normalize both paths for comparison (handle Windows vs Unix separators)
+        output_path_str = str(output_path).replace('\\', '/').lower()
+        image_path_str = str(resolved_image_path).replace('\\', '/').lower()
+        
+        # Check if the image path is within the output directory
+        if not image_path_str.startswith(output_path_str):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied"
             )
-    except Exception:
+        
+        # Update image_path to the resolved version
+        image_path = resolved_image_path
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        # Log the actual error for debugging
+        print(f"Path resolution error: {e}")
+        print(f"Output dir: {output_dir}")
+        print(f"Requested path: {path}")
+        print(f"Full image path: {image_path}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid path"
+            detail=f"Invalid path: {str(e)}"
         )
     
     if not image_path.exists() or not image_path.is_file():
