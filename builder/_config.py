@@ -243,9 +243,11 @@ class DatasetGenerationConfig(BaseSettings):
                 if not cleaned_variation:
                     continue
                 if "{keyword}" not in cleaned_variation:
-                    raise ValueError(f"Search variation '{cleaned_variation}' must contain '{{keyword}}' placeholder")
+                    raise ValueError(
+                        f"Search variation '{cleaned_variation}' must contain '{{keyword}}' placeholder")
                 if len(cleaned_variation) > 200:
-                    raise ValueError(f"Search variation too long: {len(cleaned_variation)} characters (max 200)")
+                    raise ValueError(
+                        f"Search variation too long: {len(cleaned_variation)} characters (max 200)")
                 cleaned.append(cleaned_variation)
             return cleaned if cleaned else None
         return v
@@ -255,5 +257,6 @@ class DatasetGenerationConfig(BaseSettings):
     def validate_dataset_name(cls, v: str) -> str:
         """Validate dataset name if provided."""
         if v and not v.replace('_', '').replace('-', '').replace(' ', '').isalnum():
-            raise ValueError("Dataset name can only contain alphanumeric characters, spaces, hyphens, and underscores")
+            raise ValueError(
+                "Dataset name can only contain alphanumeric characters, spaces, hyphens, and underscores")
         return v
