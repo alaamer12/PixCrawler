@@ -74,7 +74,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        uv sync --extra dev
+        uv sync
         uv add bandit
 
     - name: Run security checks
