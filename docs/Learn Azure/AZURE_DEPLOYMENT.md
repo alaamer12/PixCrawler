@@ -39,7 +39,7 @@ az webapp create \
   --resource-group pixcrawler-rg \
   --plan pixcrawler-plan \
   --name pixcrawler-test-<your-unique-id> \
-  --runtime "PYTHON:3.10"
+  --runtime "PYTHON:3.11"
 ```
 **Note:** Replace `<your-unique-id>` with something unique (e.g., your initials + random numbers)
 
@@ -65,7 +65,7 @@ az webapp config appsettings set \
 az webapp up \
   --resource-group pixcrawler-rg \
   --name pixcrawler-test-<your-unique-id> \
-  --runtime "PYTHON:3.10"
+  --runtime "PYTHON:3.11"
 ```
 
 ### Option 2: Deploy via Azure Portal
@@ -76,7 +76,7 @@ az webapp up \
    - **Resource Group:** Create new "pixcrawler-rg"
    - **Name:** pixcrawler-test-<unique-id>
    - **Publish:** Code
-   - **Runtime stack:** Python 3.10
+   - **Runtime stack:** Python 3.11
    - **Operating System:** Linux
    - **Region:** East US (or your preferred region)
    - **Pricing Plan:** B1 (Basic)

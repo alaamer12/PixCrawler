@@ -28,7 +28,7 @@ az login
 az webapp up \
   --resource-group pixcrawler-rg \
   --name pixcrawler-test-YOUR-ID \
-  --runtime "PYTHON:3.10" \
+  --runtime "PYTHON:3.11" \
   --sku B1
 
 # Configure startup
