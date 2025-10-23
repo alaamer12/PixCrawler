@@ -22,7 +22,6 @@ def create_sample_config():
         },
         "options": {
             "max_images": 20,
-            "integrity": True,
             "generate_labels": True,
             "keyword_generation": "auto",
             "ai_model": "gpt4-mini"
@@ -53,7 +52,7 @@ def example_basic_usage():
         print(f"Dataset info: {info}")
 
         # Note: Uncomment the line below to actually generate the dataset
-        # builder.generate()
+        builder.generate()
 
     finally:
         # Cleanup
@@ -72,7 +71,6 @@ def example_advanced_usage():
             config_path=config_path,
             max_images=50,
             output_dir="./custom_dataset",
-            integrity=True,
             generate_labels=True,
             keyword_generation="enabled",
             ai_model="gpt4"
@@ -81,7 +79,6 @@ def example_advanced_usage():
         # Configure additional settings
         builder.set_maxi(30)
         builder.enable_kwgen("auto")
-        builder.enable_integrity(True)
 
         print(f"Advanced builder: {builder}")
         print(f"Available engines: {builder.available_engines()}")
@@ -157,7 +154,6 @@ def example_monorepo_usage():
                 config_path=config_path,
                 max_images=100,
                 generate_labels=True,
-                integrity=True
             )
 
             # Generate dataset for training
@@ -181,9 +177,9 @@ if __name__ == "__main__":
     print("=" * 40)
 
     example_basic_usage()
-    example_advanced_usage()
-    example_individual_operations()
-    example_monorepo_usage()
+    # example_advanced_usage()
+    # example_individual_operations()
+    # example_monorepo_usage()
 
     print("\n" + "=" * 40)
     print("Examples completed successfully!")

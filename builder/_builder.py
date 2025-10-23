@@ -35,10 +35,10 @@ import os
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
-from builder._config import DatasetGenerationConfig, get_engines
 from _predefined_variations import get_search_variations
+from builder._config import DatasetGenerationConfig, get_engines
 from builder._constants import logger, KEYWORD_MODE, AI_MODELS
-from builder._downloader import DDGSImageDownloader
+from _search_engines import DDGSImageDownloader
 from builder._engine import EngineProcessor
 from builder._exceptions import (
     DownloadError,
@@ -267,25 +267,6 @@ class Builder:
         except Exception as e:
             logger.error(f"Label generation failed: {e}")
             raise GenerationError(f"Failed to generate labels: {e}") from e
-
-    def generate_report(self, dataset_dir: str) -> str:
-        """
-        Generate a comprehensive report for the dataset.
-
-        Note: Report generation functionality has been moved to the src package.
-
-        Args:
-            dataset_dir (str): Directory containing the dataset
-
-        Returns:
-            str: Path to the generated report file
-
-        Raises:
-            GenerationError: If report generation fails
-        """
-        logger.warning("Report generation functionality moved to src package. Use src.report_generator.ReportGenerator directly.")
-        logger.info(f"Dataset directory: {dataset_dir}")
-        return ""
 
     def set_ai_model(self, model: AI_MODELS) -> None:
         """
