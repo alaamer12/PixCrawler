@@ -129,24 +129,24 @@ const NextSteps = ({ hasCredits }: { hasCredits: boolean }) => (
 )
 
 // Action Buttons Component
-const ActionButtons = () => {
+const ActionButtons = ({ isDevMode }: { isDevMode: boolean }) => {
   const router = useRouter()
   
   return (
     <div className="flex flex-col sm:flex-row gap-3">
       <Button 
-        onClick={() => router.push('/dashboard')}
+        onClick={() => router.push(isDevMode ? '/dashboard?dev_bypass=true' : '/dashboard')}
         className="flex-1"
+        rightIcon={<ArrowRight className="w-4 h-4" />}
       >
         Go to Dashboard
-        <ArrowRight className="w-4 h-4 ml-2" />
       </Button>
       <Button 
         variant="outline"
-        onClick={() => router.push('/dashboard/billing')}
+        onClick={() => router.push(isDevMode ? '/dashboard/billing?dev_bypass=true' : '/dashboard/billing')}
         className="flex-1"
+        leftIcon={<Download className="w-4 h-4" />}
       >
-        <Download className="w-4 h-4 mr-2" />
         View Receipt
       </Button>
     </div>
@@ -167,33 +167,45 @@ const SuccessHeader = () => (
 )
 
 // Help Section Component
-const HelpSection = () => (
-  <Card>
-    <CardContent className="pt-6">
-      <h3 className="font-semibold mb-3 flex items-center gap-2">
-        <HelpCircle className="w-4 h-4" />
-        Need Help?
-      </h3>
-      <div className="text-sm text-muted-foreground space-y-2">
-        <p>
-          If you have any questions about your purchase or need assistance getting started,
-          our support team is here to help.
-        </p>
-        <div className="flex flex-wrap gap-3 mt-4">
-          <Button variant="outline" size="sm">
-            Contact Support
-          </Button>
-          <Button variant="outline" size="sm">
-            View Documentation
-          </Button>
+const HelpSection = () => {
+  const router = useRouter()
+  
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <HelpCircle className="w-4 h-4" />
+          Need Help?
+        </h3>
+        <div className="text-sm text-muted-foreground space-y-2">
+          <p>
+            If you have any questions about your purchase or need assistance getting started,
+            our support team is here to help.
+          </p>
+          <div className="flex flex-wrap gap-3 mt-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => router.push('/contact')}
+            >
+              Contact Support
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => router.push('/docs')}
+            >
+              View Documentation
+            </Button>
+          </div>
         </div>
-      </div>
-    </CardContent>
-  </Card>
-)
+      </CardContent>
+    </Card>
+  )
+}
 
 // Success Content Component
-const SuccessContent = ({ details }: { details: PaymentDetails }) => (
+const SuccessContent = ({ details, isDevMode }: { details: PaymentDetails; isDevMode: boolean }) => (
   <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4">
     <div className="max-w-2xl w-full space-y-6">
       <Card className="text-center">
@@ -201,7 +213,7 @@ const SuccessContent = ({ details }: { details: PaymentDetails }) => (
         <CardContent className="space-y-6">
           <PaymentSummary details={details} />
           <NextSteps hasCredits={!!details.credits} />
-          <ActionButtons />
+          <ActionButtons isDevMode={isDevMode} />
         </CardContent>
       </Card>
       <HelpSection />
@@ -210,12 +222,30 @@ const SuccessContent = ({ details }: { details: PaymentDetails }) => (
 )
 
 // Custom Hook for Payment Data
-const usePaymentDetails = (sessionId: string | null) => {
+const usePaymentDetails = (sessionId: string | null, isDevMode: boolean) => {
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string>('')
 
   const fetchPaymentDetails = async () => {
+    // Dev mode bypass - create mock payment details
+    if (isDevMode) {
+      setIsLoading(true)
+      await new Promise(resolve => setTimeout(resolve, 500)) // Simulate loading
+      
+      setPaymentDetails({
+        sessionId: 'dev_session_mock_123',
+        planName: 'Pro Plan (Dev Mode)',
+        amount: 29.99,
+        currency: 'usd',
+        status: 'paid',
+        credits: 1000,
+        isSubscription: true,
+      })
+      setIsLoading(false)
+      return
+    }
+
     if (!sessionId) {
       setError('No session ID provided')
       setIsLoading(false)
@@ -255,7 +285,7 @@ const usePaymentDetails = (sessionId: string | null) => {
 
   useEffect(() => {
     fetchPaymentDetails()
-  }, [sessionId])
+  }, [sessionId, isDevMode])
 
   return { paymentDetails, isLoading, error, retry: fetchPaymentDetails }
 }
@@ -264,7 +294,8 @@ const usePaymentDetails = (sessionId: string | null) => {
 export const PaymentSuccess = () => {
   const searchParams = useSearchParams()
   const sessionId = searchParams.get('session_id')
-  const { paymentDetails, isLoading, error, retry } = usePaymentDetails(sessionId)
+  const isDevMode = process.env.NODE_ENV === 'development' && searchParams.get('dev_bypass') === 'true'
+  const { paymentDetails, isLoading, error, retry } = usePaymentDetails(sessionId, isDevMode)
 
   if (isLoading) {
     return <LoadingState />
@@ -274,5 +305,5 @@ export const PaymentSuccess = () => {
     return <ErrorState error={error || 'Unable to load payment details'} onRetry={retry} />
   }
 
-  return <SuccessContent details={paymentDetails} />
+  return <SuccessContent details={paymentDetails} isDevMode={isDevMode} />
 }
