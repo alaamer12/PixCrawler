@@ -1,5 +1,3 @@
-'use client'
-
 import {Fragment, memo} from 'react'
 import {CheckCircle2, Download, Search, Sparkles} from 'lucide-react'
 
