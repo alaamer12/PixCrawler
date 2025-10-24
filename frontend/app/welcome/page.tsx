@@ -4,12 +4,13 @@ import {WelcomeFlow} from './welcome-flow'
 import {getDevBypassFromSearchParams} from '@/lib/dev-utils'
 
 interface Props {
-  searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
 export default async function WelcomePage({searchParams}: Props) {
+  const params = await searchParams
   const urlSearchParams = new URLSearchParams(
-    Object.entries(searchParams).reduce((acc, [key, value]) => {
+    Object.entries(params).reduce((acc, [key, value]) => {
       if (typeof value === 'string') {
         acc[key] = value
       } else if (Array.isArray(value)) {
