@@ -1,7 +1,9 @@
 {
   "private": true,
   "scripts": {
+    "predev": "node scripts/generateImageManifest.js",
     "dev": "next dev --turbopack",
+    "prebuild": "node scripts/generateImageManifest.js",
     "build": "next build",
     "start": "next start",
     "db:setup": "npx tsx lib/db/setup.ts",
@@ -9,7 +11,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "auth:setup": "npx tsx lib/db/setup.ts"
+    "auth:setup": "npx tsx lib/db/setup.ts",
+    "generate:images": "node scripts/generateImageManifest.js"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",

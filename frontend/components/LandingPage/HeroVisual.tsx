@@ -4,6 +4,14 @@ import React, {memo, useCallback, useEffect, useState} from 'react'
 import {Check, CheckCircle2, Database, Loader2, Search} from 'lucide-react'
 import {AnimatePresence, motion} from 'framer-motion'
 import {NextImage, ImageModal} from '@/components/Image'
+import {
+  loadCategories,
+  getRandomCategory,
+  getRandomImagesForCategory,
+  getSourcesColor,
+  getQualityColor,
+  type Category
+} from '@/lib/imageLoader'
 
 // Types
 interface Step {
@@ -24,10 +32,6 @@ interface GalleryImage {
   title?: string
 }
 
-interface Category {
-  name: string
-  id: number
-}
 
 interface BuildStats {
   sources: number
@@ -36,16 +40,7 @@ interface BuildStats {
 }
 
 // Constants
-const CATEGORIES: Category[] = [
-  {name: 'nature', id: 1},
-  {name: 'architecture', id: 2},
-  {name: 'technology', id: 3},
-  {name: 'animals', id: 4},
-  {name: 'food', id: 5},
-  {name: 'travel', id: 6},
-  {name: 'abstract', id: 7},
-  {name: 'business', id: 8}
-]
+const CATEGORIES: Category[] = loadCategories()
 
 const TOTAL_IMAGES = 24
 const PRIORITY_THUMBNAIL_COUNT = 6
@@ -73,14 +68,9 @@ const TIMING = {
 const QUALITY_RANGE = {MIN: 90, MAX: 98} as const
 
 // Utility Functions
-const getRandomCategory = (): Category =>
-  CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]
 
 const getRandomQuality = (): number =>
   Math.floor(Math.random() * (QUALITY_RANGE.MAX - QUALITY_RANGE.MIN + 1)) + QUALITY_RANGE.MIN
-
-const createImageUrl = (category: string, timestamp: number, index: number): string =>
-  `https://picsum.photos/seed/${category}-${timestamp}-${index}/200/200`
 
 const createGalleryImage = (url: string, category: string, index: number): GalleryImage => ({
   src: url,
@@ -381,31 +371,36 @@ const DatasetGrid = memo(({
 ))
 DatasetGrid.displayName = 'DatasetGrid'
 
-const StatsBar = memo(({stats, isResetting}: { stats: BuildStats; isResetting: boolean }) => (
-  <div
-    className="flex items-center justify-between pt-4 border-t border-border text-xs text-muted-foreground transition-opacity duration-400"
-    style={{opacity: isResetting ? 0.3 : 1}}
-  >
-    <span
-      className="font-mono transition-opacity duration-300"
-      style={{opacity: stats.sources > 0 ? 1 : 0.5}}
+const StatsBar = memo(({stats, isResetting}: { stats: BuildStats; isResetting: boolean }) => {
+  const sourcesColor = getSourcesColor(stats.sources)
+  const qualityColor = getQualityColor(stats.quality)
+
+  return (
+    <div
+      className="flex items-center justify-between pt-4 border-t border-border text-xs transition-opacity duration-400"
+      style={{opacity: isResetting ? 0.3 : 1}}
     >
-      Sources: {stats.sources}/3 engines
-    </span>
-    <span
-      className="font-mono transition-opacity duration-300"
-      style={{opacity: stats.quality > 0 ? 1 : 0.5}}
-    >
-      Quality: {Math.round(stats.quality)}%
-    </span>
-    <span
-      className="font-mono transition-opacity duration-300"
-      style={{opacity: stats.time > 0 ? 1 : 0.5}}
-    >
-      Time: {stats.time.toFixed(1)}s
-    </span>
-  </div>
-))
+      <span
+        className={`font-mono transition-all duration-300 font-semibold ${sourcesColor}`}
+        style={{opacity: stats.sources > 0 ? 1 : 0.5}}
+      >
+        Sources: {stats.sources}/3 engines
+      </span>
+      <span
+        className={`font-mono transition-all duration-300 font-semibold ${qualityColor}`}
+        style={{opacity: stats.quality > 0 ? 1 : 0.5}}
+      >
+        Quality: {Math.round(stats.quality)}%
+      </span>
+      <span
+        className="font-mono transition-opacity duration-300 text-muted-foreground"
+        style={{opacity: stats.time > 0 ? 1 : 0.5}}
+      >
+        Time: {stats.time.toFixed(1)}s
+      </span>
+    </div>
+  )
+})
 StatsBar.displayName = 'StatsBar'
 
 const DecorativeBlobs = memo(() => (
@@ -564,13 +559,15 @@ export const HeroVisual = memo(() => {
     setSteps(createSteps(['complete', 'active', 'pending']))
     setImages(createEmptyImages(TOTAL_IMAGES))
 
+    // Get random images for the selected category
+    const randomImagePaths = getRandomImagesForCategory(randomCategory.name, TOTAL_IMAGES)
+
     // Load images progressively
-    const timestamp = Date.now()
-    for (let i = 0; i < TOTAL_IMAGES; i++) {
+    for (let i = 0; i < randomImagePaths.length; i++) {
       const delay = Math.random() * (TIMING.IMAGE_DELAY_MAX - TIMING.IMAGE_DELAY_MIN) + TIMING.IMAGE_DELAY_MIN
       await new Promise(resolve => setTimeout(resolve, delay))
 
-      const imageUrl = createImageUrl(randomCategory.name, timestamp, i)
+      const imageUrl = randomImagePaths[i]
 
       setImages(prev => {
         const updated = [...prev]
