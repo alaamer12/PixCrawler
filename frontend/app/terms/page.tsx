@@ -1,213 +1,220 @@
 import {Metadata} from 'next'
+import {
+  LegalHeader,
+  LegalSection,
+  LegalSubsection,
+  LegalList,
+  LegalParagraph,
+  LegalContact
+} from '@/components/legal'
 
 export const metadata: Metadata = {
-  title: 'Terms of Service - PixCrawler',
-  description: 'PixCrawler Terms of Service. Read our terms and conditions for using our image dataset building platform.',
-  keywords: ['terms of service', 'terms and conditions', 'legal', 'agreement'],
+  title: 'Terms of Service - PixCrawler | DEPI Legal Agreement',
+  description: 'PixCrawler Terms of Service. Read our terms and conditions for using our image dataset building platform developed under DEPI initiative.',
+  keywords: ['terms of service', 'terms and conditions', 'legal', 'agreement', 'DEPI', 'user agreement', 'acceptable use'],
+  openGraph: {
+    title: 'Terms of Service - PixCrawler',
+    description: 'Terms and conditions for using PixCrawler services.',
+    type: 'website',
+  },
+  alternates: {
+    canonical: 'https://pixcrawler.io/terms',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 }
 
 export default function TermsPage() {
   return (
     <main className="min-h-screen py-16">
       <div className="container mx-auto px-4 lg:px-8 max-w-4xl">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Terms of Service
-          </h1>
-          <p className="text-muted-foreground">
-            Last updated: January 1, 2025
-          </p>
-        </div>
+        <LegalHeader title="Terms of Service" lastUpdated="January 24, 2025" />
 
         <div className="prose prose-lg max-w-none">
           <div className="space-y-8">
-            <section>
-              <h2 className="text-2xl font-bold mb-4">1. Acceptance of Terms</h2>
-              <p className="text-muted-foreground leading-relaxed">
+            <LegalSection title="1. Acceptance of Terms">
+              <LegalParagraph>
                 By accessing or using PixCrawler&apos;s services, you agree to be bound by these Terms of Service
                 (&quot;Terms&quot;). If you do not agree to these Terms, please do not use our services.
-              </p>
-            </section>
+              </LegalParagraph>
+            </LegalSection>
 
-            <section>
-              <h2 className="text-2xl font-bold mb-4">2. Description of Service</h2>
-              <p className="text-muted-foreground leading-relaxed">
+            <LegalSection title="2. Description of Service">
+              <LegalParagraph>
                 PixCrawler provides an AI-powered platform for building image datasets for machine learning and computer
-                vision applications. Our services include image collection, validation, organization, and export
-                capabilities.
-              </p>
-            </section>
+                vision applications. Developed under the Digital Egypt Pioneers Initiative (DEPI), our services include 
+                image collection, validation, organization, and export capabilities. The platform is currently in active 
+                development and features may be updated or modified.
+              </LegalParagraph>
+            </LegalSection>
 
-            <section>
-              <h2 className="text-2xl font-bold mb-4">3. User Accounts</h2>
+            <LegalSection title="3. User Accounts">
+              <LegalSubsection title="3.1 Account Creation">
+                <LegalParagraph>
+                  You must create an account to use our services. You are responsible for maintaining the confidentiality
+                  of your account credentials and for all activities that occur under your account.
+                </LegalParagraph>
+              </LegalSubsection>
 
-              <h3 className="text-xl font-semibold mb-3">3.1 Account Creation</h3>
-              <p className="text-muted-foreground leading-relaxed mb-4">
-                You must create an account to use our services. You are responsible for maintaining the confidentiality
-                of your account credentials and for all activities that occur under your account.
-              </p>
+              <LegalSubsection title="3.2 Account Requirements">
+                <LegalList items={[
+                  'You must be at least 18 years old',
+                  'You must provide accurate and complete information',
+                  'You must not share your account with others',
+                  'You must notify us immediately of any unauthorized use'
+                ]} />
+              </LegalSubsection>
+            </LegalSection>
 
-              <h3 className="text-xl font-semibold mb-3">3.2 Account Requirements</h3>
-              <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                <li>You must be at least 18 years old</li>
-                <li>You must provide accurate and complete information</li>
-                <li>You must not share your account with others</li>
-                <li>You must notify us immediately of any unauthorized use</li>
-              </ul>
-            </section>
+            <LegalSection title="4. Acceptable Use">
+              <LegalSubsection title="4.1 Permitted Uses">
+                <LegalList items={[
+                  'Creating datasets for legitimate research and development',
+                  'Building training data for machine learning models',
+                  'Commercial use in accordance with your subscription plan',
+                  'Educational and academic purposes'
+                ]} />
+              </LegalSubsection>
 
-            <section>
-              <h2 className="text-2xl font-bold mb-4">4. Acceptable Use</h2>
+              <LegalSubsection title="4.2 Prohibited Uses">
+                <LegalList items={[
+                  'Collecting images for illegal or harmful purposes',
+                  'Violating copyright, trademark, or other intellectual property rights',
+                  'Creating datasets containing personal information without consent',
+                  'Attempting to reverse engineer or compromise our systems',
+                  'Sharing or reselling access to our services',
+                  'Using our services to compete directly with PixCrawler'
+                ]} />
+              </LegalSubsection>
+            </LegalSection>
 
-              <h3 className="text-xl font-semibold mb-3">4.1 Permitted Uses</h3>
-              <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                <li>Creating datasets for legitimate research and development</li>
-                <li>Building training data for machine learning models</li>
-                <li>Commercial use in accordance with your subscription plan</li>
-                <li>Educational and academic purposes</li>
-              </ul>
+            <LegalSection title="5. Subscription Plans and Billing">
+              <LegalSubsection title="5.1 Subscription Terms">
+                <LegalParagraph>
+                  Our services are offered under various subscription plans. By subscribing, you agree to pay the
+                  applicable fees and charges.
+                </LegalParagraph>
+              </LegalSubsection>
 
-              <h3 className="text-xl font-semibold mb-3 mt-6">4.2 Prohibited Uses</h3>
-              <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                <li>Collecting images for illegal or harmful purposes</li>
-                <li>Violating copyright, trademark, or other intellectual property rights</li>
-                <li>Creating datasets containing personal information without consent</li>
-                <li>Attempting to reverse engineer or compromise our systems</li>
-                <li>Sharing or reselling access to our services</li>
-                <li>Using our services to compete directly with PixCrawler</li>
-              </ul>
-            </section>
+              <LegalSubsection title="5.2 Billing and Payment">
+                <LegalList items={[
+                  'Subscription fees are billed in advance on a monthly or annual basis',
+                  'All fees are non-refundable except as required by law',
+                  'We may change our pricing with 30 days\' notice',
+                  'Failure to pay may result in service suspension or termination'
+                ]} />
+              </LegalSubsection>
 
-            <section>
-              <h2 className="text-2xl font-bold mb-4">5. Subscription Plans and Billing</h2>
+              <LegalSubsection title="5.3 Usage Limits">
+                <LegalParagraph>
+                  Each subscription plan includes specific usage limits. Exceeding these limits may result in additional
+                  charges or service restrictions.
+                </LegalParagraph>
+              </LegalSubsection>
+            </LegalSection>
 
-              <h3 className="text-xl font-semibold mb-3">5.1 Subscription Terms</h3>
-              <p className="text-muted-foreground leading-relaxed mb-4">
-                Our services are offered under various subscription plans. By subscribing, you agree to pay the
-                applicable fees and charges.
-              </p>
+            <LegalSection title="6. Intellectual Property">
+              <LegalSubsection title="6.1 Our Rights">
+                <LegalParagraph>
+                  PixCrawler retains all rights, title, and interest in our platform, technology, and services. You may
+                  not copy, modify, or distribute our software or content.
+                </LegalParagraph>
+              </LegalSubsection>
 
-              <h3 className="text-xl font-semibold mb-3">5.2 Billing and Payment</h3>
-              <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                <li>Subscription fees are billed in advance on a monthly or annual basis</li>
-                <li>All fees are non-refundable except as required by law</li>
-                <li>We may change our pricing with 30 days&apos; notice</li>
-                <li>Failure to pay may result in service suspension or termination</li>
-              </ul>
+              <LegalSubsection title="6.2 Your Content">
+                <LegalParagraph>
+                  You retain ownership of datasets you create using our services. However, you grant us a license to
+                  process and store your data as necessary to provide our services.
+                </LegalParagraph>
+              </LegalSubsection>
 
-              <h3 className="text-xl font-semibold mb-3 mt-6">5.3 Usage Limits</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                Each subscription plan includes specific usage limits. Exceeding these limits may result in additional
-                charges or service restrictions.
-              </p>
-            </section>
+              <LegalSubsection title="6.3 Third-Party Content">
+                <LegalParagraph>
+                  You are responsible for ensuring you have the right to use any images collected through our platform. We
+                  do not grant rights to third-party content.
+                </LegalParagraph>
+              </LegalSubsection>
+            </LegalSection>
 
-            <section>
-              <h2 className="text-2xl font-bold mb-4">6. Intellectual Property</h2>
-
-              <h3 className="text-xl font-semibold mb-3">6.1 Our Rights</h3>
-              <p className="text-muted-foreground leading-relaxed mb-4">
-                PixCrawler retains all rights, title, and interest in our platform, technology, and services. You may
-                not copy, modify, or distribute our software or content.
-              </p>
-
-              <h3 className="text-xl font-semibold mb-3">6.2 Your Content</h3>
-              <p className="text-muted-foreground leading-relaxed mb-4">
-                You retain ownership of datasets you create using our services. However, you grant us a license to
-                process and store your data as necessary to provide our services.
-              </p>
-
-              <h3 className="text-xl font-semibold mb-3">6.3 Third-Party Content</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                You are responsible for ensuring you have the right to use any images collected through our platform. We
-                do not grant rights to third-party content.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-bold mb-4">7. Privacy and Data Protection</h2>
-              <p className="text-muted-foreground leading-relaxed">
+            <LegalSection title="7. Privacy and Data Protection">
+              <LegalParagraph>
                 Your privacy is important to us. Please review our Privacy Policy to understand how we collect, use, and
                 protect your information.
-              </p>
-            </section>
+              </LegalParagraph>
+            </LegalSection>
 
-            <section>
-              <h2 className="text-2xl font-bold mb-4">8. Service Availability</h2>
-              <p className="text-muted-foreground leading-relaxed">
+            <LegalSection title="8. Service Availability">
+              <LegalParagraph>
                 We strive to maintain high service availability but do not guarantee uninterrupted access. We may
                 perform maintenance, updates, or modifications that temporarily affect service availability.
-              </p>
-            </section>
+              </LegalParagraph>
+            </LegalSection>
 
-            <section>
-              <h2 className="text-2xl font-bold mb-4">9. Limitation of Liability</h2>
-              <p className="text-muted-foreground leading-relaxed">
+            <LegalSection title="9. Limitation of Liability">
+              <LegalParagraph>
                 To the maximum extent permitted by law, PixCrawler shall not be liable for any indirect, incidental,
                 special, consequential, or punitive damages, including but not limited to loss of profits, data, or
                 business opportunities.
-              </p>
-            </section>
+              </LegalParagraph>
+            </LegalSection>
 
-            <section>
-              <h2 className="text-2xl font-bold mb-4">10. Indemnification</h2>
-              <p className="text-muted-foreground leading-relaxed">
+            <LegalSection title="10. Indemnification">
+              <LegalParagraph>
                 You agree to indemnify and hold PixCrawler harmless from any claims, damages, or expenses arising from
                 your use of our services or violation of these Terms.
-              </p>
-            </section>
+              </LegalParagraph>
+            </LegalSection>
 
-            <section>
-              <h2 className="text-2xl font-bold mb-4">11. Termination</h2>
+            <LegalSection title="11. Termination">
+              <LegalSubsection title="11.1 Termination by You">
+                <LegalParagraph>
+                  You may terminate your account at any time by contacting our support team or using the account deletion
+                  feature.
+                </LegalParagraph>
+              </LegalSubsection>
 
-              <h3 className="text-xl font-semibold mb-3">11.1 Termination by You</h3>
-              <p className="text-muted-foreground leading-relaxed mb-4">
-                You may terminate your account at any time by contacting our support team or using the account deletion
-                feature.
-              </p>
+              <LegalSubsection title="11.2 Termination by Us">
+                <LegalParagraph>
+                  We may suspend or terminate your account for violation of these Terms, non-payment, or other reasons at
+                  our discretion.
+                </LegalParagraph>
+              </LegalSubsection>
 
-              <h3 className="text-xl font-semibold mb-3">11.2 Termination by Us</h3>
-              <p className="text-muted-foreground leading-relaxed mb-4">
-                We may suspend or terminate your account for violation of these Terms, non-payment, or other reasons at
-                our discretion.
-              </p>
+              <LegalSubsection title="11.3 Effect of Termination">
+                <LegalParagraph>
+                  Upon termination, your access to our services will cease, and we may delete your data after a reasonable
+                  period.
+                </LegalParagraph>
+              </LegalSubsection>
+            </LegalSection>
 
-              <h3 className="text-xl font-semibold mb-3">11.3 Effect of Termination</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                Upon termination, your access to our services will cease, and we may delete your data after a reasonable
-                period.
-              </p>
-            </section>
+            <LegalSection title="12. Governing Law">
+              <LegalParagraph>
+                These Terms shall be governed by and construed in accordance with applicable international data protection 
+                and technology laws. Any disputes arising from these Terms will be resolved through good faith negotiation 
+                or appropriate dispute resolution mechanisms.
+              </LegalParagraph>
+            </LegalSection>
 
-            <section>
-              <h2 className="text-2xl font-bold mb-4">12. Governing Law</h2>
-              <p className="text-muted-foreground leading-relaxed">
-                These Terms are governed by the laws of the State of California, United States, without regard to
-                conflict of law principles.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-bold mb-4">13. Changes to Terms</h2>
-              <p className="text-muted-foreground leading-relaxed">
+            <LegalSection title="13. Changes to Terms">
+              <LegalParagraph>
                 We may modify these Terms at any time. We will notify you of material changes by email or through our
                 platform. Continued use of our services constitutes acceptance of the modified Terms.
-              </p>
-            </section>
+              </LegalParagraph>
+            </LegalSection>
 
-            <section>
-              <h2 className="text-2xl font-bold mb-4">14. Contact Information</h2>
-              <p className="text-muted-foreground leading-relaxed">
-                If you have questions about these Terms, please contact us:
-              </p>
-              <div className="mt-4 p-4 bg-muted/30 rounded-lg">
-                <p className="text-muted-foreground">
-                  <strong>Email:</strong> legal@pixcrawler.com<br/>
-                  <strong>Address:</strong> PixCrawler Inc., 123 Tech Street, San Francisco, CA 94105<br/>
-                  <strong>Phone:</strong> +1 (555) 123-4567
-                </p>
-              </div>
-            </section>
+            <LegalContact
+              title="14. Contact Information"
+              description="If you have questions about these Terms, please contact us:"
+              contacts={[
+                {label: 'Email', value: 'contact@pixcrawler.io'},
+                {label: 'Legal Inquiries', value: 'legal@pixcrawler.io'},
+                {label: 'Project', value: 'Developed under DEPI (Digital Egypt Pioneers Initiative)'},
+                {label: 'Support', value: 'Available via email during business hours'}
+              ]}
+            />
           </div>
         </div>
       </div>
