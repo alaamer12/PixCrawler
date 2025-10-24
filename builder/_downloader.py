@@ -22,10 +22,11 @@ Features:
 import logging
 import random
 import threading
-from abc import ABC, abstractmethod
+from abc import ABC
 from pathlib import Path
 from typing import Tuple, Optional
 
+from _base import IDownloader
 from _predefined_variations import get_search_variations
 from _search_engines import download_images_ddgs
 from builder._constants import logger
@@ -36,42 +37,11 @@ from builder._utilities import rename_images_sequentially
 # Image validation moved to validator package
 
 __all__ = [
-    'IDownloader',
     'ABC',
     'ImageDownloader',
     'APIDownloader',
     'AioHttpDownloader'
 ]
-
-
-class IDownloader(ABC):
-    """
-    Abstract base class for image downloaders.
-
-    Contract:
-    - Must handle retries internally
-    - Must validate downloaded images
-    - Must return (success: bool, count: int)
-    - Must raise DownloadError for unrecoverable failures
-    """
-
-    @abstractmethod
-    def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
-        """
-        Downloads images for the given keyword.
-
-        Args:
-            keyword: Search term for images
-            out_dir: Output directory path
-            max_num: Maximum number of images to download
-
-        Returns:
-            Tuple[bool, int]: (success, downloaded_count)
-
-        Raises:
-            DownloadError: For download and validation failures
-        """
-        pass
 
 
 class ImageDownloader(IDownloader):

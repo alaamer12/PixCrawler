@@ -198,7 +198,7 @@ class ActivityLog(Base):
         action: Action description
         resource_type: Type of resource affected
         resource_id: ID of resource affected
-        metadata: Additional event metadata (JSON)
+        metadata_: Additional event metadata (JSON)
         timestamp: Event timestamp
     """
 
@@ -210,7 +210,7 @@ class ActivityLog(Base):
     action: Mapped[str] = mapped_column(Text, nullable=False)
     resource_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     resource_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    metadata: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    metadata_: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
