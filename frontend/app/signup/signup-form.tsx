@@ -5,6 +5,8 @@ import {authService} from '@/lib/auth'
 import {useRouter} from 'next/navigation'
 import {Button} from '@/components/ui/button'
 import {OAuthButtons} from '@/components/auth/oauth-buttons'
+import {PasswordInput} from '@/components/ui/password-input'
+import {PasswordStrengthMeter} from '@/components/strength-meter'
 
 export function SignupForm() {
   const [email, setEmail] = useState('')
@@ -33,71 +35,72 @@ export function SignupForm() {
   }
 
   return (
-    <div className="bg-card border border-border rounded-xl shadow-lg p-6 md:p-8 space-y-6">
-      <div className="space-y-2 text-center">
+    <div className="bg-card border border-border rounded-xl shadow-lg p-6 md:p-8 space-y-4">
+      <div className="space-y-1 text-center">
         <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
         <p className="text-sm text-muted-foreground">Start building your image datasets today</p>
       </div>
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <div className="space-y-2">
-          <label htmlFor="fullName" className="text-sm font-medium">
-            Full Name
-          </label>
-          <input
-            id="fullName"
-            name="fullName"
-            type="text"
-            required
-            className="w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-            placeholder="Enter your full name"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
+      <form className="space-y-3" onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <label htmlFor="fullName" className="text-sm font-medium">
+              Full Name
+            </label>
+            <input
+              id="fullName"
+              name="fullName"
+              type="text"
+              required
+              className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+              placeholder="Enter your full name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="email" className="text-sm font-medium">
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
         </div>
-        <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            className="w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-            placeholder="name@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <label htmlFor="password" className="text-sm font-medium">
             Password
           </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            required
-            className="w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-            placeholder="••••••••"
+          <PasswordStrengthMeter
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            minLength={6}
+            onValueChange={setPassword}
+            showText={true}
+            showRequirements={true}
+            showRequirementsAsTooltip={true}
+            segments={4}
+            placeholder="Enter a strong password"
+            showPasswordToggle={true}
+            inputClassName="px-3 py-2.5"
           />
         </div>
 
         {error && (
           <div
-            className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg p-3 text-center">
+            className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg p-2.5 text-center">
             {error}
           </div>
         )}
 
         {message && (
-          <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg p-3 text-center">
+          <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg p-2.5 text-center">
             {message}
           </div>
         )}
@@ -116,7 +119,7 @@ export function SignupForm() {
 
       <OAuthButtons mode="signup"/>
 
-      <div className="text-center pt-4 border-t border-border">
+      <div className="text-center pt-3 border-t border-border">
         <p className="text-sm text-muted-foreground">
           Already have an account?{' '}
           <a href="/login" className="font-medium text-primary hover:underline">
