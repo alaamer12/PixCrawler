@@ -1,4 +1,27 @@
 {
+  "name": "pixcrawler-frontend",
+  "version": "1.0.0",
+  "description": "AI-Powered Image Dataset Builder - Frontend Application",
+  "author": "PixCrawler Team - DEPI Initiative",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pixcrawler/pixcrawler.git"
+  },
+  "keywords": [
+    "image-dataset",
+    "machine-learning",
+    "ai",
+    "dataset-builder",
+    "computer-vision",
+    "nextjs",
+    "typescript",
+    "depi"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "bun": ">=1.0.0"
+  },
   "private": true,
   "scripts": {
     "predev": "node scripts/generateImageManifest.js",
@@ -16,6 +39,7 @@
     "generate:images": "node scripts/generateImageManifest.js"
   },
   "dependencies": {
+    "@bprogress/next": "^3.2.12",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-checkbox": "^1.3.3",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -50,7 +74,8 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-intersection-observer": "^9.16.0",
-    "resend": "^6.2.2",
+    "react-window": "^2.2.0",
+    "resend": "^4.0.1",
     "server-only": "^0.0.1",
     "stripe": "^19.1.0",
     "zod": "^3.24.4"
