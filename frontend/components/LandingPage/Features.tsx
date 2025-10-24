@@ -1,5 +1,3 @@
-'use client'
-
 import {memo, useMemo} from 'react'
 
 interface Feature {
@@ -53,9 +51,12 @@ export const Features = memo(() => {
   return (
     <section id="features" className="border-b border-border py-16 md:py-24">
       <div className="container mx-auto px-4 lg:px-8">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 md:mb-16">
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
           Powerful Features
         </h2>
+        <p className="text-center text-muted-foreground mb-12 md:mb-16 max-w-2xl mx-auto">
+          Everything you need to build production-ready image datasets
+        </p>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-6xl mx-auto">
           {featureCards}

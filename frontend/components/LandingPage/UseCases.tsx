@@ -1,5 +1,3 @@
-'use client'
-
 import {memo, useMemo} from 'react'
 
 interface UseCase {
@@ -70,9 +68,12 @@ export const UseCases = memo(() => {
   return (
     <section id="use-cases" className="border-b border-border py-16 md:py-24">
       <div className="container mx-auto px-4 lg:px-8">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 md:mb-16">
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
           Built For Everyone
         </h2>
+        <p className="text-center text-muted-foreground mb-12 md:mb-16 max-w-2xl mx-auto">
+          From individual developers to enterprise teams
+        </p>
 
         <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
           {useCaseCards}

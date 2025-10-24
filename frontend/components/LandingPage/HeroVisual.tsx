@@ -1,9 +1,8 @@
-'use client'
-
+"use client"
 import React, {memo, useCallback, useEffect, useState} from 'react'
 import {Check, CheckCircle2, Database, Loader2, Search} from 'lucide-react'
 import {AnimatePresence, motion} from 'framer-motion'
-import {NextImage, ImageModal} from '@/components/Image'
+import dynamic from 'next/dynamic'
 import {
   loadCategories,
   getRandomCategory,
@@ -12,6 +11,14 @@ import {
   getQualityColor,
   type Category
 } from '@/lib/imageLoader'
+
+const NextImage = dynamic(() => import('@/components/Image').then(mod => mod.NextImage), {
+  loading: () => <div className="w-full h-full bg-muted animate-pulse" />
+})
+
+const ImageModal = dynamic(() => import('@/components/Image').then(mod => mod.ImageModal), {
+  ssr: false
+})
 
 // Types
 interface Step {
@@ -125,15 +132,11 @@ LoadingState.displayName = 'LoadingState'
 const QueryInput = memo(({
                            category,
                            isResetting,
-                           isBuilding,
-                           onTestModal,
-                           showTestButton
+                           isBuilding
                          }: {
   category: string
   isResetting: boolean
   isBuilding: boolean
-  onTestModal: () => void
-  showTestButton: boolean
 }) => (
   <div className="space-y-3">
     <div className="relative">
@@ -145,15 +148,7 @@ const QueryInput = memo(({
         animate={{opacity: isResetting ? 0.5 : 1}}
         transition={{duration: 0.3}}
       />
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
-        {showTestButton && (
-          <button
-            onClick={onTestModal}
-            className="px-2 py-1 bg-secondary text-secondary-foreground text-xs rounded"
-          >
-            Test Modal
-          </button>
-        )}
+      <div className="absolute right-2 top-1/2 -translate-y-1/2">
         <div
           className="px-4 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-md flex items-center gap-2">
           {isBuilding && <Loader2 className="w-3 h-3 animate-spin"/>}
@@ -626,12 +621,6 @@ export const HeroVisual = memo(() => {
     setModalOpen(true)
   }, [])
 
-  const handleTestModal = useCallback(() => {
-    if (galleryImages.length > 0) {
-      setCurrentImageIndex(0)
-      setModalOpen(true)
-    }
-  }, [galleryImages.length])
 
   if (!mounted) {
     return <LoadingState/>
@@ -652,8 +641,6 @@ export const HeroVisual = memo(() => {
             category={currentCategory.name}
             isResetting={isResetting}
             isBuilding={isBuilding}
-            onTestModal={handleTestModal}
-            showTestButton={process.env.NODE_ENV === 'development' && galleryImages.length > 0}
           />
 
           {isBuilding && progress > 0 && <ProgressBar progress={progress}/>}
@@ -678,12 +665,6 @@ export const HeroVisual = memo(() => {
         images={galleryImages}
         currentIndex={currentImageIndex}
         onIndexChange={setCurrentImageIndex}
-      />
-
-      <DebugInfo
-        modalOpen={modalOpen}
-        galleryImagesLength={galleryImages.length}
-        currentIndex={currentImageIndex}
       />
 
       <DecorativeBlobs/>
