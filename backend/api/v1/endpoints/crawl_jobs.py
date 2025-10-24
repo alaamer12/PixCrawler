@@ -10,9 +10,10 @@ from typing import Any, List, Optional, Dict
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi_limiter.depends import RateLimiter
 from pydantic import BaseModel, Field, field_validator, model_validator
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.dependencies import get_current_user, get_session
 from backend.api.types import CurrentUser, DBSession, JobID
 from backend.database.models import CrawlJob, Project, ActivityLog
 from backend.services.crawl_job import CrawlJobService, execute_crawl_job
@@ -636,7 +637,7 @@ async def get_crawl_job_logs(
             JobLogEntry(
                 action=log.action,
                 timestamp=log.timestamp.isoformat(),
-                metadata=log.metadata,
+                metadata=log.metadata_,
             )
             for log in logs
         ]

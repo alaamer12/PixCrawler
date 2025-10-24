@@ -82,6 +82,11 @@ export class OnboardingService {
     const {data: {user}} = await this.supabase.auth.getUser()
 
     if (!user) {
+      // In development with dev_bypass, skip database update
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[DEV MODE] Skipping onboarding completion - user not authenticated')
+        return
+      }
       throw new Error('User not authenticated')
     }
 

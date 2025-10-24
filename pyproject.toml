@@ -108,7 +108,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.ruff.lint.isort]
-known-first-party = ["fm", "pbm", "src"]
+known-first-party = ["backend", "builder", "logging_config", "celery_core", "validator"]
 force-sort-within-sections = true
 split-on-trailing-comma = true
 
@@ -155,14 +155,12 @@ minversion = "7.0"
 addopts = [
     "--strict-markers",
     "--strict-config",
-    "--cov=src",
-    "--cov=fm",
-    "--cov=pbm",
+    "--cov=backend",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
 ]
-testpaths = ["tests"]
+testpaths = ["tests", "backend/tests", "builder/tests"]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
@@ -171,7 +169,7 @@ markers = [
 
 # Coverage configuration
 [tool.coverage.run]
-source = ["src", "fm", "pbm", "base", "utils"]
+source = ["backend"]
 omit = [
     "*/tests/*",
     "*/test_*.py",

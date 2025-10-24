@@ -110,6 +110,7 @@ export function TestStep({
         <Button
           onClick={onBack}
           variant="outline"
+          size="lg"
           leftIcon={<ArrowLeft className="w-4 h-4"/>}
         >
           Back
