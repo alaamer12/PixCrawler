@@ -3,6 +3,7 @@
   "scripts": {
     "predev": "node scripts/generateImageManifest.js",
     "dev": "next dev --turbopack",
+    "dev:vercel": "vercel dev",
     "prebuild": "node scripts/generateImageManifest.js",
     "build": "next build",
     "start": "next start",
@@ -54,6 +55,7 @@
     "react-use": "^17.6.0",
     "react-virtualized-auto-sizer": "^1.0.26",
     "react-window": "^2.2.0",
+    "resend": "^6.2.2",
     "server-only": "^0.0.1",
     "stripe": "^19.1.0",
     "zod": "^3.24.4"
