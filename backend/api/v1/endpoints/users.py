@@ -5,7 +5,7 @@ User management endpoints.
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi_pagination import Page
 
-from backend.api.types import CurrentUser, UserID
+from backend.api.types import UserID
 from backend.models.user import UserCreate, UserResponse, UserUpdate
 from backend.services.user import UserService
 

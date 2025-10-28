@@ -66,15 +66,30 @@ export function WelcomeFlow({user}: WelcomeFlowProps) {
       const {onboardingService} = await import('@/lib/api/onboarding')
       const {jobId} = await onboardingService.createDatasetJob(config)
 
-      // Mark onboarding as completed
+      // Mark onboarding as completed (handles dev mode gracefully)
       await onboardingService.completeOnboarding()
 
-      // Redirect to dataset monitoring page
-      router.push(`/dashboard/datasets/${jobId}`)
+      // Check if we're in dev mode by checking user ID
+      const isDevMode = user.id === 'dev-user-123'
+      
+      if (isDevMode) {
+        // In dev mode, redirect to dashboard with dev_bypass param
+        router.push('/dashboard?dev_bypass=true')
+      } else {
+        // In production, redirect to dataset monitoring page
+        router.push(`/dashboard/datasets/${jobId}`)
+      }
     } catch (error) {
       console.error('Failed to launch dataset:', error)
-      // For now, just redirect to dashboard
-      router.push('/dashboard')
+      
+      // Check if we're in dev mode for error handling
+      const isDevMode = user.id === 'dev-user-123'
+      
+      if (isDevMode) {
+        router.push('/dashboard?dev_bypass=true')
+      } else {
+        router.push('/dashboard')
+      }
     }
   }
 

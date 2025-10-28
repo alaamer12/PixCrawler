@@ -10,9 +10,14 @@ from backend.core.config import get_settings
 
 settings = get_settings()
 
-# Create async engine
+# Create async engine with asyncpg driver
+# Convert postgresql:// to postgresql+asyncpg:// for async support
+database_url = str(settings.database_url)
+if database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 engine = create_async_engine(
-    str(settings.database_url),
+    database_url,
     pool_size=10,  # Default pool size for Supabase
     max_overflow=20,  # Default max overflow
     echo=settings.debug,

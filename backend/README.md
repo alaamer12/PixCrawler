@@ -49,7 +49,7 @@ backend/
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.11+
 - PostgreSQL 12+
 - Redis 6+
 - UV package manager

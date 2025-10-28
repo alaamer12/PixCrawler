@@ -1,0 +1,10 @@
+[config]
+# Azure Deployment Configuration
+# This file tells Azure which directory contains the deployable application
+
+# Deploy only the backend (root directory)
+# Frontend is deployed separately
+project = .
+
+# Use custom build script
+command = bash startup-azure.sh

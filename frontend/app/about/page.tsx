@@ -1,46 +1,28 @@
 import {Metadata} from 'next'
-import dynamic from 'next/dynamic'
-import {AboutHero} from '@/components/about/AboutHero'
-
-// Dynamically import heavy components
-const AboutStory = dynamic(() => import('@/components/about/AboutStory').then(mod => ({default: mod.AboutStory})), {
-  loading: () => <div className="py-16 flex justify-center">
-    <div className="animate-pulse">Loading story...</div>
-  </div>
-})
-
-const AboutValues = dynamic(() => import('@/components/about/AboutValues').then(mod => ({default: mod.AboutValues})), {
-  loading: () => <div className="py-16 flex justify-center">
-    <div className="animate-pulse">Loading values...</div>
-  </div>
-})
-
-const AboutTeam = dynamic(() => import('@/components/about/AboutTeam').then(mod => ({default: mod.AboutTeam})), {
-  loading: () => <div className="py-16 flex justify-center">
-    <div className="animate-pulse">Loading team...</div>
-  </div>
-})
-
-const AboutCTA = dynamic(() => import('@/components/about/AboutCTA').then(mod => ({default: mod.AboutCTA})), {
-  loading: () => <div className="py-16 flex justify-center">
-    <div className="animate-pulse">Loading...</div>
-  </div>
-})
+import {AboutHero, AboutMission, AboutFeatures, AboutTechStack, AboutCTA} from '@/components/about'
 
 export const metadata: Metadata = {
-  title: 'About Us - PixCrawler',
-  description: 'Learn about PixCrawler\'s mission to democratize AI development. Meet our team of engineers, researchers, and designers building the future of image datasets.',
-  keywords: ['about', 'team', 'mission', 'AI development', 'computer vision', 'machine learning'],
+  title: 'About PixCrawler - DEPI Data Engineering Team',
+  description: 'PixCrawler is an automated image dataset builder developed by a data engineering team sponsored by DEPI (Digital Egypt Pioneers Initiative), focused on solving real-world ML challenges.',
+  keywords: ['about', 'DEPI', 'data engineering', 'image dataset', 'machine learning', 'Egypt', 'real-world challenges', 'Digital Egypt Pioneers Initiative'],
+  openGraph: {
+    title: 'About PixCrawler - DEPI Data Engineering Team',
+    description: 'Automated image dataset builder developed by DEPI-sponsored data engineering team, solving real-world ML challenges.',
+    type: 'website',
+  },
+  alternates: {
+    canonical: 'https://pixcrawler.io/about',
+  },
 }
 
 export default function AboutPage() {
   return (
     <main className="min-h-screen">
-      <AboutHero/>
-      <AboutStory/>
-      <AboutValues/>
-      <AboutTeam/>
-      <AboutCTA/>
+      <AboutHero />
+      <AboutMission />
+      <AboutFeatures />
+      <AboutTechStack />
+      <AboutCTA />
     </main>
   )
 }

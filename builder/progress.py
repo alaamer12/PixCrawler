@@ -19,6 +19,7 @@ import os
 import time
 from typing import Any, Dict, Optional, List
 
+from builder._config import DatasetGenerationConfig
 from logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -223,7 +224,7 @@ class DatasetTracker:
         """
         total_operations = self.download_successes + self.download_failures
         success_rate = (
-                self.download_successes / total_operations * 100) if total_operations > 0 else 0
+            self.download_successes / total_operations * 100) if total_operations > 0 else 0
 
         return {
             'download_successes': self.download_successes,
