@@ -6,6 +6,7 @@ including test client setup, database fixtures, and mock settings.
 """
 
 import os
+from pathlib import Path
 from typing import AsyncGenerator, Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -121,3 +122,124 @@ def reset_settings_cache():
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
+
+
+# ============================================================================
+# Storage-specific fixtures
+# ============================================================================
+
+@pytest.fixture(scope="function")
+def temp_storage_dir() -> Generator[Path, None, None]:
+    """
+    Create a temporary directory for storage tests.
+    
+    Yields:
+        Path to temporary directory that is automatically cleaned up
+    """
+    import tempfile
+    from pathlib import Path
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        yield Path(tmpdir)
+
+
+@pytest.fixture(scope="function")
+def storage_settings(temp_storage_dir: Path):
+    """
+    Create storage settings for testing.
+    
+    Args:
+        temp_storage_dir: Temporary directory fixture
+        
+    Returns:
+        StorageSettings instance configured for testing
+    """
+    from backend.storage.config import StorageSettings
+    
+    return StorageSettings(
+        storage_provider="local",
+        local_storage_path=str(temp_storage_dir)
+    )
+
+
+@pytest.fixture(scope="function")
+def local_storage_provider(temp_storage_dir: Path):
+    """
+    Create LocalStorageProvider instance for testing.
+    
+    Args:
+        temp_storage_dir: Temporary directory fixture
+        
+    Returns:
+        LocalStorageProvider instance
+    """
+    from backend.storage.local import LocalStorageProvider
+    
+    return LocalStorageProvider(base_directory=temp_storage_dir)
+
+
+@pytest.fixture(scope="function")
+def sample_text_file(temp_storage_dir: Path) -> Path:
+    """
+    Create a sample text file for testing.
+    
+    Args:
+        temp_storage_dir: Temporary directory fixture
+        
+    Returns:
+        Path to sample text file
+    """
+    from pathlib import Path
+    
+    file_path = temp_storage_dir / "sample_text.txt"
+    file_path.write_text("Sample text content for testing storage operations")
+    return file_path
+
+
+@pytest.fixture(scope="function")
+def sample_json_file(temp_storage_dir: Path) -> Path:
+    """
+    Create a sample JSON file for testing.
+    
+    Args:
+        temp_storage_dir: Temporary directory fixture
+        
+    Returns:
+        Path to sample JSON file
+    """
+    import json
+    from pathlib import Path
+    
+    file_path = temp_storage_dir / "sample_data.json"
+    data = {
+        "name": "test_dataset",
+        "version": "1.0",
+        "images": ["img1.jpg", "img2.jpg"],
+        "metadata": {"created": "2024-01-01", "author": "test"}
+    }
+    file_path.write_text(json.dumps(data, indent=2))
+    return file_path
+
+
+@pytest.fixture(scope="function")
+def sample_image_file(temp_storage_dir: Path) -> Path:
+    """
+    Create a sample PNG image file for testing.
+    
+    Args:
+        temp_storage_dir: Temporary directory fixture
+        
+    Returns:
+        Path to sample PNG image file
+    """
+    from pathlib import Path
+    
+    # Minimal valid PNG file (1x1 transparent pixel)
+    png_data = (
+        b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01'
+        b'\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01'
+        b'\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+    )
+    file_path = temp_storage_dir / "sample_image.png"
+    file_path.write_bytes(png_data)
+    return file_path
