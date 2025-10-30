@@ -1,7 +1,5 @@
-import concurrent.futures
 import os
 import random
-import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -82,8 +80,6 @@ USER_AGENT: Final[
 class DDGSImageDownloader(ISearchEngineDownloader):
     """
     A class to download images using DuckDuckGo search.
-
-    Uses parallel processing for faster downloads.
     """
 
     def __init__(self, max_workers: int = 4):
@@ -91,14 +87,12 @@ class DDGSImageDownloader(ISearchEngineDownloader):
         Initializes the DuckDuckGo with default settings.
 
         Args:
-            max_workers (int): The maximum number of parallel download workers.
+            max_workers (int): Deprecated parameter, kept for compatibility.
         """
         self.user_agent = USER_AGENT
         self.timeout = 20
         self.min_file_size = 1000  # bytes
         self.delay = 0.2  # seconds between downloads
-        self.max_workers = max_workers
-        self.lock = threading.RLock()
 
     def _get_image(self, image_url: str, file_path: str) -> bool:
         """
@@ -197,10 +191,10 @@ class DDGSImageDownloader(ISearchEngineDownloader):
 
         return success
 
-    def _search_and_download_parallel(self, keyword: str, out_dir: str,
-                                      max_count: int) -> int:
+    def _search_and_download_sequential(self, keyword: str, out_dir: str,
+                                        max_count: int) -> int:
         """
-        Searches for images using a keyword and downloads them in parallel.
+        Searches for images using a keyword and downloads them sequentially.
 
         Args:
             keyword (str): The search term for images.
@@ -218,8 +212,8 @@ class DDGSImageDownloader(ISearchEngineDownloader):
             if not results:
                 return 0
 
-            # Download images in parallel
-            downloaded = self._execute_parallel_downloads(results, out_dir, max_count)
+            # Download images sequentially
+            downloaded = self._execute_sequential_downloads(results, out_dir, max_count)
 
         except Exception as e:
             logger.warning(f"Failed to search for keyword '{keyword}': {e}")
@@ -244,10 +238,10 @@ class DDGSImageDownloader(ISearchEngineDownloader):
             logger.info(f"Found {len(results)} potential images for '{keyword}'")
             return results
 
-    def _execute_parallel_downloads(self, results: List[dict], out_dir: str,
-                                    max_count: int) -> int:
+    def _execute_sequential_downloads(self, results: List[dict], out_dir: str,
+                                      max_count: int) -> int:
         """
-        Executes parallel downloads of images from a list of search results.
+        Executes sequential downloads of images from a list of search results.
 
         Args:
             results (List[dict]): A list of search result dictionaries.
@@ -259,53 +253,26 @@ class DDGSImageDownloader(ISearchEngineDownloader):
         """
         downloaded = 0
 
-        # Create a thread pool for parallel downloads
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.max_workers) as executor:
-            # Submit download tasks
-            futures = []
-            for i, result in enumerate(results):
-                if i >= max_count * 2:  # Limit the number of futures to avoid excessive memory usage
-                    break
+        # Download images sequentially
+        for i, result in enumerate(results):
+            if downloaded >= max_count:
+                break
 
-                futures.append(executor.submit(
-                    self._download_single_image,
-                    result=result,
-                    out_dir=out_dir,
-                    index=i + 1
-                ))
+            if i >= max_count * 2:  # Limit to avoid excessive processing
+                break
 
-            # Process completed downloads
-            for future in concurrent.futures.as_completed(futures):
-                if downloaded >= max_count:
-                    self._cancel_pending_futures(futures)
-                    break
-
-                try:
-                    if future.result():
-                        with self.lock:
-                            downloaded += 1
-                            logger.info(
-                                f"Downloaded image from DuckDuckGo [{downloaded}/{max_count}]")
-                except DownloadError as e:
-                    logger.warning(f"Error downloading image: {e}")
-                except Exception as e:
-                    logger.error(
-                        f"An unexpected error occurred during parallel download: {e}")
+            try:
+                if self._download_single_image(result, out_dir, i + 1):
+                    downloaded += 1
+                    logger.info(
+                        f"Downloaded image from DuckDuckGo [{downloaded}/{max_count}]")
+            except DownloadError as e:
+                logger.warning(f"Error downloading image: {e}")
+            except Exception as e:
+                logger.error(
+                    f"An unexpected error occurred during download: {e}")
 
         return downloaded
-
-    @staticmethod
-    def _cancel_pending_futures(futures: List[concurrent.futures.Future]) -> None:
-        """
-        Cancels any pending futures in a list to prevent unnecessary downloads.
-
-        Args:
-            futures (List[concurrent.futures.Future]): A list of Future objects to check and potentially cancel.
-        """
-        for future in futures:
-            if not future.done():
-                future.cancel()
 
     def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
         """
@@ -320,14 +287,14 @@ class DDGSImageDownloader(ISearchEngineDownloader):
             Tuple[bool, int]: A tuple where the first element is True if any images were downloaded,
                              and the second element is the total count of downloaded images.
         """
-        logger.warning("Using DuckDuckGo image search with parallel downloading")
+        logger.warning("Using DuckDuckGo image search")
 
         try:
             Path(out_dir).mkdir(parents=True, exist_ok=True)
 
             # Try with the original keyword first
-            downloaded_count: int = self._search_and_download_parallel(keyword, out_dir,
-                                                                       max_num)
+            downloaded_count: int = self._search_and_download_sequential(keyword, out_dir,
+                                                                         max_num)
 
             # Try additional search terms if we still don't have enough images
             if downloaded_count < max_num:
@@ -346,8 +313,8 @@ class DDGSImageDownloader(ISearchEngineDownloader):
                     logger.info(f"Trying alternate keyword: '{alt_keyword}'")
                     remaining = max_num - downloaded_count
 
-                    # The _search_and_download_parallel function will update our count
-                    additional_count = self._search_and_download_parallel(
+                    # The _search_and_download_sequential function will update our count
+                    additional_count = self._search_and_download_sequential(
                         alt_keyword,
                         out_dir,
                         remaining

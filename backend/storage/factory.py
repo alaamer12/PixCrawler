@@ -45,7 +45,7 @@ def create_archive_enabled_provider(settings: StorageSettings):
         provider = create_archive_enabled_provider(settings)
     """
     try:
-        from azure_blob_archive import AzureBlobArchiveProvider, AccessTier
+        from backend.storage.azure_blob_archive import AzureBlobArchiveProvider, AccessTier
 
         # Get tier enum from settings
         default_tier = settings.get_tier_enum()
@@ -106,10 +106,10 @@ def create_storage_provider(settings: StorageSettings):
     if provider_type == "local":
         # Create local storage provider
         try:
-            from local import LocalStorageProvider
+            from backend.storage.local import LocalStorageProvider
 
             storage_path = settings.local_storage_path
-            provider = LocalStorageProvider(base_path=storage_path)
+            provider = LocalStorageProvider(base_directory=storage_path)
 
             logger.info(f"Created local storage provider at: {storage_path or 'default location'}")
             return provider
@@ -134,7 +134,7 @@ def create_storage_provider(settings: StorageSettings):
                     )
 
             # Fallback to standard Azure provider
-            from azure_blob import AzureBlobStorageProvider
+            from backend.storage.azure_blob import AzureBlobStorageProvider
 
             provider = AzureBlobStorageProvider(
                 connection_string=settings.azure_connection_string,
