@@ -1,0 +1,125 @@
+{
+	"info": {
+		"_postman_id": "f6a7b8c9-d0e1-2345-f012-456789012345",
+		"name": "PixCrawler API - Storage",
+		"description": "Postman collection for the PixCrawler API - Storage endpoints.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Storage",
+			"item": [
+				{
+					"name": "Get Storage Usage",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/storage/usage/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"storage",
+								"usage",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Storage Files",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/storage/files/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"storage",
+								"files",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cleanup Storage",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"age_hours\": 24,\n  \"prefix\": \"string\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/v1/storage/cleanup/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"storage",
+								"cleanup",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Presigned URL",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/storage/presigned-url/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"storage",
+								"presigned-url",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.request.headers.add({ key: 'Authorization', value: 'Bearer ' + pm.environment.get('access_token') });"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+					"pm.test(\"Response time is less than 2s\", function () { pm.expect(pm.response.responseTime).to.be.below(2000); });"
+				]
+			}
+		}
+	]
+}

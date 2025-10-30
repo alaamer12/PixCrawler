@@ -1,0 +1,93 @@
+{
+	"info": {
+		"_postman_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+		"name": "PixCrawler API - Authentication",
+		"description": "Postman collection for the PixCrawler API - Authentication endpoints.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Get Current User Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"auth",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Token",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/auth/verify-token",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"auth",
+								"verify-token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Sync User Profile",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/auth/sync-profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"auth",
+								"sync-profile"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.request.headers.add({ key: 'Authorization', value: 'Bearer ' + pm.environment.get('access_token') });"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+					"pm.test(\"Response time is less than 2s\", function () { pm.expect(pm.response.responseTime).to.be.below(2000); });"
+				]
+			}
+		}
+	]
+}

@@ -1,0 +1,165 @@
+{
+	"info": {
+		"_postman_id": "12345678-9abc-def0-1234-56789abcdef0",
+		"name": "PixCrawler API - Validation",
+		"description": "Postman collection for the PixCrawler API - Validation endpoints.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Validation",
+			"item": [
+				{
+					"name": "Analyze Single Image",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"image_id\": 1,\n  \"validation_level\": \"standard\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/v1/validation/analyze/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"validation",
+								"analyze",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Batch Validation",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"dataset_id\": 1,\n  \"validation_level\": \"standard\",\n  \"image_ids\": [\n    1,\n    2,\n    3\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/v1/validation/batch/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"validation",
+								"batch",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Validation Results",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/validation/results/some-job-id/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"validation",
+								"results",
+								"some-job-id",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Dataset Validation Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/validation/stats/1/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"validation",
+								"stats",
+								"1",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Validation Level",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"dataset_id\": 1,\n  \"validation_level\": \"strict\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/v1/validation/level/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"validation",
+								"level",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.request.headers.add({ key: 'Authorization', value: 'Bearer ' + pm.environment.get('access_token') });"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+					"pm.test(\"Response time is less than 2s\", function () { pm.expect(pm.response.responseTime).to.be.below(2000); });"
+				]
+			}
+		}
+	]
+}
