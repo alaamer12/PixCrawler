@@ -10,6 +10,13 @@ from typing import Optional, Dict, Any
 from loguru import logger
 
 
+NOISY_PACKAGES = [
+    'urllib3.connectionpool',
+    'requests.packages.urllib3',
+    'PIL.PngImagePlugin',
+    'matplotlib.font_manager'
+]
+
 class Environment(Enum):
     """Environment types for logging configuration."""
     DEVELOPMENT = "development"
@@ -104,10 +111,11 @@ def setup_logging(environment: Optional[str] = None,
         if hasattr(config, key):
             setattr(config, key, value)
 
-    # Ensure log directory exists
-    config.log_dir.mkdir(parents=True, exist_ok=True)
+    # Ensure log directory exists (only for non-production)
+    if config.environment != Environment.PRODUCTION:
+        config.log_dir.mkdir(parents=True, exist_ok=True)
 
-    # Console handler
+    # Console handler (always present)
     console_format = _get_console_format(config)
     logger.add(
         sys.stderr,
@@ -117,9 +125,22 @@ def setup_logging(environment: Optional[str] = None,
         filter=_package_filter
     )
 
-    # File handler for general logs
-    if config.environment != Environment.TESTING:
+    # File handlers (only for development and testing)
+    # Production uses stdout for Azure Monitor
+    if config.environment == Environment.PRODUCTION:
+        # Production: JSON to stdout for Azure Monitor
+        logger.add(
+            sys.stdout,
+            level=config.file_level.value,
+            format="{message}",
+            serialize=True,  # JSON format
+            filter=_package_filter
+        )
+    elif config.environment != Environment.TESTING:
+        # Development: File handlers with rotation
         file_format = _get_file_format(config)
+        config.log_dir.mkdir(parents=True, exist_ok=True)
+        
         logger.add(
             config.log_dir / config.log_filename,
             level=config.file_level.value,
@@ -169,14 +190,7 @@ def _package_filter(record: Dict[str, Any]) -> bool:
     name = record.get("name", "")
 
     # Suppress noisy third-party packages
-    noisy_packages = [
-        'urllib3.connectionpool',
-        'requests.packages.urllib3',
-        'PIL.PngImagePlugin',
-        'matplotlib.font_manager'
-    ]
-
-    for package in noisy_packages:
+    for package in NOISY_PACKAGES:
         if name.startswith(package):
             return record["level"].no >= 30  # WARNING and above only
 
