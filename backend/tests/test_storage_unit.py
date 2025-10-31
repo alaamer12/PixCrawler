@@ -430,7 +430,7 @@ class TestStorageSettings:
         """Test default settings values."""
         settings = StorageSettings()
         assert settings.storage_provider == "local"
-        assert settings.local_storage_provider_path is None
+        assert settings.local_storage_path is None
         assert settings.azure_container_name == "pixcrawler-storage"
         assert settings.azure_max_retries == 3
         assert settings.azure_enable_archive_tier is True
@@ -534,10 +534,10 @@ class TestStorageSettings:
         """Test local storage path normalization."""
         settings = StorageSettings(
             storage_provider="local",
-            local_storage_provider_path="./relative/path"
+            local_storage_path="./relative/path"
         )
         # Path should be converted to absolute
-        assert Path(settings.local_storage_provider_path).is_absolute()
+        assert Path(settings.local_storage_path).is_absolute()
 
 
 # ============================================================================

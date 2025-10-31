@@ -12,7 +12,7 @@ settings = get_settings()
 
 # Create async engine with asyncpg driver
 # Convert postgresql:// to postgresql+asyncpg:// for async support
-database_url = str(settings.database_url)
+database_url = str(settings.database.url)
 if database_url.startswith("postgresql://"):
     database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 

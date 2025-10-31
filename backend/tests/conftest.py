@@ -179,7 +179,7 @@ def sample_text_file(temp_storage_dir: Path) -> Path:
     """
 
     file_path = temp_storage_dir / "sample_text.txt"
-    file_path.write_text("Sample text content for testing storage operations")
+    file_path.write_text("Sample content for testing")
     return file_path
 
 
