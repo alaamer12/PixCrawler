@@ -1,12 +1,16 @@
 'use client'
 
-import {useState} from 'react'
-import {useRouter, useSearchParams} from 'next/navigation'
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
-import {Button} from '@/components/ui/button'
-import {Badge} from '@/components/ui/badge'
-import {ArrowLeft, Image, Search, Settings, Sparkles, Zap} from 'lucide-react'
+import { useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { ArrowLeft, FolderPlus, Info, Sparkles } from 'lucide-react'
 import Link from 'next/link'
+import { ProjectCreationDialog } from '@/components/dashboard/project-creation-dialog'
 
 export default function NewProjectPage() {
   const router = useRouter()
@@ -14,36 +18,41 @@ export default function NewProjectPage() {
   const isDevMode = searchParams.get('dev_bypass') === 'true'
 
   const [projectName, setProjectName] = useState('')
-  const [keywords, setKeywords] = useState('')
-  const [selectedSources, setSelectedSources] = useState<string[]>(['google'])
-  const [imageCount, setImageCount] = useState(100)
+  const [description, setDescription] = useState('')
   const [isCreating, setIsCreating] = useState(false)
-
-  const sources = [
-    {id: 'google', name: 'Google Images', icon: Search},
-    {id: 'bing', name: 'Bing Images', icon: Search},
-    {id: 'unsplash', name: 'Unsplash', icon: Image},
-    {id: 'pixabay', name: 'Pixabay', icon: Image},
-  ]
-
-  const handleSourceToggle = (sourceId: string) => {
-    setSelectedSources(prev =>
-      prev.includes(sourceId)
-        ? prev.filter(id => id !== sourceId)
-        : [...prev, sourceId]
-    )
-  }
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false)
+  const [createdProjectId, setCreatedProjectId] = useState('')
 
   const handleCreateProject = async () => {
+    if (!projectName.trim()) return
+
     setIsCreating(true)
-    // TODO: Implement actual project creation API call
-    setTimeout(() => {
+    
+    try {
+      // TODO: Implement actual project creation API call
+      // const response = await fetch('/api/projects', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ name: projectName, description })
+      // })
+      // const data = await response.json()
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // Mock project ID - replace with actual ID from API
+      const mockProjectId = `proj_${Date.now()}`
+      setCreatedProjectId(mockProjectId)
+      setShowSuccessDialog(true)
+    } catch (error) {
+      console.error('Failed to create project:', error)
+      // TODO: Show error toast
+    } finally {
       setIsCreating(false)
-      router.push(isDevMode ? '/dashboard?dev_bypass=true' : '/dashboard')
-    }, 2000)
+    }
   }
 
-  const isFormValid = projectName.trim() && keywords.trim() && selectedSources.length > 0
+  const isFormValid = projectName.trim().length > 0
 
   return (
     <div className="space-y-6 mx-6 py-8">
@@ -67,12 +76,11 @@ export default function NewProjectPage() {
               </Badge>
             )}
           </div>
-          <h1
-            className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
             Create New Project
           </h1>
           <p className="text-base text-muted-foreground">
-            Build your AI-ready image dataset in minutes
+            Projects organize your datasets and image collections
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -84,85 +92,63 @@ export default function NewProjectPage() {
       {/* Main Form */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Column - Form */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Project Details Card */}
+        <div className="lg:col-span-2">
           <Card className="bg-card/80 backdrop-blur-md">
             <CardHeader>
-              <CardTitle>Project Details</CardTitle>
-              <CardDescription>Give your dataset a name and define what you're looking for</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <FolderPlus className="w-5 h-5" />
+                Project Information
+              </CardTitle>
+              <CardDescription>
+                Provide basic details about your project. You'll create datasets within this project later.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Project Name</label>
-                <input
+                <Label htmlFor="project-name">
+                  Project Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="project-name"
                   type="text"
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="e.g., Cat Breeds Dataset"
-                  className="w-full px-4 py-2 rounded-lg border bg-background/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Search Keywords</label>
-                <textarea
-                  value={keywords}
-                  onChange={(e) => setKeywords(e.target.value)}
-                  placeholder="Enter keywords separated by commas (e.g., persian cat, siamese cat, maine coon)"
-                  rows={4}
-                  className="w-full px-4 py-2 rounded-lg border bg-background/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                  placeholder="e.g., Wildlife Conservation Dataset"
+                  className="bg-background/50"
+                  maxLength={100}
                 />
                 <p className="text-xs text-muted-foreground">
-                  AI will automatically expand and optimize your keywords
+                  Choose a descriptive name for your project
                 </p>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Images per Keyword</label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min="10"
-                    max="500"
-                    step="10"
-                    value={imageCount}
-                    onChange={(e) => setImageCount(Number(e.target.value))}
-                    className="flex-1"
-                  />
-                  <span className="text-sm font-semibold min-w-[60px] text-right">{imageCount} images</span>
-                </div>
+                <Label htmlFor="project-description">Description (Optional)</Label>
+                <Textarea
+                  id="project-description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe the purpose of this project and what kind of datasets you plan to create..."
+                  rows={6}
+                  className="bg-background/50 resize-none"
+                  maxLength={500}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {description.length}/500 characters
+                </p>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Image Sources Card */}
-          <Card className="bg-card/80 backdrop-blur-md">
-            <CardHeader>
-              <CardTitle>Image Sources</CardTitle>
-              <CardDescription>Select where to crawl images from</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-3">
-                {sources.map((source) => {
-                  const Icon = source.icon
-                  const isSelected = selectedSources.includes(source.id)
-                  return (
-                    <Button
-                      key={source.id}
-                      onClick={() => handleSourceToggle(source.id)}
-                      className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
-                        isSelected
-                          ? 'bg-primary/10 border-primary shadow-md'
-                          : 'bg-background/50 hover:bg-accent'
-                      }`}
-                    >
-                      <Icon className={`w-5 h-5 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}/>
-                      <span className={`font-medium ${isSelected ? 'text-primary' : ''}`}>
-                        {source.name}
-                      </span>
-                    </Button>
-                  )
-                })}
+              <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4">
+                <div className="flex gap-3">
+                  <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-blue-500">What happens next?</p>
+                    <p className="text-xs text-muted-foreground">
+                      After creating your project, you'll be able to create multiple datasets within it. 
+                      Each dataset can have different keywords, sources, and configurations.
+                    </p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -173,66 +159,55 @@ export default function NewProjectPage() {
           {/* Project Summary */}
           <Card className="bg-card/80 backdrop-blur-md">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5"/>
-                Configuration
-              </CardTitle>
+              <CardTitle>Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b border-border/50">
+                <div className="flex justify-between items-start py-2 border-b border-border/50">
                   <span className="text-sm text-muted-foreground">Project Name</span>
-                  <span className="text-sm font-medium">{projectName || 'Not set'}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-border/50">
-                  <span className="text-sm text-muted-foreground">Keywords</span>
-                  <span className="text-sm font-medium">
-                    {keywords ? keywords.split(',').length : 0} keywords
+                  <span className="text-sm font-medium text-right max-w-[180px] truncate">
+                    {projectName || <span className="text-muted-foreground">Not set</span>}
                   </span>
                 </div>
-                <div className="flex justify-between items-center py-2 border-b border-border/50">
-                  <span className="text-sm text-muted-foreground">Sources</span>
-                  <span className="text-sm font-medium">{selectedSources.length} selected</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-sm text-muted-foreground">Est. Images</span>
-                  <span className="text-sm font-semibold text-primary">
-                    ~{imageCount * (keywords.split(',').filter(k => k.trim()).length || 1)}
+                <div className="flex justify-between items-start py-2">
+                  <span className="text-sm text-muted-foreground">Description</span>
+                  <span className="text-sm font-medium text-right max-w-[180px] truncate">
+                    {description ? (
+                      <span className="text-xs">{description.substring(0, 50)}{description.length > 50 ? '...' : ''}</span>
+                    ) : (
+                      <span className="text-muted-foreground">None</span>
+                    )}
                   </span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Features Card */}
+          {/* Info Card */}
           <Card className="bg-gradient-to-br from-primary/10 to-purple-500/10 border-primary/20 backdrop-blur-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
-                <Zap className="w-5 h-5"/>
-                What You Get
+                <Sparkles className="w-5 h-5" />
+                Project Benefits
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
                   <span className="text-primary mt-0.5">✓</span>
-                  <span>AI-powered keyword expansion</span>
+                  <span>Organize multiple related datasets</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary mt-0.5">✓</span>
-                  <span>Automatic deduplication</span>
+                  <span>Track progress across datasets</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary mt-0.5">✓</span>
-                  <span>Quality validation & filtering</span>
+                  <span>Centralized management</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary mt-0.5">✓</span>
-                  <span>ML-ready label formats</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-0.5">✓</span>
-                  <span>Organized folder structure</span>
+                  <span>Easy collaboration & sharing</span>
                 </li>
               </ul>
             </CardContent>
@@ -243,20 +218,13 @@ export default function NewProjectPage() {
             <Button
               onClick={handleCreateProject}
               disabled={!isFormValid || isCreating}
+              loading={isCreating}
+              loadingText="Creating..."
               className="w-full"
               size="lg"
+              leftIcon={<FolderPlus className="w-4 h-4" />}
             >
-              {isCreating ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"/>
-                  Creating Project...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2"/>
-                  Create Project
-                </>
-              )}
+              Create Project
             </Button>
             <Button
               variant="outline"
@@ -269,6 +237,14 @@ export default function NewProjectPage() {
           </div>
         </div>
       </div>
+
+      {/* Success Dialog */}
+      <ProjectCreationDialog
+        open={showSuccessDialog}
+        onOpenChange={setShowSuccessDialog}
+        projectId={createdProjectId}
+        projectName={projectName}
+      />
     </div>
   )
 }

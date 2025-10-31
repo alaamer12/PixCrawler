@@ -157,7 +157,31 @@ const PAGES: PageInfo[] = [
   {
     path: '/dashboard/projects/new',
     name: 'New Project',
-    description: 'Create new project form',
+    description: 'Create new project form (restructured)',
+    category: 'Dashboard',
+    requiresAuth: true,
+    icon: <Database className="size-4"/>
+  },
+  {
+    path: '/dashboard/projects/1',
+    name: 'Project View',
+    description: 'View project with datasets list and management',
+    category: 'Dashboard',
+    requiresAuth: true,
+    icon: <Database className="size-4"/>
+  },
+  {
+    path: '/dashboard/projects/1/datasets/new',
+    name: 'New Dataset (Under Project)',
+    description: 'Create dataset within a project with full configuration',
+    category: 'Dashboard',
+    requiresAuth: true,
+    icon: <Database className="size-4"/>
+  },
+  {
+    path: '/dashboard/projects/1/datasets/1',
+    name: 'Dataset View',
+    description: 'View dataset with job monitoring, logs, and real-time updates',
     category: 'Dashboard',
     requiresAuth: true,
     icon: <Database className="size-4"/>
@@ -172,7 +196,7 @@ const PAGES: PageInfo[] = [
   },
   {
     path: '/dashboard/datasets/cats_dogs_001',
-    name: 'Dataset Dashboard',
+    name: 'Dataset Dashboard (Old)',
     description: 'Complete dataset dashboard with overview, gallery, files',
     category: 'Dashboard',
     requiresAuth: true,
@@ -180,7 +204,7 @@ const PAGES: PageInfo[] = [
   },
   {
     path: '/dashboard/datasets/new',
-    name: 'New Dataset',
+    name: 'New Dataset (Old)',
     description: 'Create new dataset form',
     category: 'Dashboard',
     requiresAuth: true,
