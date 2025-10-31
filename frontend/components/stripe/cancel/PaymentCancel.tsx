@@ -39,16 +39,16 @@ export const PaymentCancel = () => {
               <Button 
                 onClick={() => router.push('/pricing')}
                 className="flex-1"
+                leftIcon={<RefreshCw className="w-4 h-4" />}
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
                 Try Again
               </Button>
               <Button 
                 variant="outline"
                 onClick={() => router.back()}
                 className="flex-1"
+                leftIcon={<ArrowLeft className="w-4 h-4" />}
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
                 Go Back
               </Button>
             </div>

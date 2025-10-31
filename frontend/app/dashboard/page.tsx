@@ -9,14 +9,14 @@ export default function DashboardPage() {
   const {user} = useAuth()
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mx-6 py-8">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Welcome back{user?.profile?.fullName ? `, ${user.profile.fullName}` : ''}!
+        <div className="space-y-1">
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            {user?.profile?.fullName ? `Welcome back, ${user.profile.fullName}!` : 'Welcome to Your Dashboard'}
           </h1>
-          <p className="text-muted-foreground">
-            Manage your image datasets and crawling projects
+          <p className="text-base text-muted-foreground">
+            Build and manage your AI-ready image datasets
           </p>
         </div>
         <Button asChild>
@@ -28,7 +28,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+        <div className="rounded-lg border bg-card/80 backdrop-blur-md text-card-foreground shadow-sm p-4">
           <div className="flex flex-row items-center justify-between space-y-0 pb-2">
             <h3 className="tracking-tight text-sm font-medium">Total Projects</h3>
             <FolderOpen className="size-4 text-muted-foreground"/>
@@ -39,7 +39,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+        <div className="rounded-lg border bg-card/80 backdrop-blur-md text-card-foreground shadow-sm p-4">
           <div className="flex flex-row items-center justify-between space-y-0 pb-2">
             <h3 className="tracking-tight text-sm font-medium">Active Jobs</h3>
             <Activity className="size-4 text-muted-foreground"/>
@@ -50,7 +50,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+        <div className="rounded-lg border bg-card/80 backdrop-blur-md text-card-foreground shadow-sm p-4">
           <div className="flex flex-row items-center justify-between space-y-0 pb-2">
             <h3 className="tracking-tight text-sm font-medium">Images Collected</h3>
             <Download className="size-4 text-muted-foreground"/>
@@ -61,7 +61,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+        <div className="rounded-lg border bg-card/80 backdrop-blur-md text-card-foreground shadow-sm p-4">
           <div className="flex flex-row items-center justify-between space-y-0 pb-2">
             <h3 className="tracking-tight text-sm font-medium">Storage Used</h3>
           </div>
@@ -73,7 +73,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+        <div className="rounded-lg border bg-card/80 backdrop-blur-md text-card-foreground shadow-sm p-6">
           <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
           <div className="text-center py-8 text-muted-foreground">
             <Activity className="size-12 mx-auto mb-4 opacity-50"/>
@@ -82,7 +82,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+        <div className="rounded-lg border bg-card/80 backdrop-blur-md text-card-foreground shadow-sm p-6">
           <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
           <div className="space-y-3">
             <Link

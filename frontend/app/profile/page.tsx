@@ -9,8 +9,6 @@ import {
   Subscription,
   Usage,
   ApiKeys,
-  CreditManagement,
-  Referrals,
 } from '@/components/profile/sections'
 
 export default function ProfilePage() {

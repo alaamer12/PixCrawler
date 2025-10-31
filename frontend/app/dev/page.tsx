@@ -182,20 +182,12 @@ const PAGES: PageInfo[] = [
     icon: <User className="size-4"/>
   },
   {
-    path: '/dashboard/billing',
-    name: 'Billing',
-    description: 'Subscription and billing management',
+    path: '/notifications',
+    name: 'Notifications',
+    description: 'Notification center with filters and actions',
     category: 'Dashboard',
     requiresAuth: true,
     icon: <Database className="size-4"/>
-  },
-  {
-    path: '/dashboard/settings',
-    name: 'Settings',
-    description: 'Application settings and preferences',
-    category: 'Dashboard',
-    requiresAuth: true,
-    icon: <Settings className="size-4"/>
   },
 
   // Demo Pages
