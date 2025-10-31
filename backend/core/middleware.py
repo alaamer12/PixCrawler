@@ -10,7 +10,7 @@ from fastapi import FastAPI, Request, Response
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
-from logging_config import get_logger
+from utility.logging_config import get_logger
 from backend.core.config import get_settings
 
 logger = get_logger(__name__)

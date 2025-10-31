@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.dependencies import get_current_user, get_session
 from backend.core.exceptions import NotFoundError
 from backend.services.dataset import DatasetService
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -29,45 +29,45 @@ router = APIRouter()
 async def generate_json_stream(data: list[Dict[str, Any]]) -> AsyncIterator[bytes]:
     """
     Generate JSON data as a stream.
-    
+
     Args:
         data: List of data items to stream
-        
+
     Yields:
         JSON bytes in chunks
     """
     yield b'[\n'
-    
+
     for i, item in enumerate(data):
         json_str = json.dumps(item, indent=2)
         if i > 0:
             yield b',\n'
         yield json_str.encode('utf-8')
-    
+
     yield b'\n]'
 
 
 async def generate_csv_stream(data: list[Dict[str, Any]]) -> AsyncIterator[bytes]:
     """
     Generate CSV data as a stream.
-    
+
     Args:
         data: List of data items to stream
-        
+
     Yields:
         CSV bytes in chunks
     """
     import csv
-    
+
     if not data:
         return
-    
+
     # Write header
     output = io.StringIO()
     writer = csv.DictWriter(output, fieldnames=data[0].keys())
     writer.writeheader()
     yield output.getvalue().encode('utf-8')
-    
+
     # Write rows
     for item in data:
         output = io.StringIO()
@@ -83,32 +83,32 @@ async def generate_zip_archive(
 ) -> bytes:
     """
     Generate a ZIP archive containing images and metadata.
-    
+
     Args:
         dataset_id: Dataset ID
         images: List of image metadata
         metadata: Dataset metadata
-        
+
     Returns:
         ZIP file bytes
     """
     def _create_zip() -> bytes:
         """Create ZIP file in thread pool (sync operation)."""
         buffer = io.BytesIO()
-        
+
         with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
             # Add metadata
             zf.writestr(
                 'metadata.json',
                 json.dumps(metadata, indent=2)
             )
-            
+
             # Add image list
             zf.writestr(
                 'images.json',
                 json.dumps(images, indent=2)
             )
-            
+
             # Add README
             readme = f"""# Dataset {dataset_id}
 
@@ -122,9 +122,9 @@ async def generate_zip_archive(
 - Created: {metadata.get('created_at', 'N/A')}
 """
             zf.writestr('README.md', readme)
-        
+
         return buffer.getvalue()
-    
+
     # Run sync ZIP creation in thread pool
     return await run_in_threadpool(_create_zip)
 
@@ -138,28 +138,28 @@ async def export_dataset_json(
 ) -> StreamingResponse:
     """
     Export dataset as streaming JSON.
-    
+
     Args:
         dataset_id: Dataset ID to export
         current_user: Current authenticated user
         dataset_service: Dataset service
         session: Database session
-        
+
     Returns:
         Streaming JSON response
-        
+
     Raises:
         HTTPException: If dataset not found or access denied
     """
     try:
         # Verify access
         dataset = await dataset_service.get_dataset(dataset_id, current_user["user_id"])
-        
+
         # Get all images (this would be paginated in production)
         images = await dataset_service.get_dataset_images(dataset_id)
-        
+
         logger.info(f"Exporting dataset {dataset_id} as JSON ({len(images)} images)")
-        
+
         return StreamingResponse(
             generate_json_stream(images),
             media_type="application/json",
@@ -167,7 +167,7 @@ async def export_dataset_json(
                 "Content-Disposition": f"attachment; filename=dataset_{dataset_id}.json"
             }
         )
-    
+
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -184,28 +184,28 @@ async def export_dataset_csv(
 ) -> StreamingResponse:
     """
     Export dataset as streaming CSV.
-    
+
     Args:
         dataset_id: Dataset ID to export
         current_user: Current authenticated user
         dataset_service: Dataset service
         session: Database session
-        
+
     Returns:
         Streaming CSV response
-        
+
     Raises:
         HTTPException: If dataset not found or access denied
     """
     try:
         # Verify access
         dataset = await dataset_service.get_dataset(dataset_id, current_user["user_id"])
-        
+
         # Get all images
         images = await dataset_service.get_dataset_images(dataset_id)
-        
+
         logger.info(f"Exporting dataset {dataset_id} as CSV ({len(images)} images)")
-        
+
         return StreamingResponse(
             generate_csv_stream(images),
             media_type="text/csv",
@@ -213,7 +213,7 @@ async def export_dataset_csv(
                 "Content-Disposition": f"attachment; filename=dataset_{dataset_id}.csv"
             }
         )
-    
+
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -230,23 +230,23 @@ async def export_dataset_zip(
 ) -> StreamingResponse:
     """
     Export dataset as ZIP archive.
-    
+
     Args:
         dataset_id: Dataset ID to export
         current_user: Current authenticated user
         dataset_service: Dataset service
         session: Database session
-        
+
     Returns:
         ZIP file response
-        
+
     Raises:
         HTTPException: If dataset not found or access denied
     """
     try:
         # Verify access
         dataset = await dataset_service.get_dataset(dataset_id, current_user["user_id"])
-        
+
         # Get all images and metadata
         images = await dataset_service.get_dataset_images(dataset_id)
         metadata = {
@@ -256,12 +256,12 @@ async def export_dataset_zip(
             "created_at": dataset.get("created_at"),
             "total_images": len(images),
         }
-        
+
         logger.info(f"Exporting dataset {dataset_id} as ZIP ({len(images)} images)")
-        
+
         # Generate ZIP in thread pool
         zip_bytes = await generate_zip_archive(dataset_id, images, metadata)
-        
+
         return StreamingResponse(
             iter([zip_bytes]),
             media_type="application/zip",
@@ -270,7 +270,7 @@ async def export_dataset_zip(
                 "Content-Length": str(len(zip_bytes))
             }
         )
-    
+
     except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -287,39 +287,39 @@ async def download_image(
 ) -> FileResponse:
     """
     Download a single image file.
-    
+
     Uses FileResponse for efficient file serving with proper
     content-type detection and range request support.
-    
+
     Args:
         dataset_id: Dataset ID
         image_id: Image ID to download
         current_user: Current authenticated user
         dataset_service: Dataset service
-        
+
     Returns:
         File response with image
-        
+
     Raises:
         HTTPException: If image not found or access denied
     """
     try:
         # Verify access to dataset
         await dataset_service.get_dataset(dataset_id, current_user["user_id"])
-        
+
         # Get image file path
         image = await dataset_service.get_image(image_id)
-        
+
         if not image or image.get("dataset_id") != dataset_id:
             raise NotFoundError(f"Image {image_id} not found in dataset {dataset_id}")
-        
+
         file_path = Path(image["file_path"])
-        
+
         if not file_path.exists():
             raise NotFoundError(f"Image file not found: {file_path}")
-        
+
         logger.info(f"Serving image {image_id} from dataset {dataset_id}")
-        
+
         # FileResponse automatically handles:
         # - Content-Type detection
         # - Range requests (partial content)
@@ -330,7 +330,7 @@ async def download_image(
             filename=file_path.name,
             media_type=image.get("mime_type", "image/jpeg")
         )
-    
+
     except NotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

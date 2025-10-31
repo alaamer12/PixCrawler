@@ -2,7 +2,7 @@
 Example usage of the simplified logging system.
 """
 
-from logging_config import setup_logging, get_logger
+from utility.logging_config import setup_logging, get_logger
 
 
 def main():

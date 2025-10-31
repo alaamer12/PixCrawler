@@ -4,7 +4,6 @@ import tempfile
 import zipfile
 import os
 import zstandard as zstd
-from concurrent.futures import ThreadPoolExecutor
 
 
 class Archiver:

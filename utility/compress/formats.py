@@ -1,12 +1,7 @@
 import subprocess
 from pathlib import Path
-from typing import Optional
-from PIL import Image
 
-try:
-    import pillow_avif  # noqa: F401
-except Exception:
-    pillow_avif = None  # type: ignore
+from PIL import Image
 
 
 def _run_cmd(cmd: list[str]) -> bool:

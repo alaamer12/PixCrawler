@@ -863,7 +863,7 @@ def update_logfile(log_file: str) -> None:
     #             logger.removeHandler(handler)
 
     # Use centralized logging system - no need to manually configure handlers
-    from logging_config import get_logger
+    from utility.logging_config import get_logger
     logger = get_logger('builder.generator')
 
 

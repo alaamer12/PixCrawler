@@ -30,7 +30,7 @@ from typing import Dict, Optional, List, Tuple, TypedDict, Union
 from PIL import Image
 from tqdm.auto import tqdm
 
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 logger = get_logger(__name__)
 

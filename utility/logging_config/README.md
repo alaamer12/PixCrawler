@@ -23,7 +23,7 @@ pip install loguru>=0.7.0
 ### Basic Usage
 
 ```python
-from logging_config import setup_logging, get_logger
+from utility.logging_config import setup_logging, get_logger
 
 # Setup logging for your environment
 setup_logging(environment='development')
@@ -40,7 +40,7 @@ logger.error("An error occurred")
 ### Environment-Specific Setup
 
 ```python
-from logging_config import setup_logging
+from utility.logging_config import setup_logging
 
 # Development environment (colored console, debug level)
 setup_logging(environment='development')
@@ -83,7 +83,7 @@ export PIXCRAWLER_LOG_COLORS=false
 ### Builder Package
 
 ```python
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 logger = get_logger()
 logger.info("Starting download process")
@@ -93,7 +93,7 @@ logger.debug("Processing image: {}", image_url)
 ### Backend Package
 
 ```python
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 logger = get_logger()
 logger.bind(endpoint='/api/generate', method='POST', user_id='user123').info("API request received")
@@ -128,7 +128,7 @@ logger.bind(endpoint='/api/generate', method='POST', user_id='user123').info("AP
 ### Custom Configuration
 
 ```python
-from logging_config import LoguruConfig, setup_logging
+from utility.logging_config import LoguruConfig, setup_logging
 
 config = LoguruConfig(environment='production')
 config.log_dir = Path("custom_logs")
@@ -141,7 +141,7 @@ setup_logging(config=config)
 ### Context Binding
 
 ```python
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 logger = get_logger()
 
@@ -238,8 +238,9 @@ Enum for log levels:
 ## Examples
 
 ### Basic Logging
+
 ```python
-from logging_config import setup_logging, get_logger
+from utility.logging_config import setup_logging, get_logger
 
 setup_logging('development')
 logger = get_logger()

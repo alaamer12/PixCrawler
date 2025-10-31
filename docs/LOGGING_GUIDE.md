@@ -97,7 +97,7 @@ export PIXCRAWLER_LOG_COLORS=false
 ### Code Setup
 
 ```python
-from logging_config import setup_logging, get_logger
+from utility.logging_config import setup_logging, get_logger
 
 # Setup once at application start
 setup_logging(environment='production')
@@ -256,7 +256,7 @@ logs
 **Always bind task context** to track logs across distributed tasks:
 
 ```python
-from logging_config import get_logger
+from utility.logging_config import get_logger
 from celery import Task
 
 @celery_app.task(bind=True)
@@ -678,8 +678,9 @@ logger = get_logger()
 3. Environment set to `development`
 
 **Reset**:
+
 ```python
-from logging_config import setup_logging
+from utility.logging_config import setup_logging
 setup_logging(environment='development')
 ```
 
@@ -690,7 +691,7 @@ setup_logging(environment='development')
 ### Setup
 
 ```python
-from logging_config import setup_logging, get_logger
+from utility.logging_config import setup_logging, get_logger
 
 # Application start
 setup_logging(environment='production')

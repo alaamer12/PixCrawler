@@ -22,7 +22,7 @@ Example:
     ```
 """
 
-from logging_config.config import setup_logging, get_logger, LogLevel, Environment
+from utility.logging_config import setup_logging, get_logger, LogLevel, Environment
 
 __version__ = "0.1.0"
 __author__ = "PixCrawler Team"
