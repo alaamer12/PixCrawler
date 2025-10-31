@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -32,9 +32,15 @@ import {
   Settings,
   Zap,
   CheckCircle2,
-  Info
+  Info,
+  TrendingUp,
+  Clock,
+  HardDrive,
+  AlertCircle,
+  Settings2
 } from 'lucide-react'
 import Link from 'next/link'
+import { validateDatasetForm, type DatasetFormData, type ValidationResult } from '@/lib/validation'
 
 interface ImageSource {
   id: string
@@ -42,6 +48,45 @@ interface ImageSource {
   icon: typeof Search
   enabled: boolean
 }
+
+// Memoized source button component for performance
+const SourceButton = memo(({ 
+  source, 
+  onToggle 
+}: { 
+  source: ImageSource
+  onToggle: (id: string) => void 
+}) => {
+  const Icon = source.icon
+  return (
+    <button
+      onClick={() => onToggle(source.id)}
+      className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
+        source.enabled
+          ? 'bg-primary/10 border-primary shadow-md'
+          : 'bg-background/50 hover:bg-accent border-border'
+      }`}
+    >
+      <Icon
+        className={`w-5 h-5 ${
+          source.enabled ? 'text-primary' : 'text-muted-foreground'
+        }`}
+      />
+      <span
+        className={`font-medium ${
+          source.enabled ? 'text-primary' : ''
+        }`}
+      >
+        {source.name}
+      </span>
+      {source.enabled && (
+        <CheckCircle2 className="w-4 h-4 text-primary ml-auto" />
+      )}
+    </button>
+  )
+})
+
+SourceButton.displayName = 'SourceButton'
 
 export default function NewDatasetPage() {
   const router = useRouter()
@@ -53,6 +98,8 @@ export default function NewDatasetPage() {
   const [keywords, setKeywords] = useState('')
   const [imageCount, setImageCount] = useState(100)
   const [isCreating, setIsCreating] = useState(false)
+  const [validation, setValidation] = useState<ValidationResult>({ valid: true, errors: {} })
+  const [touched, setTouched] = useState({ name: false, keywords: false, sources: false })
 
   // Image sources
   const [sources, setSources] = useState<ImageSource[]>([
@@ -78,7 +125,7 @@ export default function NewDatasetPage() {
     }, 500)
   }, [projectId])
 
-  const toggleSource = (sourceId: string) => {
+  const toggleSource = useCallback((sourceId: string) => {
     setSources(prev =>
       prev.map(source =>
         source.id === sourceId
@@ -86,7 +133,45 @@ export default function NewDatasetPage() {
           : source
       )
     )
-  }
+    if (touched.sources) {
+      validateForm()
+    }
+  }, [touched.sources])
+
+  const validateForm = useCallback(() => {
+    const result = validateDatasetForm({
+      name: datasetName,
+      keywords,
+      imageCount,
+      sources: sources.filter(s => s.enabled).map(s => s.id),
+      aiExpansion,
+      deduplicationLevel,
+      minImageSize,
+      imageFormat,
+      safeSearch
+    })
+    setValidation(result)
+    return result
+  }, [datasetName, keywords, imageCount, sources, aiExpansion, deduplicationLevel, minImageSize, imageFormat, safeSearch])
+
+  const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setDatasetName(e.target.value)
+    if (touched.name) {
+      validateForm()
+    }
+  }, [touched.name, validateForm])
+
+  const handleKeywordsChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setKeywords(e.target.value)
+    if (touched.keywords) {
+      validateForm()
+    }
+  }, [touched.keywords, validateForm])
+
+  const handleBlur = useCallback((field: 'name' | 'keywords' | 'sources') => {
+    setTouched(prev => ({ ...prev, [field]: true }))
+    validateForm()
+  }, [validateForm])
 
   const handleCreateDataset = async () => {
     if (!datasetName.trim() || !keywords.trim()) return
@@ -126,14 +211,22 @@ export default function NewDatasetPage() {
     }
   }
 
-  const selectedSourcesCount = sources.filter(s => s.enabled).length
-  const keywordCount = keywords.split(',').filter(k => k.trim()).length
-  const estimatedImages = imageCount * keywordCount * selectedSourcesCount
+  // Memoized calculations for performance
+  const selectedSourcesCount = useMemo(() => sources.filter(s => s.enabled).length, [sources])
+  const keywordCount = useMemo(() => keywords.split(',').filter(k => k.trim()).length, [keywords])
+  const estimatedImages = useMemo(() => imageCount * keywordCount * selectedSourcesCount, [imageCount, keywordCount, selectedSourcesCount])
 
-  const isFormValid =
+  const isFormValid = useMemo(() =>
     datasetName.trim().length > 0 &&
     keywords.trim().length > 0 &&
-    selectedSourcesCount > 0
+    selectedSourcesCount > 0,
+    [datasetName, keywords, selectedSourcesCount]
+  )
+
+  const estimatedTime = useMemo(() => ({
+    min: Math.ceil(estimatedImages / 100),
+    max: Math.ceil(estimatedImages / 50)
+  }), [estimatedImages])
 
   return (
     <div className="space-y-6 mx-6 py-8">
@@ -161,19 +254,34 @@ export default function NewDatasetPage() {
         </div>
       </div>
 
+      {/* Validation Warnings */}
+      {validation.warnings?.general && (
+        <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-4">
+          <div className="flex gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-yellow-600">Configuration Warning</p>
+              <p className="text-xs text-muted-foreground">
+                {validation.warnings.general}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Form */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Column - Form */}
         <div className="lg:col-span-2 space-y-6">
           {/* Dataset Details */}
-          <Card className="bg-card/80 backdrop-blur-md">
+          <Card className="bg-card/80 backdrop-blur-md border-border/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="w-5 h-5" />
                 Dataset Details
               </CardTitle>
               <CardDescription>
-                Define your dataset name and search keywords
+                Define your dataset name and search keywords for image collection
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -185,11 +293,24 @@ export default function NewDatasetPage() {
                   id="dataset-name"
                   type="text"
                   value={datasetName}
-                  onChange={(e) => setDatasetName(e.target.value)}
+                  onChange={handleNameChange}
+                  onBlur={() => handleBlur('name')}
                   placeholder="e.g., African Wildlife - Lions and Elephants"
-                  className="bg-background/50"
+                  className={`bg-background/50 ${validation.errors.name && touched.name ? 'border-destructive' : ''}`}
                   maxLength={100}
                 />
+                {validation.errors.name && touched.name && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {validation.errors.name}
+                  </p>
+                )}
+                {validation.warnings?.name && !validation.errors.name && touched.name && (
+                  <p className="text-xs text-yellow-600 flex items-center gap-1">
+                    <Info className="w-3 h-3" />
+                    {validation.warnings.name}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -199,15 +320,30 @@ export default function NewDatasetPage() {
                 <Textarea
                   id="keywords"
                   value={keywords}
-                  onChange={(e) => setKeywords(e.target.value)}
+                  onChange={handleKeywordsChange}
+                  onBlur={() => handleBlur('keywords')}
                   placeholder="Enter keywords separated by commas (e.g., african lion, elephant herd, safari wildlife)"
                   rows={4}
-                  className="bg-background/50 resize-none"
+                  className={`bg-background/50 resize-none ${validation.errors.keywords && touched.keywords ? 'border-destructive' : ''}`}
                 />
-                <p className="text-xs text-muted-foreground">
-                  {aiExpansion && '✨ AI will automatically expand and optimize your keywords'}
-                  {!aiExpansion && `${keywordCount} keyword${keywordCount !== 1 ? 's' : ''} entered`}
-                </p>
+                {validation.errors.keywords && touched.keywords && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {validation.errors.keywords}
+                  </p>
+                )}
+                {validation.warnings?.keywords && !validation.errors.keywords && touched.keywords && (
+                  <p className="text-xs text-yellow-600 flex items-center gap-1">
+                    <Info className="w-3 h-3" />
+                    {validation.warnings.keywords}
+                  </p>
+                )}
+                {!validation.errors.keywords && !validation.warnings?.keywords && (
+                  <p className="text-xs text-muted-foreground">
+                    {aiExpansion && '✨ AI will automatically expand and optimize your keywords'}
+                    {!aiExpansion && `${keywordCount} keyword${keywordCount !== 1 ? 's' : ''} entered`}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -234,7 +370,7 @@ export default function NewDatasetPage() {
           </Card>
 
           {/* Image Sources */}
-          <Card className="bg-card/80 backdrop-blur-md">
+          <Card className="bg-card/80 backdrop-blur-md border-border/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Search className="w-5 h-5" />
@@ -244,51 +380,40 @@ export default function NewDatasetPage() {
                 Select where to crawl images from
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {sources.map((source) => {
-                  const Icon = source.icon
-                  return (
-                    <button
-                      key={source.id}
-                      onClick={() => toggleSource(source.id)}
-                      className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
-                        source.enabled
-                          ? 'bg-primary/10 border-primary shadow-md'
-                          : 'bg-background/50 hover:bg-accent border-border'
-                      }`}
-                    >
-                      <Icon
-                        className={`w-5 h-5 ${
-                          source.enabled ? 'text-primary' : 'text-muted-foreground'
-                        }`}
-                      />
-                      <span
-                        className={`font-medium ${
-                          source.enabled ? 'text-primary' : ''
-                        }`}
-                      >
-                        {source.name}
-                      </span>
-                      {source.enabled && (
-                        <CheckCircle2 className="w-4 h-4 text-primary ml-auto" />
-                      )}
-                    </button>
-                  )
-                })}
+                {sources.map((source) => (
+                  <SourceButton 
+                    key={source.id} 
+                    source={source} 
+                    onToggle={toggleSource} 
+                  />
+                ))}
               </div>
+              {validation.errors.sources && touched.sources && (
+                <p className="text-xs text-destructive flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {validation.errors.sources}
+                </p>
+              )}
+              {validation.warnings?.sources && !validation.errors.sources && touched.sources && (
+                <p className="text-xs text-yellow-600 flex items-center gap-1">
+                  <Info className="w-3 h-3" />
+                  {validation.warnings.sources}
+                </p>
+              )}
             </CardContent>
           </Card>
 
           {/* Advanced Configuration */}
-          <Card className="bg-card/80 backdrop-blur-md">
+          <Card className="bg-card/80 backdrop-blur-md border-border/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5" />
+                <Settings2 className="w-5 h-5" />
                 Advanced Configuration
               </CardTitle>
               <CardDescription>
-                Fine-tune your dataset creation settings
+                Fine-tune your dataset creation settings for optimal results
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -380,9 +505,9 @@ export default function NewDatasetPage() {
         {/* Right Column - Summary & Actions */}
         <div className="space-y-6">
           {/* Configuration Summary */}
-          <Card className="bg-card/80 backdrop-blur-md">
+          <Card className="bg-card/80 backdrop-blur-md border-border/50">
             <CardHeader>
-              <CardTitle>Configuration</CardTitle>
+              <CardTitle className="text-lg">Configuration</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-border/50">
@@ -402,6 +527,12 @@ export default function NewDatasetPage() {
               <div className="flex justify-between items-center py-2 border-b border-border/50">
                 <span className="text-sm text-muted-foreground">Per Keyword</span>
                 <span className="text-sm font-medium">{imageCount} images</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-border/50">
+                <span className="text-sm text-muted-foreground">Validation</span>
+                <Badge variant={validation.valid ? "default" : "destructive"} className="text-xs">
+                  {validation.valid ? "Valid" : "Errors"}
+                </Badge>
               </div>
               <div className="flex justify-between items-center py-2">
                 <span className="text-sm text-muted-foreground">Est. Total</span>
@@ -446,15 +577,41 @@ export default function NewDatasetPage() {
             </CardContent>
           </Card>
 
-          {/* Info */}
-          <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4">
-            <div className="flex gap-3">
-              <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-blue-500">Processing Time</p>
-                <p className="text-xs text-muted-foreground">
-                  Estimated: {Math.ceil(estimatedImages / 100)} - {Math.ceil(estimatedImages / 50)} minutes
-                </p>
+          {/* Enhanced Info Cards */}
+          <div className="space-y-3">
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4">
+              <div className="flex gap-3">
+                <Clock className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-blue-500">Processing Time</p>
+                  <p className="text-xs text-muted-foreground">
+                    Estimated: {estimatedTime.min} - {estimatedTime.max} minutes
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-4">
+              <div className="flex gap-3">
+                <HardDrive className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-green-500">Storage Impact</p>
+                  <p className="text-xs text-muted-foreground">
+                    ~{(estimatedImages * 0.5).toFixed(1)} MB estimated
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-4">
+              <div className="flex gap-3">
+                <TrendingUp className="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-purple-500">Quality Score</p>
+                  <p className="text-xs text-muted-foreground">
+                    {deduplicationLevel === 'high' ? 'Excellent' : deduplicationLevel === 'medium' ? 'Good' : 'Standard'} filtering applied
+                  </p>
+                </div>
               </div>
             </div>
           </div>

@@ -1,7 +1,6 @@
 'use client'
 
-import { useAuth } from '@/lib/auth/hooks'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Activity, 
@@ -10,22 +9,21 @@ import {
   Plus, 
   HardDrive,
   Zap,
-  TrendingUp,
   Image,
   Clock,
   BarChart3
 } from 'lucide-react'
+
+import { useAuth } from '@/lib/auth/hooks'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import Link from 'next/link'
-
-// Import custom dashboard components
-import { StatsCard, QuickStatsCard } from '@/components/dashboard/stats-card'
+import { StatsCard } from '@/components/dashboard/stats-card'
 import { DataTable, Column, StatusBadge } from '@/components/dashboard/data-table'
 import { JobProgress } from '@/components/dashboard/progress-bar'
 import { ActivityTimeline, ActivityItem } from '@/components/dashboard/activity-timeline'
+import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
 
 // Type definitions
 interface Project {
@@ -62,7 +60,7 @@ interface Job {
   completedAt?: Date
 }
 
-export default function DashboardPage() {
+function DashboardPage() {
   const { user } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -206,6 +204,10 @@ export default function DashboardPage() {
     }, 1000)
   }, [])
 
+  if (loading) {
+    return <DashboardSkeleton />
+  }
+
   return (
     <div className="space-y-6 mx-6 py-8">
       {/* Header */}
@@ -295,6 +297,7 @@ export default function DashboardPage() {
                   variant="ghost" 
                   size="sm"
                   onClick={() => setActiveTab('projects')}
+                  aria-label="View all projects"
                 >
                   View All
                 </Button>
@@ -340,6 +343,7 @@ export default function DashboardPage() {
                   variant="ghost" 
                   size="sm"
                   onClick={() => setActiveTab('jobs')}
+                  aria-label="View all jobs"
                 >
                   View All
                 </Button>
@@ -392,6 +396,7 @@ export default function DashboardPage() {
                   variant="outline"
                   leftIcon={<Plus className="w-4 h-4" />}
                   onClick={() => router.push('/dashboard/projects/new')}
+                  aria-label="Create new project"
                 >
                   Create New Project
                 </Button>
@@ -400,6 +405,7 @@ export default function DashboardPage() {
                   variant="outline"
                   leftIcon={<Database className="w-4 h-4" />}
                   onClick={() => router.push('/dashboard/projects')}
+                  aria-label="Browse all projects"
                 >
                   Browse Projects
                 </Button>
@@ -408,6 +414,7 @@ export default function DashboardPage() {
                   variant="outline"
                   leftIcon={<BarChart3 className="w-4 h-4" />}
                   onClick={() => router.push('/dashboard/analytics')}
+                  aria-label="View analytics dashboard"
                 >
                   View Analytics
                 </Button>
@@ -432,8 +439,11 @@ export default function DashboardPage() {
   )
 }
 
+export default memo(DashboardPage)
+DashboardPage.displayName = 'DashboardPage'
+
 // Component for Projects Table
-function ProjectsTable({ projects }: { projects: Project[] }) {
+const ProjectsTable = memo(function ProjectsTable({ projects }: { projects: Project[] }) {
   const router = useRouter()
   
   const columns: Column<Project>[] = [
@@ -501,10 +511,11 @@ function ProjectsTable({ projects }: { projects: Project[] }) {
       </CardContent>
     </Card>
   )
-}
+})
+ProjectsTable.displayName = 'ProjectsTable'
 
 // Component for Datasets Table
-function DatasetsTable({ datasets }: { datasets: Dataset[] }) {
+const DatasetsTable = memo(function DatasetsTable({ datasets }: { datasets: Dataset[] }) {
   const router = useRouter()
   
   const columns: Column<Dataset>[] = [
@@ -558,10 +569,11 @@ function DatasetsTable({ datasets }: { datasets: Dataset[] }) {
       </CardContent>
     </Card>
   )
-}
+})
+DatasetsTable.displayName = 'DatasetsTable'
 
 // Component for Jobs Table
-function JobsTable({ jobs }: { jobs: Job[] }) {
+const JobsTable = memo(function JobsTable({ jobs }: { jobs: Job[] }) {
   const columns: Column<Job>[] = [
     { 
       key: 'id', 
@@ -611,11 +623,15 @@ function JobsTable({ jobs }: { jobs: Job[] }) {
             {
               label: 'View Logs',
               icon: <Activity className="mr-2 h-4 w-4" />,
-              onClick: (job) => console.log('View logs for', job.id)
+              onClick: (job) => {
+                // TODO: Implement view logs functionality
+                console.info('View logs for job:', job.id)
+              }
             }
           ]}
         />
       </CardContent>
     </Card>
   )
-}
+})
+JobsTable.displayName = 'JobsTable'
