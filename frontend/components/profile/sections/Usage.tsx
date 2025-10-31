@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import React, {useState} from 'react'
+import {Button} from '@/components/ui/button'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
+import {Badge} from '@/components/ui/badge'
+import {Progress} from '@/components/ui/progress'
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
 import {
   Select,
   SelectContent,
@@ -129,11 +129,11 @@ export function Usage() {
     },
   ]
 
-  const dailyUsage: UsageData[] = Array.from({ length: 30 }, (_, i) => {
+  const dailyUsage: UsageData[] = Array.from({length: 30}, (_, i) => {
     const date = new Date()
     date.setDate(date.getDate() - (29 - i))
     return {
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      date: date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'}),
       images: Math.floor(Math.random() * 500) + 100,
       storage: Math.floor(Math.random() * 5) + 1,
       bandwidth: Math.floor(Math.random() * 10) + 2,
@@ -142,18 +142,18 @@ export function Usage() {
   })
 
   const categoryUsage = [
-    { name: 'Images', value: 45, color: '#3b82f6' },
-    { name: 'Storage', value: 25, color: '#10b981' },
-    { name: 'API', value: 20, color: '#f59e0b' },
-    { name: 'Other', value: 10, color: '#6b7280' },
+    {name: 'Images', value: 45, color: '#3b82f6'},
+    {name: 'Storage', value: 25, color: '#10b981'},
+    {name: 'API', value: 20, color: '#f59e0b'},
+    {name: 'Other', value: 10, color: '#6b7280'},
   ]
 
   const topProjects = [
-    { name: 'Cat Breeds Dataset', usage: 2341, percentage: 31 },
-    { name: 'Product Images', usage: 1823, percentage: 24 },
-    { name: 'Nature Landscapes', usage: 1456, percentage: 19 },
-    { name: 'Vehicle Detection', usage: 987, percentage: 13 },
-    { name: 'Food Classification', usage: 916, percentage: 12 },
+    {name: 'Cat Breeds Dataset', usage: 2341, percentage: 31},
+    {name: 'Product Images', usage: 1823, percentage: 24},
+    {name: 'Nature Landscapes', usage: 1456, percentage: 19},
+    {name: 'Vehicle Detection', usage: 987, percentage: 13},
+    {name: 'Food Classification', usage: 916, percentage: 12},
   ]
 
   const getUsageColor = (percentage: number) => {
@@ -181,7 +181,7 @@ export function Usage() {
         <div className="flex items-center gap-2">
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger className="w-[120px]">
-              <SelectValue />
+              <SelectValue/>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="7d">Last 7 days</SelectItem>
@@ -191,7 +191,7 @@ export function Usage() {
             </SelectContent>
           </Select>
           <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="h-4 w-4 mr-2"/>
             Export Report
           </Button>
         </div>
@@ -202,7 +202,7 @@ export function Usage() {
         {metrics.map((metric) => {
           const percentage = (metric.current / metric.limit) * 100
           const TrendIcon = metric.trend === 'up' ? ArrowUp : metric.trend === 'down' ? ArrowDown : Minus
-          
+
           return (
             <Card key={metric.name}>
               <CardHeader className="pb-2">
@@ -219,12 +219,12 @@ export function Usage() {
                       metric.trend === 'stable' && 'text-gray-600 dark:text-gray-400'
                     )}
                   >
-                    <TrendIcon className="h-3 w-3 mr-1" />
-                    {Math.abs(metric.trendValue) >= 100 
+                    <TrendIcon className="h-3 w-3 mr-1"/>
+                    {Math.abs(metric.trendValue) >= 100
                       ? Math.abs(metric.trendValue).toFixed(0)
                       : Math.abs(metric.trendValue) >= 10
-                      ? Math.abs(metric.trendValue).toFixed(1)
-                      : Math.abs(metric.trendValue).toFixed(2)
+                        ? Math.abs(metric.trendValue).toFixed(1)
+                        : Math.abs(metric.trendValue).toFixed(2)
                     }%
                   </Badge>
                 </div>
@@ -239,8 +239,8 @@ export function Usage() {
                       / {metric.limit.toLocaleString()} {metric.unit}
                     </span>
                   </div>
-                  <Progress 
-                    value={percentage} 
+                  <Progress
+                    value={percentage}
                     className="h-2"
                     indicatorClassName={getProgressColor(percentage)}
                   />
@@ -279,10 +279,10 @@ export function Usage() {
                       <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="date" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted"/>
+                  <XAxis dataKey="date" className="text-xs"/>
+                  <YAxis className="text-xs"/>
+                  <Tooltip/>
                   <Area
                     type="monotone"
                     dataKey="images"
@@ -303,10 +303,10 @@ export function Usage() {
               <CardContent>
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={dailyUsage}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="date" className="text-xs" />
-                    <YAxis className="text-xs" />
-                    <Tooltip />
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted"/>
+                    <XAxis dataKey="date" className="text-xs"/>
+                    <YAxis className="text-xs"/>
+                    <Tooltip/>
                     <Line
                       type="monotone"
                       dataKey="storage"
@@ -326,11 +326,11 @@ export function Usage() {
               <CardContent>
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={dailyUsage.slice(-7)}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="date" className="text-xs" />
-                    <YAxis className="text-xs" />
-                    <Tooltip />
-                    <Bar dataKey="apiCalls" fill="#f59e0b" />
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted"/>
+                    <XAxis dataKey="date" className="text-xs"/>
+                    <YAxis className="text-xs"/>
+                    <Tooltip/>
+                    <Bar dataKey="apiCalls" fill="#f59e0b"/>
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -355,16 +355,16 @@ export function Usage() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent as number * 100).toFixed(0)}%`}
+                      label={({name, percent}) => `${name} ${(percent as number * 100).toFixed(0)}%`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
                     >
                       {categoryUsage.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                        <Cell key={`cell-${index}`} fill={entry.color}/>
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip/>
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -380,22 +380,22 @@ export function Usage() {
               <CardContent>
                 <div className="space-y-4">
                   {[
-                    { icon: Image, label: 'Images', value: '7,523', percentage: 75 },
-                    { icon: Database, label: 'Storage', value: '42.7 GB', percentage: 43 },
-                    { icon: Network, label: 'Bandwidth', value: '127.3 GB', percentage: 25 },
-                    { icon: Cpu, label: 'Processing', value: '892 hrs', percentage: 62 },
+                    {icon: Image, label: 'Images', value: '7,523', percentage: 75},
+                    {icon: Database, label: 'Storage', value: '42.7 GB', percentage: 43},
+                    {icon: Network, label: 'Bandwidth', value: '127.3 GB', percentage: 25},
+                    {icon: Cpu, label: 'Processing', value: '892 hrs', percentage: 62},
                   ].map((item, index) => {
                     const Icon = item.icon
                     return (
                       <div key={index} className="space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Icon className="h-4 w-4 text-muted-foreground" />
+                            <Icon className="h-4 w-4 text-muted-foreground"/>
                             <span className="text-sm font-medium">{item.label}</span>
                           </div>
                           <span className="text-sm text-muted-foreground">{item.value}</span>
                         </div>
-                        <Progress value={item.percentage} className="h-1.5" />
+                        <Progress value={item.percentage} className="h-1.5"/>
                       </div>
                     )
                   })}
@@ -429,13 +429,13 @@ export function Usage() {
                         <Badge variant="outline">{project.percentage}%</Badge>
                       </div>
                     </div>
-                    <Progress value={project.percentage} className="h-2" />
+                    <Progress value={project.percentage} className="h-2"/>
                   </div>
                 ))}
               </div>
               <Button variant="outline" className="w-full mt-4">
                 View All Projects
-                <ChevronRight className="h-4 w-4 ml-2" />
+                <ChevronRight className="h-4 w-4 ml-2"/>
               </Button>
             </CardContent>
           </Card>
@@ -447,13 +447,14 @@ export function Usage() {
         <Card className="bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800">
           <CardContent className="pt-6">
             <div className="flex gap-3">
-              <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+              <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5"/>
               <div className="space-y-1">
                 <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
                   Approaching image limit
                 </p>
                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  You've used 75% of your monthly image processing quota. Consider upgrading your plan for more resources.
+                  You've used 75% of your monthly image processing quota. Consider upgrading your plan for more
+                  resources.
                 </p>
                 <Button variant="link" className="h-auto p-0 text-yellow-700 dark:text-yellow-300">
                   Upgrade plan →
@@ -466,7 +467,7 @@ export function Usage() {
         <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
           <CardContent className="pt-6">
             <div className="flex gap-3">
-              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5"/>
               <div className="space-y-1">
                 <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
                   Usage tip

@@ -1,6 +1,6 @@
 /**
  * PixCrawler - Top Loading Bar Provider
- * 
+ *
  * @description Progress bar provider using @bprogress/next for Next.js 15
  * @author PixCrawler Team - DEPI Initiative
  * @license MIT

@@ -1,6 +1,6 @@
 'use client'
 
-import {Check, Sparkles} from 'lucide-react'
+import {Check} from 'lucide-react'
 import {cn} from '@/lib/utils'
 
 interface ProgressIndicatorProps {
@@ -28,16 +28,16 @@ export function ProgressIndicator({currentStep, totalSteps}: ProgressIndicatorPr
                 {/* Glow effect for active step */}
                 {isActive && (
                   <>
-                    <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse" />
-                    <div className="absolute inset-0 rounded-full border-2 border-primary animate-ping opacity-25" />
+                    <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse"/>
+                    <div className="absolute inset-0 rounded-full border-2 border-primary animate-ping opacity-25"/>
                   </>
                 )}
-                
+
                 {/* Completion glow */}
                 {isCompleted && (
-                  <div className="absolute inset-0 rounded-full bg-primary/15 blur-lg" />
+                  <div className="absolute inset-0 rounded-full bg-primary/15 blur-lg"/>
                 )}
-                
+
                 <div
                   className={cn(
                     'relative flex size-12 items-center justify-center rounded-full border-2 font-bold transition-all duration-500 ease-out',
@@ -48,11 +48,11 @@ export function ProgressIndicator({currentStep, totalSteps}: ProgressIndicatorPr
                 >
                   {/* Inner glow ring for active */}
                   {isActive && (
-                    <div className="absolute inset-1 rounded-full border border-primary/30 animate-pulse" />
+                    <div className="absolute inset-1 rounded-full border border-primary/30 animate-pulse"/>
                   )}
-                  
+
                   {isCompleted ? (
-                    <Check className="size-5 animate-in zoom-in-50 spin-in-180 duration-500" strokeWidth={3} />
+                    <Check className="size-5 animate-in zoom-in-50 spin-in-180 duration-500" strokeWidth={3}/>
                   ) : (
                     <span className={cn(
                       "text-sm font-bold transition-all duration-300",
@@ -61,7 +61,7 @@ export function ProgressIndicator({currentStep, totalSteps}: ProgressIndicatorPr
                       {stepNumber}
                     </span>
                   )}
-                  
+
                 </div>
               </div>
 
@@ -92,7 +92,8 @@ export function ProgressIndicator({currentStep, totalSteps}: ProgressIndicatorPr
 
             {/* Vertical Connector Line */}
             {!isLast && (
-              <div className="relative w-1 h-12 bg-gradient-to-b from-border/20 to-border/30 rounded-full overflow-hidden">
+              <div
+                className="relative w-1 h-12 bg-gradient-to-b from-border/20 to-border/30 rounded-full overflow-hidden">
                 {/* Progress fill */}
                 <div
                   className={cn(
@@ -102,13 +103,15 @@ export function ProgressIndicator({currentStep, totalSteps}: ProgressIndicatorPr
                 >
                   {/* Shimmer effect */}
                   {isCompleted && (
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/40 to-transparent animate-shimmer" />
+                    <div
+                      className="absolute inset-0 bg-gradient-to-b from-transparent via-white/40 to-transparent animate-shimmer"/>
                   )}
                 </div>
-                
+
                 {/* Active pulse */}
                 {isCompleted && (
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 size-2 bg-primary rounded-full animate-pulse shadow-lg shadow-primary/50" />
+                  <div
+                    className="absolute bottom-0 left-1/2 -translate-x-1/2 size-2 bg-primary rounded-full animate-pulse shadow-lg shadow-primary/50"/>
                 )}
               </div>
             )}

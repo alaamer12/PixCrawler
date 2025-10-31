@@ -12,7 +12,8 @@ export default function DashboardPage() {
     <div className="space-y-6 mx-6 py-8">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          <h1
+            className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
             {user?.profile?.fullName ? `Welcome back, ${user.profile.fullName}!` : 'Welcome to Your Dashboard'}
           </h1>
           <p className="text-base text-muted-foreground">

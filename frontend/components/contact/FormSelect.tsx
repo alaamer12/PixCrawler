@@ -7,20 +7,20 @@ interface FormSelectProps {
   required?: boolean
   value: string
   onChange: (e: ChangeEvent<HTMLSelectElement>) => void
-  options: {value: string; label: string}[]
+  options: { value: string; label: string }[]
   placeholder: string
 }
 
 export const FormSelect = memo(({
-  id,
-  name,
-  label,
-  required = false,
-  value,
-  onChange,
-  options,
-  placeholder
-}: FormSelectProps) => {
+                                  id,
+                                  name,
+                                  label,
+                                  required = false,
+                                  value,
+                                  onChange,
+                                  options,
+                                  placeholder
+                                }: FormSelectProps) => {
   return (
     <div>
       <label htmlFor={id} className="block text-sm font-medium mb-2">

@@ -4,7 +4,20 @@ import {useEffect} from 'react'
 import {Button} from '@/components/ui/button'
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
 import {Badge} from '@/components/ui/badge'
-import {Code, Database, Eye, Home, Lock, Palette, Settings, TestTube, Unlock, User, UserPlus, CreditCard, ExternalLink, Copy} from 'lucide-react'
+import {
+  Code,
+  Copy,
+  CreditCard,
+  Database,
+  ExternalLink,
+  Eye,
+  Home,
+  Lock,
+  Settings,
+  Unlock,
+  User,
+  UserPlus
+} from 'lucide-react'
 import Link from 'next/link'
 import {useSearchParams} from 'next/navigation'
 
@@ -380,7 +393,7 @@ export default function DevPage() {
                       </p>
                     </div>
                   </div>
-                  
+
                   {/* Action buttons in a separate row */}
                   <div className="flex items-center justify-end gap-1 px-3 pb-3 pt-0">
                     <Button

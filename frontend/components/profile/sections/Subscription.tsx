@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Separator } from '@/components/ui/separator'
+import React, {useState} from 'react'
+import {Button} from '@/components/ui/button'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
+import {Badge} from '@/components/ui/badge'
+import {Progress} from '@/components/ui/progress'
+import {Separator} from '@/components/ui/separator'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { useToast } from '@/components/ui/use-toast'
+import {useToast} from '@/components/ui/use-toast'
 import {
   CreditCard,
   Calendar,
@@ -65,7 +65,7 @@ interface BillingHistory {
 }
 
 export function Subscription() {
-  const { toast } = useToast()
+  const {toast} = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [autoRenew, setAutoRenew] = useState(true)
 
@@ -87,14 +87,14 @@ export function Subscription() {
       interval: 'month',
       description: 'Perfect for individuals and small projects',
       features: [
-        { name: '1,000 images/month', included: true },
-        { name: '5 concurrent crawl jobs', included: true },
-        { name: 'Basic validation', included: true },
-        { name: 'Standard support', included: true },
-        { name: 'API access', included: false },
-        { name: 'Custom models', included: false },
-        { name: 'Priority processing', included: false },
-        { name: 'Advanced analytics', included: false },
+        {name: '1,000 images/month', included: true},
+        {name: '5 concurrent crawl jobs', included: true},
+        {name: 'Basic validation', included: true},
+        {name: 'Standard support', included: true},
+        {name: 'API access', included: false},
+        {name: 'Custom models', included: false},
+        {name: 'Priority processing', included: false},
+        {name: 'Advanced analytics', included: false},
       ],
       recommended: false,
     },
@@ -105,14 +105,14 @@ export function Subscription() {
       interval: 'month',
       description: 'For professionals and growing teams',
       features: [
-        { name: '10,000 images/month', included: true },
-        { name: '20 concurrent crawl jobs', included: true },
-        { name: 'Advanced validation', included: true },
-        { name: 'Priority support', included: true },
-        { name: 'API access', included: true },
-        { name: 'Custom models', included: true },
-        { name: 'Priority processing', included: true },
-        { name: 'Advanced analytics', included: false },
+        {name: '10,000 images/month', included: true},
+        {name: '20 concurrent crawl jobs', included: true},
+        {name: 'Advanced validation', included: true},
+        {name: 'Priority support', included: true},
+        {name: 'API access', included: true},
+        {name: 'Custom models', included: true},
+        {name: 'Priority processing', included: true},
+        {name: 'Advanced analytics', included: false},
       ],
       recommended: true,
       current: true,
@@ -124,14 +124,14 @@ export function Subscription() {
       interval: 'month',
       description: 'For large teams and organizations',
       features: [
-        { name: 'Unlimited images', included: true },
-        { name: 'Unlimited crawl jobs', included: true },
-        { name: 'AI-powered validation', included: true },
-        { name: 'Dedicated support', included: true },
-        { name: 'API access', included: true },
-        { name: 'Custom models', included: true },
-        { name: 'Priority processing', included: true },
-        { name: 'Advanced analytics', included: true },
+        {name: 'Unlimited images', included: true},
+        {name: 'Unlimited crawl jobs', included: true},
+        {name: 'AI-powered validation', included: true},
+        {name: 'Dedicated support', included: true},
+        {name: 'API access', included: true},
+        {name: 'Custom models', included: true},
+        {name: 'Priority processing', included: true},
+        {name: 'Advanced analytics', included: true},
       ],
       recommended: false,
     },
@@ -176,7 +176,7 @@ export function Subscription() {
     setIsLoading(true)
     await new Promise(resolve => setTimeout(resolve, 2000))
     setIsLoading(false)
-    
+
     toast({
       title: 'Plan upgraded successfully',
       description: 'Your subscription has been updated.',
@@ -187,7 +187,7 @@ export function Subscription() {
     setIsLoading(true)
     await new Promise(resolve => setTimeout(resolve, 2000))
     setIsLoading(false)
-    
+
     toast({
       title: 'Subscription cancelled',
       description: 'Your subscription will remain active until the end of the billing period.',
@@ -198,7 +198,7 @@ export function Subscription() {
     setIsLoading(true)
     await new Promise(resolve => setTimeout(resolve, 2000))
     setIsLoading(false)
-    
+
     toast({
       title: 'Subscription reactivated',
       description: 'Your subscription will continue to renew automatically.',
@@ -228,7 +228,7 @@ export function Subscription() {
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
-                <Crown className="h-6 w-6 text-primary" />
+                <Crown className="h-6 w-6 text-primary"/>
               </div>
               <div>
                 <CardTitle className="text-2xl">{currentPlan.name} Plan</CardTitle>
@@ -238,7 +238,7 @@ export function Subscription() {
               </div>
             </div>
             <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-              <CheckCircle className="h-3 w-3 mr-1" />
+              <CheckCircle className="h-3 w-3 mr-1"/>
               Active
             </Badge>
           </div>
@@ -259,27 +259,27 @@ export function Subscription() {
             </div>
           </div>
 
-          <Separator />
+          <Separator/>
 
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm">
-              <CreditCard className="h-4 w-4 mr-2" />
+              <CreditCard className="h-4 w-4 mr-2"/>
               Update Payment Method
             </Button>
             <Button variant="outline" size="sm">
-              <Receipt className="h-4 w-4 mr-2" />
+              <Receipt className="h-4 w-4 mr-2"/>
               View Invoices
             </Button>
             {currentPlan.cancelAtPeriodEnd ? (
               <Button variant="outline" size="sm" onClick={handleReactivate}>
-                <Play className="h-4 w-4 mr-2" />
+                <Play className="h-4 w-4 mr-2"/>
                 Reactivate Subscription
               </Button>
             ) : (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                    <Pause className="h-4 w-4 mr-2" />
+                    <Pause className="h-4 w-4 mr-2"/>
                     Cancel Subscription
                   </Button>
                 </AlertDialogTrigger>
@@ -287,7 +287,8 @@ export function Subscription() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Cancel Subscription?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Your subscription will remain active until {new Date(currentPlan.nextBillingDate).toLocaleDateString()}.
+                      Your subscription will remain active
+                      until {new Date(currentPlan.nextBillingDate).toLocaleDateString()}.
                       You can reactivate anytime before then.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
@@ -316,12 +317,12 @@ export function Subscription() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button 
-            className="w-full" 
+          <Button
+            className="w-full"
             onClick={() => window.location.href = '/pricing'}
           >
             View All Plans
-            <ArrowRight className="h-4 w-4 ml-2" />
+            <ArrowRight className="h-4 w-4 ml-2"/>
           </Button>
         </CardContent>
       </Card>
@@ -338,7 +339,7 @@ export function Subscription() {
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
-                <CardIcon className="h-5 w-5 text-primary" />
+                <CardIcon className="h-5 w-5 text-primary"/>
               </div>
               <div>
                 <p className="font-medium">•••• •••• •••• 4242</p>
@@ -354,7 +355,7 @@ export function Subscription() {
           </div>
 
           <Button variant="outline" className="w-full">
-            <CreditCard className="h-4 w-4 mr-2" />
+            <CreditCard className="h-4 w-4 mr-2"/>
             Add Payment Method
           </Button>
         </CardContent>
@@ -384,7 +385,7 @@ export function Subscription() {
                       item.status === 'paid' && "text-green-600 dark:text-green-400",
                       item.status === 'pending' && "text-yellow-600 dark:text-yellow-400",
                       item.status === 'failed' && "text-red-600 dark:text-red-400"
-                    )} />
+                    )}/>
                   </div>
                   <div>
                     <p className="font-medium">{item.description}</p>
@@ -399,8 +400,8 @@ export function Subscription() {
                     <Badge
                       variant={
                         item.status === 'paid' ? 'secondary' :
-                        item.status === 'pending' ? 'outline' :
-                        'destructive'
+                          item.status === 'pending' ? 'outline' :
+                            'destructive'
                       }
                       className="text-xs"
                     >
@@ -413,7 +414,7 @@ export function Subscription() {
                       size="sm"
                       onClick={() => handleDownloadInvoice(item.invoice!)}
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-4 w-4"/>
                     </Button>
                   )}
                 </div>
@@ -424,7 +425,7 @@ export function Subscription() {
           <div className="mt-4 pt-4 border-t">
             <Button variant="outline" className="w-full">
               View All Transactions
-              <ChevronRight className="h-4 w-4 ml-2" />
+              <ChevronRight className="h-4 w-4 ml-2"/>
             </Button>
           </div>
         </CardContent>
@@ -434,13 +435,14 @@ export function Subscription() {
       <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
         <CardContent className="pt-6">
           <div className="flex gap-3">
-            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5"/>
             <div className="space-y-1">
               <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
                 Need more resources?
               </p>
               <p className="text-sm text-blue-800 dark:text-blue-200">
-                You're using 75% of your monthly image quota. Consider upgrading to the Enterprise plan for unlimited images.
+                You're using 75% of your monthly image quota. Consider upgrading to the Enterprise plan for unlimited
+                images.
               </p>
               <Button variant="link" className="h-auto p-0 text-blue-700 dark:text-blue-300">
                 View usage details →

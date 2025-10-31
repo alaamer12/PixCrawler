@@ -11,7 +11,7 @@ export function useControlledState<T, Rest extends any[] = []>(
     onChange?: (value: T, ...args: Rest) => void;
   },
 ): readonly [T, (next: T, ...args: Rest) => void] {
-  const { value, defaultValue, onChange } = props;
+  const {value, defaultValue, onChange} = props;
 
   const [state, setInternalState] = React.useState<T>(
     value !== undefined ? value : (defaultValue as T),

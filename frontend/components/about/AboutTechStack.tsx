@@ -47,7 +47,7 @@ export const AboutTechStack = memo(() => {
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
             PixCrawler uses cutting-edge technologies to deliver fast, reliable, and scalable dataset building.
           </p>
-          
+
           <div className="grid md:grid-cols-2 gap-6">
             {TECH_STACK.map((category) => (
               <TechCard key={category.title} {...category} />

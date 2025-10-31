@@ -87,7 +87,7 @@ export default function RootLayout({
           </div>
         </div>
       </TopLoadingBar>
-      <Toaster richColors position="top-right" />
+      <Toaster richColors position="top-right"/>
     </ThemeProvider>
     </body>
     </html>

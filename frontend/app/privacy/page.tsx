@@ -1,12 +1,5 @@
 import {Metadata} from 'next'
-import {
-  LegalHeader,
-  LegalSection,
-  LegalSubsection,
-  LegalList,
-  LegalParagraph,
-  LegalContact
-} from '@/components/legal'
+import {LegalContact, LegalHeader, LegalList, LegalParagraph, LegalSection, LegalSubsection} from '@/components/legal'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy - PixCrawler | DEPI Data Protection',
@@ -30,7 +23,7 @@ export default function PrivacyPage() {
   return (
     <main className="min-h-screen py-16">
       <div className="container mx-auto px-4 lg:px-8 max-w-4xl">
-        <LegalHeader title="Privacy Policy" lastUpdated="January 24, 2025" />
+        <LegalHeader title="Privacy Policy" lastUpdated="January 24, 2025"/>
 
         <div className="prose prose-lg max-w-none">
           <div className="space-y-8">
@@ -38,7 +31,7 @@ export default function PrivacyPage() {
               <LegalParagraph>
                 PixCrawler (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy.
                 This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use
-                our image dataset building platform and related services. As a project developed under the Digital Egypt 
+                our image dataset building platform and related services. As a project developed under the Digital Egypt
                 Pioneers Initiative (DEPI), we adhere to international data protection standards and best practices.
               </LegalParagraph>
             </LegalSection>
@@ -50,7 +43,7 @@ export default function PrivacyPage() {
                   'Billing information (payment details, billing address)',
                   'Profile information (company name, job title, preferences)',
                   'Communication data (support tickets, feedback)'
-                ]} />
+                ]}/>
               </LegalSubsection>
 
               <LegalSubsection title="2.2 Usage Information">
@@ -59,7 +52,7 @@ export default function PrivacyPage() {
                   'API usage and access patterns',
                   'Feature usage and performance metrics',
                   'Error logs and diagnostic information'
-                ]} />
+                ]}/>
               </LegalSubsection>
 
               <LegalSubsection title="2.3 Technical Information">
@@ -68,7 +61,7 @@ export default function PrivacyPage() {
                   'Browser type and version',
                   'Device information and operating system',
                   'Cookies and similar tracking technologies'
-                ]} />
+                ]}/>
               </LegalSubsection>
             </LegalSection>
 
@@ -81,7 +74,7 @@ export default function PrivacyPage() {
                 'Ensure security and prevent fraud',
                 'Comply with legal obligations',
                 'Send marketing communications (with your consent)'
-              ]} />
+              ]}/>
             </LegalSection>
 
             <LegalSection title="4. Information Sharing and Disclosure">
@@ -94,7 +87,7 @@ export default function PrivacyPage() {
                 'Legal Requirements: When required by law or to protect our rights',
                 'Business Transfers: In connection with mergers, acquisitions, or asset sales',
                 'Consent: When you have given explicit consent'
-              ]} />
+              ]}/>
             </LegalSection>
 
             <LegalSection title="5. Data Security">
@@ -108,7 +101,7 @@ export default function PrivacyPage() {
                   'Access controls and authentication mechanisms',
                   'Secure data centers with physical security measures',
                   'Employee training on data protection practices'
-                ]} />
+                ]}/>
               </div>
             </LegalSection>
 
@@ -131,7 +124,7 @@ export default function PrivacyPage() {
                 'Restrict or object to processing',
                 'Data portability',
                 'Withdraw consent at any time'
-              ]} />
+              ]}/>
             </LegalSection>
 
             <LegalSection title="8. Cookies and Tracking">

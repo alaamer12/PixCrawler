@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Separator } from '@/components/ui/separator'
-import { Input } from '@/components/ui/input'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import React, {useState} from 'react'
+import {Button} from '@/components/ui/button'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
+import {Label} from '@/components/ui/label'
+import {Switch} from '@/components/ui/switch'
+import {Separator} from '@/components/ui/separator'
+import {Input} from '@/components/ui/input'
+import {RadioGroup, RadioGroupItem} from '@/components/ui/radio-group'
 import {
   Select,
   SelectContent,
@@ -15,9 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Slider } from '@/components/ui/slider'
-import { useToast } from '@/components/ui/use-toast'
-import { useTheme } from 'next-themes'
+import {Slider} from '@/components/ui/slider'
+import {useToast} from '@/components/ui/use-toast'
+import {useTheme} from 'next-themes'
 import {
   Monitor,
   Moon,
@@ -63,8 +63,8 @@ interface SettingSection {
 }
 
 export function Settings() {
-  const { theme, setTheme } = useTheme()
-  const { toast } = useToast()
+  const {theme, setTheme} = useTheme()
+  const {toast} = useToast()
   const [isSaving, setIsSaving] = useState(false)
 
   // Localization
@@ -92,7 +92,7 @@ export function Settings() {
     setIsSaving(true)
     await new Promise(resolve => setTimeout(resolve, 1500))
     setIsSaving(false)
-    
+
     toast({
       title: 'Settings saved',
       description: 'Your preferences have been updated successfully.',
@@ -118,7 +118,7 @@ export function Settings() {
               <Label htmlFor="language">Language</Label>
               <Select value={language} onValueChange={setLanguage}>
                 <SelectTrigger id="language">
-                  <SelectValue />
+                  <SelectValue/>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="en">English</SelectItem>
@@ -135,7 +135,7 @@ export function Settings() {
               <Label htmlFor="timezone">Timezone</Label>
               <Select value={timezone} onValueChange={setTimezone}>
                 <SelectTrigger id="timezone">
-                  <SelectValue />
+                  <SelectValue/>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
@@ -153,7 +153,7 @@ export function Settings() {
               <Label htmlFor="date-format">Date Format</Label>
               <Select value={dateFormat} onValueChange={setDateFormat}>
                 <SelectTrigger id="date-format">
-                  <SelectValue />
+                  <SelectValue/>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
@@ -167,7 +167,7 @@ export function Settings() {
               <Label htmlFor="time-format">Time Format</Label>
               <Select value={timeFormat} onValueChange={setTimeFormat}>
                 <SelectTrigger id="time-format">
-                  <SelectValue />
+                  <SelectValue/>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="12h">12-hour (AM/PM)</SelectItem>
@@ -180,7 +180,7 @@ export function Settings() {
               <Label htmlFor="currency">Currency</Label>
               <Select value={currency} onValueChange={setCurrency}>
                 <SelectTrigger id="currency">
-                  <SelectValue />
+                  <SelectValue/>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="USD">USD ($)</SelectItem>
@@ -222,7 +222,7 @@ export function Settings() {
                 <Label>Show Thumbnails</Label>
                 <p className="text-sm text-muted-foreground">Display image previews</p>
               </div>
-              <Switch checked={showThumbnails} onCheckedChange={setShowThumbnails} />
+              <Switch checked={showThumbnails} onCheckedChange={setShowThumbnails}/>
             </div>
 
             <div className="flex items-center justify-between">
@@ -230,7 +230,7 @@ export function Settings() {
                 <Label>Auto-expand Folders</Label>
                 <p className="text-sm text-muted-foreground">Automatically open folders on click</p>
               </div>
-              <Switch checked={autoExpandFolders} onCheckedChange={setAutoExpandFolders} />
+              <Switch checked={autoExpandFolders} onCheckedChange={setAutoExpandFolders}/>
             </div>
 
             <div className="flex items-center justify-between">
@@ -238,7 +238,7 @@ export function Settings() {
                 <Label>Confirm Delete</Label>
                 <p className="text-sm text-muted-foreground">Ask before deleting items</p>
               </div>
-              <Switch checked={confirmDelete} onCheckedChange={setConfirmDelete} />
+              <Switch checked={confirmDelete} onCheckedChange={setConfirmDelete}/>
             </div>
           </div>
         </div>
@@ -256,7 +256,7 @@ export function Settings() {
                 <Label>Telemetry</Label>
                 <p className="text-sm text-muted-foreground">Help improve the app with usage data</p>
               </div>
-              <Switch checked={telemetry} onCheckedChange={setTelemetry} />
+              <Switch checked={telemetry} onCheckedChange={setTelemetry}/>
             </div>
 
             <div className="flex items-center justify-between">
@@ -264,7 +264,7 @@ export function Settings() {
                 <Label>Crash Reports</Label>
                 <p className="text-sm text-muted-foreground">Send crash reports to help fix issues</p>
               </div>
-              <Switch checked={crashReports} onCheckedChange={setCrashReports} />
+              <Switch checked={crashReports} onCheckedChange={setCrashReports}/>
             </div>
 
             <div className="flex items-center justify-between">
@@ -272,7 +272,7 @@ export function Settings() {
                 <Label>Analytics</Label>
                 <p className="text-sm text-muted-foreground">Share anonymous usage statistics</p>
               </div>
-              <Switch checked={analytics} onCheckedChange={setAnalytics} />
+              <Switch checked={analytics} onCheckedChange={setAnalytics}/>
             </div>
 
             <div className="flex items-center justify-between">
@@ -280,18 +280,18 @@ export function Settings() {
                 <Label>Session Recording</Label>
                 <p className="text-sm text-muted-foreground">Record sessions for support purposes</p>
               </div>
-              <Switch checked={sessionRecording} onCheckedChange={setSessionRecording} />
+              <Switch checked={sessionRecording} onCheckedChange={setSessionRecording}/>
             </div>
           </div>
 
-          <Separator />
+          <Separator/>
 
           <div className="space-y-4">
             <h4 className="text-sm font-medium">Security</h4>
-            
+
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex items-center gap-3">
-                <Key className="h-5 w-5 text-primary" />
+                <Key className="h-5 w-5 text-primary"/>
                 <div>
                   <p className="font-medium">Password</p>
                   <p className="text-sm text-muted-foreground">Last changed 30 days ago</p>
@@ -304,7 +304,7 @@ export function Settings() {
 
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex items-center gap-3">
-                <Lock className="h-5 w-5 text-primary" />
+                <Lock className="h-5 w-5 text-primary"/>
                 <div>
                   <p className="font-medium">Active Sessions</p>
                   <p className="text-sm text-muted-foreground">3 devices logged in</p>
@@ -332,18 +332,18 @@ export function Settings() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={handleReset}>
-            <RotateCcw className="h-4 w-4 mr-2" />
+            <RotateCcw className="h-4 w-4 mr-2"/>
             Reset to Defaults
           </Button>
           <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? (
               <>
-                <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"/>
                 Saving...
               </>
             ) : (
               <>
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="h-4 w-4 mr-2"/>
                 Save Changes
               </>
             )}
@@ -359,7 +359,7 @@ export function Settings() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
-                  <Icon className="h-5 w-5 text-primary" />
+                  <Icon className="h-5 w-5 text-primary"/>
                 </div>
                 <div>
                   <CardTitle>{section.title}</CardTitle>
@@ -376,7 +376,7 @@ export function Settings() {
       <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
         <CardContent className="pt-6">
           <div className="flex gap-3">
-            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5"/>
             <div className="space-y-1">
               <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
                 Settings are saved automatically

@@ -71,7 +71,7 @@ export function WelcomeFlow({user}: WelcomeFlowProps) {
 
       // Check if we're in dev mode by checking user ID
       const isDevMode = user.id === 'dev-user-123'
-      
+
       if (isDevMode) {
         // In dev mode, redirect to dashboard with dev_bypass param
         router.push('/dashboard?dev_bypass=true')
@@ -81,10 +81,10 @@ export function WelcomeFlow({user}: WelcomeFlowProps) {
       }
     } catch (error) {
       console.error('Failed to launch dataset:', error)
-      
+
       // Check if we're in dev mode for error handling
       const isDevMode = user.id === 'dev-user-123'
-      
+
       if (isDevMode) {
         router.push('/dashboard?dev_bypass=true')
       } else {

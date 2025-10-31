@@ -1,15 +1,15 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Slider } from '@/components/ui/slider'
-import { Progress } from '@/components/ui/progress'
-import { Separator } from '@/components/ui/separator'
+import React, {useState} from 'react'
+import {Button} from '@/components/ui/button'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
+import {Badge} from '@/components/ui/badge'
+import {Input} from '@/components/ui/input'
+import {Label} from '@/components/ui/label'
+import {Switch} from '@/components/ui/switch'
+import {Slider} from '@/components/ui/slider'
+import {Progress} from '@/components/ui/progress'
+import {Separator} from '@/components/ui/separator'
 import {
   Select,
   SelectContent,
@@ -26,7 +26,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { useToast } from '@/components/ui/use-toast'
+import {useToast} from '@/components/ui/use-toast'
 import {
   CreditCard,
   RefreshCw,
@@ -85,7 +85,7 @@ interface CreditPackage {
 }
 
 export function CreditManagement() {
-  const { toast } = useToast()
+  const {toast} = useToast()
   const [activeTab, setActiveTab] = useState<'refills' | 'history' | 'packages'>('refills')
   const [autoRefillEnabled, setAutoRefillEnabled] = useState(true)
   const [refillThreshold, setRefillThreshold] = useState(100)
@@ -99,12 +99,12 @@ export function CreditManagement() {
   const averageDailyUsage = 25
 
   const creditPackages: CreditPackage[] = [
-    { id: 'starter', name: 'Starter', credits: 100, price: 10 },
-    { id: 'basic', name: 'Basic', credits: 500, price: 45, savings: 5 },
-    { id: 'pro', name: 'Professional', credits: 1000, price: 85, savings: 15, popular: true },
-    { id: 'business', name: 'Business', credits: 2500, price: 200, savings: 50 },
-    { id: 'enterprise', name: 'Enterprise', credits: 5000, price: 375, savings: 125 },
-    { id: 'custom', name: 'Custom', credits: 10000, price: 700, savings: 300 },
+    {id: 'starter', name: 'Starter', credits: 100, price: 10},
+    {id: 'basic', name: 'Basic', credits: 500, price: 45, savings: 5},
+    {id: 'pro', name: 'Professional', credits: 1000, price: 85, savings: 15, popular: true},
+    {id: 'business', name: 'Business', credits: 2500, price: 200, savings: 50},
+    {id: 'enterprise', name: 'Enterprise', credits: 5000, price: 375, savings: 125},
+    {id: 'custom', name: 'Custom', credits: 10000, price: 700, savings: 300},
   ]
 
   const transactions: CreditTransaction[] = [
@@ -155,11 +155,11 @@ export function CreditManagement() {
     },
   ]
 
-  const usageHistory = Array.from({ length: 30 }, (_, i) => {
+  const usageHistory = Array.from({length: 30}, (_, i) => {
     const date = new Date()
     date.setDate(date.getDate() - (29 - i))
     return {
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      date: date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'}),
       credits: Math.floor(Math.random() * 50) + 10,
       cost: Math.floor(Math.random() * 5) + 1,
     }
@@ -169,7 +169,7 @@ export function CreditManagement() {
     setIsProcessing(true)
     await new Promise(resolve => setTimeout(resolve, 2000))
     setIsProcessing(false)
-    
+
     const pkg = creditPackages.find(p => p.id === packageId)
     toast({
       title: 'Credits purchased',
@@ -181,7 +181,7 @@ export function CreditManagement() {
     setIsProcessing(true)
     await new Promise(resolve => setTimeout(resolve, 1500))
     setIsProcessing(false)
-    
+
     toast({
       title: 'Settings saved',
       description: 'Your automatic refill settings have been updated.',
@@ -208,7 +208,7 @@ export function CreditManagement() {
                 Your current credit status
               </CardDescription>
             </div>
-            <Wallet className="h-8 w-8 text-primary" />
+            <Wallet className="h-8 w-8 text-primary"/>
           </div>
         </CardHeader>
         <CardContent>
@@ -217,7 +217,7 @@ export function CreditManagement() {
               <span className="text-4xl font-bold">{currentBalance.toLocaleString()}</span>
               <span className="text-muted-foreground">credits</span>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Monthly Usage</p>
@@ -237,7 +237,7 @@ export function CreditManagement() {
               <Dialog>
                 <DialogTrigger asChild>
                   <Button>
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-4 w-4 mr-2"/>
                     Buy Credits
                   </Button>
                 </DialogTrigger>
@@ -248,7 +248,7 @@ export function CreditManagement() {
                       Choose a credit package that suits your needs
                     </DialogDescription>
                   </DialogHeader>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
                     {creditPackages.map((pkg) => (
                       <Card
@@ -297,12 +297,13 @@ export function CreditManagement() {
                     >
                       {isProcessing ? (
                         <>
-                          <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          <div
+                            className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"/>
                           Processing...
                         </>
                       ) : (
                         <>
-                          <ShoppingCart className="h-4 w-4 mr-2" />
+                          <ShoppingCart className="h-4 w-4 mr-2"/>
                           Purchase
                         </>
                       )}
@@ -310,9 +311,9 @@ export function CreditManagement() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-              
+
               <Button variant="outline">
-                <History className="h-4 w-4 mr-2" />
+                <History className="h-4 w-4 mr-2"/>
                 View History
               </Button>
             </div>
@@ -333,7 +334,7 @@ export function CreditManagement() {
             <RefreshCw className={cn(
               "h-5 w-5",
               autoRefillEnabled ? "text-primary animate-spin-slow" : "text-muted-foreground"
-            )} />
+            )}/>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -352,8 +353,8 @@ export function CreditManagement() {
 
           {autoRefillEnabled && (
             <>
-              <Separator />
-              
+              <Separator/>
+
               <div className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -403,22 +404,24 @@ export function CreditManagement() {
                   />
                 </div>
 
-                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div
+                  className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <div className="flex gap-2">
-                    <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
+                    <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5"/>
                     <div className="text-sm">
                       <p className="font-medium text-blue-900 dark:text-blue-100">
                         Auto-refill summary
                       </p>
                       <p className="text-blue-800 dark:text-blue-200">
-                        When your balance drops below {refillThreshold} credits, we'll automatically add {refillAmount} credits to your account (up to ${monthlyLimit}/month).
+                        When your balance drops below {refillThreshold} credits, we'll automatically
+                        add {refillAmount} credits to your account (up to ${monthlyLimit}/month).
                       </p>
                     </div>
                   </div>
                 </div>
 
                 <Button onClick={handleSaveRefillSettings} className="w-full">
-                  <Save className="h-4 w-4 mr-2" />
+                  <Save className="h-4 w-4 mr-2"/>
                   Save Refill Settings
                 </Button>
               </div>
@@ -439,7 +442,7 @@ export function CreditManagement() {
             </div>
             <Select defaultValue="all">
               <SelectTrigger className="w-[150px]">
-                <SelectValue />
+                <SelectValue/>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Transactions</SelectItem>
@@ -455,12 +458,12 @@ export function CreditManagement() {
           <div className="space-y-4">
             {transactions.map((transaction) => {
               const isCredit = transaction.amount > 0
-              const Icon = 
+              const Icon =
                 transaction.type === 'purchase' ? ShoppingCart :
-                transaction.type === 'usage' ? Package :
-                transaction.type === 'refund' ? RefreshCw :
-                Gift
-              
+                  transaction.type === 'usage' ? Package :
+                    transaction.type === 'refund' ? RefreshCw :
+                      Gift
+
               return (
                 <div key={transaction.id} className="flex items-center justify-between py-3 border-b last:border-0">
                   <div className="flex items-center gap-3">
@@ -471,7 +474,7 @@ export function CreditManagement() {
                       <Icon className={cn(
                         "h-4 w-4",
                         isCredit ? "text-green-600 dark:text-green-400" : "text-gray-600 dark:text-gray-400"
-                      )} />
+                      )}/>
                     </div>
                     <div>
                       <p className="font-medium text-sm">{transaction.description}</p>
@@ -499,7 +502,7 @@ export function CreditManagement() {
           <div className="mt-4 pt-4 border-t">
             <Button variant="outline" className="w-full">
               View Full History
-              <ArrowDown className="h-4 w-4 ml-2" />
+              <ArrowDown className="h-4 w-4 ml-2"/>
             </Button>
           </div>
         </CardContent>
@@ -516,10 +519,10 @@ export function CreditManagement() {
         <CardContent>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={usageHistory}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="date" className="text-xs" />
-              <YAxis className="text-xs" />
-              <Tooltip />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted"/>
+              <XAxis dataKey="date" className="text-xs"/>
+              <YAxis className="text-xs"/>
+              <Tooltip/>
               <Line
                 type="monotone"
                 dataKey="credits"
@@ -534,10 +537,11 @@ export function CreditManagement() {
       </Card>
 
       {/* Special Offers */}
-      <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800">
+      <Card
+        className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800">
         <CardContent className="pt-6">
           <div className="flex gap-3">
-            <Gift className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5" />
+            <Gift className="h-5 w-5 text-purple-600 dark:text-purple-400 mt-0.5"/>
             <div className="space-y-1">
               <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
                 Limited time offer!

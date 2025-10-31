@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { CheckoutSessionAPI } from '@/components/stripe/checkout/api/create-checkout-session'
+import {NextRequest, NextResponse} from 'next/server'
+import {CheckoutSessionAPI} from '@/components/stripe/checkout/api/create-checkout-session'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { sessionId: string } }
+  {params}: { params: { sessionId: string } }
 ) {
   try {
-    const { sessionId } = params
+    const {sessionId} = params
 
     if (!sessionId) {
       return NextResponse.json(
-        { error: 'Session ID is required' },
-        { status: 400 }
+        {error: 'Session ID is required'},
+        {status: 400}
       )
     }
 
@@ -22,10 +22,10 @@ export async function GET(
 
   } catch (error) {
     console.error('Error retrieving session:', error)
-    
+
     return NextResponse.json(
-      { error: 'Failed to retrieve session' },
-      { status: 500 }
+      {error: 'Failed to retrieve session'},
+      {status: 500}
     )
   }
 }

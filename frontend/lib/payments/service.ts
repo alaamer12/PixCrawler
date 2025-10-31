@@ -115,7 +115,7 @@ export class PaymentService {
       // First, try to find existing customer by metadata
       const existingCustomers = await stripe.customers.list({
         limit: 1,
-        metadata: { userId },
+        metadata: {userId},
       })
 
       if (existingCustomers.data.length > 0) {
@@ -126,7 +126,7 @@ export class PaymentService {
       const customer = await stripe.customers.create({
         email,
         name,
-        metadata: { userId },
+        metadata: {userId},
       })
 
       return customer

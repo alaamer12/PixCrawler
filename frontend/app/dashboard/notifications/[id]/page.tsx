@@ -1,26 +1,26 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useToast } from '@/components/ui/use-toast'
+import React, {useEffect, useState} from 'react'
+import {useParams, useRouter} from 'next/navigation'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
+import {Button} from '@/components/ui/button'
+import {Badge} from '@/components/ui/badge'
+import {Skeleton} from '@/components/ui/skeleton'
+import {useToast} from '@/components/ui/use-toast'
 import {
   ArrowLeft,
   Bell,
   CheckCircle,
+  Clock,
   CreditCard,
   Download,
+  ExternalLink,
   Package,
   Shield,
-  Clock,
   Trash2,
-  ExternalLink,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import type { Notification } from '@/lib/db/schema'
+import {cn} from '@/lib/utils'
+import type {Notification} from '@/lib/db/schema'
 
 const iconMap: Record<string, React.ElementType> = {
   'circle-check-big': CheckCircle,
@@ -40,7 +40,7 @@ const colorMap: Record<string, string> = {
 export default function NotificationDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const { toast } = useToast()
+  const {toast} = useToast()
   const [notification, setNotification] = useState<Notification | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -86,8 +86,8 @@ export default function NotificationDetailPage() {
     try {
       await fetch(`/api/notifications/${params.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isRead: true }),
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({isRead: true}),
       })
     } catch (error) {
       console.error('Error marking as read:', error)
@@ -130,15 +130,15 @@ export default function NotificationDetailPage() {
   if (loading) {
     return (
       <div className="container max-w-3xl mx-auto p-6 space-y-6">
-        <Skeleton className="h-10 w-32" />
+        <Skeleton className="h-10 w-32"/>
         <Card>
           <CardHeader>
-            <Skeleton className="h-8 w-3/4" />
-            <Skeleton className="h-4 w-1/2 mt-2" />
+            <Skeleton className="h-8 w-3/4"/>
+            <Skeleton className="h-4 w-1/2 mt-2"/>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Skeleton className="h-20 w-full" />
-            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-20 w-full"/>
+            <Skeleton className="h-10 w-full"/>
           </CardContent>
         </Card>
       </div>
@@ -150,13 +150,13 @@ export default function NotificationDetailPage() {
       <div className="container max-w-3xl mx-auto p-6">
         <Card>
           <CardContent className="text-center py-12">
-            <Bell className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+            <Bell className="h-16 w-16 mx-auto text-muted-foreground mb-4"/>
             <h2 className="text-2xl font-bold mb-2">Notification Not Found</h2>
             <p className="text-muted-foreground mb-6">
               This notification doesn't exist or you don't have permission to view it.
             </p>
             <Button onClick={() => router.push('/notifications')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="h-4 w-4 mr-2"/>
               Back to Notifications
             </Button>
           </CardContent>
@@ -180,7 +180,7 @@ export default function NotificationDetailPage() {
         onClick={() => router.push('/notifications')}
         className="gap-2"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-4 w-4"/>
         Back to Notifications
       </Button>
 
@@ -190,7 +190,7 @@ export default function NotificationDetailPage() {
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4 flex-1">
               <div className={cn('p-3 rounded-lg', colorClass)}>
-                <Icon className="h-6 w-6" />
+                <Icon className="h-6 w-6"/>
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
@@ -200,7 +200,7 @@ export default function NotificationDetailPage() {
                   )}
                 </div>
                 <CardDescription className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
+                  <Clock className="h-4 w-4"/>
                   {formatDate(notification.createdAt)}
                 </CardDescription>
               </div>
@@ -211,7 +211,7 @@ export default function NotificationDetailPage() {
               onClick={deleteNotification}
               className="text-destructive hover:text-destructive"
             >
-              <Trash2 className="h-5 w-5" />
+              <Trash2 className="h-5 w-5"/>
             </Button>
           </div>
         </CardHeader>
@@ -244,7 +244,7 @@ export default function NotificationDetailPage() {
                 className="w-full"
               >
                 View Details
-                <ExternalLink className="h-4 w-4 ml-2" />
+                <ExternalLink className="h-4 w-4 ml-2"/>
               </Button>
             </div>
           )}

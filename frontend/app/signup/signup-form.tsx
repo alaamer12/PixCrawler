@@ -5,7 +5,6 @@ import {authService} from '@/lib/auth'
 import {useRouter} from 'next/navigation'
 import {Button} from '@/components/ui/button'
 import {OAuthButtons} from '@/components/auth/oauth-buttons'
-import {PasswordInput} from '@/components/ui/password-input'
 import {PasswordStrengthMeter} from '@/components/strength-meter'
 
 export function SignupForm() {

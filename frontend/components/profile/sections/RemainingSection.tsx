@@ -1,15 +1,15 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Separator } from '@/components/ui/separator'
-import { useToast } from '@/components/ui/use-toast'
+import React, {useState} from 'react'
+import {Button} from '@/components/ui/button'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
+import {Badge} from '@/components/ui/badge'
+import {Progress} from '@/components/ui/progress'
+import {Input} from '@/components/ui/input'
+import {Label} from '@/components/ui/label'
+import {Switch} from '@/components/ui/switch'
+import {Separator} from '@/components/ui/separator'
+import {useToast} from '@/components/ui/use-toast'
 import {
   Sparkles,
   Rocket,
@@ -41,9 +41,9 @@ import {
 
 // Referrals Section
 export function Referrals() {
-  const { toast } = useToast()
+  const {toast} = useToast()
   const [referralCode] = useState('PIXCRAWL2024')
-  
+
   const stats = {
     totalReferrals: 5,
     pendingRewards: 50,
@@ -52,9 +52,9 @@ export function Referrals() {
   }
 
   const referrals = [
-    { email: 'alice@example.com', status: 'active', reward: 50, date: '2024-10-15' },
-    { email: 'bob@example.com', status: 'pending', reward: 0, date: '2024-10-28' },
-    { email: 'charlie@example.com', status: 'active', reward: 50, date: '2024-10-10' },
+    {email: 'alice@example.com', status: 'active', reward: 50, date: '2024-10-15'},
+    {email: 'bob@example.com', status: 'pending', reward: 0, date: '2024-10-28'},
+    {email: 'charlie@example.com', status: 'active', reward: 50, date: '2024-10-10'},
   ]
 
   const handleCopyCode = () => {
@@ -120,14 +120,15 @@ export function Referrals() {
               {referralCode}
             </div>
             <Button onClick={handleCopyCode}>
-              <Copy className="h-4 w-4 mr-2" />
+              <Copy className="h-4 w-4 mr-2"/>
               Copy Code
             </Button>
           </div>
           <div className="mt-4 p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
             <p className="text-sm text-green-800 dark:text-green-200">
-              <Gift className="h-4 w-4 inline mr-2" />
-              You and your friend each get <strong>$50 in credits</strong> when they sign up and make their first purchase!
+              <Gift className="h-4 w-4 inline mr-2"/>
+              You and your friend each get <strong>$50 in credits</strong> when they sign up and make their first
+              purchase!
             </p>
           </div>
         </CardContent>

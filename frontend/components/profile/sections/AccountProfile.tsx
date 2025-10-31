@@ -1,15 +1,15 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
+import React, {useState} from 'react'
+import {Button} from '@/components/ui/button'
+import {Input} from '@/components/ui/input'
+import {Label} from '@/components/ui/label'
+import {Textarea} from '@/components/ui/textarea'
+import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar'
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
+import {Badge} from '@/components/ui/badge'
+import {Separator} from '@/components/ui/separator'
+import {Switch} from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { useToast } from '@/components/ui/use-toast'
+import {useToast} from '@/components/ui/use-toast'
 import {
   Camera,
   Mail,
@@ -52,7 +52,7 @@ import {
   Clock,
   Edit2,
 } from 'lucide-react'
-import { useAuth } from '@/lib/auth/hooks'
+import {useAuth} from '@/lib/auth/hooks'
 
 interface ProfileData {
   firstName: string
@@ -75,14 +75,14 @@ interface ProfileData {
 }
 
 export function AccountProfile() {
-  const { toast } = useToast()
-  const { user, signOut } = useAuth()
+  const {toast} = useToast()
+  const {user, signOut} = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState(user?.profile?.avatarUrl || '')
-  
+
   const [profileData, setProfileData] = useState<ProfileData>({
     firstName: user?.profile?.fullName?.split(' ')[0] || '',
     lastName: user?.profile?.fullName?.split(' ')[1] || '',
@@ -109,11 +109,11 @@ export function AccountProfile() {
     setIsSaving(true)
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500))
-    
+
     setProfileData(editedData)
     setIsEditing(false)
     setIsSaving(false)
-    
+
     toast({
       title: 'Profile updated',
       description: 'Your profile information has been successfully saved.',
@@ -141,16 +141,16 @@ export function AccountProfile() {
   }
 
   const handleExportData = () => {
-    const dataStr = JSON.stringify({ profile: profileData, settings: {} }, null, 2)
+    const dataStr = JSON.stringify({profile: profileData, settings: {}}, null, 2)
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr)
-    
+
     const exportFileDefaultName = 'pixcrawler-profile-export.json'
-    
+
     const linkElement = document.createElement('a')
     linkElement.setAttribute('href', dataUri)
     linkElement.setAttribute('download', exportFileDefaultName)
     linkElement.click()
-    
+
     toast({
       title: 'Data exported',
       description: 'Your profile data has been downloaded.',
@@ -213,7 +213,7 @@ export function AccountProfile() {
         <div className="flex items-center gap-2">
           {!isEditing ? (
             <Button onClick={() => setIsEditing(true)} variant="default">
-              <Edit2 className="h-4 w-4 mr-2" />
+              <Edit2 className="h-4 w-4 mr-2"/>
               Edit Profile
             </Button>
           ) : (
@@ -223,7 +223,7 @@ export function AccountProfile() {
                 onClick={handleCancel}
                 disabled={isSaving}
               >
-                <X className="h-4 w-4 mr-2" />
+                <X className="h-4 w-4 mr-2"/>
                 Cancel
               </Button>
               <Button
@@ -232,12 +232,13 @@ export function AccountProfile() {
               >
                 {isSaving ? (
                   <>
-                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    <div
+                      className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"/>
                     Saving...
                   </>
                 ) : (
                   <>
-                    <Save className="h-4 w-4 mr-2" />
+                    <Save className="h-4 w-4 mr-2"/>
                     Save Changes
                   </>
                 )}
@@ -259,9 +260,9 @@ export function AccountProfile() {
           <div className="flex items-center gap-6">
             <div className="relative">
               <Avatar className="h-24 w-24">
-                <AvatarImage src={avatarUrl} />
+                <AvatarImage src={avatarUrl}/>
                 <AvatarFallback>
-                  <User className="h-12 w-12" />
+                  <User className="h-12 w-12"/>
                 </AvatarFallback>
               </Avatar>
               {isEditing && (
@@ -269,7 +270,7 @@ export function AccountProfile() {
                   htmlFor="avatar-upload"
                   className="absolute bottom-0 right-0 p-1.5 bg-primary text-primary-foreground rounded-full cursor-pointer hover:bg-primary/90 transition-colors"
                 >
-                  <Camera className="h-4 w-4" />
+                  <Camera className="h-4 w-4"/>
                   <input
                     id="avatar-upload"
                     type="file"
@@ -287,7 +288,7 @@ export function AccountProfile() {
               {isEditing && (
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm">
-                    <Upload className="h-4 w-4 mr-2" />
+                    <Upload className="h-4 w-4 mr-2"/>
                     Upload
                   </Button>
                   <Button variant="outline" size="sm">
@@ -315,7 +316,7 @@ export function AccountProfile() {
               <Input
                 id="firstName"
                 value={isEditing ? editedData.firstName : profileData.firstName}
-                onChange={(e) => setEditedData({ ...editedData, firstName: e.target.value })}
+                onChange={(e) => setEditedData({...editedData, firstName: e.target.value})}
                 disabled={!isEditing}
                 placeholder="John"
               />
@@ -325,7 +326,7 @@ export function AccountProfile() {
               <Input
                 id="lastName"
                 value={isEditing ? editedData.lastName : profileData.lastName}
-                onChange={(e) => setEditedData({ ...editedData, lastName: e.target.value })}
+                onChange={(e) => setEditedData({...editedData, lastName: e.target.value})}
                 disabled={!isEditing}
                 placeholder="Doe"
               />
@@ -339,14 +340,14 @@ export function AccountProfile() {
                 id="email"
                 type="email"
                 value={isEditing ? editedData.email : profileData.email}
-                onChange={(e) => setEditedData({ ...editedData, email: e.target.value })}
+                onChange={(e) => setEditedData({...editedData, email: e.target.value})}
                 disabled={!isEditing}
                 className="flex-1"
                 placeholder="john@example.com"
               />
               {!isEditing && (
                 <Badge variant="secondary" className="self-center">
-                  <Check className="h-3 w-3 mr-1" />
+                  <Check className="h-3 w-3 mr-1"/>
                   Verified
                 </Badge>
               )}
@@ -359,7 +360,7 @@ export function AccountProfile() {
               id="phone"
               type="tel"
               value={isEditing ? editedData.phone : profileData.phone}
-              onChange={(e) => setEditedData({ ...editedData, phone: e.target.value })}
+              onChange={(e) => setEditedData({...editedData, phone: e.target.value})}
               disabled={!isEditing}
               placeholder="+1 (555) 123-4567"
             />
@@ -370,7 +371,7 @@ export function AccountProfile() {
             <Textarea
               id="bio"
               value={isEditing ? editedData.bio : profileData.bio}
-              onChange={(e) => setEditedData({ ...editedData, bio: e.target.value })}
+              onChange={(e) => setEditedData({...editedData, bio: e.target.value})}
               disabled={!isEditing}
               placeholder="Tell us about yourself..."
               rows={4}
@@ -395,11 +396,11 @@ export function AccountProfile() {
             <div className="space-y-2">
               <Label htmlFor="company">Company</Label>
               <div className="relative">
-                <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
                 <Input
                   id="company"
                   value={isEditing ? editedData.company : profileData.company}
-                  onChange={(e) => setEditedData({ ...editedData, company: e.target.value })}
+                  onChange={(e) => setEditedData({...editedData, company: e.target.value})}
                   disabled={!isEditing}
                   className="pl-10"
                   placeholder="PixCrawler Inc."
@@ -411,7 +412,7 @@ export function AccountProfile() {
               <Input
                 id="jobTitle"
                 value={isEditing ? editedData.jobTitle : profileData.jobTitle}
-                onChange={(e) => setEditedData({ ...editedData, jobTitle: e.target.value })}
+                onChange={(e) => setEditedData({...editedData, jobTitle: e.target.value})}
                 disabled={!isEditing}
                 placeholder="ML Engineer"
               />
@@ -422,11 +423,11 @@ export function AccountProfile() {
             <div className="space-y-2">
               <Label htmlFor="location">Location</Label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
                 <Input
                   id="location"
                   value={isEditing ? editedData.location : profileData.location}
-                  onChange={(e) => setEditedData({ ...editedData, location: e.target.value })}
+                  onChange={(e) => setEditedData({...editedData, location: e.target.value})}
                   disabled={!isEditing}
                   className="pl-10"
                   placeholder="San Francisco, CA"
@@ -436,12 +437,12 @@ export function AccountProfile() {
             <div className="space-y-2">
               <Label htmlFor="website">Website</Label>
               <div className="relative">
-                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
                 <Input
                   id="website"
                   type="url"
                   value={isEditing ? editedData.website : profileData.website}
-                  onChange={(e) => setEditedData({ ...editedData, website: e.target.value })}
+                  onChange={(e) => setEditedData({...editedData, website: e.target.value})}
                   disabled={!isEditing}
                   className="pl-10"
                   placeholder="https://example.com"
@@ -463,30 +464,30 @@ export function AccountProfile() {
         <CardContent className="space-y-4">
           <div className="space-y-4">
             <div className="flex items-center gap-4">
-              <Linkedin className="h-5 w-5 text-[#0077B5]" />
+              <Linkedin className="h-5 w-5 text-[#0077B5]"/>
               <Input
                 value={isEditing ? editedData.linkedin : profileData.linkedin}
-                onChange={(e) => setEditedData({ ...editedData, linkedin: e.target.value })}
+                onChange={(e) => setEditedData({...editedData, linkedin: e.target.value})}
                 disabled={!isEditing}
                 placeholder="linkedin.com/in/username"
                 className="flex-1"
               />
             </div>
             <div className="flex items-center gap-4">
-              <Github className="h-5 w-5" />
+              <Github className="h-5 w-5"/>
               <Input
                 value={isEditing ? editedData.github : profileData.github}
-                onChange={(e) => setEditedData({ ...editedData, github: e.target.value })}
+                onChange={(e) => setEditedData({...editedData, github: e.target.value})}
                 disabled={!isEditing}
                 placeholder="github.com/username"
                 className="flex-1"
               />
             </div>
             <div className="flex items-center gap-4">
-              <Twitter className="h-5 w-5 text-[#1DA1F2]" />
+              <Twitter className="h-5 w-5 text-[#1DA1F2]"/>
               <Input
                 value={isEditing ? editedData.twitter : profileData.twitter}
-                onChange={(e) => setEditedData({ ...editedData, twitter: e.target.value })}
+                onChange={(e) => setEditedData({...editedData, twitter: e.target.value})}
                 disabled={!isEditing}
                 placeholder="@username"
                 className="flex-1"
@@ -515,13 +516,13 @@ export function AccountProfile() {
               </div>
               <Switch
                 checked={isEditing ? editedData.publicProfile : profileData.publicProfile}
-                onCheckedChange={(checked) => setEditedData({ ...editedData, publicProfile: checked })}
+                onCheckedChange={(checked) => setEditedData({...editedData, publicProfile: checked})}
                 disabled={!isEditing}
               />
             </div>
-            
-            <Separator />
-            
+
+            <Separator/>
+
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Email Notifications</Label>
@@ -531,13 +532,13 @@ export function AccountProfile() {
               </div>
               <Switch
                 checked={isEditing ? editedData.emailNotifications : profileData.emailNotifications}
-                onCheckedChange={(checked) => setEditedData({ ...editedData, emailNotifications: checked })}
+                onCheckedChange={(checked) => setEditedData({...editedData, emailNotifications: checked})}
                 disabled={!isEditing}
               />
             </div>
-            
-            <Separator />
-            
+
+            <Separator/>
+
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Marketing Emails</Label>
@@ -547,29 +548,29 @@ export function AccountProfile() {
               </div>
               <Switch
                 checked={isEditing ? editedData.marketingEmails : profileData.marketingEmails}
-                onCheckedChange={(checked) => setEditedData({ ...editedData, marketingEmails: checked })}
+                onCheckedChange={(checked) => setEditedData({...editedData, marketingEmails: checked})}
                 disabled={!isEditing}
               />
             </div>
           </div>
 
-          <Separator />
+          <Separator/>
 
           <div className="space-y-4">
             <h4 className="text-sm font-medium">Data Management</h4>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={handleExportData}>
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="h-4 w-4 mr-2"/>
                 Export Data
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="destructive" 
+                  <Button
+                    variant="destructive"
                     size="sm"
                     className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-500/20 transition-all duration-200"
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
+                    <Trash2 className="h-4 w-4 mr-2"/>
                     Delete Account
                   </Button>
                 </AlertDialogTrigger>
@@ -581,7 +582,7 @@ export function AccountProfile() {
                       account and remove all your data from our servers.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  
+
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
                       <Label htmlFor="delete-confirmation" className="text-sm font-medium">
@@ -597,9 +598,10 @@ export function AccountProfile() {
                         disabled={isDeleting}
                       />
                     </div>
-                    
-                    <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                      <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+
+                    <div
+                      className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                      <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0"/>
                       <p className="text-xs text-destructive">
                         All your projects, datasets, and crawl jobs will be permanently deleted.
                       </p>
@@ -636,7 +638,7 @@ export function AccountProfile() {
           <div className="space-y-2">
             <Label>Account Created</Label>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4" />
+              <Calendar className="h-4 w-4"/>
               <span>January 15, 2024</span>
             </div>
           </div>
@@ -644,7 +646,7 @@ export function AccountProfile() {
           <div className="space-y-2">
             <Label>Last Login</Label>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
+              <Clock className="h-4 w-4"/>
               <span>Today at 10:30 AM</span>
             </div>
           </div>

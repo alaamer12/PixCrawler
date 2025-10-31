@@ -1,5 +1,5 @@
-import { PaymentCancel } from '@/components/stripe'
+import {PaymentCancel} from '@/components/stripe'
 
 export default function PaymentCancelledPage() {
-  return <PaymentCancel />
+  return <PaymentCancel/>
 }

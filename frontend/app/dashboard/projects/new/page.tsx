@@ -5,14 +5,14 @@ import {useRouter, useSearchParams} from 'next/navigation'
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
 import {Button} from '@/components/ui/button'
 import {Badge} from '@/components/ui/badge'
-import {ArrowLeft, Sparkles, Image, Search, Settings, Zap} from 'lucide-react'
+import {ArrowLeft, Image, Search, Settings, Sparkles, Zap} from 'lucide-react'
 import Link from 'next/link'
 
 export default function NewProjectPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isDevMode = searchParams.get('dev_bypass') === 'true'
-  
+
   const [projectName, setProjectName] = useState('')
   const [keywords, setKeywords] = useState('')
   const [selectedSources, setSelectedSources] = useState<string[]>(['google'])
@@ -57,7 +57,7 @@ export default function NewProjectPage() {
               asChild
             >
               <Link href={isDevMode ? '/dashboard?dev_bypass=true' : '/dashboard'}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeft className="w-4 h-4 mr-2"/>
                 Back to Dashboard
               </Link>
             </Button>
@@ -67,7 +67,8 @@ export default function NewProjectPage() {
               </Badge>
             )}
           </div>
-          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          <h1
+            className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
             Create New Project
           </h1>
           <p className="text-base text-muted-foreground">
@@ -75,7 +76,7 @@ export default function NewProjectPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-primary" />
+          <Sparkles className="w-5 h-5 text-primary"/>
           <span className="text-sm text-muted-foreground">AI-Powered</span>
         </div>
       </div>
@@ -155,7 +156,7 @@ export default function NewProjectPage() {
                           : 'bg-background/50 hover:bg-accent'
                       }`}
                     >
-                      <Icon className={`w-5 h-5 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <Icon className={`w-5 h-5 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}/>
                       <span className={`font-medium ${isSelected ? 'text-primary' : ''}`}>
                         {source.name}
                       </span>
@@ -173,7 +174,7 @@ export default function NewProjectPage() {
           <Card className="bg-card/80 backdrop-blur-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5" />
+                <Settings className="w-5 h-5"/>
                 Configuration
               </CardTitle>
             </CardHeader>
@@ -207,7 +208,7 @@ export default function NewProjectPage() {
           <Card className="bg-gradient-to-br from-primary/10 to-purple-500/10 border-primary/20 backdrop-blur-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
-                <Zap className="w-5 h-5" />
+                <Zap className="w-5 h-5"/>
                 What You Get
               </CardTitle>
             </CardHeader>
@@ -247,12 +248,12 @@ export default function NewProjectPage() {
             >
               {isCreating ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"/>
                   Creating Project...
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4 mr-2" />
+                  <Sparkles className="w-4 h-4 mr-2"/>
                   Create Project
                 </>
               )}
