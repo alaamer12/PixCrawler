@@ -189,34 +189,6 @@ const PAGES: PageInfo[] = [
     requiresAuth: true,
     icon: <Database className="size-4"/>
   },
-
-  // Demo Pages
-  {
-    path: '/demo',
-    name: 'Demo',
-    description: 'Product demonstration',
-    category: 'Demo',
-    requiresAuth: false,
-    icon: <TestTube className="size-4"/>
-  },
-  {
-    path: '/demo/buttons',
-    name: 'Button Demo',
-    description: 'UI component demonstrations',
-    category: 'Demo',
-    requiresAuth: false,
-    icon: <Palette className="size-4"/>
-  },
-
-  // Dev Pages
-  {
-    path: '/dev',
-    name: 'Dev Navigator',
-    description: 'This development page navigator',
-    category: 'Dev',
-    requiresAuth: false,
-    icon: <Code className="size-4"/>
-  }
 ]
 
 const CATEGORY_COLORS = {
