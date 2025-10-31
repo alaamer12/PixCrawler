@@ -5,14 +5,12 @@ This module provides full test coverage for compression, archiving,
 and decompression functionality with mocked data.
 """
 
-import os
 import tarfile
 import zipfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-import zstandard as zstd
 from PIL import Image
 
 from utility.compress import (

@@ -7,8 +7,8 @@ including test client setup, database fixtures, and mock settings.
 
 import os
 from pathlib import Path
-from typing import AsyncGenerator, Generator
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Generator
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi import FastAPI
@@ -24,38 +24,39 @@ os.environ["REDIS_URL"] = "redis://localhost:6379/1"
 os.environ["CELERY_BROKER_URL"] = "redis://localhost:6379/1"
 os.environ["CELERY_RESULT_BACKEND"] = "redis://localhost:6379/1"
 
-from backend.core.config import Settings, get_settings
+from backend.core.config import Settings
 
 
 @pytest.fixture(scope="session")
 def test_settings() -> Settings:
     """
     Create test settings instance.
-    
+
     Returns:
         Settings instance configured for testing
     """
     # Clear the cache to ensure test settings are used
-    get_settings.cache_clear()
-    settings = get_settings()
+    # Fresh Instance
+    settings = Settings()
     return settings
 
 
+# noinspection PyTypeChecker
 @pytest.fixture(scope="function")
 def app(test_settings: Settings) -> FastAPI:
     """
     Create FastAPI application without lifespan for testing.
-    
+
     Args:
         test_settings: Test settings fixture
-        
+
     Returns:
         FastAPI application instance
     """
     from backend.api.v1.router import api_router
     from starlette.middleware.cors import CORSMiddleware
     from starlette.middleware.gzip import GZipMiddleware
-    
+
     # Create app without lifespan to avoid Redis/DB connections
     app = FastAPI(
         title="PixCrawler API",
@@ -64,7 +65,7 @@ def app(test_settings: Settings) -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
     )
-    
+
     # Add middleware (same as main.py but without rate limiting)
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.add_middleware(
@@ -74,10 +75,10 @@ def app(test_settings: Settings) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     # Include API router (api_router already has /v1 prefix)
     app.include_router(api_router, prefix="/api")
-    
+
     return app
 
 
@@ -85,10 +86,10 @@ def app(test_settings: Settings) -> FastAPI:
 def client(app: FastAPI) -> Generator[TestClient, None, None]:
     """
     Create test client for FastAPI application.
-    
+
     Args:
         app: FastAPI application fixture
-        
+
     Yields:
         TestClient instance for making requests
     """
@@ -100,7 +101,7 @@ def client(app: FastAPI) -> Generator[TestClient, None, None]:
 def mock_supabase_client() -> MagicMock:
     """
     Create mock Supabase client for testing.
-    
+
     Returns:
         MagicMock instance configured as Supabase client
     """
@@ -111,19 +112,6 @@ def mock_supabase_client() -> MagicMock:
     return mock_client
 
 
-@pytest.fixture(autouse=True)
-def reset_settings_cache():
-    """
-    Reset settings cache before each test.
-    
-    This ensures each test gets fresh settings and prevents
-    test pollution from cached values.
-    """
-    get_settings.cache_clear()
-    yield
-    get_settings.cache_clear()
-
-
 # ============================================================================
 # Storage-specific fixtures
 # ============================================================================
@@ -132,13 +120,13 @@ def reset_settings_cache():
 def temp_storage_dir() -> Generator[Path, None, None]:
     """
     Create a temporary directory for storage tests.
-    
+
     Yields:
         Path to temporary directory that is automatically cleaned up
     """
     import tempfile
     from pathlib import Path
-    
+
     with tempfile.TemporaryDirectory() as tmpdir:
         yield Path(tmpdir)
 
@@ -147,15 +135,15 @@ def temp_storage_dir() -> Generator[Path, None, None]:
 def storage_settings(temp_storage_dir: Path):
     """
     Create storage settings for testing.
-    
+
     Args:
         temp_storage_dir: Temporary directory fixture
-        
+
     Returns:
         StorageSettings instance configured for testing
     """
     from backend.storage.config import StorageSettings
-    
+
     return StorageSettings(
         storage_provider="local",
         local_storage_path=str(temp_storage_dir)
@@ -166,15 +154,15 @@ def storage_settings(temp_storage_dir: Path):
 def local_storage_provider(temp_storage_dir: Path):
     """
     Create LocalStorageProvider instance for testing.
-    
+
     Args:
         temp_storage_dir: Temporary directory fixture
-        
+
     Returns:
         LocalStorageProvider instance
     """
     from backend.storage.local import LocalStorageProvider
-    
+
     return LocalStorageProvider(base_directory=temp_storage_dir)
 
 
@@ -182,15 +170,14 @@ def local_storage_provider(temp_storage_dir: Path):
 def sample_text_file(temp_storage_dir: Path) -> Path:
     """
     Create a sample text file for testing.
-    
+
     Args:
         temp_storage_dir: Temporary directory fixture
-        
+
     Returns:
         Path to sample text file
     """
-    from pathlib import Path
-    
+
     file_path = temp_storage_dir / "sample_text.txt"
     file_path.write_text("Sample text content for testing storage operations")
     return file_path
@@ -200,16 +187,15 @@ def sample_text_file(temp_storage_dir: Path) -> Path:
 def sample_json_file(temp_storage_dir: Path) -> Path:
     """
     Create a sample JSON file for testing.
-    
+
     Args:
         temp_storage_dir: Temporary directory fixture
-        
+
     Returns:
         Path to sample JSON file
     """
     import json
-    from pathlib import Path
-    
+
     file_path = temp_storage_dir / "sample_data.json"
     data = {
         "name": "test_dataset",
@@ -225,15 +211,14 @@ def sample_json_file(temp_storage_dir: Path) -> Path:
 def sample_image_file(temp_storage_dir: Path) -> Path:
     """
     Create a sample PNG image file for testing.
-    
+
     Args:
         temp_storage_dir: Temporary directory fixture
-        
+
     Returns:
         Path to sample PNG image file
     """
-    from pathlib import Path
-    
+
     # Minimal valid PNG file (1x1 transparent pixel)
     png_data = (
         b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01'

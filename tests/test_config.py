@@ -18,10 +18,10 @@ from level import (
 )
 
 
-def create_test_image(path: str, width: int = 100, height: int = 100, format: str = 'JPEG'):
+def create_test_image(path: str, width: int = 100, height: int = 100, format_: str = 'JPEG'):
     """Create a test image file."""
     img = Image.new('RGB', (width, height), color='red')
-    img.save(path, format)
+    img.save(path, format_)
 
 
 def test_validation_config():
