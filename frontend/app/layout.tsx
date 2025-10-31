@@ -6,6 +6,7 @@ import {Navigation} from '@/components/LandingPage/Navigation';
 import {Footer} from '@/components/LandingPage/Footer';
 import {HeroBackground} from '@/components/LandingPage/HeroBackground';
 import {TopLoadingBar} from '@/components/TopLoadingBar';
+import {Toaster} from 'sonner';
 
 export const metadata: Metadata = {
   title: 'PixCrawler - AI-Powered Image Dataset Builder for ML & Research',
@@ -86,6 +87,7 @@ export default function RootLayout({
           </div>
         </div>
       </TopLoadingBar>
+      <Toaster richColors position="top-right" />
     </ThemeProvider>
     </body>
     </html>
