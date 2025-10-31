@@ -54,18 +54,16 @@ export const getRandomImagesForCategory = (
   count: number = 24
 ): string[] => {
   const categoryData = MANIFEST[categoryName]
-  
+
   if (!categoryData) {
     console.warn(`Category "${categoryName}" not found in manifest`)
     return []
   }
 
   const availableImages = categoryData.images
-  
+
   // Shuffle and select random images
-  const selectedImages = shuffleArray(availableImages).slice(0, Math.min(count, availableImages.length))
-  
-  return selectedImages
+  return shuffleArray(availableImages).slice(0, Math.min(count, availableImages.length))
 }
 
 /**
