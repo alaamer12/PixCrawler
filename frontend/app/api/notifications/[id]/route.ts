@@ -14,6 +14,68 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const notificationId = parseInt(params.id)
+
+    if (isNaN(notificationId)) {
+      return NextResponse.json(
+        { error: 'Invalid notification ID' },
+        { status: 400 }
+      )
+    }
+
+    // Check for dev bypass
+    const searchParams = request.nextUrl.searchParams
+    const devBypass = searchParams.get('dev_bypass') === 'true'
+
+    // Mock data for development
+    if (devBypass || process.env.NODE_ENV === 'development') {
+      const mockNotifications: Record<number, any> = {
+        1: {
+          id: 1,
+          userId: 'dev-user',
+          title: 'Crawl job completed',
+          message: 'Your "Cat Breeds" dataset is ready with 1,234 images',
+          type: 'success',
+          category: 'crawl_job',
+          icon: 'circle-check-big',
+          color: 'green',
+          actionUrl: '/dashboard/datasets/123',
+          actionLabel: 'View Dataset',
+          isRead: false,
+          readAt: null,
+          metadata: { jobId: '123', imageCount: 1234 },
+          createdAt: new Date(Date.now() - 1000 * 60 * 30),
+        },
+        2: {
+          id: 2,
+          userId: 'dev-user',
+          title: 'Payment successful',
+          message: 'Your payment of $49.99 has been processed successfully',
+          type: 'success',
+          category: 'payment',
+          icon: 'credit-card',
+          color: 'blue',
+          actionUrl: '/dashboard/billing',
+          actionLabel: 'View Invoice',
+          isRead: false,
+          readAt: null,
+          metadata: { amount: 49.99, currency: 'USD' },
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
+        },
+      }
+
+      const notification = mockNotifications[notificationId]
+
+      if (!notification) {
+        return NextResponse.json(
+          { error: 'Notification not found' },
+          { status: 404 }
+        )
+      }
+
+      return NextResponse.json({ notification })
+    }
+
     // Authenticate user
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -22,15 +84,6 @@ export async function GET(
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
-      )
-    }
-
-    const notificationId = parseInt(params.id)
-
-    if (isNaN(notificationId)) {
-      return NextResponse.json(
-        { error: 'Invalid notification ID' },
-        { status: 400 }
       )
     }
 
@@ -73,17 +126,6 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Authenticate user
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     const notificationId = parseInt(params.id)
 
     if (isNaN(notificationId)) {
@@ -100,6 +142,32 @@ export async function PATCH(
       return NextResponse.json(
         { error: 'Invalid isRead value' },
         { status: 400 }
+      )
+    }
+
+    // Check for dev bypass
+    const searchParams = request.nextUrl.searchParams
+    const devBypass = searchParams.get('dev_bypass') === 'true'
+
+    // Mock data for development
+    if (devBypass || process.env.NODE_ENV === 'development') {
+      return NextResponse.json({
+        notification: {
+          id: notificationId,
+          isRead,
+          readAt: isRead ? new Date() : null,
+        },
+      })
+    }
+
+    // Authenticate user
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
       )
     }
 
@@ -152,6 +220,24 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const notificationId = parseInt(params.id)
+
+    if (isNaN(notificationId)) {
+      return NextResponse.json(
+        { error: 'Invalid notification ID' },
+        { status: 400 }
+      )
+    }
+
+    // Check for dev bypass
+    const searchParams = request.nextUrl.searchParams
+    const devBypass = searchParams.get('dev_bypass') === 'true'
+
+    // Mock data for development
+    if (devBypass || process.env.NODE_ENV === 'development') {
+      return NextResponse.json({ success: true })
+    }
+
     // Authenticate user
     const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -160,15 +246,6 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
-      )
-    }
-
-    const notificationId = parseInt(params.id)
-
-    if (isNaN(notificationId)) {
-      return NextResponse.json(
-        { error: 'Invalid notification ID' },
-        { status: 400 }
       )
     }
 

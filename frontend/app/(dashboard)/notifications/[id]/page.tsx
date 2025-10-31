@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/components/ui/use-toast'
 import {
   ArrowLeft,
   Bell,
@@ -220,7 +220,7 @@ export default function NotificationDetailPage() {
           <div>
             <h3 className="font-semibold mb-2">Message</h3>
             <p className="text-muted-foreground leading-relaxed">
-              {notification.message}
+              {String(notification.message)}
             </p>
           </div>
 

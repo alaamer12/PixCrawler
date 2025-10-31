@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useToast } from '@/hooks/use-toast'
+import { useToast } from '@/components/ui/use-toast'
 import {
   Bell,
   CheckCircle,
@@ -18,6 +18,8 @@ import {
   Trash2,
   CheckCheck,
   Filter,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Notification } from '@/lib/db/schema'
@@ -37,18 +39,21 @@ const colorMap: Record<string, string> = {
   yellow: 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/20',
 }
 
+const ITEMS_PER_PAGE = 10
+
 export default function NotificationsPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     fetchNotifications()
   }, [filter])
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true)
       const url = filter === 'unread' 
@@ -63,6 +68,7 @@ export default function NotificationsPage() {
 
       const data = await response.json()
       setNotifications(data.notifications)
+      setCurrentPage(1) // Reset to first page on filter change
     } catch (error) {
       console.error('Error fetching notifications:', error)
       toast({
@@ -73,9 +79,9 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filter, toast])
 
-  const markAsRead = async (id: number) => {
+  const markAsRead = useCallback(async (id: number) => {
     try {
       const response = await fetch(`/api/notifications/${id}`, {
         method: 'PATCH',
@@ -98,46 +104,17 @@ export default function NotificationsPage() {
         variant: 'destructive',
       })
     }
-  }
+  }, [toast])
 
-  const deleteNotification = async (id: number) => {
+  const markAllAsRead = useCallback(async () => {
     try {
-      const response = await fetch(`/api/notifications/${id}`, {
-        method: 'DELETE',
+      const response = await fetch('/api/notifications/mark-all-read', {
+        method: 'POST',
       })
 
       if (!response.ok) {
-        throw new Error('Failed to delete notification')
+        throw new Error('Failed to mark all as read')
       }
-
-      setNotifications(prev => prev.filter(n => n.id !== id))
-      toast({
-        title: 'Success',
-        description: 'Notification deleted',
-      })
-    } catch (error) {
-      console.error('Error deleting notification:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to delete notification',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const markAllAsRead = async () => {
-    try {
-      const unreadNotifications = notifications.filter(n => !n.isRead)
-      
-      await Promise.all(
-        unreadNotifications.map(n =>
-          fetch(`/api/notifications/${n.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isRead: true }),
-          })
-        )
-      )
 
       setNotifications(prev =>
         prev.map(n => ({ ...n, isRead: true, readAt: new Date() }))
@@ -151,29 +128,52 @@ export default function NotificationsPage() {
       console.error('Error marking all as read:', error)
       toast({
         title: 'Error',
-        description: 'Failed to mark all as read',
+        description: 'Failed to mark all notifications as read',
         variant: 'destructive',
       })
     }
-  }
+  }, [toast])
 
-  const handleNotificationClick = (notification: Notification) => {
+  const deleteNotification = useCallback(async (id: number) => {
+    try {
+      const response = await fetch(`/api/notifications/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete notification')
+      }
+
+      setNotifications(prev => prev.filter(n => n.id !== id))
+
+      toast({
+        title: 'Success',
+        description: 'Notification deleted',
+      })
+    } catch (error) {
+      console.error('Error deleting notification:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to delete notification',
+        variant: 'destructive',
+      })
+    }
+  }, [toast])
+
+  const handleNotificationClick = useCallback((notification: Notification) => {
     if (!notification.isRead) {
       markAsRead(notification.id)
     }
-    if (notification.actionUrl) {
-      router.push(notification.actionUrl)
-    } else {
-      router.push(`/notifications/${notification.id}`)
-    }
-  }
+    router.push(`/notifications/${notification.id}`)
+  }, [markAsRead, router])
 
-  const getTimeAgo = (date: Date) => {
+  const getTimeAgo = useCallback((date: Date | string) => {
     const now = new Date()
-    const diffInMs = now.getTime() - new Date(date).getTime()
-    const diffInMinutes = Math.floor(diffInMs / 60000)
-    const diffInHours = Math.floor(diffInMinutes / 60)
-    const diffInDays = Math.floor(diffInHours / 24)
+    const notificationDate = new Date(date)
+    const diffInMs = now.getTime() - notificationDate.getTime()
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60))
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60))
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24))
 
     if (diffInMinutes < 60) {
       return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`
@@ -182,9 +182,30 @@ export default function NotificationsPage() {
     } else {
       return `${diffInDays} day${diffInDays !== 1 ? 's' : ''} ago`
     }
-  }
+  }, [])
 
-  const unreadCount = notifications.filter(n => !n.isRead).length
+  // Memoized calculations
+  const unreadCount = useMemo(() => 
+    notifications.filter(n => !n.isRead).length, 
+    [notifications]
+  )
+
+  // Pagination logic
+  const paginatedNotifications = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+    const endIndex = startIndex + ITEMS_PER_PAGE
+    return notifications.slice(startIndex, endIndex)
+  }, [notifications, currentPage])
+
+  const totalPages = useMemo(() => 
+    Math.ceil(notifications.length / ITEMS_PER_PAGE), 
+    [notifications.length]
+  )
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
 
   return (
     <div className="container max-w-4xl mx-auto p-6 space-y-6">
@@ -276,62 +297,107 @@ export default function NotificationsPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {notifications.map(notification => {
-                const Icon = notification.icon
-                  ? iconMap[notification.icon] || Bell
-                  : Bell
-                const colorClass = notification.iconColor
-                  ? colorMap[notification.iconColor] || colorMap.blue
-                  : colorMap.blue
+            <>
+              <div className="space-y-4">
+                {paginatedNotifications.map(notification => {
+                  const Icon = notification.icon
+                    ? iconMap[notification.icon] || Bell
+                    : Bell
+                  const colorClass = notification.iconColor
+                    ? colorMap[notification.iconColor] || colorMap.blue
+                    : colorMap.blue
 
-                return (
-                  <div
-                    key={notification.id}
-                    className={cn(
-                      'flex items-start gap-4 p-4 rounded-lg border transition-all cursor-pointer hover:bg-accent',
-                      !notification.isRead && 'bg-primary/5 border-primary/20'
-                    )}
-                    onClick={() => handleNotificationClick(notification)}
-                  >
-                    <div className={cn('p-2 rounded-lg', colorClass)}>
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">
-                            {notification.title}
-                          </p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {notification.message}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {getTimeAgo(notification.createdAt)}
-                          </p>
-                        </div>
-                        {!notification.isRead && (
-                          <Badge variant="default" className="ml-2">
-                            New
-                          </Badge>
-                        )}
+                  return (
+                    <div
+                      key={notification.id}
+                      className={cn(
+                        'flex items-start gap-4 p-4 rounded-lg border cursor-pointer hover:bg-accent/20',
+                        !notification.isRead && 'bg-primary/5 border-primary/20'
+                      )}
+                      onClick={() => handleNotificationClick(notification)}
+                    >
+                      <div className={cn('p-2 rounded-lg', colorClass)}>
+                        <Icon className="h-5 w-5" />
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">
+                              {notification.title}
+                            </p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {notification.message}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {getTimeAgo(notification.createdAt)}
+                            </p>
+                          </div>
+                          {!notification.isRead && (
+                            <Badge variant="default" className="ml-2">
+                              New
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={e => {
+                          e.stopPropagation()
+                          deleteNotification(notification.id)
+                        }}
+                        className="hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, notifications.length)} of {notifications.length} notifications
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => handlePageChange(page)}
+                          className="w-9"
+                        >
+                          {page}
+                        </Button>
+                      ))}
                     </div>
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={e => {
-                        e.stopPropagation()
-                        deleteNotification(notification.id)
-                      }}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   </div>
-                )
-              })}
-            </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
