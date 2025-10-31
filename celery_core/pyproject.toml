@@ -30,7 +30,7 @@ dependencies = [
   "redis>=5.0.0",
   "pydantic>=2.0.0",
   "pydantic-settings>=2.0.0",
-  "pixcrawler-logging",
+  "pixcrawler-utility",
 ]
 
 [project.optional-dependencies]
@@ -77,7 +77,7 @@ ignore = [
 "__init__.py" = ["F401"]
 
 [tool.ruff.isort]
-known-first-party = ["celery_core", "logging_config"]
+known-first-party = ["celery_core", "utility"]
 
 [tool.mypy]
 python_version = "3.11"

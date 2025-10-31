@@ -21,7 +21,7 @@ dependencies = [
   "celery>=5.3.0",
   "python-multipart>=0.0.6",
   "supabase>=2.0.0",
-  "pixcrawler-logging",
+  "pixcrawler-utility",
   "fastapi-pagination", # Use Latest
   "fastapi-limiter", # Use Latest
   "asyncpg",
@@ -52,7 +52,7 @@ select = ["E", "W", "F", "I", "N", "B", "UP", "C4", "SIM", "TCH"]
 ignore = ["E501", "B008"]
 
 [tool.ruff.isort]
-known-first-party = ["backend", "pixcrawler-logging"]
+known-first-party = ["backend", "pixcrawler-utility"]
 
 [tool.mypy]
 python_version = "3.11"

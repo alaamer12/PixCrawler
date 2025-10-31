@@ -30,7 +30,7 @@ dependencies = [
   "numpy>=1.24.0",
   "jsonschema>=4.0.0",
   "tqdm>=4.65.0",
-  "pixcrawler-logging",
+  "pixcrawler-utility",
   "pixcrawler-celery-core",
   "pydantic>=2.0.0",
   "pydantic-settings>=2.0.0",

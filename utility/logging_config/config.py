@@ -1,13 +1,51 @@
 """
-Simplified logging configuration using Loguru for PixCrawler monorepo.
+Logging configuration using Loguru and Pydantic Settings.
+
+This module provides centralized logging configuration for the PixCrawler
+monorepo using Loguru with Pydantic Settings for type-safe configuration
+management.
+
+Classes:
+    Environment: Environment types enumeration
+    LogLevel: Log levels enumeration
+    LoggingSettings: Main logging configuration with Pydantic Settings
+
+Functions:
+    setup_logging: Setup Loguru logging for the application
+    get_logger: Get configured logger instance
+    set_log_level: Set global log level
+    get_config_info: Get current logging configuration
+    get_logging_settings: Get cached logging settings instance
+
+Features:
+    - Environment-based configuration with .env file support
+    - Type-safe configuration with Pydantic v2 validation
+    - Support for development, production, and testing environments
+    - JSON logging for production (Azure Monitor compatible)
+    - File rotation and retention
+    - Colored console output for development
 """
 
-import os
+from functools import lru_cache
 import sys
 from enum import Enum
 from pathlib import Path
 from typing import Optional, Dict, Any
+
 from loguru import logger
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+__all__ = [
+    'Environment',
+    'LogLevel',
+    'LoggingSettings',
+    'setup_logging',
+    'get_logger',
+    'set_log_level',
+    'get_config_info',
+    'get_logging_settings'
+]
 
 
 NOISY_PACKAGES = [
@@ -34,66 +72,159 @@ class LogLevel(Enum):
     TRACE = "TRACE"
 
 
-class LoguruConfig:
-    """Simple configuration for Loguru-based logging."""
+class LoggingSettings(BaseSettings):
+    """
+    Logging configuration using Pydantic Settings.
 
-    def __init__(self, environment: Environment = Environment.DEVELOPMENT):
-        self.environment = environment
-        self.log_dir = Path("logs")
-        self.log_filename = "pixcrawler.log"
-        self.error_filename = "errors.log"
-        self.max_file_size = "10 MB"
-        self.backup_count = 5
+    This class defines all configuration options for Loguru-based logging,
+    including environment-specific defaults, file paths, and formatting options.
 
-        # Environment-specific defaults
-        if environment == Environment.PRODUCTION:
-            self.console_level = LogLevel.WARNING
-            self.file_level = LogLevel.INFO
-            self.use_json = True
-            self.use_colors = False
-        elif environment == Environment.DEVELOPMENT:
-            self.console_level = LogLevel.DEBUG
-            self.file_level = LogLevel.DEBUG
-            self.use_json = False
-            self.use_colors = True
-        else:  # TESTING
-            self.console_level = LogLevel.ERROR
-            self.file_level = LogLevel.WARNING
-            self.use_json = False
-            self.use_colors = False
+    Attributes:
+        environment: Environment type (development, production, testing)
+        log_dir: Directory for log files
+        log_filename: Main log file name
+        error_filename: Error-only log file name
+        max_file_size: Maximum file size before rotation
+        backup_count: Number of backup files to retain
+        console_level: Console output log level
+        file_level: File output log level
+        use_json: Enable JSON formatting
+        use_colors: Enable colored console output
+    """
 
-    # noinspection PyCompatibility
+    model_config = SettingsConfigDict(
+        env_prefix="PIXCRAWLER_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+        validate_default=True,
+        str_strip_whitespace=True
+    )
+
+    environment: Environment = Field(
+        default=Environment.DEVELOPMENT,
+        description="Environment type",
+        examples=[Environment.DEVELOPMENT, Environment.PRODUCTION, Environment.TESTING]
+    )
+    log_dir: Path = Field(
+        default=Path("logs"),
+        description="Directory for log files",
+        examples=[Path("logs"), Path("/var/log/pixcrawler")]
+    )
+    log_filename: str = Field(
+        default="pixcrawler.log",
+        min_length=1,
+        description="Main log file name",
+        examples=["pixcrawler.log", "app.log"]
+    )
+    error_filename: str = Field(
+        default="errors.log",
+        min_length=1,
+        description="Error-only log file name",
+        examples=["errors.log", "error.log"]
+    )
+    max_file_size: str = Field(
+        default="10 MB",
+        description="Maximum file size before rotation",
+        examples=["10 MB", "50 MB", "100 MB"]
+    )
+    backup_count: int = Field(
+        default=5,
+        ge=1,
+        le=100,
+        description="Number of backup files to retain",
+        examples=[5, 10, 20]
+    )
+    console_level: LogLevel = Field(
+        default=LogLevel.DEBUG,
+        description="Console output log level",
+        examples=[LogLevel.DEBUG, LogLevel.INFO, LogLevel.WARNING]
+    )
+    file_level: LogLevel = Field(
+        default=LogLevel.DEBUG,
+        description="File output log level",
+        examples=[LogLevel.DEBUG, LogLevel.INFO, LogLevel.WARNING]
+    )
+    use_json: bool = Field(
+        default=False,
+        description="Enable JSON formatting",
+        examples=[True, False]
+    )
+    use_colors: bool = Field(
+        default=True,
+        description="Enable colored console output",
+        examples=[True, False]
+    )
+
+    @field_validator("environment", mode="before")
     @classmethod
-    def from_env(cls) -> 'LoguruConfig':
-        """Create config from environment variables."""
-        env_name = os.getenv('PIXCRAWLER_ENVIRONMENT', 'development').lower()
-        environment = Environment(env_name)
+    def parse_environment(cls, v: Any) -> Environment:
+        """
+        Parse environment from string or enum.
 
-        config = cls(environment=environment)
+        Args:
+            v: Input value (string or Environment)
 
-        # Override with environment variables if present
-        if log_dir := os.getenv('PIXCRAWLER_LOG_DIR'):
-            config.log_dir = Path(log_dir)
+        Returns:
+            Environment enum value
+        """
+        if isinstance(v, str):
+            return Environment(v.lower())
+        return v
 
-        if json_format := os.getenv('PIXCRAWLER_LOG_JSON'):
-            config.use_json = json_format.lower() in ('true', '1', 'yes')
+    @field_validator("console_level", "file_level", mode="before")
+    @classmethod
+    def parse_log_level(cls, v: Any) -> LogLevel:
+        """
+        Parse log level from string or enum.
 
-        if use_colors := os.getenv('PIXCRAWLER_LOG_COLORS'):
-            config.use_colors = use_colors.lower() in ('true', '1', 'yes')
+        Args:
+            v: Input value (string or LogLevel)
 
-        return config
+        Returns:
+            LogLevel enum value
+        """
+        if isinstance(v, str):
+            return LogLevel(v.upper())
+        return v
+
+    def model_post_init(self, __context: Any) -> None:
+        """
+        Apply environment-specific defaults after initialization.
+
+        Args:
+            __context: Pydantic context (unused)
+        """
+        # Apply environment-specific defaults if not explicitly set
+        if self.environment == Environment.PRODUCTION:
+            if self.console_level == LogLevel.DEBUG:
+                self.console_level = LogLevel.WARNING
+            if self.file_level == LogLevel.DEBUG:
+                self.file_level = LogLevel.INFO
+            if not self.use_json:
+                self.use_json = True
+            if self.use_colors:
+                self.use_colors = False
+        elif self.environment == Environment.TESTING:
+            if self.console_level == LogLevel.DEBUG:
+                self.console_level = LogLevel.ERROR
+            if self.file_level == LogLevel.DEBUG:
+                self.file_level = LogLevel.WARNING
+            if self.use_colors:
+                self.use_colors = False
 
 
 def setup_logging(environment: Optional[str] = None,
-                  config: Optional[LoguruConfig] = None,
-                  **kwargs) -> None:
+                  config: Optional[LoggingSettings] = None,
+                  **kwargs: Any) -> None:
     """
     Setup Loguru logging for the PixCrawler monorepo.
 
     Args:
         environment: Environment type (development, production, testing)
-        config: Custom LoguruConfig instance
-        **kwargs: Additional configuration options
+        config: Custom LoggingSettings instance
+        **kwargs: Additional configuration options to override
     """
     # Remove default handler
     logger.remove()
@@ -101,10 +232,9 @@ def setup_logging(environment: Optional[str] = None,
     # Create or get config
     if config is None:
         if environment:
-            env = Environment(environment.lower())
-            config = LoguruConfig(environment=env)
+            config = LoggingSettings(environment=environment)
         else:
-            config = LoguruConfig.from_env()
+            config = get_logging_settings()
 
     # Apply kwargs overrides
     for key, value in kwargs.items():
@@ -167,7 +297,7 @@ def setup_logging(environment: Optional[str] = None,
     logger.debug(f"Log directory: {config.log_dir}")
 
 
-def _get_console_format(config: LoguruConfig) -> str:
+def _get_console_format(config: LoggingSettings) -> str:
     """Get console format string based on configuration."""
     if config.environment == Environment.DEVELOPMENT:
         return "<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
@@ -177,7 +307,7 @@ def _get_console_format(config: LoguruConfig) -> str:
         return "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}"
 
 
-def _get_file_format(config: LoguruConfig) -> str:
+def _get_file_format(config: LoggingSettings) -> str:
     """Get file format string based on configuration."""
     if config.use_json:
         return "{message}"  # JSON serialization handles formatting
@@ -239,3 +369,14 @@ def get_config_info() -> Dict[str, Any]:
         "library": "loguru",
         "note": "Using Loguru - check logger._core.handlers for detailed info"
     }
+
+
+@lru_cache()
+def get_logging_settings() -> LoggingSettings:
+    """
+    Get cached logging settings instance.
+
+    Returns:
+        Cached LoggingSettings instance
+    """
+    return LoggingSettings()

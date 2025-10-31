@@ -34,7 +34,7 @@ dependencies = [
   "icrawler",
   "tqdm",
   "g4f",
-  "pixcrawler-logging",
+  "pixcrawler-utility",
   "pixcrawler-celery-core",
   "pydantic>=2.0.0",
   "pydantic-settings>=2.0.0",
