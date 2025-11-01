@@ -6,7 +6,7 @@ including creation, status monitoring, and execution control.
 """
 
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi_limiter.depends import RateLimiter

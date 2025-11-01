@@ -36,12 +36,66 @@ from uuid import UUID
 
 from sqlalchemy import DateTime, Integer, String, Text, func, UUID as SQLAlchemyUUID, CheckConstraint, Index
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, declared_attr
+
+
+class ChunkTrackingMixin:
+    """
+    Mixin for hybrid chunk tracking in processing jobs.
+    
+    Provides fields and methods for tracking Celery task chunks
+    without needing a separate chunk table.
+    
+    Attributes:
+        total_chunks: Total number of processing chunks
+        active_chunks: Currently processing chunks
+        completed_chunks: Successfully completed chunks
+        failed_chunks: Failed chunks
+        task_ids: List of Celery task IDs for status queries
+    """
+    
+    @declared_attr
+    def total_chunks(cls) -> Mapped[int]:
+        return mapped_column(Integer, nullable=False, default=0)
+    
+    @declared_attr
+    def active_chunks(cls) -> Mapped[int]:
+        return mapped_column(Integer, nullable=False, default=0)
+    
+    @declared_attr
+    def completed_chunks(cls) -> Mapped[int]:
+        return mapped_column(Integer, nullable=False, default=0)
+    
+    @declared_attr
+    def failed_chunks(cls) -> Mapped[int]:
+        return mapped_column(Integer, nullable=False, default=0)
+    
+    @declared_attr
+    def task_ids(cls) -> Mapped[list]:
+        return mapped_column(JSONB, nullable=False, default=list)
+    
+    @property
+    def chunk_progress(self) -> float:
+        """Calculate chunk completion progress (0-100)."""
+        if self.total_chunks == 0:
+            return 0.0
+        return (self.completed_chunks / self.total_chunks) * 100
+    
+    @property
+    def is_processing(self) -> bool:
+        """Check if job has active chunks."""
+        return self.active_chunks > 0
+    
+    @property
+    def all_chunks_completed(self) -> bool:
+        """Check if all chunks are completed."""
+        return self.total_chunks > 0 and self.completed_chunks == self.total_chunks
 
 __all__ = [
     # Base classes
     'Base',
     'TimestampMixin',
+    'ChunkTrackingMixin',
     # Core models
     'Profile',
     'Project',
@@ -108,11 +162,9 @@ class Project(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
 
 
-class CrawlJob(Base, TimestampMixin):
+class CrawlJob(Base, TimestampMixin, ChunkTrackingMixin):
     """
-    Crawl job model (mirrors Drizzle crawlJobs table).
-
-    Represents individual image crawling tasks within projects.
+    Crawl job model with hybrid chunk tracking.
 
     Attributes:
         id: Serial primary key
@@ -120,13 +172,23 @@ class CrawlJob(Base, TimestampMixin):
         name: Job name
         keywords: JSON array of search keywords
         max_images: Maximum number of images to collect
-        status: Job status (default: 'pending')
+        status: Job status
         progress: Progress percentage (0-100)
         total_images: Total images found
         downloaded_images: Number of images downloaded
         valid_images: Number of valid images
         started_at: Job start timestamp
         completed_at: Job completion timestamp
+        
+    Inherited from ChunkTrackingMixin:
+        total_chunks: Total processing chunks
+        active_chunks: Currently processing chunks
+        completed_chunks: Successfully completed chunks
+        failed_chunks: Failed chunks
+        task_ids: List of Celery task IDs
+        chunk_progress: Property for progress calculation
+        is_processing: Property to check if processing
+        all_chunks_completed: Property to check completion
     """
 
     __tablename__ = "crawl_jobs"
@@ -141,10 +203,18 @@ class CrawlJob(Base, TimestampMixin):
     total_images: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     downloaded_images: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     valid_images: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True),
-                                                           nullable=True)
-    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True),
-                                                             nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    
+    @property
+    def is_processing(self) -> bool:
+        """Check if job has active chunks."""
+        return self.active_chunks > 0
+    
+    @property
+    def all_chunks_completed(self) -> bool:
+        """Check if all chunks are completed."""
+        return self.total_chunks > 0 and self.completed_chunks == self.total_chunks
 
 
 class Image(Base):
