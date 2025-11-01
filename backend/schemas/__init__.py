@@ -1,19 +1,27 @@
 """
-Pydantic models for request/response schemas and data validation.
+Pydantic schemas for request/response validation and data serialization.
 
-This package provides all Pydantic models used throughout the PixCrawler backend
-for request/response validation, data serialization, and type safety.
+This package provides comprehensive Pydantic models for the PixCrawler backend
+with full validation, type safety, and best practices from Pydantic 2.0+.
 
-Modules:
-    base: Base schemas and common models
-    user: User-related schemas and authentication models
-    dataset: Dataset-related schemas and processing models
+Schema Categories:
+    - Base: Common schemas and error handling
+    - User: User and authentication schemas
+    - Profile: User profile and settings
+    - Dataset: Dataset processing schemas
+    - Credits: Credit and billing schemas
+    - Notifications: Notification system schemas
+    - API Keys: API key management schemas
+    - Usage: Usage metrics and analytics schemas
 
 Features:
-    - Comprehensive data validation with Pydantic v2
-    - Type-safe request/response schemas
-    - Consistent error handling structures
-    - Generic pagination support
+    - Pydantic 2.0+ with ConfigDict
+    - Field validators and computed properties
+    - Enum integration with use_enum_values
+    - Comprehensive constraints (ge, gt, le, lt, min_length, max_length, pattern)
+    - from_attributes for ORM compatibility
+    - validate_assignment for runtime validation
+    - Custom validators with cross-field validation
 """
 
 from .base import (
@@ -21,15 +29,6 @@ from .base import (
     TimestampMixin,
     ErrorDetail,
     HealthCheck
-)
-from .dataset import (
-    DatasetStatus,
-    SearchEngine,
-    DatasetBase,
-    DatasetCreate,
-    DatasetUpdate,
-    DatasetResponse,
-    DatasetStats
 )
 from .user import (
     UserBase,
@@ -40,14 +39,74 @@ from .user import (
     TokenResponse,
     TokenRefresh
 )
+from .profile import (
+    UserRole,
+    ProfileBase,
+    ProfileCreate,
+    ProfileUpdate,
+    ProfileResponse,
+    ProfileSettings,
+)
+from .dataset import (
+    DatasetStatus,
+    SearchEngine,
+    DatasetBase,
+    DatasetCreate,
+    DatasetUpdate,
+    DatasetResponse,
+    DatasetStats
+)
+from .credits import (
+    TransactionType,
+    TransactionStatus,
+    CreditAccountBase,
+    CreditAccountCreate,
+    CreditAccountUpdate,
+    CreditAccountResponse,
+    CreditTransactionBase,
+    CreditTransactionCreate,
+    CreditTransactionResponse,
+    AutoRefillSettings,
+)
+from .notifications import (
+    NotificationType,
+    NotificationCategory,
+    DigestFrequency,
+    NotificationBase,
+    NotificationCreate,
+    NotificationUpdate,
+    NotificationResponse,
+    NotificationPreferenceBase,
+    NotificationPreferenceUpdate,
+    NotificationPreferenceResponse,
+    BulkNotificationAction,
+)
+from .api_keys import (
+    APIKeyStatus,
+    APIKeyPermission,
+    APIKeyBase,
+    APIKeyCreate,
+    APIKeyUpdate,
+    APIKeyResponse,
+    APIKeyRegenerateRequest,
+)
+from .usage import (
+    UsageMetricBase,
+    UsageMetricCreate,
+    UsageMetricUpdate,
+    UsageMetricResponse,
+    UsageSummary,
+    UsageTrend,
+)
 
 __all__ = [
-    # Base models
+    # Base schemas
     'BaseSchema',
     'TimestampMixin',
     'ErrorDetail',
     'HealthCheck',
-    # User models
+    
+    # User schemas
     'UserBase',
     'UserCreate',
     'UserUpdate',
@@ -55,12 +114,63 @@ __all__ = [
     'UserLogin',
     'TokenResponse',
     'TokenRefresh',
-    # Dataset models
+    
+    # Profile schemas
+    'UserRole',
+    'ProfileBase',
+    'ProfileCreate',
+    'ProfileUpdate',
+    'ProfileResponse',
+    'ProfileSettings',
+    
+    # Dataset schemas
     'DatasetStatus',
     'SearchEngine',
     'DatasetBase',
     'DatasetCreate',
     'DatasetUpdate',
     'DatasetResponse',
-    'DatasetStats'
+    'DatasetStats',
+    
+    # Credit schemas
+    'TransactionType',
+    'TransactionStatus',
+    'CreditAccountBase',
+    'CreditAccountCreate',
+    'CreditAccountUpdate',
+    'CreditAccountResponse',
+    'CreditTransactionBase',
+    'CreditTransactionCreate',
+    'CreditTransactionResponse',
+    'AutoRefillSettings',
+    
+    # Notification schemas
+    'NotificationType',
+    'NotificationCategory',
+    'DigestFrequency',
+    'NotificationBase',
+    'NotificationCreate',
+    'NotificationUpdate',
+    'NotificationResponse',
+    'NotificationPreferenceBase',
+    'NotificationPreferenceUpdate',
+    'NotificationPreferenceResponse',
+    'BulkNotificationAction',
+    
+    # API Key schemas
+    'APIKeyStatus',
+    'APIKeyPermission',
+    'APIKeyBase',
+    'APIKeyCreate',
+    'APIKeyUpdate',
+    'APIKeyResponse',
+    'APIKeyRegenerateRequest',
+    
+    # Usage schemas
+    'UsageMetricBase',
+    'UsageMetricCreate',
+    'UsageMetricUpdate',
+    'UsageMetricResponse',
+    'UsageSummary',
+    'UsageTrend',
 ]

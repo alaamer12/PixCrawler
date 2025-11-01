@@ -1,72 +1,64 @@
 """
-SQLAlchemy database models synchronized with Drizzle schema.
+SQLAlchemy database models for PixCrawler.
 
-This module provides SQLAlchemy models that mirror the Drizzle schema defined
-in the frontend. These models are used by the FastAPI backend to interact with
-the shared Supabase PostgreSQL database.
+This module provides comprehensive SQLAlchemy ORM models for the PixCrawler
+backend, synchronized with the Drizzle schema in the frontend.
 
 IMPORTANT: These models must be kept in sync with the Drizzle schema in
 frontend/lib/db/schema.ts. The Drizzle schema is the source of truth.
 
-Classes:
-    Base: Base class for all database models
-    TimestampMixin: Mixin for models with timestamp fields
-    Profile: User profile model (mirrors Drizzle profiles table)
-    Project: Project model (mirrors Drizzle projects table)
-    CrawlJob: Crawl job model (mirrors Drizzle crawlJobs table)
-    Image: Image model (mirrors Drizzle images table)
-    ActivityLog: Activity log model (mirrors Drizzle activityLogs table)
+Model Categories:
+    - Core: Profile, Project, CrawlJob, Image, ActivityLog
+    - Credits: CreditAccount, CreditTransaction
+    - Notifications: Notification, NotificationPreference
+    - API: APIKey
+    - Usage: UsageMetric
 
 Features:
-    - Direct mapping to Supabase PostgreSQL tables
-    - Synchronized with frontend Drizzle schema
-    - Support for UUID primary keys (Supabase auth integration)
-    - JSON field support for complex data structures
+    - SQLAlchemy 2.0 with Mapped annotations
+    - Full type safety with mypy support
+    - Advanced constraints and indexes
+    - Relationship management with cascade behaviors
+    - PostgreSQL-specific features (JSONB, UUID)
+    - Supabase auth integration
 """
 
+from .base import Base, TimestampMixin
+from .api_keys import APIKey
+from .credits import CreditAccount, CreditTransaction
+from .notifications import Notification, NotificationPreference
+from .usage import UsageMetric
+
+# Import core models
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import DateTime, Integer, String, Text, func, UUID as SQLAlchemyUUID
+from sqlalchemy import DateTime, Integer, String, Text, func, UUID as SQLAlchemyUUID, CheckConstraint, Index
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 
 __all__ = [
+    # Base classes
     'Base',
     'TimestampMixin',
+    # Core models
     'Profile',
     'Project',
     'CrawlJob',
     'Image',
-    'ActivityLog'
+    'ActivityLog',
+    # Credit models
+    'CreditAccount',
+    'CreditTransaction',
+    # Notification models
+    'Notification',
+    'NotificationPreference',
+    # API models
+    'APIKey',
+    # Usage models
+    'UsageMetric',
 ]
-
-
-class Base(DeclarativeBase):
-    """Base class for all database models."""
-    pass
-
-
-class TimestampMixin:
-    """
-    Mixin for models with timestamp fields.
-
-    Provides created_at and updated_at fields that match the
-    Drizzle schema timestamp pattern.
-    """
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
 
 
 class Profile(Base, TimestampMixin):
