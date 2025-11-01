@@ -1,6 +1,7 @@
 # PixCrawler Stripe Integration Setup Guide
 
-This guide will help you set up the complete Stripe payment system for PixCrawler, including subscriptions, one-time payments, and webhooks.
+This guide will help you set up the complete Stripe payment system for PixCrawler, including subscriptions, one-time
+payments, and webhooks.
 
 ## 📋 Prerequisites
 
@@ -13,14 +14,14 @@ This guide will help you set up the complete Stripe payment system for PixCrawle
 ### 1. Stripe Account Setup
 
 1. **Create a Stripe Account**
-   - Go to [stripe.com](https://stripe.com) and sign up
-   - Complete your account verification
-   - Note your account ID for later
+  - Go to [stripe.com](https://stripe.com) and sign up
+  - Complete your account verification
+  - Note your account ID for later
 
 2. **Get API Keys**
-   - Go to Developers → API Keys in your Stripe dashboard
-   - Copy your **Publishable key** (starts with `pk_test_`)
-   - Copy your **Secret key** (starts with `sk_test_`)
+  - Go to Developers → API Keys in your Stripe dashboard
+  - Copy your **Publishable key** (starts with `pk_test_`)
+  - Copy your **Secret key** (starts with `sk_test_`)
 
 ### 2. Environment Variables
 
@@ -160,23 +161,23 @@ CREATE INDEX idx_transactions_stripe_payment_intent_id ON transactions(stripe_pa
 ### 5. Webhook Setup
 
 1. **Create Webhook Endpoint**
-   - Go to Developers → Webhooks in Stripe dashboard
-   - Click "Add endpoint"
-   - URL: `https://yourdomain.com/api/webhooks/stripe`
-   - Select these events:
-     - `checkout.session.completed`
-     - `payment_intent.succeeded`
-     - `payment_intent.payment_failed`
-     - `customer.subscription.created`
-     - `customer.subscription.updated`
-     - `customer.subscription.deleted`
-     - `invoice.payment_succeeded`
-     - `invoice.payment_failed`
+  - Go to Developers → Webhooks in Stripe dashboard
+  - Click "Add endpoint"
+  - URL: `https://yourdomain.com/api/webhooks/stripe`
+  - Select these events:
+    - `checkout.session.completed`
+    - `payment_intent.succeeded`
+    - `payment_intent.payment_failed`
+    - `customer.subscription.created`
+    - `customer.subscription.updated`
+    - `customer.subscription.deleted`
+    - `invoice.payment_succeeded`
+    - `invoice.payment_failed`
 
 2. **Get Webhook Secret**
-   - After creating the webhook, click on it
-   - Copy the "Signing secret" (starts with `whsec_`)
-   - Add it to your environment variables
+  - After creating the webhook, click on it
+  - Copy the "Signing secret" (starts with `whsec_`)
+  - Add it to your environment variables
 
 ### 6. Testing
 
@@ -204,9 +205,9 @@ CREATE INDEX idx_transactions_stripe_payment_intent_id ON transactions(stripe_pa
    ```
 
 2. **Test the pricing page**
-   - Go to `/pricing`
-   - Try selecting different plans
-   - Complete a test purchase
+  - Go to `/pricing`
+  - Try selecting different plans
+  - Complete a test purchase
 
 3. **Test webhooks locally**
    ```bash
@@ -222,6 +223,7 @@ CREATE INDEX idx_transactions_stripe_payment_intent_id ON transactions(stripe_pa
 ### Customizing Plans
 
 Edit `/lib/payments/plans.ts` to modify:
+
 - Plan features
 - Pricing
 - Credit amounts
@@ -240,6 +242,7 @@ case 'your.custom.event':
 ## 📱 Usage in Components
 
 ### Pricing Grid
+
 ```tsx
 import { PricingGrid } from '@/components/stripe'
 
@@ -254,6 +257,7 @@ export default function PricingPage() {
 ```
 
 ### Payment Success Page
+
 ```tsx
 import { PaymentSuccess } from '@/components/stripe'
 
@@ -263,6 +267,7 @@ export default function SuccessPage() {
 ```
 
 ### Payment Cancel Page
+
 ```tsx
 import { PaymentCancel } from '@/components/stripe'
 
@@ -274,43 +279,48 @@ export default function CancelPage() {
 ## 🔒 Security Best Practices
 
 1. **Environment Variables**
-   - Never commit `.env` files
-   - Use different keys for development/production
-   - Rotate keys regularly
+  - Never commit `.env` files
+  - Use different keys for development/production
+  - Rotate keys regularly
 
 2. **Webhook Security**
-   - Always verify webhook signatures
-   - Use HTTPS in production
-   - Implement idempotency for webhook handlers
+  - Always verify webhook signatures
+  - Use HTTPS in production
+  - Implement idempotency for webhook handlers
 
 3. **Error Handling**
-   - Log all payment errors
-   - Implement retry logic for failed webhooks
-   - Monitor payment failures
+  - Log all payment errors
+  - Implement retry logic for failed webhooks
+  - Monitor payment failures
 
 ## 🚀 Production Deployment
 
 ### 1. Switch to Live Mode
+
 - Get live API keys from Stripe dashboard
 - Update environment variables
 - Test with real payment methods
 
 ### 2. Update Webhook URLs
+
 - Point webhooks to your production domain
 - Update `NEXT_PUBLIC_APP_URL` environment variable
 
 ### 3. Enable Billing Portal
+
 - Configure billing portal settings in Stripe dashboard
 - Set up customer portal branding
 
 ## 📊 Monitoring and Analytics
 
 ### Stripe Dashboard
+
 - Monitor payments and subscriptions
 - View customer analytics
 - Set up alerts for failed payments
 
 ### Application Monitoring
+
 - Log payment events
 - Monitor webhook delivery
 - Track conversion rates
@@ -320,23 +330,24 @@ export default function CancelPage() {
 ### Common Issues
 
 1. **Webhook not receiving events**
-   - Check webhook URL is correct
-   - Verify webhook secret
-   - Check firewall settings
+  - Check webhook URL is correct
+  - Verify webhook secret
+  - Check firewall settings
 
 2. **Payment fails silently**
-   - Check Stripe logs
-   - Verify API keys
-   - Check error handling
+  - Check Stripe logs
+  - Verify API keys
+  - Check error handling
 
 3. **Database errors**
-   - Verify table schema
-   - Check foreign key constraints
-   - Review RLS policies
+  - Verify table schema
+  - Check foreign key constraints
+  - Review RLS policies
 
 ### Debug Mode
 
 Enable debug logging:
+
 ```bash
 STRIPE_DEBUG=true npm run dev
 ```
@@ -351,6 +362,7 @@ STRIPE_DEBUG=true npm run dev
 ## 🤝 Support
 
 If you encounter issues:
+
 1. Check the troubleshooting section
 2. Review Stripe logs
 3. Check application logs
@@ -358,4 +370,5 @@ If you encounter issues:
 
 ---
 
-**🎉 Congratulations!** Your Stripe integration is now ready. Users can subscribe to plans, purchase credits, and manage their billing through the customer portal.
+**🎉 Congratulations!** Your Stripe integration is now ready. Users can subscribe to plans, purchase credits, and manage
+their billing through the customer portal.

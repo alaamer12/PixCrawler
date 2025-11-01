@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { PaymentService } from '@/lib/payments/service'
+import {NextRequest, NextResponse} from 'next/server'
+import {createServerClient} from '@supabase/ssr'
+import {cookies} from 'next/headers'
+import {PaymentService} from '@/lib/payments/service'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,21 +16,21 @@ export async function POST(request: NextRequest) {
         },
       }
     )
-    
+
     // Get the current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+    const {data: {user}, error: authError} = await supabase.auth.getUser()
+
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        {error: 'Unauthorized'},
+        {status: 401}
       )
     }
 
-    const { returnUrl } = await request.json()
+    const {returnUrl} = await request.json()
 
     // Get user's Stripe customer ID
-    const { data: profile } = await supabase
+    const {data: profile} = await supabase
       .from('user_profiles')
       .select('stripe_customer_id')
       .eq('user_id', user.id)
@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
 
     if (!profile?.stripe_customer_id) {
       return NextResponse.json(
-        { error: 'No billing information found' },
-        { status: 404 }
+        {error: 'No billing information found'},
+        {status: 404}
       )
     }
 
@@ -55,10 +55,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error creating billing portal session:', error)
-    
+
     return NextResponse.json(
-      { error: 'Failed to create billing portal session' },
-      { status: 500 }
+      {error: 'Failed to create billing portal session'},
+      {status: 500}
     )
   }
 }

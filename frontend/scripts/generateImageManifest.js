@@ -13,7 +13,7 @@ function scanImagesDirectory() {
   const manifest = {}
 
   try {
-    const categories = fs.readdirSync(imagesDir, { withFileTypes: true })
+    const categories = fs.readdirSync(imagesDir, {withFileTypes: true})
       .filter(d => d.isDirectory())
       .map(d => d.name)
 
@@ -21,7 +21,7 @@ function scanImagesDirectory() {
       const categoryPath = path.join(imagesDir, category)
       const images = []
 
-      const subcategories = fs.readdirSync(categoryPath, { withFileTypes: true })
+      const subcategories = fs.readdirSync(categoryPath, {withFileTypes: true})
         .filter(d => d.isDirectory())
 
       subcategories.forEach(subcat => {

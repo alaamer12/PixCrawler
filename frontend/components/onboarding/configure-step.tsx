@@ -32,7 +32,7 @@ export function ConfigureStep({
   // Validate and debounce name
   useEffect(() => {
     if (!localConfig.name) return
-    
+
     setIsValidatingName(true)
     const timer = setTimeout(() => {
       setIsValidatingName(false)
@@ -70,7 +70,7 @@ export function ConfigureStep({
 
   const isNameValid = localConfig.name.length >= 2
   const areCategoriesValid = localConfig.categories.length > 0
-  
+
   // Defer expensive renders for better performance
   const deferredCategories = useDeferredValue(localConfig.categories)
   const deferredConfig = useDeferredValue(localConfig)
@@ -80,16 +80,20 @@ export function ConfigureStep({
       {/* Welcome Message */}
       <div className="text-center space-y-4 relative">
         {/* Subtle background glow */}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-primary/5 via-transparent to-transparent blur-3xl" />
-        
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-purple-500/10 border border-primary/20 text-primary text-sm font-semibold mb-2 shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all duration-300 hover:scale-105">
-          <Sparkles className="size-4 animate-pulse" />
+        <div
+          className="absolute inset-0 -z-10 bg-gradient-to-b from-primary/5 via-transparent to-transparent blur-3xl"/>
+
+        <div
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-purple-500/10 border border-primary/20 text-primary text-sm font-semibold mb-2 shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all duration-300 hover:scale-105">
+          <Sparkles className="size-4 animate-pulse"/>
           Let's get started
         </div>
-        <h1 className="text-4xl md:text-6xl font-bold tracking-tight bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent animate-in slide-in-from-top-4 duration-1000">
+        <h1
+          className="text-4xl md:text-6xl font-bold tracking-tight bg-gradient-to-br from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent animate-in slide-in-from-top-4 duration-1000">
           Welcome, {userName}!
         </h1>
-        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto animate-in slide-in-from-top-6 duration-1000 delay-100">
+        <p
+          className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto animate-in slide-in-from-top-6 duration-1000 delay-100">
           Build your first <span className="font-semibold text-foreground">AI-ready</span> image dataset in minutes
         </p>
       </div>
@@ -100,10 +104,12 @@ export function ConfigureStep({
           {/* Dataset Name */}
           <div className="space-y-3 group/field">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover/field:bg-primary/15 transition-colors duration-300 group-hover/field:scale-110 transition-transform">
-                <FolderOpen className="size-4" />
+              <div
+                className="p-2 rounded-lg bg-primary/10 text-primary group-hover/field:bg-primary/15 transition-colors duration-300 group-hover/field:scale-110 transition-transform">
+                <FolderOpen className="size-4"/>
               </div>
-              <label htmlFor="dataset-name" className="text-sm font-semibold group-hover/field:text-foreground transition-colors">
+              <label htmlFor="dataset-name"
+                     className="text-sm font-semibold group-hover/field:text-foreground transition-colors">
                 Dataset Name
               </label>
             </div>
@@ -120,17 +126,17 @@ export function ConfigureStep({
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
                 {isValidatingName ? (
-                  <div className="size-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <div className="size-5 border-2 border-primary border-t-transparent rounded-full animate-spin"/>
                 ) : localConfig.name && isNameValid ? (
                   <div className="text-emerald-500">
                     <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
                     </svg>
                   </div>
                 ) : localConfig.name && !isNameValid ? (
                   <div className="text-red-500">
                     <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                   </div>
                 ) : null}
@@ -138,12 +144,13 @@ export function ConfigureStep({
             </div>
             {localConfig.name && !isNameValid && (
               <p className="text-xs text-red-500 flex items-center gap-1.5">
-                <span className="inline-block size-1 rounded-full bg-red-500" />
+                <span className="inline-block size-1 rounded-full bg-red-500"/>
                 Name must be at least 2 characters
               </p>
             )}
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5 opacity-70 group-hover/field:opacity-100 transition-opacity">
-              <span className="inline-block size-1 rounded-full bg-muted-foreground/40" />
+            <p
+              className="text-xs text-muted-foreground flex items-center gap-1.5 opacity-70 group-hover/field:opacity-100 transition-opacity">
+              <span className="inline-block size-1 rounded-full bg-muted-foreground/40"/>
               Use lowercase letters, numbers, and underscores
             </p>
           </div>
@@ -151,10 +158,12 @@ export function ConfigureStep({
           {/* Categories */}
           <div className="space-y-3 group/field">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover/field:bg-blue-500/15 transition-all duration-300 group-hover/field:scale-110">
-                <Tag className="size-4" />
+              <div
+                className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover/field:bg-blue-500/15 transition-all duration-300 group-hover/field:scale-110">
+                <Tag className="size-4"/>
               </div>
-              <label htmlFor="categories" className="text-sm font-semibold group-hover/field:text-foreground transition-colors">
+              <label htmlFor="categories"
+                     className="text-sm font-semibold group-hover/field:text-foreground transition-colors">
                 Categories
               </label>
             </div>
@@ -171,17 +180,18 @@ export function ConfigureStep({
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
                 {isValidatingCategories ? (
-                  <div className="size-5 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin" />
+                  <div
+                    className="size-5 border-2 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"/>
                 ) : areCategoriesValid ? (
                   <div className="text-blue-600 dark:text-blue-400">
                     <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
                     </svg>
                   </div>
                 ) : categoriesInput ? (
                   <div className="text-red-500">
                     <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                   </div>
                 ) : null}
@@ -189,7 +199,7 @@ export function ConfigureStep({
             </div>
             {categoriesInput && !areCategoriesValid && (
               <p className="text-xs text-red-500 flex items-center gap-1.5">
-                <span className="inline-block size-1 rounded-full bg-red-500" />
+                <span className="inline-block size-1 rounded-full bg-red-500"/>
                 Please add at least one category
               </p>
             )}
@@ -202,9 +212,10 @@ export function ConfigureStep({
                 ))}
               </div>
             )}
-            <div className="flex items-center justify-between opacity-70 group-hover/field:opacity-100 transition-opacity">
+            <div
+              className="flex items-center justify-between opacity-70 group-hover/field:opacity-100 transition-opacity">
               <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <span className="inline-block size-1 rounded-full bg-muted-foreground/40" />
+                <span className="inline-block size-1 rounded-full bg-muted-foreground/40"/>
                 Separate with commas
               </p>
               <div className="flex items-center gap-1.5">
@@ -222,15 +233,18 @@ export function ConfigureStep({
           <div className="space-y-3 group/field">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 group-hover/field:bg-purple-500/15 transition-all duration-300 group-hover/field:scale-110">
-                  <Images className="size-4" />
+                <div
+                  className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 group-hover/field:bg-purple-500/15 transition-all duration-300 group-hover/field:scale-110">
+                  <Images className="size-4"/>
                 </div>
-                <label htmlFor="image-count" className="text-sm font-semibold group-hover/field:text-foreground transition-colors">
+                <label htmlFor="image-count"
+                       className="text-sm font-semibold group-hover/field:text-foreground transition-colors">
                   Images Per Category
                 </label>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold bg-gradient-to-br from-primary to-purple-600 bg-clip-text text-transparent tabular-nums">
+                <span
+                  className="text-2xl font-bold bg-gradient-to-br from-primary to-purple-600 bg-clip-text text-transparent tabular-nums">
                   {localConfig.imagesPerCategory}
                 </span>
                 <span className="text-xs text-muted-foreground">images</span>
@@ -247,14 +261,17 @@ export function ConfigureStep({
                 className="w-full"
               />
               {/* Slider glow */}
-              <div className="absolute inset-0 -z-10 bg-gradient-to-r from-primary/10 to-purple-500/10 blur-xl opacity-30" />
+              <div
+                className="absolute inset-0 -z-10 bg-gradient-to-r from-primary/10 to-purple-500/10 blur-xl opacity-30"/>
             </div>
-            <div className="flex items-center justify-between px-1 opacity-70 group-hover/field:opacity-100 transition-opacity">
+            <div
+              className="flex items-center justify-between px-1 opacity-70 group-hover/field:opacity-100 transition-opacity">
               <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <span className="inline-block size-1 rounded-full bg-muted-foreground/40" />
+                <span className="inline-block size-1 rounded-full bg-muted-foreground/40"/>
                 More images = better training
               </p>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-primary/5 to-purple-500/5 border border-primary/10">
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-primary/5 to-purple-500/5 border border-primary/10">
                 <span className="text-xs font-bold text-primary tabular-nums">
                   {localConfig.imagesPerCategory * localConfig.categories.length}
                 </span>
@@ -280,9 +297,11 @@ export function ConfigureStep({
       >
         <span className="relative z-10 font-semibold">Continue to Testing</span>
         {/* Shimmer effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+        <div
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"/>
         {/* Pulse glow */}
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/50 to-purple-600/50 opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500" />
+        <div
+          className="absolute inset-0 bg-gradient-to-r from-primary/50 to-purple-600/50 opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500"/>
       </Button>
     </div>
   )

@@ -24,14 +24,13 @@ Features:
 import time
 import traceback
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional
 from enum import Enum
 
 from celery import Task
-from celery.exceptions import Retry
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 logger = get_logger(__name__)
 

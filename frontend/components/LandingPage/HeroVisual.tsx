@@ -3,16 +3,16 @@ import React, {memo, useCallback, useEffect, useState} from 'react'
 import {Check, CheckCircle2, Database, Loader2, Search} from 'lucide-react'
 import dynamic from 'next/dynamic'
 import {
-  loadCategories,
+  type Category,
+  getQualityColor,
   getRandomCategory,
   getRandomImagesForCategory,
   getSourcesColor,
-  getQualityColor,
-  type Category
+  loadCategories
 } from '@/lib/imageLoader'
 
 const NextImage = dynamic(() => import('@/components/Image').then(mod => mod.NextImage), {
-  loading: () => <div className="w-full h-full bg-muted animate-pulse" />
+  loading: () => <div className="w-full h-full bg-muted animate-pulse"/>
 })
 
 const ImageModal = dynamic(() => import('@/components/Image').then(mod => mod.ImageModal), {
@@ -200,7 +200,7 @@ const StepIcon = memo(({step}: { step: Step }) => (
       </div>
     )}
     {step.status === 'active' && (
-      <div className="absolute inset-0 rounded-full border-2 border-primary animate-ping" />
+      <div className="absolute inset-0 rounded-full border-2 border-primary animate-ping"/>
     )}
   </div>
 ))
@@ -359,10 +359,10 @@ StatsBar.displayName = 'StatsBar'
 
 const DecorativeBlobs = memo(() => (
   <>
-    <div className="absolute -top-8 -left-8 w-32 h-32 bg-primary/5 rounded-full blur-2xl -z-10 animate-pulse" 
-         style={{animationDuration: '4s'}} />
-    <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-secondary/5 rounded-full blur-2xl -z-10 animate-pulse" 
-         style={{animationDuration: '5s', animationDelay: '1s'}} />
+    <div className="absolute -top-8 -left-8 w-32 h-32 bg-primary/5 rounded-full blur-2xl -z-10 animate-pulse"
+         style={{animationDuration: '4s'}}/>
+    <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-secondary/5 rounded-full blur-2xl -z-10 animate-pulse"
+         style={{animationDuration: '5s', animationDelay: '1s'}}/>
   </>
 ))
 DecorativeBlobs.displayName = 'DecorativeBlobs'

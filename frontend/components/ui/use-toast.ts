@@ -1,4 +1,4 @@
-import { toast as sonnerToast } from 'sonner'
+import {toast as sonnerToast} from 'sonner'
 
 interface ToastOptions {
   title?: string
@@ -11,7 +11,7 @@ interface ToastOptions {
 }
 
 export function useToast() {
-  const toast = ({ title, description, variant, action }: ToastOptions) => {
+  const toast = ({title, description, variant, action}: ToastOptions) => {
     const message = title || description || ''
     const descriptionText = title && description ? description : undefined
 
@@ -40,4 +40,4 @@ export function useToast() {
   }
 }
 
-export { sonnerToast as toast }
+export {sonnerToast as toast}

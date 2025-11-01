@@ -1,5 +1,5 @@
 import {memo} from 'react'
-import {Target, Users, Database} from 'lucide-react'
+import {Database, Target, Users} from 'lucide-react'
 
 interface MissionCard {
   icon: typeof Target
@@ -47,7 +47,7 @@ export const AboutMission = memo(() => {
               Tackling real-world challenges through innovative data engineering solutions
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             {MISSIONS.map((mission) => (
               <MissionCard key={mission.title} {...mission} />

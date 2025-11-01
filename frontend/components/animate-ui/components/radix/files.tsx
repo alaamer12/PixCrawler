@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FolderIcon, FolderOpenIcon, FileIcon } from 'lucide-react';
+import {FolderIcon, FolderOpenIcon, FileIcon} from 'lucide-react';
 
 import {
   Files as FilesPrimitive,
@@ -21,13 +21,13 @@ import {
   type FileProps as FilePrimitiveProps,
   type FileLabelProps as FileLabelPrimitiveProps,
 } from '@/components/animate-ui/primitives/radix/files';
-import { cn } from '@/lib/utils';
+import {cn} from '@/lib/utils';
 
 type GitStatus = 'untracked' | 'modified' | 'deleted';
 
 type FilesProps = FilesPrimitiveProps;
 
-function Files({ className, children, ...props }: FilesProps) {
+function Files({className, children, ...props}: FilesProps) {
   return (
     <FilesPrimitive className={cn('p-2 w-full', className)} {...props}>
       <FilesHighlightPrimitive className="bg-accent rounded-lg pointer-events-none">
@@ -54,11 +54,11 @@ type FolderTriggerProps = FileLabelPrimitiveProps & {
 };
 
 function FolderTrigger({
-  children,
-  className,
-  gitStatus,
-  ...props
-}: FolderTriggerProps) {
+                         children,
+                         className,
+                         gitStatus,
+                         ...props
+                       }: FolderTriggerProps) {
   return (
     <FolderHeaderPrimitive>
       <FolderTriggerPrimitive className="w-full text-start">
@@ -73,8 +73,8 @@ function FolderTrigger({
               )}
             >
               <FolderIconPrimitive
-                closeIcon={<FolderIcon className="size-4.5" />}
-                openIcon={<FolderOpenIcon className="size-4.5" />}
+                closeIcon={<FolderIcon className="size-4.5"/>}
+                openIcon={<FolderOpenIcon className="size-4.5"/>}
               />
               <FileLabelPrimitive
                 className={cn('text-sm', className)}
@@ -105,7 +105,8 @@ type FolderContentProps = FolderContentPrimitiveProps;
 
 function FolderContent(props: FolderContentProps) {
   return (
-    <div className="relative ml-6 before:absolute before:-left-2 before:inset-y-0 before:w-px before:h-full before:bg-border">
+    <div
+      className="relative ml-6 before:absolute before:-left-2 before:inset-y-0 before:w-px before:h-full before:bg-border">
       <FolderContentPrimitive {...props} />
     </div>
   );
@@ -117,12 +118,12 @@ type FileItemProps = FilePrimitiveProps & {
 };
 
 function FileItem({
-  icon: Icon = FileIcon,
-  className,
-  children,
-  gitStatus,
-  ...props
-}: FileItemProps) {
+                    icon: Icon = FileIcon,
+                    className,
+                    children,
+                    gitStatus,
+                    ...props
+                  }: FileItemProps) {
   return (
     <FileHighlightPrimitive>
       <FilePrimitive
@@ -135,7 +136,7 @@ function FileItem({
       >
         <div className="flex items-center gap-2">
           <FileIconPrimitive>
-            <Icon className="size-4.5" />
+            <Icon className="size-4.5"/>
           </FileIconPrimitive>
           <FileLabelPrimitive className={cn('text-sm', className)} {...props}>
             {children}

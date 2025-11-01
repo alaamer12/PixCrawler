@@ -30,7 +30,7 @@ from celery.result import AsyncResult
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from celery_core.app import get_celery_app
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 logger = get_logger(__name__)
 

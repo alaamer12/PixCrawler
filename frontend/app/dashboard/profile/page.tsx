@@ -1,16 +1,14 @@
 'use client'
 
-import React, { useState } from 'react'
-import { ProfileLayout } from '@/components/profile/ProfileLayout'
+import React, {useState} from 'react'
+import {ProfileLayout} from '@/components/profile/ProfileLayout'
 import {
   AccountProfile,
+  ApiKeys,
   NotificationSettings,
   Settings,
   Subscription,
   Usage,
-  ApiKeys,
-  CreditManagement,
-  Referrals,
 } from '@/components/profile/sections'
 
 export default function ProfilePage() {
@@ -19,27 +17,27 @@ export default function ProfilePage() {
   const renderSection = () => {
     switch (activeSection) {
       case 'account':
-        return <AccountProfile />
+        return <AccountProfile/>
       case 'notifications':
-        return <NotificationSettings />
+        return <NotificationSettings/>
       case 'settings':
-        return <Settings />
+        return <Settings/>
       case 'subscription':
-        return <Subscription />
+        return <Subscription/>
       case 'usage':
-        return <Usage />
-        // Will be used later, but not now
+        return <Usage/>
+      // Will be used later, but not now
       // case 'auto-refills':
       // case 'credit-history':
       // case 'manage-plan':
       //   return <CreditManagement />
       case 'api-keys':
-        return <ApiKeys />
-        // Will be used later, but not now
+        return <ApiKeys/>
+      // Will be used later, but not now
       // case 'referrals':
       //   return <Referrals />
       default:
-        return <AccountProfile />
+        return <AccountProfile/>
     }
   }
 

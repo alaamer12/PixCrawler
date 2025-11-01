@@ -19,8 +19,7 @@ import os
 import time
 from typing import Any, Dict, Optional, List
 
-from builder._config import DatasetGenerationConfig
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 logger = get_logger(__name__)
 

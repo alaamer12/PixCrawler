@@ -1,8 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { headers } from 'next/headers'
-import { PaymentService } from '@/lib/payments/service'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import {NextRequest, NextResponse} from 'next/server'
+import {cookies, headers} from 'next/headers'
+import {PaymentService} from '@/lib/payments/service'
+import {createServerClient} from '@supabase/ssr'
 import Stripe from 'stripe'
 
 export async function POST(request: NextRequest) {
@@ -13,8 +12,8 @@ export async function POST(request: NextRequest) {
 
     if (!signature) {
       return NextResponse.json(
-        { error: 'Missing stripe-signature header' },
-        { status: 400 }
+        {error: 'Missing stripe-signature header'},
+        {status: 400}
       )
     }
 
@@ -24,13 +23,13 @@ export async function POST(request: NextRequest) {
     // Handle the event
     await handleWebhookEvent(event)
 
-    return NextResponse.json({ received: true })
+    return NextResponse.json({received: true})
 
   } catch (error) {
     console.error('Webhook error:', error)
     return NextResponse.json(
-      { error: 'Webhook handler failed' },
-      { status: 400 }
+      {error: 'Webhook handler failed'},
+      {status: 400}
     )
   }
 }
@@ -262,9 +261,9 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any
 
 async function handleOneTimePayment(userId: string, planId: string, supabase: any) {
   // Handle one-time payments (credit packages)
-  const { getPlanById } = await import('@/lib/payments/plans')
+  const {getPlanById} = await import('@/lib/payments/plans')
   const plan = getPlanById(planId)
-  
+
   if (plan && plan.credits) {
     // Add credits to user account
     await supabase.rpc('add_user_credits', {

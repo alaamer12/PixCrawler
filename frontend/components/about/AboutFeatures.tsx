@@ -1,5 +1,5 @@
 import {memo} from 'react'
-import {Database, Zap, Code2} from 'lucide-react'
+import {Code2, Database, Zap} from 'lucide-react'
 
 interface Feature {
   icon: typeof Database
@@ -42,7 +42,7 @@ export const AboutFeatures = memo(() => {
       <div className="container mx-auto px-4 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold mb-12 text-center">What We Do</h2>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             {FEATURES.map((feature) => (
               <FeatureCard key={feature.title} {...feature} />

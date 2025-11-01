@@ -1,10 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { cn } from "@/lib/utils"
-import { Eye, EyeOff, Check, X, RefreshCw } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {cn} from "@/lib/utils"
+import {Check, Eye, EyeOff, RefreshCw, X} from "lucide-react"
+import {Input} from "@/components/ui/input"
+import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip"
 
 export type StrengthLevel = "empty" | "weak" | "fair" | "good" | "strong"
 
@@ -115,31 +115,31 @@ const defaultTheme: StrengthMeterTheme = {
 }
 
 export function PasswordStrengthMeter({
-  value = "",
-  onValueChange,
-  showText = true,
-  showRequirements = true,
-  segments = 4,
-  strengthThresholds = defaultStrengthThresholds,
-  requirements = defaultRequirements,
-  customCalculateStrength,
-  showPasswordToggle = true,
-  strengthLabels = defaultStrengthLabels,
-  className,
-  meterClassName,
-  inputClassName,
-  placeholder = "Enter password",
-  enableAutoGenerate = false,
-  autoGenerateLength = 10,
-  theme,
-  showRequirementsAsTooltip = false,
-  ...props
-}: PasswordStrengthMeterProps) {
+                                        value = "",
+                                        onValueChange,
+                                        showText = true,
+                                        showRequirements = true,
+                                        segments = 4,
+                                        strengthThresholds = defaultStrengthThresholds,
+                                        requirements = defaultRequirements,
+                                        customCalculateStrength,
+                                        showPasswordToggle = true,
+                                        strengthLabels = defaultStrengthLabels,
+                                        className,
+                                        meterClassName,
+                                        inputClassName,
+                                        placeholder = "Enter password",
+                                        enableAutoGenerate = false,
+                                        autoGenerateLength = 10,
+                                        theme,
+                                        showRequirementsAsTooltip = false,
+                                        ...props
+                                      }: PasswordStrengthMeterProps) {
   const [password, setPassword] = React.useState(value)
   const [showPassword, setShowPassword] = React.useState(false)
   const [isFocused, setIsFocused] = React.useState(false)
 
-  const appliedTheme = { ...defaultTheme, ...theme }
+  const appliedTheme = {...defaultTheme, ...theme}
 
   React.useEffect(() => {
     setPassword(value)
@@ -245,20 +245,30 @@ export function PasswordStrengthMeter({
   const getStrengthColor = (): string => {
     if (!appliedTheme.strengthColors) {
       switch (strengthLevel) {
-        case "strong": return "text-emerald-500"
-        case "good": return "text-blue-500"
-        case "fair": return "text-amber-500"
-        case "weak": return "text-red-500"
-        default: return "text-muted-foreground"
+        case "strong":
+          return "text-emerald-500"
+        case "good":
+          return "text-blue-500"
+        case "fair":
+          return "text-amber-500"
+        case "weak":
+          return "text-red-500"
+        default:
+          return "text-muted-foreground"
       }
     }
 
     switch (strengthLevel) {
-      case "strong": return "text-emerald-500 dark:text-emerald-400"
-      case "good": return "text-blue-500 dark:text-blue-400"
-      case "fair": return "text-amber-500 dark:text-amber-400"
-      case "weak": return "text-red-500 dark:text-red-400"
-      default: return "text-muted-foreground"
+      case "strong":
+        return "text-emerald-500 dark:text-emerald-400"
+      case "good":
+        return "text-blue-500 dark:text-blue-400"
+      case "fair":
+        return "text-amber-500 dark:text-amber-400"
+      case "weak":
+        return "text-red-500 dark:text-red-400"
+      default:
+        return "text-muted-foreground"
     }
   }
 
@@ -276,9 +286,9 @@ export function PasswordStrengthMeter({
             className={cn(appliedTheme.requirementItem)}
           >
             {passed ? (
-              <Check className={cn(appliedTheme.requirementIcon, "text-emerald-500 dark:text-emerald-400")} />
+              <Check className={cn(appliedTheme.requirementIcon, "text-emerald-500 dark:text-emerald-400")}/>
             ) : (
-              <X className={cn(appliedTheme.requirementIcon, "text-muted-foreground")} />
+              <X className={cn(appliedTheme.requirementIcon, "text-muted-foreground")}/>
             )}
             <span className={cn(
               appliedTheme.requirementText,
@@ -311,7 +321,7 @@ export function PasswordStrengthMeter({
             <TooltipContent side="right" className="w-64 p-3 bg-card border border-border text-foreground">
               <div className="space-y-2">
                 <p className="text-xs font-semibold mb-2">Password Requirements</p>
-                <RequirementsList />
+                <RequirementsList/>
               </div>
             </TooltipContent>
           </Tooltip>
@@ -332,7 +342,7 @@ export function PasswordStrengthMeter({
               aria-label="Generate strong password"
               title="Generate strong password"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-4 w-4"/>
             </button>
           )}
           {showPasswordToggle && (
@@ -342,9 +352,9 @@ export function PasswordStrengthMeter({
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? (
-                <EyeOff className="h-4 w-4" />
+                <EyeOff className="h-4 w-4"/>
               ) : (
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4"/>
               )}
             </button>
           )}
@@ -353,7 +363,7 @@ export function PasswordStrengthMeter({
 
       {password && (
         <div className={cn(appliedTheme.meterContainer, meterClassName)}>
-          {Array.from({ length: segments }).map((_, i) => (
+          {Array.from({length: segments}).map((_, i) => (
             <div
               key={i}
               className={cn(
@@ -382,9 +392,10 @@ export function PasswordStrengthMeter({
       {showRequirements && !showRequirementsAsTooltip && (
         <div className={cn(appliedTheme.requirementsContainer)}>
           {enableAutoGenerate && (
-            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 gap-4">
+            <div
+              className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 gap-4">
               <div className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400"/>
                 <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
                   Auto-generate strong password
                 </span>
@@ -398,7 +409,7 @@ export function PasswordStrengthMeter({
               </button>
             </div>
           )}
-          <RequirementsList />
+          <RequirementsList/>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { PricingGrid } from '@/components/stripe'
+import {PricingGrid} from '@/components/stripe'
 
 export default function PricingPlansPage() {
   return (
@@ -9,12 +9,12 @@ export default function PricingPlansPage() {
             All Plans & Credit Packages
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Explore all our subscription plans and one-time credit packages. 
+            Explore all our subscription plans and one-time credit packages.
             Find the perfect fit for your needs.
           </p>
         </div>
-        
-        <PricingGrid showCredits={true} />
+
+        <PricingGrid showCredits={true}/>
       </div>
     </div>
   )

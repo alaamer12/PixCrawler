@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { db } from '@/lib/db'
-import { notifications } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import {NextRequest, NextResponse} from 'next/server'
+import {createClient} from '@/lib/supabase/server'
+import {db} from '@/lib/db'
+import {notifications} from '@/lib/db/schema'
+import {and, eq} from 'drizzle-orm'
 
 /**
  * GET /api/notifications/[id]
@@ -11,15 +11,15 @@ import { eq, and } from 'drizzle-orm'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  {params}: { params: { id: string } }
 ) {
   try {
     const notificationId = parseInt(params.id)
 
     if (isNaN(notificationId)) {
       return NextResponse.json(
-        { error: 'Invalid notification ID' },
-        { status: 400 }
+        {error: 'Invalid notification ID'},
+        {status: 400}
       )
     }
 
@@ -43,7 +43,7 @@ export async function GET(
           actionLabel: 'View Dataset',
           isRead: false,
           readAt: null,
-          metadata: { jobId: '123', imageCount: 1234 },
+          metadata: {jobId: '123', imageCount: 1234},
           createdAt: new Date(Date.now() - 1000 * 60 * 30),
         },
         2: {
@@ -59,7 +59,7 @@ export async function GET(
           actionLabel: 'View Invoice',
           isRead: false,
           readAt: null,
-          metadata: { amount: 49.99, currency: 'USD' },
+          metadata: {amount: 49.99, currency: 'USD'},
           createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
         },
       }
@@ -68,22 +68,22 @@ export async function GET(
 
       if (!notification) {
         return NextResponse.json(
-          { error: 'Notification not found' },
-          { status: 404 }
+          {error: 'Notification not found'},
+          {status: 404}
         )
       }
 
-      return NextResponse.json({ notification })
+      return NextResponse.json({notification})
     }
 
     // Authenticate user
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {data: {user}, error: authError} = await supabase.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        {error: 'Unauthorized'},
+        {status: 401}
       )
     }
 
@@ -101,17 +101,17 @@ export async function GET(
 
     if (!notification) {
       return NextResponse.json(
-        { error: 'Notification not found' },
-        { status: 404 }
+        {error: 'Notification not found'},
+        {status: 404}
       )
     }
 
-    return NextResponse.json({ notification })
+    return NextResponse.json({notification})
   } catch (error) {
     console.error('Error fetching notification:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      {error: 'Internal server error'},
+      {status: 500}
     )
   }
 }
@@ -123,25 +123,25 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  {params}: { params: { id: string } }
 ) {
   try {
     const notificationId = parseInt(params.id)
 
     if (isNaN(notificationId)) {
       return NextResponse.json(
-        { error: 'Invalid notification ID' },
-        { status: 400 }
+        {error: 'Invalid notification ID'},
+        {status: 400}
       )
     }
 
     const body = await request.json()
-    const { isRead } = body
+    const {isRead} = body
 
     if (typeof isRead !== 'boolean') {
       return NextResponse.json(
-        { error: 'Invalid isRead value' },
-        { status: 400 }
+        {error: 'Invalid isRead value'},
+        {status: 400}
       )
     }
 
@@ -162,12 +162,12 @@ export async function PATCH(
 
     // Authenticate user
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {data: {user}, error: authError} = await supabase.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        {error: 'Unauthorized'},
+        {status: 401}
       )
     }
 
@@ -185,8 +185,8 @@ export async function PATCH(
 
     if (!existingNotification) {
       return NextResponse.json(
-        { error: 'Notification not found' },
-        { status: 404 }
+        {error: 'Notification not found'},
+        {status: 404}
       )
     }
 
@@ -200,12 +200,12 @@ export async function PATCH(
       .where(eq(notifications.id, notificationId))
       .returning()
 
-    return NextResponse.json({ notification: updatedNotification })
+    return NextResponse.json({notification: updatedNotification})
   } catch (error) {
     console.error('Error updating notification:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      {error: 'Internal server error'},
+      {status: 500}
     )
   }
 }
@@ -217,15 +217,15 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  {params}: { params: { id: string } }
 ) {
   try {
     const notificationId = parseInt(params.id)
 
     if (isNaN(notificationId)) {
       return NextResponse.json(
-        { error: 'Invalid notification ID' },
-        { status: 400 }
+        {error: 'Invalid notification ID'},
+        {status: 400}
       )
     }
 
@@ -235,17 +235,17 @@ export async function DELETE(
 
     // Mock data for development
     if (devBypass || process.env.NODE_ENV === 'development') {
-      return NextResponse.json({ success: true })
+      return NextResponse.json({success: true})
     }
 
     // Authenticate user
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {data: {user}, error: authError} = await supabase.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        {error: 'Unauthorized'},
+        {status: 401}
       )
     }
 
@@ -263,8 +263,8 @@ export async function DELETE(
 
     if (!existingNotification) {
       return NextResponse.json(
-        { error: 'Notification not found' },
-        { status: 404 }
+        {error: 'Notification not found'},
+        {status: 404}
       )
     }
 
@@ -273,12 +273,12 @@ export async function DELETE(
       .delete(notifications)
       .where(eq(notifications.id, notificationId))
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({success: true})
   } catch (error) {
     console.error('Error deleting notification:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      {error: 'Internal server error'},
+      {status: 500}
     )
   }
 }

@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import React, {useState} from 'react'
+import {useRouter} from 'next/navigation'
+import {cn} from '@/lib/utils'
+import {Button} from '@/components/ui/button'
+import {ScrollArea} from '@/components/ui/scroll-area'
+import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +39,7 @@ import {
   FolderOpen,
   Database,
 } from 'lucide-react'
-import { useAuth } from '@/lib/auth/hooks'
+import {useAuth} from '@/lib/auth/hooks'
 
 export interface ProfileSection {
   id: string
@@ -75,7 +75,7 @@ const profileSections: ProfileSection[] = [
     description: 'Application preferences',
     group: 'Personal',
   },
-  
+
   // Billing & Usage
   {
     id: 'subscription',
@@ -92,7 +92,7 @@ const profileSections: ProfileSection[] = [
     description: 'Resource consumption',
     group: 'Billing',
   },
-  
+
   // Developer
   {
     id: 'api-keys',
@@ -102,7 +102,7 @@ const profileSections: ProfileSection[] = [
     badge: 2,
     group: 'Developer',
   },
-  
+
   // Commented out for future use
   // {
   //   id: 'auto-refills',
@@ -142,9 +142,9 @@ interface ProfileLayoutProps {
   onSectionChange: (section: string) => void
 }
 
-export function ProfileLayout({ children, activeSection, onSectionChange }: ProfileLayoutProps) {
+export function ProfileLayout({children, activeSection, onSectionChange}: ProfileLayoutProps) {
   const router = useRouter()
-  const { user, signOut } = useAuth()
+  const {user, signOut} = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -161,7 +161,8 @@ export function ProfileLayout({ children, activeSection, onSectionChange }: Prof
   return (
     <div className="min-h-screen bg-background">
       {/* Top Navbar */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header
+        className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center px-4">
           {/* Logo and Brand */}
           <div className="flex items-center gap-6">
@@ -170,11 +171,12 @@ export function ProfileLayout({ children, activeSection, onSectionChange }: Prof
               className="lg:hidden p-2 hover:bg-accent rounded-lg transition-colors"
               aria-label="Toggle menu"
             >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {mobileMenuOpen ? <X className="h-5 w-5"/> : <Menu className="h-5 w-5"/>}
             </button>
-            
+
             <a href="/dashboard" className="flex items-center gap-2 font-semibold">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
+              <div
+                className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
                 <span className="text-primary-foreground text-sm font-bold">P</span>
               </div>
               <span className="hidden sm:inline-block">PixCrawler</span>
@@ -184,19 +186,19 @@ export function ProfileLayout({ children, activeSection, onSectionChange }: Prof
           {/* Center Navigation */}
           <nav className="hidden lg:flex items-center gap-6 mx-auto">
             <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard')}>
-              <Home className="h-4 w-4 mr-2" />
+              <Home className="h-4 w-4 mr-2"/>
               Dashboard
             </Button>
             <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/projects')}>
-              <FolderOpen className="h-4 w-4 mr-2" />
+              <FolderOpen className="h-4 w-4 mr-2"/>
               Projects
             </Button>
             <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/datasets')}>
-              <Database className="h-4 w-4 mr-2" />
+              <Database className="h-4 w-4 mr-2"/>
               Datasets
             </Button>
             <Button variant="ghost" size="sm" onClick={() => router.push('/docs')}>
-              <HelpCircle className="h-4 w-4 mr-2" />
+              <HelpCircle className="h-4 w-4 mr-2"/>
               Help
             </Button>
           </nav>
@@ -206,7 +208,7 @@ export function ProfileLayout({ children, activeSection, onSectionChange }: Prof
             {/* Search */}
             <div className="hidden md:flex items-center">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
                 <input
                   type="text"
                   placeholder="Search..."
@@ -217,10 +219,10 @@ export function ProfileLayout({ children, activeSection, onSectionChange }: Prof
               </div>
             </div>
 
-            {/* Notifications */} 
+            {/* Notifications */}
             <Button variant="ghost" size="icon" className="h-9 w-9 relative">
-              <Bell className="h-4 w-4" />
-              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive" />
+              <Bell className="h-4 w-4"/>
+              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive"/>
             </Button>
 
             {/* User Menu */}
@@ -228,7 +230,7 @@ export function ProfileLayout({ children, activeSection, onSectionChange }: Prof
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src={user?.profile?.avatarUrl || ''} alt={user?.profile?.fullName || ''} />
+                    <AvatarImage src={user?.profile?.avatarUrl || ''} alt={user?.profile?.fullName || ''}/>
                     <AvatarFallback>
                       {user?.profile?.fullName?.charAt(0) || user?.email?.charAt(0) || 'U'}
                     </AvatarFallback>
@@ -242,22 +244,22 @@ export function ProfileLayout({ children, activeSection, onSectionChange }: Prof
                     <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator/>
                 <DropdownMenuItem onClick={() => onSectionChange('account')}>
-                  <User className="mr-2 h-4 w-4" />
+                  <User className="mr-2 h-4 w-4"/>
                   <span>Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onSectionChange('subscription')}>
-                  <CreditCard className="mr-2 h-4 w-4" />
+                  <CreditCard className="mr-2 h-4 w-4"/>
                   <span>Billing</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onSectionChange('settings')}>
-                  <Settings className="mr-2 h-4 w-4" />
+                  <Settings className="mr-2 h-4 w-4"/>
                   <span>Settings</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator/>
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                  <LogOut className="mr-2 h-4 w-4" />
+                  <LogOut className="mr-2 h-4 w-4"/>
                   <span>Log out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -283,7 +285,7 @@ export function ProfileLayout({ children, activeSection, onSectionChange }: Prof
                 {['Personal', 'Billing', 'Developer'].map((groupName) => {
                   const groupSections = filteredSections.filter(s => s.group === groupName)
                   if (groupSections.length === 0) return null
-                  
+
                   return (
                     <div key={groupName} className="space-y-1">
                       {/* Group Label */}
@@ -292,12 +294,12 @@ export function ProfileLayout({ children, activeSection, onSectionChange }: Prof
                           {groupName}
                         </h3>
                       </div>
-                      
+
                       {/* Group Items */}
                       {groupSections.map((section) => {
                         const Icon = section.icon
                         const isActive = activeSection === section.id
-                        
+
                         return (
                           <button
                             key={section.id}
@@ -309,8 +311,8 @@ export function ProfileLayout({ children, activeSection, onSectionChange }: Prof
                               "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200",
                               "hover:bg-accent/20 hover:text-accent-foreground",
                               "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
-                              isActive 
-                                ? "bg-primary/10 text-primary shadow-sm" 
+                              isActive
+                                ? "bg-primary/10 text-primary shadow-sm"
                                 : "text-foreground/80"
                             )}
                           >
@@ -318,7 +320,7 @@ export function ProfileLayout({ children, activeSection, onSectionChange }: Prof
                               <Icon className={cn(
                                 "h-4 w-4 flex-shrink-0",
                                 isActive ? "text-primary" : "text-muted-foreground"
-                              )} />
+                              )}/>
                               <div className="text-left min-w-0 flex-1">
                                 <div className={cn(
                                   "text-sm truncate",
@@ -333,7 +335,7 @@ export function ProfileLayout({ children, activeSection, onSectionChange }: Prof
                                 )}
                               </div>
                             </div>
-                            
+
                             <div className="flex items-center gap-2 flex-shrink-0">
                               {section.badge && (
                                 <span className={cn(
@@ -341,14 +343,14 @@ export function ProfileLayout({ children, activeSection, onSectionChange }: Prof
                                   typeof section.badge === 'string' && section.badge.startsWith('$')
                                     ? "bg-green-500/10 text-green-600 dark:text-green-400"
                                     : typeof section.badge === 'string'
-                                    ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                                    : "bg-red-500/10 text-red-600 dark:text-red-400"
+                                      ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                      : "bg-red-500/10 text-red-600 dark:text-red-400"
                                 )}>
                                   {section.badge}
                                 </span>
                               )}
                               {section.showArrow && (
-                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground"/>
                               )}
                             </div>
                           </button>
@@ -359,14 +361,14 @@ export function ProfileLayout({ children, activeSection, onSectionChange }: Prof
                 })}
               </div>
             </ScrollArea>
-            
+
             {/* Logout Button - Fixed at Bottom */}
             <div className="border-t p-3 bg-card/50 backdrop-blur-sm">
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all duration-200 font-medium"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-4 w-4"/>
                 <span>Log out</span>
               </button>
             </div>

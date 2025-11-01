@@ -1,5 +1,5 @@
 import {Metadata} from 'next'
-import {AboutHero, AboutMission, AboutFeatures, AboutTechStack, AboutCTA} from '@/components/about'
+import {AboutCTA, AboutFeatures, AboutHero, AboutMission, AboutTechStack} from '@/components/about'
 
 export const metadata: Metadata = {
   title: 'About PixCrawler - DEPI Data Engineering Team',
@@ -18,11 +18,11 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <main className="min-h-screen">
-      <AboutHero />
-      <AboutMission />
-      <AboutFeatures />
-      <AboutTechStack />
-      <AboutCTA />
+      <AboutHero/>
+      <AboutMission/>
+      <AboutFeatures/>
+      <AboutTechStack/>
+      <AboutCTA/>
     </main>
   )
 }

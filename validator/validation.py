@@ -33,7 +33,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Tuple, Set, TypedDict
 
-from logging_config import get_logger
+from utility.logging_config import get_logger
 from validator.config import CheckMode, DuplicateAction, ValidatorConfig
 from validator.integrity import DuplicationManager, ImageValidator
 

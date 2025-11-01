@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import List, Optional, Union, Dict, Any
 from enum import Enum
 
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 __all__ = ['AzureBlobArchiveProvider', 'AccessTier', 'RehydratePriority', 'AZURE_AVAILABLE']
 
