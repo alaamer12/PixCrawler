@@ -16,7 +16,7 @@ Features:
     - Optional authentication support
     - Comprehensive error handling
 """
-from typing import AsyncGenerator, Generator, Optional, Dict, Any
+from typing import AsyncGenerator, Generator, Optional, Dict, Any, Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -27,13 +27,52 @@ from backend.database.connection import get_session as get_db_session
 from backend.services.supabase_auth import SupabaseAuthService
 from backend.storage.base import StorageProvider
 from backend.storage.factory import get_storage_provider
+from backend.repositories import (
+    CrawlJobRepository,
+    ProjectRepository,
+    ImageRepository,
+    ActivityLogRepository,
+    UserRepository
+)
+from backend.services.crawl_job import CrawlJobService
+
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Get async database session.
+
+    FastAPI dependency that provides an async SQLAlchemy session
+    for database operations.
+
+    Yields:
+        AsyncSession: Async database session
+    """
+    async for session in get_db_session():
+        yield session
+
+# Type alias for dependency injection
+# DBSession type re-defined here to avoid circular import, it is re-exported from types.py file
+# You should use DBSession type from types.py file in your code
+DBSession = Annotated[AsyncSession, Depends(get_session)]
 
 __all__ = [
+    # Auth dependencies
     'get_current_user',
     'get_current_user_optional',
     'get_supabase_auth_service',
+
+    # Core dependencies
     'get_session',
-    'get_storage'
+    'get_storage',
+
+    # Repository factories
+    'get_crawl_job_repository',
+    'get_project_repository',
+    'get_image_repository',
+    'get_user_repository',
+    'get_activity_log_repository',
+
+    # Service dependencies
+    'get_crawl_job_service',
 ]
 
 # HTTP Bearer token scheme
@@ -139,21 +178,6 @@ async def get_current_user_optional(
         # Return None for any authentication errors in optional auth
         return None
 
-
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    """
-    Get async database session.
-    
-    FastAPI dependency that provides an async SQLAlchemy session
-    for database operations.
-    
-    Yields:
-        AsyncSession: Async database session
-    """
-    async for session in get_db_session():
-        yield session
-
-
 def get_storage() -> Generator[StorageProvider, None, None]:
     """
     Dependency that returns the configured storage provider.
@@ -167,3 +191,55 @@ def get_storage() -> Generator[StorageProvider, None, None]:
     finally:
         # Add any cleanup if needed
         pass
+
+
+# Repository Factory Functions
+def get_crawl_job_repository(session: DBSession) -> CrawlJobRepository:
+    """Get CrawlJobRepository instance."""
+    return CrawlJobRepository(session)
+
+
+def get_project_repository(session: DBSession) -> ProjectRepository:
+    """Get ProjectRepository instance."""
+    return ProjectRepository(session)
+
+
+def get_image_repository(session: DBSession) -> ImageRepository:
+    """Get ImageRepository instance."""
+    return ImageRepository(session)
+
+
+def get_user_repository(session: DBSession) -> UserRepository:
+    """Get UserRepository instance."""
+    return UserRepository(session)
+
+
+def get_activity_log_repository(session: DBSession) -> ActivityLogRepository:
+    """Get ActivityLogRepository instance."""
+    return ActivityLogRepository(session)
+
+
+# Service Dependencies
+async def get_crawl_job_service(session: DBSession) -> CrawlJobService:
+    """
+    Dependency injection for CrawlJobService.
+
+    Creates service with all required repositories.
+
+    Args:
+        session: Database session
+
+    Returns:
+        CrawlJobService instance
+    """
+    crawl_job_repo = CrawlJobRepository(session)
+    project_repo = ProjectRepository(session)
+    image_repo = ImageRepository(session)
+    activity_log_repo = ActivityLogRepository(session)
+
+    return CrawlJobService(
+        crawl_job_repo=crawl_job_repo,
+        project_repo=project_repo,
+        image_repo=image_repo,
+        activity_log_repo=activity_log_repo
+    )

@@ -106,8 +106,6 @@ async def create_crawl_job(
             name=job_create.name,
             keywords=job_create.keywords,
             max_images=job_create.max_images,
-            search_engine=job_create.search_engine,
-            config=job_create.config,
             user_id=current_user["user_id"]
         )
 
