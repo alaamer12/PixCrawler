@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.dependencies import get_current_user
 from backend.database.connection import get_session
-from backend.models.base import BaseSchema
+from backend.schemas.base import BaseSchema
 from backend.services.validation import ValidationService, ValidationLevel, \
     ValidationStatus
 

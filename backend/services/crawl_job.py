@@ -24,7 +24,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.exceptions import NotFoundError
-from backend.database.models import CrawlJob, Project, Image, ActivityLog
+from backend.models import CrawlJob, Project, Image, ActivityLog
 # Import builder package for crawling functionality
 from .base import BaseService
 

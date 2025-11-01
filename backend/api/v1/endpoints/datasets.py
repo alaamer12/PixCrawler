@@ -7,7 +7,7 @@ from fastapi_limiter.depends import RateLimiter
 from fastapi_pagination import Page
 
 from backend.api.types import CurrentUser, DBSession, DatasetID
-from backend.models.dataset import DatasetCreate, DatasetResponse, DatasetStats, DatasetUpdate
+from backend.schemas.dataset import DatasetCreate, DatasetResponse, DatasetStats, DatasetUpdate
 from backend.services.dataset import DatasetService
 
 router = APIRouter(prefix="/api/v1/datasets")

@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_current_user, get_session
 from backend.api.types import CurrentUser, DBSession, JobID
-from backend.database.models import CrawlJob, Project, ActivityLog
+from backend.models import CrawlJob, Project, ActivityLog
 from backend.services.crawl_job import CrawlJobService, execute_crawl_job
 
 __all__ = ['router']

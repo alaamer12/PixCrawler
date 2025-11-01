@@ -7,7 +7,7 @@ from datetime import datetime
 from fastapi import APIRouter
 
 from backend.core.config import get_settings
-from backend.models.base import HealthCheck
+from backend.schemas.base import HealthCheck
 
 router = APIRouter()
 

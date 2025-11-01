@@ -21,7 +21,7 @@ from typing import Union
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.api.types import CurrentUser
-from backend.models.user import UserResponse
+from backend.schemas.user import UserResponse
 from backend.services.supabase_auth import SupabaseAuthService
 
 __all__ = ['router']

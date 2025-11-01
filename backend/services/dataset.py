@@ -3,7 +3,7 @@ Dataset service for dataset management and processing operations.
 """
 from typing import Optional
 
-from backend.models.dataset import DatasetCreate, DatasetResponse, DatasetStats, \
+from backend.schemas.dataset import DatasetCreate, DatasetResponse, DatasetStats, \
     DatasetUpdate
 from .base import BaseService
 
