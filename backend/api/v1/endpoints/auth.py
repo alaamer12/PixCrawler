@@ -21,14 +21,43 @@ from typing import Union
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.api.types import CurrentUser, SupabaseAuthServiceDep
+from backend.api.v1.response_models import get_common_responses
 from backend.schemas.user import UserResponse
 
 __all__ = ['router']
 
-router = APIRouter()
+router = APIRouter(
+    tags=["Authentication"],
+    responses=get_common_responses(401, 500),
+)
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    summary="Get Current User Profile",
+    description="Retrieve the authenticated user's profile information from Supabase Auth.",
+    response_description="User profile with email, name, and account details",
+    operation_id="getCurrentUserProfile",
+    responses={
+        200: {
+            "description": "Successfully retrieved user profile",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": "123e4567-e89b-12d3-a456-426614174000",
+                        "email": "user@example.com",
+                        "full_name": "John Doe",
+                        "is_active": True,
+                        "created_at": "2024-01-01T00:00:00Z",
+                        "updated_at": "2024-01-01T00:00:00Z"
+                    }
+                }
+            }
+        },
+        **get_common_responses(401, 500)
+    }
+)
 async def get_current_user_profile(
     current_user: CurrentUser,
     auth_service: SupabaseAuthServiceDep,
@@ -37,7 +66,9 @@ async def get_current_user_profile(
     Get current authenticated user profile.
 
     Returns the profile information for the currently authenticated user
-    based on the Supabase JWT token.
+    based on the Supabase JWT token provided in the Authorization header.
+
+    **Authentication Required:** Bearer token from Supabase Auth
 
     Args:
         current_user: Current authenticated user from dependency
@@ -47,7 +78,7 @@ async def get_current_user_profile(
         Current user profile information
 
     Raises:
-        HTTPException: If user profile is not found
+        HTTPException: If user profile is not found or token is invalid
     """
     try:
         profile = current_user["profile"]
@@ -68,15 +99,47 @@ async def get_current_user_profile(
         )
 
 
-@router.post("/verify-token")
+@router.post(
+    "/verify-token",
+    summary="Verify JWT Token",
+    description="Validate a Supabase JWT token and return user information if valid.",
+    response_description="Token validation result with user details",
+    operation_id="verifyAuthToken",
+    responses={
+        200: {
+            "description": "Token is valid",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "valid": True,
+                        "user": {
+                            "id": "123e4567-e89b-12d3-a456-426614174000",
+                            "email": "user@example.com",
+                            "profile": {
+                                "full_name": "John Doe",
+                                "avatar_url": "https://example.com/avatar.jpg"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        **get_common_responses(401, 500)
+    }
+)
 async def verify_token(
     current_user: CurrentUser
 ) -> dict[str, Union[bool, dict[str, str]]]:
     """
     Verify Supabase JWT token and return user information.
 
-    This endpoint can be used by the frontend to verify that a token
-    is still valid and get updated user information.
+    This endpoint validates the JWT token provided in the Authorization header
+    and returns the associated user information if the token is valid.
+
+    **Use Case:** Frontend can use this to check if a stored token is still valid
+    before making authenticated requests.
+
+    **Authentication Required:** Bearer token from Supabase Auth
 
     Args:
         current_user: Current authenticated user from dependency
@@ -94,7 +157,33 @@ async def verify_token(
     }
 
 
-@router.post("/sync-profile")
+@router.post(
+    "/sync-profile",
+    summary="Sync User Profile",
+    description="Synchronize user profile data from Supabase Auth to the profiles table.",
+    response_description="Profile synchronization result",
+    operation_id="syncUserProfile",
+    responses={
+        200: {
+            "description": "Profile synchronized successfully",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "created": {
+                            "summary": "Profile created",
+                            "value": {"message": "User profile created successfully"}
+                        },
+                        "updated": {
+                            "summary": "Profile updated",
+                            "value": {"message": "User profile updated successfully"}
+                        }
+                    }
+                }
+            }
+        },
+        **get_common_responses(401, 500)
+    }
+)
 async def sync_user_profile(
     current_user: CurrentUser,
     auth_service: SupabaseAuthServiceDep,
@@ -103,14 +192,20 @@ async def sync_user_profile(
     Sync user profile from Supabase Auth to profiles table.
 
     This endpoint ensures that the user profile in the profiles table
-    is synchronized with the Supabase Auth user data.
+    is synchronized with the Supabase Auth user data. It will create
+    a new profile if one doesn't exist, or update the existing profile.
+
+    **Use Case:** Call this after OAuth login to ensure profile data is up-to-date
+    with the latest information from the authentication provider.
+
+    **Authentication Required:** Bearer token from Supabase Auth
 
     Args:
         current_user: Current authenticated user from dependency
         auth_service: Supabase authentication service
 
     Returns:
-        Success message
+        Success message indicating whether profile was created or updated
     """
     try:
         user_id = current_user["user_id"]
