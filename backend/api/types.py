@@ -19,11 +19,11 @@ Best Practices:
     - Improves code reusability and type safety
 """
 
-from typing import Dict, Any, Optional, TYPE_CHECKING
-from typing_extensions import Annotated
+from typing import Dict, Any, Optional
 
 from fastapi import Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing_extensions import Annotated
 
 from backend.api.dependencies import (
     get_current_user,
@@ -35,14 +35,12 @@ from backend.api.dependencies import (
     get_storage_service,
     get_auth_service,
 )
-
-if TYPE_CHECKING:
-    from backend.services.crawl_job import CrawlJobService
-    from backend.services.dataset import DatasetService
-    from backend.services.validation import ValidationService
-    from backend.services.user import UserService
-    from backend.services.storage import StorageService
-    from backend.services.supabase_auth import SupabaseAuthService
+from backend.services.crawl_job import CrawlJobService
+from backend.services.dataset import DatasetService
+from backend.services.storage import StorageService
+from backend.services.supabase_auth import SupabaseAuthService
+from backend.services.user import UserService
+from backend.services.validation import ValidationService
 
 __all__ = [
     # Auth & Session

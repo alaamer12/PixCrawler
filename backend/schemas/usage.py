@@ -201,7 +201,7 @@ class UsageTrend(BaseModel):
     
     model_config = ConfigDict(validate_assignment=True)
     
-    date: date = Field(description="Date")
+    trend_date: date = Field(description="Date", alias="date")
     images_processed: int = Field(ge=0, description="Images processed")
     storage_used_gb: Decimal = Field(ge=Decimal("0.00"), description="Storage used")
     api_calls: int = Field(ge=0, description="API calls")
