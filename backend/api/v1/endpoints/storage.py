@@ -4,159 +4,21 @@ Handles storage operations including usage stats, file info, and cleanup
 """
 
 from datetime import datetime, timedelta
-from typing import Optional, List, Union, Dict
+from typing import Dict, List, Optional, Union
 
-import pytest
-from fastapi import APIRouter, HTTPException, Depends, Query
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from backend.storage.base import StorageProvider
 from backend.api.dependencies import get_storage
+from backend.schemas.storage import (
+    CleanupRequest,
+    CleanupResponse,
+    FileInfo,
+    StorageUsageResponse,
+)
+from backend.storage.base import StorageProvider
 
 router = APIRouter(prefix="/api/v1/storage", tags=["storage"])
 
-class StorageUsageResponse(BaseModel):
-    """Response model for storage usage statistics."""
-
-    model_config = {
-        'str_strip_whitespace': True,
-        'validate_assignment': True,
-        'extra': 'forbid'
-    }
-
-    total_storage_bytes: int = Field(
-        ...,
-        ge=0,
-        description="Total storage used in bytes",
-        examples=[0, 1048576, 1073741824]
-    )
-    total_storage_mb: float = Field(
-        ...,
-        ge=0.0,
-        description="Total storage used in megabytes",
-        examples=[0.0, 1.0, 1024.0]
-    )
-    total_storage_gb: float = Field(
-        ...,
-        ge=0.0,
-        description="Total storage used in gigabytes",
-        examples=[0.0, 0.001, 1.0, 10.5]
-    )
-    file_count: int = Field(
-        ...,
-        ge=0,
-        description="Number of files in storage",
-        examples=[0, 100, 1000, 5000]
-    )
-    last_updated: datetime = Field(
-        ...,
-        description="ISO 8601 timestamp of last update",
-        examples=[datetime.utcnow()]
-    )
-
-
-class FileInfo(BaseModel):
-    """Model for individual file information."""
-
-    model_config = {
-        'str_strip_whitespace': True,
-        'validate_assignment': True,
-        'extra': 'forbid'
-    }
-
-    file_path: str = Field(
-        ...,
-        min_length=1,
-        max_length=500,
-        description="Relative path to the file in storage",
-        examples=["datasets/images/cat_001.jpg", "uploads/2024/image.png"]
-    )
-    size_bytes: int = Field(
-        ...,
-        ge=0,
-        description="File size in bytes",
-        examples=[0, 1024, 1048576, 5242880]
-    )
-    size_mb: float = Field(
-        ...,
-        ge=0.0,
-        description="File size in megabytes",
-        examples=[0.0, 0.001, 1.0, 5.0]
-    )
-    last_modified: Optional[datetime] = Field(
-        None,
-        description="ISO 8601 timestamp of last modification",
-        examples=[datetime.utcnow(), None]
-    )
-
-
-class CleanupRequest(BaseModel):
-    """Request model for cleanup operation."""
-
-    model_config = {
-        'str_strip_whitespace': True,
-        'validate_assignment': True,
-        'extra': 'forbid'
-    }
-
-    age_hours: Optional[int] = Field(
-        default=24,
-        ge=1,
-        le=8760,  # Max 1 year
-        description="Delete files older than this many hours",
-        examples=[24, 48, 168, 720]
-    )
-    prefix: Optional[str] = Field(
-        default=None,
-        max_length=200,
-        description="Optional prefix to filter files for cleanup",
-        examples=[None, "datasets/", "temp/", "uploads/2024/"]
-    )
-
-
-class CleanupResponse(BaseModel):
-    """Response model for cleanup operation."""
-
-    model_config = {
-        'str_strip_whitespace': True,
-        'validate_assignment': True,
-        'extra': 'forbid'
-    }
-
-    success: bool = Field(
-        ...,
-        description="Whether cleanup completed successfully",
-        examples=[True, False]
-    )
-    files_deleted: int = Field(
-        ...,
-        ge=0,
-        description="Number of files deleted",
-        examples=[0, 10, 50, 100]
-    )
-    space_freed_bytes: int = Field(
-        ...,
-        ge=0,
-        description="Space freed in bytes",
-        examples=[0, 1048576, 10485760]
-    )
-    space_freed_mb: float = Field(
-        ...,
-        ge=0.0,
-        description="Space freed in megabytes",
-        examples=[0.0, 1.0, 10.0, 100.5]
-    )
-    cleanup_duration_seconds: float = Field(
-        ...,
-        ge=0.0,
-        description="Duration of cleanup operation in seconds",
-        examples=[0.5, 1.2, 5.8, 30.0]
-    )
-    timestamp: datetime = Field(
-        ...,
-        description="ISO 8601 timestamp of cleanup completion",
-        examples=[datetime.utcnow()]
-    )
 
 class StorageService:
     """Service class handling storage operations.

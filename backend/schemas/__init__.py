@@ -98,6 +98,34 @@ from .usage import (
     UsageSummary,
     UsageTrend,
 )
+from .crawl_jobs import (
+    CrawlJobStatus,
+    CrawlJobCreate,
+    CrawlJobUpdate,
+    CrawlJobResponse,
+    CrawlJobProgress,
+    JobLogEntry,
+)
+from .validation import (
+    ValidationLevel,
+    ValidationStatus,
+    ValidationAnalyzeRequest,
+    ValidationBatchRequest,
+    ValidationLevelUpdateRequest,
+    ValidationAnalyzeResponse,
+    ValidationJobResponse,
+    ValidationResultItem,
+    ValidationResultsResponse,
+    ValidationStatsResponse,
+    ValidationLevelUpdateResponse,
+)
+from .storage import (
+    StorageTier,
+    StorageUsageResponse,
+    FileInfo,
+    CleanupRequest,
+    CleanupResponse,
+)
 
 __all__ = [
     # Base schemas
@@ -173,4 +201,32 @@ __all__ = [
     'UsageMetricResponse',
     'UsageSummary',
     'UsageTrend',
+    
+    # Crawl Job schemas
+    'CrawlJobStatus',
+    'CrawlJobCreate',
+    'CrawlJobUpdate',
+    'CrawlJobResponse',
+    'CrawlJobProgress',
+    'JobLogEntry',
+    
+    # Validation schemas
+    'ValidationLevel',
+    'ValidationStatus',
+    'ValidationAnalyzeRequest',
+    'ValidationBatchRequest',
+    'ValidationLevelUpdateRequest',
+    'ValidationAnalyzeResponse',
+    'ValidationJobResponse',
+    'ValidationResultItem',
+    'ValidationResultsResponse',
+    'ValidationStatsResponse',
+    'ValidationLevelUpdateResponse',
+    
+    # Storage schemas
+    'StorageTier',
+    'StorageUsageResponse',
+    'FileInfo',
+    'CleanupRequest',
+    'CleanupResponse',
 ]
