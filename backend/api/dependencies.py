@@ -35,6 +35,10 @@ from backend.repositories import (
     UserRepository
 )
 from backend.services.crawl_job import CrawlJobService
+from backend.services.dataset import DatasetService
+from backend.services.validation import ValidationService
+from backend.services.user import UserService
+from backend.services.storage import StorageService
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """
@@ -59,20 +63,23 @@ __all__ = [
     'get_current_user',
     'get_current_user_optional',
     'get_supabase_auth_service',
-
     # Core dependencies
     'get_session',
     'get_storage',
-
+    'DBSession',
     # Repository factories
     'get_crawl_job_repository',
     'get_project_repository',
     'get_image_repository',
     'get_user_repository',
     'get_activity_log_repository',
-
     # Service dependencies
     'get_crawl_job_service',
+    'get_dataset_service',
+    'get_validation_service',
+    'get_user_service',
+    'get_storage_service',
+    'get_auth_service',
 ]
 
 # HTTP Bearer token scheme
@@ -243,3 +250,59 @@ async def get_crawl_job_service(session: DBSession) -> CrawlJobService:
         image_repo=image_repo,
         activity_log_repo=activity_log_repo
     )
+
+
+def get_dataset_service() -> DatasetService:
+    """
+    Dependency injection for DatasetService.
+
+    Returns:
+        DatasetService instance
+    """
+    return DatasetService()
+
+
+def get_validation_service(session: DBSession) -> ValidationService:
+    """
+    Dependency injection for ValidationService.
+
+    Args:
+        session: Database session
+
+    Returns:
+        ValidationService instance
+    """
+    return ValidationService(session)
+
+
+def get_user_service() -> UserService:
+    """
+    Dependency injection for UserService.
+
+    Returns:
+        UserService instance
+    """
+    return UserService()
+
+
+def get_storage_service(storage: StorageProvider = Depends(get_storage)) -> StorageService:
+    """
+    Dependency injection for StorageService.
+
+    Args:
+        storage: Storage provider instance
+
+    Returns:
+        StorageService instance
+    """
+    return StorageService(storage)
+
+
+def get_auth_service() -> SupabaseAuthService:
+    """
+    Dependency injection for SupabaseAuthService.
+
+    Returns:
+        SupabaseAuthService instance
+    """
+    return SupabaseAuthService()

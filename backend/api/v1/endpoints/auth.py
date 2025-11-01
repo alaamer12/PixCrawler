@@ -20,9 +20,8 @@ from typing import Union
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from backend.api.types import CurrentUser
+from backend.api.types import CurrentUser, SupabaseAuthServiceDep
 from backend.schemas.user import UserResponse
-from backend.services.supabase_auth import SupabaseAuthService
 
 __all__ = ['router']
 
@@ -32,7 +31,7 @@ router = APIRouter()
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_profile(
     current_user: CurrentUser,
-    auth_service: SupabaseAuthService = Depends(),
+    auth_service: SupabaseAuthServiceDep,
 ) -> UserResponse:
     """
     Get current authenticated user profile.
@@ -98,7 +97,7 @@ async def verify_token(
 @router.post("/sync-profile")
 async def sync_user_profile(
     current_user: CurrentUser,
-    auth_service: SupabaseAuthService = Depends(),
+    auth_service: SupabaseAuthServiceDep,
 ) -> dict[str, str]:
     """
     Sync user profile from Supabase Auth to profiles table.

@@ -6,9 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi_limiter.depends import RateLimiter
 from fastapi_pagination import Page
 
-from backend.api.types import CurrentUser, DBSession, DatasetID
+from backend.api.types import CurrentUser, DBSession, DatasetID, DatasetServiceDep
 from backend.schemas.dataset import DatasetCreate, DatasetResponse, DatasetStats, DatasetUpdate
-from backend.services.dataset import DatasetService
 
 router = APIRouter(prefix="/api/v1/datasets")
 
@@ -22,7 +21,7 @@ router = APIRouter(prefix="/api/v1/datasets")
 async def create_dataset(
     dataset_create: DatasetCreate,
     current_user: CurrentUser,
-    dataset_service: DatasetService = Depends(),
+    dataset_service: DatasetServiceDep,
 ) -> DatasetResponse:
     """
     Create a new dataset generation job.
@@ -51,7 +50,7 @@ async def create_dataset(
 async def list_datasets(
     current_user: CurrentUser,
     session: DBSession,
-    dataset_service: DatasetService = Depends(),
+    dataset_service: DatasetServiceDep,
 ) -> Page[DatasetResponse]:
     """
     List datasets with pagination.
@@ -73,7 +72,7 @@ async def list_datasets(
 
 @router.get("/stats", response_model=DatasetStats)
 async def get_dataset_stats(
-    dataset_service: DatasetService = Depends(),
+    dataset_service: DatasetServiceDep,
 ) -> DatasetStats:
     """
     Get dataset statistics.
@@ -97,7 +96,7 @@ async def get_dataset_stats(
 async def get_dataset(
     dataset_id: DatasetID,
     current_user: CurrentUser,
-    dataset_service: DatasetService = Depends(),
+    dataset_service: DatasetServiceDep,
 ) -> DatasetResponse:
     """
     Get dataset by ID.
@@ -125,7 +124,7 @@ async def update_dataset(
     dataset_id: DatasetID,
     dataset_update: DatasetUpdate,
     current_user: CurrentUser,
-    dataset_service: DatasetService = Depends(),
+    dataset_service: DatasetServiceDep,
 ) -> DatasetResponse:
     """
     Update dataset information.
@@ -157,7 +156,7 @@ async def update_dataset(
 async def delete_dataset(
     dataset_id: DatasetID,
     current_user: CurrentUser,
-    dataset_service: DatasetService = Depends(),
+    dataset_service: DatasetServiceDep,
 ) -> None:
     """
     Delete dataset.
@@ -188,7 +187,7 @@ async def delete_dataset(
 async def start_build_job(
     dataset_id: DatasetID,
     current_user: CurrentUser,
-    dataset_service: DatasetService = Depends(),
+    dataset_service: DatasetServiceDep,
 ) -> DatasetResponse:
     """
     Start dataset build job.
@@ -212,7 +211,7 @@ async def start_build_job(
 async def get_dataset_status(
     dataset_id: DatasetID,
     current_user: CurrentUser,
-    dataset_service: DatasetService = Depends(),
+    dataset_service: DatasetServiceDep,
 ) -> DatasetResponse:
     """
     Get dataset build status.
@@ -236,7 +235,7 @@ async def get_dataset_status(
 async def generate_download_link(
     dataset_id: DatasetID,
     current_user: CurrentUser,
-    dataset_service: DatasetService = Depends(),
+    dataset_service: DatasetServiceDep,
 ) -> dict[str, str]:
     """
     Generate dataset download link.
@@ -260,7 +259,7 @@ async def generate_download_link(
 async def cancel_dataset(
     dataset_id: DatasetID,
     current_user: CurrentUser,
-    dataset_service: DatasetService = Depends(),
+    dataset_service: DatasetServiceDep,
 ) -> DatasetResponse:
     """
     Cancel dataset processing.

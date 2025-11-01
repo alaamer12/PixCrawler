@@ -5,9 +5,8 @@ User management endpoints.
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi_pagination import Page
 
-from backend.api.types import UserID
+from backend.api.types import UserID, UserServiceDep
 from backend.schemas.user import UserCreate, UserResponse, UserUpdate
-from backend.services.user import UserService
 
 router = APIRouter()
 
@@ -15,7 +14,7 @@ router = APIRouter()
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
     user_create: UserCreate,
-    user_service: UserService = Depends(),
+    user_service: UserServiceDep,
 ) -> UserResponse:
     """
     Create a new user account.
@@ -39,7 +38,7 @@ async def create_user(
 
 @router.get("/", response_model=Page[UserResponse])
 async def list_users(
-    user_service: UserService = Depends(),
+    user_service: UserServiceDep,
 ) -> Page[UserResponse]:
     """
     List users with pagination.
@@ -63,7 +62,7 @@ async def list_users(
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: UserID,
-    user_service: UserService = Depends(),
+    user_service: UserServiceDep,
 ) -> UserResponse:
     """
     Get user by ID.
@@ -89,7 +88,7 @@ async def get_user(
 async def update_user(
     user_id: UserID,
     user_update: UserUpdate,
-    user_service: UserService = Depends(),
+    user_service: UserServiceDep,
 ) -> UserResponse:
     """
     Update user information.
@@ -115,7 +114,7 @@ async def update_user(
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
     user_id: UserID,
-    user_service: UserService = Depends(),
+    user_service: UserServiceDep,
 ) -> None:
     """
     Delete user account.

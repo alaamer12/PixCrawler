@@ -14,11 +14,9 @@ from typing import Dict, Any, AsyncIterator
 from fastapi import APIRouter, Depends, HTTPException, status
 from starlette.responses import StreamingResponse, FileResponse
 from starlette.concurrency import run_in_threadpool
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.dependencies import get_current_user, get_session
+from backend.api.types import CurrentUser, DBSession, DatasetServiceDep
 from backend.core.exceptions import NotFoundError
-from backend.services.dataset import DatasetService
 from utility.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -132,9 +130,8 @@ async def generate_zip_archive(
 @router.get("/datasets/{dataset_id}/export/json")
 async def export_dataset_json(
     dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    dataset_service: DatasetService = Depends(),
-    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser,
+    dataset_service: DatasetServiceDep,
 ) -> StreamingResponse:
     """
     Export dataset as streaming JSON.
@@ -178,9 +175,8 @@ async def export_dataset_json(
 @router.get("/datasets/{dataset_id}/export/csv")
 async def export_dataset_csv(
     dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    dataset_service: DatasetService = Depends(),
-    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser,
+    dataset_service: DatasetServiceDep,
 ) -> StreamingResponse:
     """
     Export dataset as streaming CSV.
@@ -224,9 +220,8 @@ async def export_dataset_csv(
 @router.get("/datasets/{dataset_id}/export/zip")
 async def export_dataset_zip(
     dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    dataset_service: DatasetService = Depends(),
-    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser,
+    dataset_service: DatasetServiceDep,
 ) -> StreamingResponse:
     """
     Export dataset as ZIP archive.
@@ -282,8 +277,8 @@ async def export_dataset_zip(
 async def download_image(
     dataset_id: int,
     image_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    dataset_service: DatasetService = Depends(),
+    current_user: CurrentUser,
+    dataset_service: DatasetServiceDep,
 ) -> FileResponse:
     """
     Download a single image file.

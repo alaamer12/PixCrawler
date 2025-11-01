@@ -9,10 +9,8 @@ and validation statistics management.
 from typing import Any, Dict
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.dependencies import get_current_user
-from backend.database.connection import get_session
+from backend.api.types import CurrentUser, DBSession, ValidationServiceDep
 from backend.schemas.validation import (
     ValidationAnalyzeRequest,
     ValidationAnalyzeResponse,
@@ -23,7 +21,6 @@ from backend.schemas.validation import (
     ValidationResultsResponse,
     ValidationStatsResponse,
 )
-from backend.services.validation import ValidationService
 
 __all__ = ['router']
 
@@ -36,8 +33,8 @@ router = APIRouter()
 @router.post("/analyze/", response_model=ValidationAnalyzeResponse, status_code=status.HTTP_200_OK)
 async def analyze_single_image(
     request: ValidationAnalyzeRequest,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser,
+    service: ValidationServiceDep,
 ) -> ValidationAnalyzeResponse:
     """
     Analyze a single image for quality and content validation.
@@ -57,8 +54,6 @@ async def analyze_single_image(
         HTTPException: If image not found or validation fails
     """
     try:
-        service = ValidationService(session)
-
         result = await service.analyze_single_image(
             image_id=request.image_id,
             validation_level=request.validation_level,
@@ -78,8 +73,8 @@ async def analyze_single_image(
 async def create_batch_validation(
     request: ValidationBatchRequest,
     background_tasks: BackgroundTasks,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser,
+    service: ValidationServiceDep,
 ) -> ValidationJobResponse:
     """
     Create a batch validation job for multiple images.
@@ -125,8 +120,8 @@ async def create_batch_validation(
 @router.get("/results/{job_id}/", response_model=ValidationResultsResponse)
 async def get_validation_results(
     job_id: str,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser,
+    service: ValidationServiceDep,
 ) -> ValidationResultsResponse:
     """
     Get validation results for a specific job.
@@ -146,8 +141,6 @@ async def get_validation_results(
         HTTPException: If job not found
     """
     try:
-        service = ValidationService(session)
-
         results = await service.get_validation_results(job_id)
 
         return ValidationResultsResponse(**results)
@@ -167,8 +160,8 @@ async def get_validation_results(
 @router.get("/stats/{dataset_id}/", response_model=ValidationStatsResponse)
 async def get_dataset_validation_stats(
     dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser,
+    service: ValidationServiceDep,
 ) -> ValidationStatsResponse:
     """
     Get validation statistics for a dataset.
@@ -188,8 +181,6 @@ async def get_dataset_validation_stats(
         HTTPException: If dataset not found
     """
     try:
-        service = ValidationService(session)
-
         stats = await service.get_dataset_validation_stats(dataset_id)
 
         return ValidationStatsResponse(**stats)
@@ -209,8 +200,8 @@ async def get_dataset_validation_stats(
 @router.put("/level/", response_model=ValidationLevelUpdateResponse)
 async def update_validation_level(
     request: ValidationLevelUpdateRequest,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+    current_user: CurrentUser,
+    service: ValidationServiceDep,
 ) -> ValidationLevelUpdateResponse:
     """
     Update the validation level for a dataset.
@@ -230,8 +221,6 @@ async def update_validation_level(
         HTTPException: If dataset not found or update fails
     """
     try:
-        service = ValidationService(session)
-
         result = await service.update_dataset_validation_level(
             dataset_id=request.dataset_id,
             validation_level=request.validation_level,
