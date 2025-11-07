@@ -313,11 +313,9 @@ class BaseTask(Task, ABC):
     """
 
     # Task configuration
-    autoretry_for = (Exception,)
-    retry_kwargs = {'max_retries': 3, 'countdown': 60}
-    retry_backoff = True
-    retry_backoff_max = 600  # 10 minutes
-    retry_jitter = True
+    autoretry_for = ()  # Disable auto-retry, use explicit retry only
+    max_retries = 3  # Max retry attempts for explicit retry
+    retry_jitter = True  # Add jitter to retry timing
 
     def __call__(self, *args, **kwargs):
         """

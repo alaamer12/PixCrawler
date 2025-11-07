@@ -129,11 +129,11 @@ class CelerySettings(BaseSettings):
     
     # Worker Settings
     worker_concurrency: int = Field(
-        default=4,
+        default=35,
         ge=1,
-        le=32,
+        le=128,
         description="Number of concurrent worker processes",
-        examples=[1, 2, 4, 8, 16]
+        examples=[1, 4, 16, 35, 64]
     )
     worker_prefetch_multiplier: int = Field(
         default=1,
