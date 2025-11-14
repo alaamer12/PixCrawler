@@ -1,11 +1,11 @@
 'use client'
 
-import { memo, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Check, Loader2, Star, Zap } from 'lucide-react'
-import { PricingPlan } from '@/lib/payments/types'
-import { formatPrice } from '@/lib/payments/plans'
+import {memo, useState} from 'react'
+import {Button} from '@/components/ui/button'
+import {Badge} from '@/components/ui/badge'
+import {Check, Loader2, Star, Zap} from 'lucide-react'
+import {PricingPlan} from '@/lib/payments/types'
+import {formatPrice} from '@/lib/payments/plans'
 
 interface PricingCardProps {
   plan: PricingPlan
@@ -16,12 +16,12 @@ interface PricingCardProps {
 }
 
 export const PricingCard = memo(({
-  plan,
-  onSelectPlan,
-  isLoading = false,
-  currentPlan,
-  className = ''
-}: PricingCardProps) => {
+                                   plan,
+                                   onSelectPlan,
+                                   isLoading = false,
+                                   currentPlan,
+                                   className = ''
+                                 }: PricingCardProps) => {
   const [isProcessing, setIsProcessing] = useState(false)
   const isCurrentPlan = currentPlan === plan.id
   const isFree = plan.price === 0
@@ -53,12 +53,13 @@ export const PricingCard = memo(({
   }
 
   return (
-    <div className={`relative bg-card border border-border rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:border-primary/20 ${plan.popular ? 'ring-2 ring-primary ring-opacity-50 scale-105' : ''} ${className}`}>
+    <div
+      className={`relative bg-card border border-border rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:border-primary/20 ${plan.popular ? 'ring-2 ring-primary ring-opacity-50 scale-105' : ''} ${className}`}>
       {/* Popular Badge */}
       {plan.popular && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
           <Badge className="bg-primary text-primary-foreground px-3 py-1 flex items-center gap-1">
-            <Star className="w-3 h-3 fill-current" />
+            <Star className="w-3 h-3 fill-current"/>
             Most Popular
           </Badge>
         </div>
@@ -68,12 +69,12 @@ export const PricingCard = memo(({
       <div className="text-center mb-6">
         <div className="flex items-center justify-center gap-2 mb-2">
           <h3 className="text-xl font-bold">{plan.name}</h3>
-          {plan.id === 'enterprise' && <Zap className="w-5 h-5 text-yellow-500" />}
+          {plan.id === 'enterprise' && <Zap className="w-5 h-5 text-yellow-500"/>}
         </div>
         <p className="text-muted-foreground text-sm mb-4 min-h-[2.5rem] flex items-center justify-center">
           {plan.description}
         </p>
-        
+
         {/* Price */}
         <div className="mb-4">
           {isFree ? (
@@ -105,7 +106,7 @@ export const PricingCard = memo(({
       <div className="space-y-3 mb-6 min-h-[200px]">
         {plan.features.map((feature, index) => (
           <div key={index} className="flex items-start gap-3">
-            <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+            <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0"/>
             <span className="text-sm leading-relaxed">{feature}</span>
           </div>
         ))}
@@ -117,14 +118,14 @@ export const PricingCard = memo(({
         disabled={isCurrentPlan || isProcessing || isLoading}
         variant={getButtonVariant()}
         className={`w-full transition-all duration-200 ${
-          plan.popular && !isCurrentPlan 
-            ? 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg' 
+          plan.popular && !isCurrentPlan
+            ? 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg'
             : ''
         }`}
         size="lg"
       >
         {(isProcessing || isLoading) && (
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          <Loader2 className="w-4 h-4 mr-2 animate-spin"/>
         )}
         {getButtonText()}
       </Button>

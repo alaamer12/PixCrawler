@@ -2,7 +2,7 @@
 User service for user management operations.
 """
 
-from backend.models.user import UserCreate, UserResponse, UserUpdate
+from backend.schemas.user import UserCreate, UserResponse, UserUpdate
 
 from .base import BaseService
 

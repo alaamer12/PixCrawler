@@ -15,7 +15,7 @@ Features:
 """
 
 from backend.storage.config import StorageSettings
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 __all__ = ['create_storage_provider', 'create_archive_enabled_provider']
 

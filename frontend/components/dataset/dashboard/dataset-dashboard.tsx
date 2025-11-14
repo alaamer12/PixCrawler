@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import {useState, useMemo} from 'react'
 import {
   ArrowLeft,
   Search,
@@ -19,19 +19,19 @@ import {
   Zap,
   Edit3
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import { cn } from '@/lib/utils'
+import {Button} from '@/components/ui/button'
+import {Input} from '@/components/ui/input'
+import {Badge} from '@/components/ui/badge'
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select'
+import {Checkbox} from '@/components/ui/checkbox'
+import {cn} from '@/lib/utils'
 import Link from 'next/link'
 
 interface DatasetDashboardProps {
   datasetId: string
 }
 
-export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
+export function DatasetDashboard({datasetId}: DatasetDashboardProps) {
   const [selectedImages, setSelectedImages] = useState<Set<number>>(new Set())
   const [showAnnotations, setShowAnnotations] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -41,18 +41,18 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
   const [classFilter, setClassFilter] = useState('all')
 
   // Mock images data
-  const images = useMemo(() => 
-    Array.from({ length: 24 }, (_, i) => ({
-      id: i,
-      src: `https://picsum.photos/400/400?random=${i + 100}`,
-      filename: `${i + 107}.jpg`,
-      hasAnnotations: Math.random() > 0.3
-    })),
+  const images = useMemo(() =>
+      Array.from({length: 24}, (_, i) => ({
+        id: i,
+        src: `https://picsum.photos/400/400?random=${i + 100}`,
+        filename: `${i + 107}.jpg`,
+        hasAnnotations: Math.random() > 0.3
+      })),
     []
   )
 
   const filteredImages = useMemo(() => {
-    return images.filter(img => 
+    return images.filter(img =>
       img.filename.toLowerCase().includes(searchQuery.toLowerCase())
     )
   }, [images, searchQuery])
@@ -79,12 +79,12 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
 
   // Sidebar navigation items
   const sidebarItems = [
-    { id: 'overview', icon: BarChart3, label: 'Overview', section: 'GENERAL' },
-    { id: 'images', icon: ImageIcon, label: 'Images', count: '1.8k', active: true, section: 'DATA' },
-    { id: 'dataset', icon: Database, label: 'Dataset', count: '2', section: 'DATA' },
-    { id: 'analytics', icon: BarChart3, label: 'Analytics', section: 'DATA' },
-    { id: 'model', icon: Zap, label: 'Model', count: '1', section: 'DEPLOY' },
-    { id: 'api', icon: Settings, label: 'API Docs', section: 'DEPLOY' },
+    {id: 'overview', icon: BarChart3, label: 'Overview', section: 'GENERAL'},
+    {id: 'images', icon: ImageIcon, label: 'Images', count: '1.8k', active: true, section: 'DATA'},
+    {id: 'dataset', icon: Database, label: 'Dataset', count: '2', section: 'DATA'},
+    {id: 'analytics', icon: BarChart3, label: 'Analytics', section: 'DATA'},
+    {id: 'model', icon: Zap, label: 'Model', count: '1', section: 'DEPLOY'},
+    {id: 'api', icon: Settings, label: 'API Docs', section: 'DEPLOY'},
   ]
 
   const groupedItems = sidebarItems.reduce((acc, item) => {
@@ -98,29 +98,36 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
       {/* Dark Left Sidebar with Icons */}
       <div className="w-16 bg-gradient-to-b from-blue-600 to-blue-800 flex flex-col items-center py-4">
         {/* Logo */}
-        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mb-6">
+        <div
+          className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mb-6">
           <svg className="w-5 h-5 text-white" viewBox="0 0 100 100" fill="currentColor">
-            <path d="M20 30 Q20 20 30 20 L70 20 Q80 20 80 30 L80 40 Q80 50 70 50 L50 50 Q40 50 40 60 L40 70 Q40 80 50 80 L70 80 Q80 80 80 70" stroke="currentColor" strokeWidth="8" fill="none" strokeLinecap="round"/>
+            <path
+              d="M20 30 Q20 20 30 20 L70 20 Q80 20 80 30 L80 40 Q80 50 70 50 L50 50 Q40 50 40 60 L40 70 Q40 80 50 80 L70 80 Q80 80 80 70"
+              stroke="currentColor" strokeWidth="8" fill="none" strokeLinecap="round"/>
           </svg>
         </div>
 
         {/* Navigation Icons */}
         <div className="flex flex-col gap-2">
-          <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center text-white cursor-pointer hover:bg-white/20 transition-colors">
-            <ImageIcon className="w-5 h-5" />
+          <div
+            className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center text-white cursor-pointer hover:bg-white/20 transition-colors">
+            <ImageIcon className="w-5 h-5"/>
           </div>
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white/60 cursor-pointer hover:bg-white/10 transition-colors">
-            <Database className="w-5 h-5" />
+          <div
+            className="w-10 h-10 rounded-lg flex items-center justify-center text-white/60 cursor-pointer hover:bg-white/10 transition-colors">
+            <Database className="w-5 h-5"/>
           </div>
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white/60 cursor-pointer hover:bg-white/10 transition-colors">
-            <BarChart3 className="w-5 h-5" />
+          <div
+            className="w-10 h-10 rounded-lg flex items-center justify-center text-white/60 cursor-pointer hover:bg-white/10 transition-colors">
+            <BarChart3 className="w-5 h-5"/>
           </div>
         </div>
 
         {/* Bottom Icons */}
         <div className="mt-auto">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white/60 cursor-pointer hover:bg-white/10 transition-colors">
-            <Settings className="w-5 h-5" />
+          <div
+            className="w-10 h-10 rounded-lg flex items-center justify-center text-white/60 cursor-pointer hover:bg-white/10 transition-colors">
+            <Settings className="w-5 h-5"/>
           </div>
         </div>
       </div>
@@ -130,14 +137,14 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-2 mb-4 text-gray-600">
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4"/>
             <span className="text-sm">Back</span>
           </div>
-          
+
           <div className="flex items-start gap-3">
             <div className="w-16 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-              <img 
-                src="https://picsum.photos/64/48?random=1" 
+              <img
+                src="https://picsum.photos/64/48?random=1"
                 alt="Dataset preview"
                 className="w-full h-full object-cover"
               />
@@ -162,13 +169,13 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
                     key={item.id}
                     className={cn(
                       "flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all duration-200",
-                      item.active 
-                        ? "bg-purple-50 text-purple-700 border border-purple-200" 
+                      item.active
+                        ? "bg-purple-50 text-purple-700 border border-purple-200"
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      <item.icon className="w-4 h-4 flex-shrink-0"/>
                       <span className="text-sm font-medium">{item.label}</span>
                     </div>
                     {item.count && (
@@ -191,18 +198,20 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-blue-400" />
+                <ImageIcon className="w-5 h-5 text-blue-400"/>
                 <h2 className="text-xl font-semibold text-white">Images</h2>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="text-blue-400 border-blue-600 hover:bg-blue-900/50 bg-gray-800">
-                <Download className="w-4 h-4 mr-2" />
+              <Button variant="outline" size="sm"
+                      className="text-blue-400 border-blue-600 hover:bg-blue-900/50 bg-gray-800">
+                <Download className="w-4 h-4 mr-2"/>
                 Clone Images
               </Button>
-              <Button variant="outline" size="sm" className="text-blue-400 border-blue-600 hover:bg-blue-900/50 bg-gray-800">
-                <GitFork className="w-4 h-4 mr-2" />
+              <Button variant="outline" size="sm"
+                      className="text-blue-400 border-blue-600 hover:bg-blue-900/50 bg-gray-800">
+                <GitFork className="w-4 h-4 mr-2"/>
                 Fork Dataset
               </Button>
             </div>
@@ -211,7 +220,7 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
           {/* Search Bar */}
           <div className="flex items-center gap-4 mb-4">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"/>
               <Input
                 placeholder="Search images"
                 value={searchQuery}
@@ -220,7 +229,7 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
               />
             </div>
             <Button variant="outline" size="sm" className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">
-              <Search className="w-4 h-4 mr-2" />
+              <Search className="w-4 h-4 mr-2"/>
               Search
             </Button>
           </div>
@@ -230,7 +239,7 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
             <div className="flex items-center gap-4">
               <Select value={splitFilter} onValueChange={setSplitFilter}>
                 <SelectTrigger className="w-24 h-8 text-sm bg-gray-700 border-gray-600 text-white">
-                  <SelectValue placeholder="Split" />
+                  <SelectValue placeholder="Split"/>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Split</SelectItem>
@@ -242,7 +251,7 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
 
               <Select value={classFilter} onValueChange={setClassFilter}>
                 <SelectTrigger className="w-28 h-8 text-sm bg-gray-700 border-gray-600 text-white">
-                  <SelectValue placeholder="Classes" />
+                  <SelectValue placeholder="Classes"/>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Classes</SelectItem>
@@ -253,7 +262,7 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
 
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-32 h-8 text-sm bg-gray-700 border-gray-600 text-white">
-                  <SelectValue placeholder="Sort By" />
+                  <SelectValue placeholder="Sort By"/>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="newest">Newest</SelectItem>
@@ -262,8 +271,9 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
                 </SelectContent>
               </Select>
 
-              <Button variant="outline" size="sm" className="h-8 text-sm bg-gray-700 border-gray-600 text-white hover:bg-gray-600">
-                <Filter className="w-4 h-4 mr-2" />
+              <Button variant="outline" size="sm"
+                      className="h-8 text-sm bg-gray-700 border-gray-600 text-white hover:bg-gray-600">
+                <Filter className="w-4 h-4 mr-2"/>
                 Search by image
               </Button>
             </div>
@@ -287,7 +297,7 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
                   onClick={() => setShowAnnotations(!showAnnotations)}
                   className="p-1 h-8 w-8"
                 >
-                  {showAnnotations ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  {showAnnotations ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}
                 </Button>
               </div>
 
@@ -298,7 +308,7 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
                   onClick={() => setViewMode('grid')}
                   className="rounded-none h-8 px-3"
                 >
-                  <Grid3X3 className="w-4 h-4" />
+                  <Grid3X3 className="w-4 h-4"/>
                 </Button>
                 <Button
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
@@ -306,7 +316,7 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
                   onClick={() => setViewMode('list')}
                   className="rounded-none h-8 px-3"
                 >
-                  <List className="w-4 h-4" />
+                  <List className="w-4 h-4"/>
                 </Button>
               </div>
             </div>
@@ -321,8 +331,8 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
                 <div
                   className={cn(
                     "relative rounded-lg overflow-hidden border-2 transition-all duration-200 cursor-pointer",
-                    selectedImages.has(image.id) 
-                      ? "border-blue-500 shadow-lg shadow-blue-500/20" 
+                    selectedImages.has(image.id)
+                      ? "border-blue-500 shadow-lg shadow-blue-500/20"
                       : "border-transparent hover:border-border hover:shadow-md"
                   )}
                 >
@@ -339,7 +349,7 @@ export function DatasetDashboard({ datasetId }: DatasetDashboardProps) {
                   {image.hasAnnotations && showAnnotations && (
                     <div className="absolute top-2 right-2 z-10">
                       <div className="w-6 h-6 bg-warning rounded-sm flex items-center justify-center shadow-sm">
-                        <Edit3 className="w-3 h-3 text-warning-foreground" />
+                        <Edit3 className="w-3 h-3 text-warning-foreground"/>
                       </div>
                     </div>
                   )}

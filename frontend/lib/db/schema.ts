@@ -83,10 +83,29 @@ export const activityLogs = pgTable('activity_logs', {
   ipAddress: varchar('ip_address', {length: 45}),
 });
 
+// Notifications table for user notifications
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profiles.id),
+  type: varchar('type', {length: 50}).notNull(), // 'crawl_job', 'billing', 'security', 'dataset'
+  title: varchar('title', {length: 255}).notNull(),
+  message: text('message').notNull(),
+  icon: varchar('icon', {length: 50}), // Icon name for UI
+  iconColor: varchar('icon_color', {length: 50}), // Color class for icon
+  actionUrl: text('action_url'), // Optional URL to navigate to
+  metadata: jsonb('metadata'), // Additional data
+  isRead: boolean('is_read').notNull().default(false),
+  readAt: timestamp('read_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 // Relations
 export const profilesRelations = relations(profiles, ({many}) => ({
   projects: many(projects),
   activityLogs: many(activityLogs),
+  notifications: many(notifications),
 }));
 
 export const projectsRelations = relations(projects, ({one, many}) => ({
@@ -119,6 +138,13 @@ export const activityLogsRelations = relations(activityLogs, ({one}) => ({
   }),
 }));
 
+export const notificationsRelations = relations(notifications, ({one}) => ({
+  user: one(profiles, {
+    fields: [notifications.userId],
+    references: [profiles.id],
+  }),
+}));
+
 // Type exports
 export type Profile = typeof profiles.$inferSelect;
 export type NewProfile = typeof profiles.$inferInsert;
@@ -130,6 +156,8 @@ export type Image = typeof images.$inferSelect;
 export type NewImage = typeof images.$inferInsert;
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type NewActivityLog = typeof activityLogs.$inferInsert;
+export type Notification = typeof notifications.$inferSelect;
+export type NewNotification = typeof notifications.$inferInsert;
 
 // Enums
 export enum ProjectStatus {

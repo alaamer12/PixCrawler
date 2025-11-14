@@ -1,11 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { Accordion as AccordionPrimitive } from 'radix-ui';
-import { motion, AnimatePresence, type HTMLMotionProps } from 'motion/react';
+import {Accordion as AccordionPrimitive} from 'radix-ui';
+import {motion, AnimatePresence, type HTMLMotionProps} from 'motion/react';
 
-import { useControlledState } from '@/hooks/use-controlled-state';
-import { getStrictContext } from '@/lib/get-strict-context';
+import {useControlledState} from '@/hooks/use-controlled-state';
+import {getStrictContext} from '@/lib/get-strict-context';
 
 type AccordionContextType = {
   value: string | string[] | undefined;
@@ -36,7 +36,7 @@ function Accordion(props: AccordionProps) {
   });
 
   return (
-    <AccordionProvider value={{ value, setValue }}>
+    <AccordionProvider value={{value, setValue}}>
       <AccordionPrimitive.Root
         data-slot="accordion"
         {...props}
@@ -49,7 +49,7 @@ function Accordion(props: AccordionProps) {
 type AccordionItemProps = React.ComponentProps<typeof AccordionPrimitive.Item>;
 
 function AccordionItem(props: AccordionItemProps) {
-  const { value } = useAccordion();
+  const {value} = useAccordion();
   const [isOpen, setIsOpen] = React.useState(
     value?.includes(props?.value) ?? false,
   );
@@ -59,7 +59,7 @@ function AccordionItem(props: AccordionItemProps) {
   }, [value, props?.value]);
 
   return (
-    <AccordionItemProvider value={{ isOpen, setIsOpen, value: props.value }}>
+    <AccordionItemProvider value={{isOpen, setIsOpen, value: props.value}}>
       <AccordionPrimitive.Item data-slot="accordion-item" {...props} />
     </AccordionItemProvider>
   );
@@ -88,15 +88,15 @@ type AccordionContentProps = Omit<
   'asChild' | 'forceMount'
 > &
   HTMLMotionProps<'div'> & {
-    keepRendered?: boolean;
-  };
+  keepRendered?: boolean;
+};
 
 function AccordionContent({
-  keepRendered = false,
-  transition = { type: 'spring', stiffness: 150, damping: 22 },
-  ...props
-}: AccordionContentProps) {
-  const { isOpen } = useAccordionItem();
+                            keepRendered = false,
+                            transition = {type: 'spring', stiffness: 150, damping: 22},
+                            ...props
+                          }: AccordionContentProps) {
+  const {isOpen} = useAccordionItem();
 
   return (
     <AnimatePresence>
@@ -105,11 +105,11 @@ function AccordionContent({
           <motion.div
             key="accordion-content"
             data-slot="accordion-content"
-            initial={{ height: 0, opacity: 0, '--mask-stop': '0%' }}
+            initial={{height: 0, opacity: 0, '--mask-stop': '0%'}}
             animate={
               isOpen
-                ? { height: 'auto', opacity: 1, '--mask-stop': '100%' }
-                : { height: 0, opacity: 0, '--mask-stop': '0%' }
+                ? {height: 'auto', opacity: 1, '--mask-stop': '100%'}
+                : {height: 0, opacity: 0, '--mask-stop': '0%'}
             }
             transition={transition}
             style={{
@@ -128,9 +128,9 @@ function AccordionContent({
             <motion.div
               key="accordion-content"
               data-slot="accordion-content"
-              initial={{ height: 0, opacity: 0, '--mask-stop': '0%' }}
-              animate={{ height: 'auto', opacity: 1, '--mask-stop': '100%' }}
-              exit={{ height: 0, opacity: 0, '--mask-stop': '0%' }}
+              initial={{height: 0, opacity: 0, '--mask-stop': '0%'}}
+              animate={{height: 'auto', opacity: 1, '--mask-stop': '100%'}}
+              exit={{height: 0, opacity: 0, '--mask-stop': '0%'}}
               transition={transition}
               style={{
                 maskImage:

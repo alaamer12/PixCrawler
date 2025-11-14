@@ -1,21 +1,22 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { XCircle, ArrowLeft, RefreshCw, HelpCircle } from 'lucide-react'
+import {useRouter} from 'next/navigation'
+import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card'
+import {Button} from '@/components/ui/button'
+import {ArrowLeft, HelpCircle, RefreshCw, XCircle} from 'lucide-react'
 
 export const PaymentCancel = () => {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 flex items-center justify-center p-4">
+    <div
+      className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full space-y-6">
         {/* Cancel Card */}
         <Card className="text-center">
           <CardHeader>
             <div className="text-red-500 mb-4">
-              <XCircle className="w-16 h-16 mx-auto" />
+              <XCircle className="w-16 h-16 mx-auto"/>
             </div>
             <CardTitle className="text-2xl">Payment Cancelled</CardTitle>
             <p className="text-muted-foreground">
@@ -36,19 +37,19 @@ export const PaymentCancel = () => {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button 
+              <Button
                 onClick={() => router.push('/pricing')}
                 className="flex-1"
+                leftIcon={<RefreshCw className="w-4 h-4"/>}
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
                 Try Again
               </Button>
-              <Button 
+              <Button
                 variant="outline"
                 onClick={() => router.back()}
                 className="flex-1"
+                leftIcon={<ArrowLeft className="w-4 h-4"/>}
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
                 Go Back
               </Button>
             </div>
@@ -59,16 +60,17 @@ export const PaymentCancel = () => {
         <Card>
           <CardContent className="pt-6">
             <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <HelpCircle className="w-4 h-4" />
+              <HelpCircle className="w-4 h-4"/>
               Need Assistance?
             </h3>
             <div className="text-sm text-muted-foreground space-y-3">
               <p>
-                If you're experiencing issues with the payment process or have questions 
+                If you're experiencing issues with the payment process or have questions
                 about our pricing plans, we're here to help.
               </p>
-              
-              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+
+              <div
+                className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                 <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
                   Common reasons for payment cancellation:
                 </h4>
@@ -87,8 +89,8 @@ export const PaymentCancel = () => {
                 <Button variant="outline" size="sm">
                   View FAQ
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => router.push('/dashboard')}
                 >

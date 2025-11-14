@@ -1,12 +1,5 @@
 import {Metadata} from 'next'
-import {
-  LegalHeader,
-  LegalSection,
-  LegalSubsection,
-  LegalList,
-  LegalParagraph,
-  LegalContact
-} from '@/components/legal'
+import {LegalContact, LegalHeader, LegalList, LegalParagraph, LegalSection, LegalSubsection} from '@/components/legal'
 
 export const metadata: Metadata = {
   title: 'Terms of Service - PixCrawler | DEPI Legal Agreement',
@@ -30,7 +23,7 @@ export default function TermsPage() {
   return (
     <main className="min-h-screen py-16">
       <div className="container mx-auto px-4 lg:px-8 max-w-4xl">
-        <LegalHeader title="Terms of Service" lastUpdated="January 24, 2025" />
+        <LegalHeader title="Terms of Service" lastUpdated="January 24, 2025"/>
 
         <div className="prose prose-lg max-w-none">
           <div className="space-y-8">
@@ -44,8 +37,8 @@ export default function TermsPage() {
             <LegalSection title="2. Description of Service">
               <LegalParagraph>
                 PixCrawler provides an AI-powered platform for building image datasets for machine learning and computer
-                vision applications. Developed under the Digital Egypt Pioneers Initiative (DEPI), our services include 
-                image collection, validation, organization, and export capabilities. The platform is currently in active 
+                vision applications. Developed under the Digital Egypt Pioneers Initiative (DEPI), our services include
+                image collection, validation, organization, and export capabilities. The platform is currently in active
                 development and features may be updated or modified.
               </LegalParagraph>
             </LegalSection>
@@ -53,7 +46,8 @@ export default function TermsPage() {
             <LegalSection title="3. User Accounts">
               <LegalSubsection title="3.1 Account Creation">
                 <LegalParagraph>
-                  You must create an account to use our services. You are responsible for maintaining the confidentiality
+                  You must create an account to use our services. You are responsible for maintaining the
+                  confidentiality
                   of your account credentials and for all activities that occur under your account.
                 </LegalParagraph>
               </LegalSubsection>
@@ -64,7 +58,7 @@ export default function TermsPage() {
                   'You must provide accurate and complete information',
                   'You must not share your account with others',
                   'You must notify us immediately of any unauthorized use'
-                ]} />
+                ]}/>
               </LegalSubsection>
             </LegalSection>
 
@@ -75,7 +69,7 @@ export default function TermsPage() {
                   'Building training data for machine learning models',
                   'Commercial use in accordance with your subscription plan',
                   'Educational and academic purposes'
-                ]} />
+                ]}/>
               </LegalSubsection>
 
               <LegalSubsection title="4.2 Prohibited Uses">
@@ -86,7 +80,7 @@ export default function TermsPage() {
                   'Attempting to reverse engineer or compromise our systems',
                   'Sharing or reselling access to our services',
                   'Using our services to compete directly with PixCrawler'
-                ]} />
+                ]}/>
               </LegalSubsection>
             </LegalSection>
 
@@ -104,7 +98,7 @@ export default function TermsPage() {
                   'All fees are non-refundable except as required by law',
                   'We may change our pricing with 30 days\' notice',
                   'Failure to pay may result in service suspension or termination'
-                ]} />
+                ]}/>
               </LegalSubsection>
 
               <LegalSubsection title="5.3 Usage Limits">
@@ -132,7 +126,8 @@ export default function TermsPage() {
 
               <LegalSubsection title="6.3 Third-Party Content">
                 <LegalParagraph>
-                  You are responsible for ensuring you have the right to use any images collected through our platform. We
+                  You are responsible for ensuring you have the right to use any images collected through our platform.
+                  We
                   do not grant rights to third-party content.
                 </LegalParagraph>
               </LegalSubsection>
@@ -170,21 +165,24 @@ export default function TermsPage() {
             <LegalSection title="11. Termination">
               <LegalSubsection title="11.1 Termination by You">
                 <LegalParagraph>
-                  You may terminate your account at any time by contacting our support team or using the account deletion
+                  You may terminate your account at any time by contacting our support team or using the account
+                  deletion
                   feature.
                 </LegalParagraph>
               </LegalSubsection>
 
               <LegalSubsection title="11.2 Termination by Us">
                 <LegalParagraph>
-                  We may suspend or terminate your account for violation of these Terms, non-payment, or other reasons at
+                  We may suspend or terminate your account for violation of these Terms, non-payment, or other reasons
+                  at
                   our discretion.
                 </LegalParagraph>
               </LegalSubsection>
 
               <LegalSubsection title="11.3 Effect of Termination">
                 <LegalParagraph>
-                  Upon termination, your access to our services will cease, and we may delete your data after a reasonable
+                  Upon termination, your access to our services will cease, and we may delete your data after a
+                  reasonable
                   period.
                 </LegalParagraph>
               </LegalSubsection>
@@ -192,8 +190,10 @@ export default function TermsPage() {
 
             <LegalSection title="12. Governing Law">
               <LegalParagraph>
-                These Terms shall be governed by and construed in accordance with applicable international data protection 
-                and technology laws. Any disputes arising from these Terms will be resolved through good faith negotiation 
+                These Terms shall be governed by and construed in accordance with applicable international data
+                protection
+                and technology laws. Any disputes arising from these Terms will be resolved through good faith
+                negotiation
                 or appropriate dispute resolution mechanisms.
               </LegalParagraph>
             </LegalSection>

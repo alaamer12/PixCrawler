@@ -4,9 +4,9 @@ function getStrictContext<T>(
   name?: string,
 ): readonly [
   ({
-    value,
-    children,
-  }: {
+     value,
+     children,
+   }: {
     value: T;
     children?: React.ReactNode;
   }) => React.JSX.Element,
@@ -15,9 +15,9 @@ function getStrictContext<T>(
   const Context = React.createContext<T | undefined>(undefined);
 
   const Provider = ({
-    value,
-    children,
-  }: {
+                      value,
+                      children,
+                    }: {
     value: T;
     children?: React.ReactNode;
   }) => <Context.Provider value={value}>{children}</Context.Provider>;
@@ -33,4 +33,4 @@ function getStrictContext<T>(
   return [Provider, useSafeContext] as const;
 }
 
-export { getStrictContext };
+export {getStrictContext};

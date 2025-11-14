@@ -18,7 +18,7 @@ from backend.api.v1.router import api_router
 from backend.core.config import get_settings
 from backend.core.exceptions import setup_exception_handlers
 from backend.core.middleware import setup_middleware
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 logger = get_logger(__name__)
 

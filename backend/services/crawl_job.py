@@ -16,16 +16,19 @@ Features:
     - Real-time job status updates
     - Progress tracking and error handling
     - Image metadata storage
+    - Repository pattern for clean architecture
 """
 import uuid
 from typing import Dict, Any, List, Optional
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from backend.core.exceptions import NotFoundError
-from backend.database.models import CrawlJob, Project, Image, ActivityLog
-# Import builder package for crawling functionality
+from backend.core.exceptions import NotFoundError, ValidationError
+from backend.models import CrawlJob, Image
+from backend.repositories import (
+    CrawlJobRepository,
+    ProjectRepository,
+    ImageRepository,
+    ActivityLogRepository
+)
 from .base import BaseService
 
 __all__ = [
@@ -42,18 +45,33 @@ class CrawlJobService(BaseService):
     image crawling jobs using the PixCrawler builder package.
 
     Attributes:
-        session: Database session for data operations
+        crawl_job_repo: CrawlJob repository
+        project_repo: Project repository
+        image_repo: Image repository
+        activity_log_repo: ActivityLog repository
     """
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        crawl_job_repo: CrawlJobRepository,
+        project_repo: ProjectRepository,
+        image_repo: ImageRepository,
+        activity_log_repo: ActivityLogRepository
+    ) -> None:
         """
-        Initialize crawl job service.
+        Initialize crawl job service with repositories.
 
         Args:
-            session: Database session
+            crawl_job_repo: CrawlJob repository
+            project_repo: Project repository
+            image_repo: Image repository
+            activity_log_repo: ActivityLog repository
         """
         super().__init__()
-        self.session = session
+        self.crawl_job_repo = crawl_job_repo
+        self.project_repo = project_repo
+        self.image_repo = image_repo
+        self.activity_log_repo = activity_log_repo
 
     async def create_job(
         self,
@@ -61,8 +79,6 @@ class CrawlJobService(BaseService):
         name: str,
         keywords: List[str],
         max_images: int = 100,
-        search_engine: str = "duckduckgo",
-        config: Optional[Dict[str, Any]] = None,
         user_id: Optional[str] = None
     ) -> CrawlJob:
         """
@@ -73,8 +89,6 @@ class CrawlJobService(BaseService):
             name: Name of the crawl job
             keywords: List of search keywords
             max_images: Maximum number of images to collect
-            search_engine: Search engine to use
-            config: Additional configuration options
             user_id: User ID for activity logging
 
         Returns:
@@ -84,32 +98,28 @@ class CrawlJobService(BaseService):
             NotFoundError: If project is not found
             ValidationError: If job data is invalid
         """
-        # Verify project exists
-        project_result = await self.session.execute(
-            select(Project).where(Project.id == project_id)
-        )
-        project = project_result.scalar_one_or_none()
-
+        # Verify project exists using repository
+        project = await self.project_repo.get_by_id(project_id)
         if not project:
             raise NotFoundError(f"Project not found: {project_id}")
 
-        # Create crawl job
-        crawl_job = CrawlJob(
+        # Validate keywords
+        if not keywords:
+            raise ValidationError("Keywords cannot be empty")
+
+        # Create crawl job using repository
+        crawl_job = await self.crawl_job_repo.create(
             project_id=project_id,
             name=name,
-            keywords=keywords,
+            keywords={"keywords": keywords},
             max_images=max_images,
             status="pending"
         )
 
-        self.session.add(crawl_job)
-        await self.session.commit()
-        await self.session.refresh(crawl_job)
-
         # Log activity
         if user_id:
-            await self._log_activity(
-                user_id=user_id,
+            await self.activity_log_repo.create(
+                user_id=uuid.UUID(user_id),
                 action="START_CRAWL_JOB",
                 resource_type="crawl_job",
                 resource_id=str(crawl_job.id),
@@ -130,36 +140,56 @@ class CrawlJobService(BaseService):
         Returns:
             Crawl job or None if not found
         """
-        result = await self.session.execute(
-            select(CrawlJob).where(CrawlJob.id == job_id)
-        )
-        return result.scalar_one_or_none()
+        return await self.crawl_job_repo.get_by_id(job_id)
 
-    async def update_job(
+    async def update_job_progress(
         self,
         job_id: int,
-        status: str,
-        progress: int = None,
-        total_images: int = None,
-        downloaded_images: int = None,
-        valid_images: int = None,
-        error_message: str = None
-    ) -> None:
+        progress: int,
+        downloaded_images: int,
+        valid_images: Optional[int] = None
+    ) -> Optional[CrawlJob]:
         """
-        Update crawl job status and progress.
+        Update crawl job progress.
 
         Args:
             job_id: Crawl job ID
-            status: New job status
             progress: Progress percentage (0-100)
-            total_images: Total images found
             downloaded_images: Number of images downloaded
             valid_images: Number of valid images
-            error_message: Error message if job failed
-        """
-        raise NotImplementedError("Placeholder for update job")
 
-    async def store_metadata(
+        Returns:
+            Updated job or None if not found
+        """
+        return await self.crawl_job_repo.update_progress(
+            job_id=job_id,
+            progress=progress,
+            downloaded_images=downloaded_images,
+            valid_images=valid_images
+        )
+    
+    async def get_jobs_by_project(self, project_id: int) -> List[CrawlJob]:
+        """
+        Get all jobs for a project.
+
+        Args:
+            project_id: Project ID
+
+        Returns:
+            List of crawl jobs
+        """
+        return await self.crawl_job_repo.get_by_project(project_id)
+    
+    async def get_active_jobs(self) -> List[CrawlJob]:
+        """
+        Get all active jobs.
+
+        Returns:
+            List of active crawl jobs
+        """
+        return await self.crawl_job_repo.get_active_jobs()
+
+    async def store_image_metadata(
         self,
         job_id: int,
         image_data: Dict[str, Any]
@@ -174,7 +204,7 @@ class CrawlJobService(BaseService):
         Returns:
             Created image record
         """
-        image = Image(
+        return await self.image_repo.create(
             crawl_job_id=job_id,
             original_url=image_data["original_url"],
             filename=image_data["filename"],
@@ -182,43 +212,30 @@ class CrawlJobService(BaseService):
             width=image_data.get("width"),
             height=image_data.get("height"),
             file_size=image_data.get("file_size"),
-            format=image_data.get("format"),
+            format=image_data.get("format")
         )
-
-        self.session.add(image)
-        await self.session.commit()
-        await self.session.refresh(image)
-
-        return image
-
-    async def _log_activity(
+    
+    async def store_bulk_images(
         self,
-        user_id: str,
-        action: str,
-        resource_type: str = None,
-        resource_id: str = None,
-        metadata: Dict[str, Any] = None
-    ) -> None:
+        job_id: int,
+        images_data: List[Dict[str, Any]]
+    ) -> List[Image]:
         """
-        Log user activity.
+        Store multiple image metadata records in bulk.
 
         Args:
-            user_id: User ID
-            action: Action performed
-            resource_type: Type of resource
-            resource_id: Resource ID
-            metadata: Additional metadata
-        """
-        activity_log = ActivityLog(
-            user_id=uuid.UUID(user_id),
-            action=action,
-            resource_type=resource_type,
-            resource_id=resource_id,
-            metadata=metadata or {}
-        )
+            job_id: Crawl job ID
+            images_data: List of image metadata dictionaries
 
-        self.session.add(activity_log)
-        await self.session.commit()
+        Returns:
+            List of created image records
+        """
+        # Add job_id to each image data
+        for data in images_data:
+            data['crawl_job_id'] = job_id
+        
+        return await self.image_repo.bulk_create(images_data)
+
 
 
 async def execute_crawl_job(job_id: int) -> None:

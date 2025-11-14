@@ -1,0 +1,55 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		"name": "PixCrawler API - Health",
+		"description": "Postman collection for the PixCrawler API - Health endpoints.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/health/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"health",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+					"pm.test(\"Response time is less than 2s\", function () { pm.expect(pm.response.responseTime).to.be.below(2000); });"
+				]
+			}
+		}
+	]
+}

@@ -12,15 +12,15 @@ interface FormFieldProps {
 }
 
 export const FormField = memo(({
-  id,
-  name,
-  label,
-  type = 'text',
-  required = false,
-  value,
-  onChange,
-  placeholder
-}: FormFieldProps) => {
+                                 id,
+                                 name,
+                                 label,
+                                 type = 'text',
+                                 required = false,
+                                 value,
+                                 onChange,
+                                 placeholder
+                               }: FormFieldProps) => {
   return (
     <div>
       <label htmlFor={id} className="block text-sm font-medium mb-2">

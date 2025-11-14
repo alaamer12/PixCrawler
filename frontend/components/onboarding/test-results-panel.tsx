@@ -12,7 +12,7 @@ import type {TestResult} from '@/app/welcome/welcome-flow'
 // - Returns optimized thumbnails for quick loading
 // - Uses CDN/caching for performance
 // Example: GET /api/onboarding/test-images?testId={id}
-const SAMPLE_IMAGES = Array.from({length: 43}, (_, i) => 
+const SAMPLE_IMAGES = Array.from({length: 43}, (_, i) =>
   `/images/vechile/car/${String(i + 1).padStart(4, '0')}.webp`
 )
 
@@ -62,7 +62,7 @@ export function TestResultsPanel({result, onRetry}: TestResultsPanelProps) {
                       className="object-cover"
                       sizes="80px"
                     />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"/>
                   </div>
                 ))}
               </div>

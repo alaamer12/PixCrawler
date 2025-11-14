@@ -11,7 +11,7 @@ interface CacheNode {
 }
 
 export class ImageBuffer {
-  private capacity: number
+  private readonly capacity: number
   private cache: Map<string, CacheNode>
   private head: CacheNode | null
   private tail: CacheNode | null

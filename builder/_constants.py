@@ -17,7 +17,7 @@ import warnings
 from typing import Set, List, Literal, Final
 
 # Import centralized logging
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 __all__ = [
     'DEFAULT_CACHE_FILE',

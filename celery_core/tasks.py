@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from celery_core.base import BaseTask
 from celery_core.base import BaseTask as Self
 from celery_core.app import get_celery_app
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 logger = get_logger(__name__)
 

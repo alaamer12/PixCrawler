@@ -166,7 +166,7 @@ export const ContactForm = memo(() => {
               </form>
             </div>
 
-            <ContactInfo />
+            <ContactInfo/>
           </div>
         </div>
       </div>

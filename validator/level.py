@@ -20,13 +20,12 @@ from pydantic import (
     model_validator,
     ConfigDict,
     PositiveFloat,
-    NonNegativeInt,
-    FilePath
+    NonNegativeInt
 )
 from PIL import Image
 
 try:
-    from logging_config import get_logger
+    from utility.logging_config import get_logger
     logger = get_logger(__name__)
 except ImportError:
     import logging

@@ -1,13 +1,7 @@
 import Stripe from 'stripe'
-import { stripe, STRIPE_CONFIG } from './stripe'
-import { 
-  PaymentIntentData, 
-  CheckoutSessionData, 
-  PaymentError, 
-  StripeError,
-  TransactionData 
-} from './types'
-import { getPlanById, isSubscriptionPlan } from './plans'
+import {stripe, STRIPE_CONFIG} from './stripe'
+import {CheckoutSessionData, PaymentError, PaymentIntentData, StripeError} from './types'
+import {getPlanById, isSubscriptionPlan} from './plans'
 
 export class PaymentService {
   /**
@@ -88,8 +82,7 @@ export class PaymentService {
         }
       }
 
-      const session = await stripe.checkout.sessions.create(sessionConfig)
-      return session
+      return await stripe.checkout.sessions.create(sessionConfig)
     } catch (error) {
       if (error instanceof Stripe.errors.StripeError) {
         throw new StripeError(error.message, error.code)
@@ -103,10 +96,9 @@ export class PaymentService {
    */
   static async getCheckoutSession(sessionId: string): Promise<Stripe.Checkout.Session> {
     try {
-      const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      return await stripe.checkout.sessions.retrieve(sessionId, {
         expand: ['line_items', 'payment_intent', 'subscription'],
       })
-      return session
     } catch (error) {
       if (error instanceof Stripe.errors.StripeError) {
         throw new StripeError(error.message, error.code)
@@ -123,7 +115,7 @@ export class PaymentService {
       // First, try to find existing customer by metadata
       const existingCustomers = await stripe.customers.list({
         limit: 1,
-        metadata: { userId },
+        metadata: {userId},
       })
 
       if (existingCustomers.data.length > 0) {
@@ -134,7 +126,7 @@ export class PaymentService {
       const customer = await stripe.customers.create({
         email,
         name,
-        metadata: { userId },
+        metadata: {userId},
       })
 
       return customer

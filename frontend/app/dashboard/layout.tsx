@@ -1,5 +1,4 @@
 import {AuthGuard} from '@/components/auth/auth-guard'
-import {DashboardNav} from '@/components/dashboard/dashboard-nav'
 
 export default function DashboardLayout({
                                           children,
@@ -8,8 +7,10 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-background">
-        {children}
+      <div className="min-h-screen bg-gradient-to-br from-background/50 via-background/30 to-background/50">
+        <div className="min-h-screen backdrop-blur-xl">
+          {children}
+        </div>
       </div>
     </AuthGuard>
   )

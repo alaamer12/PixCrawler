@@ -19,7 +19,14 @@ import {
 import type {User} from '@supabase/supabase-js'
 import {useRouter} from 'next/navigation'
 import {Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart, Cell} from 'recharts'
-import {ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, type ChartConfig} from '@/components/ui/chart'
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  type ChartConfig
+} from '@/components/ui/chart'
 
 interface BillingPageProps {
   user: User
@@ -78,13 +85,13 @@ const DEV_MOCK_DATA = {
 
 // Chart data with vibrant colors
 const creditsChartData = [
-  { day: 'Mon', credits: 650, fill: '#8b5cf6' },
-  { day: 'Tue', credits: 720, fill: '#8b5cf6' },
-  { day: 'Wed', credits: 580, fill: '#8b5cf6' },
-  { day: 'Thu', credits: 800, fill: '#8b5cf6' },
-  { day: 'Fri', credits: 680, fill: '#8b5cf6' },
-  { day: 'Sat', credits: 750, fill: '#8b5cf6' },
-  { day: 'Sun', credits: 660, fill: '#8b5cf6' },
+  {day: 'Mon', credits: 650, fill: '#8b5cf6'},
+  {day: 'Tue', credits: 720, fill: '#8b5cf6'},
+  {day: 'Wed', credits: 580, fill: '#8b5cf6'},
+  {day: 'Thu', credits: 800, fill: '#8b5cf6'},
+  {day: 'Fri', credits: 680, fill: '#8b5cf6'},
+  {day: 'Sat', credits: 750, fill: '#8b5cf6'},
+  {day: 'Sun', credits: 660, fill: '#8b5cf6'},
 ]
 
 const creditsChartConfig = {
@@ -95,9 +102,9 @@ const creditsChartConfig = {
 } satisfies ChartConfig
 
 const storageChartData = [
-  { category: 'Images', value: 1.5, fill: '#3b82f6' },
-  { category: 'Datasets', value: 0.7, fill: '#10b981' },
-  { category: 'Other', value: 0.2, fill: '#f59e0b' },
+  {category: 'Images', value: 1.5, fill: '#3b82f6'},
+  {category: 'Datasets', value: 0.7, fill: '#10b981'},
+  {category: 'Other', value: 0.2, fill: '#f59e0b'},
 ]
 
 const storageChartConfig = {
@@ -144,7 +151,8 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            <h1
+              className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
               Billing & Usage
             </h1>
             <p className="text-muted-foreground mt-2">
@@ -160,12 +168,12 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
 
         {/* Current Plan Card */}
         <Card className="relative overflow-hidden border-primary/20 shadow-lg">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-purple-500/5 to-primary/5" />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-purple-500/5 to-primary/5"/>
           <CardHeader className="relative">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-primary/10 rounded-lg">
-                  <Sparkles className="w-6 h-6 text-primary" />
+                  <Sparkles className="w-6 h-6 text-primary"/>
                 </div>
                 <div>
                   <CardTitle className="text-2xl">{billingData?.currentPlan.name}</CardTitle>
@@ -175,7 +183,7 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
                 </div>
               </div>
               <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
-                <CheckCircle className="w-3 h-3 mr-1" />
+                <CheckCircle className="w-3 h-3 mr-1"/>
                 {billingData?.currentPlan.status}
               </Badge>
             </div>
@@ -200,7 +208,7 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
             {/* Next Billing Date */}
             <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <Calendar className="w-4 h-4 text-muted-foreground"/>
                 <span className="text-sm text-muted-foreground">Next billing date</span>
               </div>
               <span className="font-semibold">{billingData?.currentPlan.nextBillingDate}</span>
@@ -208,19 +216,19 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
 
             {/* Action Buttons */}
             <div className="flex gap-3">
-              <Button 
-                onClick={handleUpgradePlan} 
-                variant="default" 
+              <Button
+                onClick={handleUpgradePlan}
+                variant="default"
                 className="flex-1"
-                leftIcon={<TrendingUp className="w-4 h-4" />}
+                leftIcon={<TrendingUp className="w-4 h-4"/>}
               >
                 Upgrade Plan
               </Button>
-              <Button 
-                onClick={handleManageSubscription} 
-                variant="outline" 
+              <Button
+                onClick={handleManageSubscription}
+                variant="outline"
                 className="flex-1"
-                leftIcon={<ExternalLink className="w-4 h-4" />}
+                leftIcon={<ExternalLink className="w-4 h-4"/>}
               >
                 Manage Subscription
               </Button>
@@ -233,30 +241,30 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
+                <TrendingUp className="w-5 h-5"/>
                 Credits Usage Over Time
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ChartContainer config={creditsChartConfig} className="h-[300px] w-full">
                 <BarChart data={creditsChartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb"/>
                   <XAxis
                     dataKey="day"
                     tickLine={false}
                     tickMargin={10}
                     axisLine={false}
-                    tick={{ fill: '#6b7280' }}
+                    tick={{fill: '#6b7280'}}
                   />
                   <ChartTooltip
-                    content={<ChartTooltipContent />}
-                    cursor={{ fill: '#8b5cf6', opacity: 0.1 }}
+                    content={<ChartTooltipContent/>}
+                    cursor={{fill: '#8b5cf6', opacity: 0.1}}
                   />
                   <Bar
                     dataKey="credits"
                     radius={[8, 8, 0, 0]}
                     fill="#8b5cf6"
-                    activeBar={{ fill: '#7c3aed', stroke: '#6d28d9', strokeWidth: 2 }}
+                    activeBar={{fill: '#7c3aed', stroke: '#6d28d9', strokeWidth: 2}}
                   />
                 </BarChart>
               </ChartContainer>
@@ -267,7 +275,7 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
+                <TrendingUp className="w-5 h-5"/>
                 Usage This Month
               </CardTitle>
             </CardHeader>
@@ -295,7 +303,7 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
           <Card className="flex flex-col">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5" />
+                <CreditCard className="w-5 h-5"/>
                 Payment Method
               </CardTitle>
             </CardHeader>
@@ -303,7 +311,8 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
               <div className="flex-1 space-y-4">
                 <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded flex items-center justify-center text-white text-xs font-bold">
+                    <div
+                      className="w-12 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded flex items-center justify-center text-white text-xs font-bold">
                       {billingData?.paymentMethod.type}
                     </div>
                     <div>
@@ -326,7 +335,7 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5" />
+                <DollarSign className="w-5 h-5"/>
                 Storage Distribution
               </CardTitle>
             </CardHeader>
@@ -334,7 +343,7 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
               <ChartContainer config={storageChartConfig} className="h-[300px] w-full">
                 <PieChart>
                   <ChartTooltip
-                    content={<ChartTooltipContent nameKey="category" />}
+                    content={<ChartTooltipContent nameKey="category"/>}
                   />
                   <Pie
                     data={storageChartData}
@@ -352,15 +361,15 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
                     }}
                   >
                     {storageChartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
+                      <Cell
+                        key={`cell-${index}`}
                         fill={entry.fill}
                         stroke="#fff"
                         strokeWidth={2}
                       />
                     ))}
                   </Pie>
-                  <ChartLegend content={<ChartLegendContent nameKey="category" />} />
+                  <ChartLegend content={<ChartLegendContent nameKey="category"/>}/>
                 </PieChart>
               </ChartContainer>
             </CardContent>
@@ -371,7 +380,7 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Receipt className="w-5 h-5" />
+              <Receipt className="w-5 h-5"/>
               Billing History
             </CardTitle>
           </CardHeader>
@@ -384,7 +393,7 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
                 >
                   <div className="flex items-center gap-4">
                     <div className="p-2 bg-primary/10 rounded">
-                      <Receipt className="w-4 h-4 text-primary" />
+                      <Receipt className="w-4 h-4 text-primary"/>
                     </div>
                     <div>
                       <p className="font-medium">{invoice.description}</p>
@@ -402,7 +411,7 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
                       </Badge>
                     </div>
                     <Button variant="ghost" size="sm">
-                      <Download className="w-4 h-4" />
+                      <Download className="w-4 h-4"/>
                     </Button>
                   </div>
                 </div>
@@ -416,7 +425,7 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
               <div className="p-2 bg-blue-500/10 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-blue-600" />
+                <AlertCircle className="w-5 h-5 text-blue-600"/>
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold mb-2">Need help with billing?</h3>

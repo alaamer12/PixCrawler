@@ -118,9 +118,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         )}
 
         {/* Button content */}
-        <span className={cn(loading && 'opacity-70')}>
-          {loading && loadingText ? loadingText : children}
-        </span>
+        {loading && loadingText ? loadingText : children}
 
         {/* Right icon */}
         {!loading && rightIcon && (

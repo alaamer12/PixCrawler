@@ -1,11 +1,14 @@
 import './globals.css';
 import type {Metadata, Viewport} from 'next';
 import {Manrope} from 'next/font/google';
+import {Toaster} from 'sonner';
+
 import {ThemeProvider} from '@/components/theme-provider';
 import {Navigation} from '@/components/LandingPage/Navigation';
 import {Footer} from '@/components/LandingPage/Footer';
 import {HeroBackground} from '@/components/LandingPage/HeroBackground';
 import {TopLoadingBar} from '@/components/TopLoadingBar';
+import {ErrorBoundaryProvider} from '@/components/providers/error-boundary-provider';
 
 export const metadata: Metadata = {
   title: 'PixCrawler - AI-Powered Image Dataset Builder for ML & Research',
@@ -70,23 +73,26 @@ export default function RootLayout({
       <link rel="dns-prefetch" href="https://fonts.googleapis.com"/>
     </head>
     <body className="min-h-screen bg-background text-foreground antialiased">
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
-      <TopLoadingBar>
-        <div className="relative min-h-screen overflow-hidden">
-          <HeroBackground/>
-          <div className="relative z-10 flex flex-col min-h-screen">
-            <Navigation/>
-            <main className="flex-1">{children}</main>
-            <Footer/>
+    <ErrorBoundaryProvider>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+        <TopLoadingBar>
+          <div className="relative min-h-screen overflow-hidden">
+            <HeroBackground/>
+            <div className="relative z-10 flex flex-col min-h-screen">
+              <Navigation/>
+              <main className="flex-1">{children}</main>
+              <Footer/>
+            </div>
           </div>
-        </div>
-      </TopLoadingBar>
-    </ThemeProvider>
+        </TopLoadingBar>
+        <Toaster richColors position="top-right"/>
+      </ThemeProvider>
+    </ErrorBoundaryProvider>
     </body>
     </html>
   );

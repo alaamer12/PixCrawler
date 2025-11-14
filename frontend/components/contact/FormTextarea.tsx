@@ -12,15 +12,15 @@ interface FormTextareaProps {
 }
 
 export const FormTextarea = memo(({
-  id,
-  name,
-  label,
-  required = false,
-  value,
-  onChange,
-  placeholder,
-  rows = 6
-}: FormTextareaProps) => {
+                                    id,
+                                    name,
+                                    label,
+                                    required = false,
+                                    value,
+                                    onChange,
+                                    placeholder,
+                                    rows = 6
+                                  }: FormTextareaProps) => {
   return (
     <div>
       <label htmlFor={id} className="block text-sm font-medium mb-2">
