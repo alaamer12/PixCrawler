@@ -4,7 +4,7 @@ Main API router for v1 endpoints.
 
 from fastapi import APIRouter
 
-from .endpoints import auth, crawl_jobs, datasets, exports, health, storage, users, validation
+from .endpoints import auth, crawl_jobs, datasets, exports, health, storage, users, validation, metrics
 
 api_router = APIRouter(prefix="/v1")
 
@@ -17,3 +17,4 @@ api_router.include_router(crawl_jobs.router, prefix="/jobs", tags=["crawl-jobs"]
 api_router.include_router(storage.router, prefix="/storage", tags=["storage"])
 api_router.include_router(exports.router, prefix="/exports", tags=["exports"])
 api_router.include_router(validation.router, prefix="/validation", tags=["validation"])
+api_router.include_router(metrics.router, prefix="/metrics", tags=["metrics"])

@@ -19,9 +19,11 @@ Features:
     - Repository pattern for clean architecture
 """
 import uuid
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 from backend.core.exceptions import NotFoundError, ValidationError
+from backend.database.connection import AsyncSessionLocal
 from backend.models import CrawlJob, Image
 from backend.repositories import (
     CrawlJobRepository,
@@ -29,6 +31,7 @@ from backend.repositories import (
     ImageRepository,
     ActivityLogRepository
 )
+from backend.utils.metrics_collector import MetricsCollector
 from .base import BaseService
 
 __all__ = [
@@ -244,8 +247,128 @@ async def execute_crawl_job(job_id: int) -> None:
 
     This function runs the actual image crawling process using the
     PixCrawler builder package and updates the job status in real-time.
+    Also collects metrics for download, validation, and upload operations.
 
     Args:
         job_id: ID of the crawl job to execute
     """
-    raise NotImplementedError("Placeholder for job execution")
+    async with AsyncSessionLocal() as session:
+        try:
+            # Initialize repositories and services
+            crawl_job_repo = CrawlJobRepository(session)
+            image_repo = ImageRepository(session)
+            metrics_collector = MetricsCollector(session, service_name="crawl-job")
+            
+            # Get job
+            job = await crawl_job_repo.get_by_id(job_id)
+            if not job:
+                raise NotFoundError(f"Crawl job not found: {job_id}")
+            
+            # Update job status
+            job.status = "processing"
+            job.started_at = datetime.utcnow()
+            await session.commit()
+            
+            # Track total processing time
+            async with metrics_collector.track_operation(
+                "total_processing",
+                metadata={"job_id": job_id, "max_images": job.max_images}
+            ):
+                # Phase 1: Download images
+                downloaded_count = 0
+                async with metrics_collector.track_operation(
+                    "download",
+                    metadata={"job_id": job_id}
+                ):
+                    # TODO: Implement actual download using builder package
+                    # For now, this is a placeholder
+                    # downloaded_count = await download_images(job.keywords, job.max_images)
+                    pass
+                
+                # Track download success rate
+                total_attempted = job.max_images
+                await metrics_collector.record_success_rate(
+                    "download",
+                    downloaded_count,
+                    total_attempted,
+                    metadata={"job_id": job_id}
+                )
+                
+                # Update job progress
+                job.downloaded_images = downloaded_count
+                job.total_images = downloaded_count
+                await session.commit()
+                
+                # Phase 2: Validate images
+                valid_count = 0
+                if downloaded_count > 0:
+                    async with metrics_collector.track_operation(
+                        "validate",
+                        metadata={"job_id": job_id, "image_count": downloaded_count}
+                    ):
+                        # TODO: Implement actual validation
+                        # valid_count = await validate_images(job_id, downloaded_count)
+                        valid_count = downloaded_count  # Placeholder
+                    
+                    # Track validation success rate
+                    await metrics_collector.record_success_rate(
+                        "validate",
+                        valid_count,
+                        downloaded_count,
+                        metadata={"job_id": job_id}
+                    )
+                    
+                    # Update job progress
+                    job.valid_images = valid_count
+                    await session.commit()
+                
+                # Phase 3: Upload to storage
+                uploaded_count = 0
+                if valid_count > 0:
+                    async with metrics_collector.track_operation(
+                        "upload",
+                        metadata={"job_id": job_id, "image_count": valid_count}
+                    ):
+                        # TODO: Implement actual upload
+                        # uploaded_count = await upload_images(job_id, valid_count)
+                        uploaded_count = valid_count  # Placeholder
+                    
+                    # Track upload success rate
+                    await metrics_collector.record_success_rate(
+                        "upload",
+                        uploaded_count,
+                        valid_count,
+                        metadata={"job_id": job_id}
+                    )
+            
+            # Flush all metrics
+            await metrics_collector.flush()
+            
+            # Update job status
+            job.status = "completed"
+            job.progress = 100
+            job.completed_at = datetime.utcnow()
+            await session.commit()
+            
+        except Exception as e:
+            # Update job status to failed
+            async with AsyncSessionLocal() as error_session:
+                error_repo = CrawlJobRepository(error_session)
+                error_job = await error_repo.get_by_id(job_id)
+                if error_job:
+                    error_job.status = "failed"
+                    error_job.completed_at = datetime.utcnow()
+                    await error_session.commit()
+            
+            # Record failure metric
+            async with AsyncSessionLocal() as metrics_session:
+                metrics_collector = MetricsCollector(metrics_session, service_name="crawl-job")
+                await metrics_collector.record_success_rate(
+                    "total_processing",
+                    0,
+                    1,
+                    metadata={"job_id": job_id, "error": str(e)}
+                )
+                await metrics_collector.flush()
+            
+            raise

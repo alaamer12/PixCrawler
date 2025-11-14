@@ -25,7 +25,8 @@ dependencies = [
   "fastapi-pagination", # Use Latest
   "fastapi-limiter", # Use Latest
   "asyncpg",
-  "platformdirs"
+  "platformdirs",
+  "psutil>=5.9.0"
 ]
 
 [project.optional-dependencies]

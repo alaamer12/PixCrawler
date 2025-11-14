@@ -24,7 +24,8 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.exceptions import NotFoundError, ValidationError
-from backend.services.base import BaseService
+from backend.utils.metrics_collector import MetricsCollector
+from .base import BaseService
 
 __all__ = [
     'ValidationLevel',
@@ -92,7 +93,7 @@ class ValidationService(BaseService):
         
         Performs comprehensive validation on a single image based on the
         specified validation level. Returns detailed results including
-        quality score and identified issues.
+        quality score and identified issues. Tracks validation metrics.
         
         Args:
             image_id: ID of the image to validate
@@ -120,11 +121,33 @@ class ValidationService(BaseService):
             user_id=user_id
         )
 
-        # TODO: Implement actual image validation logic
-        # For now, return mock data
-        quality_score = self._calculate_quality_score(validation_level)
-        is_valid = quality_score >= self._get_threshold(validation_level)
-        issues = [] if is_valid else self._get_validation_issues(validation_level)
+        # Track validation time
+        metrics_collector = MetricsCollector(self.session, service_name="validation")
+        async with metrics_collector.track_operation(
+            "validate",
+            metadata={
+                "image_id": image_id,
+                "validation_level": validation_level.value,
+                "user_id": user_id
+            }
+        ):
+            # TODO: Implement actual image validation logic
+            # For now, return mock data
+            quality_score = self._calculate_quality_score(validation_level)
+            is_valid = quality_score >= self._get_threshold(validation_level)
+            issues = [] if is_valid else self._get_validation_issues(validation_level)
+        
+        # Track success rate
+        await metrics_collector.record_success_rate(
+            "validate",
+            1 if is_valid else 0,
+            1,
+            metadata={
+                "image_id": image_id,
+                "validation_level": validation_level.value,
+            }
+        )
+        await metrics_collector.flush()
 
         return {
             "image_id": image_id,

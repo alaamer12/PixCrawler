@@ -126,6 +126,17 @@ from .storage import (
     CleanupRequest,
     CleanupResponse,
 )
+from .metrics import (
+    MetricType,
+    MetricName,
+    TimeWindow,
+    SystemMetricBase,
+    SystemMetricCreate,
+    SystemMetricResponse,
+    SystemMetricQuery,
+    SystemStatusResponse,
+    SystemMetricBatchCreate,
+)
 
 __all__ = [
     # Base schemas
@@ -229,4 +240,15 @@ __all__ = [
     'FileInfo',
     'CleanupRequest',
     'CleanupResponse',
+    
+    # Metrics schemas
+    'MetricType',
+    'MetricName',
+    'TimeWindow',
+    'SystemMetricBase',
+    'SystemMetricCreate',
+    'SystemMetricResponse',
+    'SystemMetricQuery',
+    'SystemStatusResponse',
+    'SystemMetricBatchCreate',
 ]

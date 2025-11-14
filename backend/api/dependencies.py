@@ -39,6 +39,7 @@ from backend.services.dataset import DatasetService
 from backend.services.validation import ValidationService
 from backend.services.user import UserService
 from backend.services.storage import StorageService
+from backend.services.metrics import MetricsService
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """
@@ -80,6 +81,7 @@ __all__ = [
     'get_user_service',
     'get_storage_service',
     'get_auth_service',
+    'get_metrics_service',
 ]
 
 # HTTP Bearer token scheme
@@ -306,3 +308,16 @@ def get_auth_service() -> SupabaseAuthService:
         SupabaseAuthService instance
     """
     return SupabaseAuthService()
+
+
+def get_metrics_service(session: DBSession) -> MetricsService:
+    """
+    Dependency injection for MetricsService.
+
+    Args:
+        session: Database session
+
+    Returns:
+        MetricsService instance
+    """
+    return MetricsService(session)

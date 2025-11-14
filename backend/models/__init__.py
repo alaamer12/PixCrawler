@@ -13,6 +13,7 @@ Model Categories:
     - Notifications: Notification, NotificationPreference
     - API: APIKey
     - Usage: UsageMetric
+    - Metrics: SystemMetric
 
 Features:
     - SQLAlchemy 2.0 with Mapped annotations
@@ -28,6 +29,7 @@ from .api_keys import APIKey
 from .credits import CreditAccount, CreditTransaction
 from .notifications import Notification, NotificationPreference
 from .usage import UsageMetric
+from .metrics import SystemMetric, MetricType, MetricName
 
 # Import core models
 from datetime import datetime
@@ -112,6 +114,10 @@ __all__ = [
     'APIKey',
     # Usage models
     'UsageMetric',
+    # Metrics models
+    'SystemMetric',
+    'MetricType',
+    'MetricName',
 ]
 
 
