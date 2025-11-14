@@ -153,6 +153,13 @@ class CrawlJobResponse(BaseModel):
     created_at: datetime = Field(description="Creation timestamp")
     updated_at: datetime = Field(description="Last update timestamp")
     
+    # Chunk tracking fields
+    total_chunks: int = Field(default=0, description="Total processing chunks")
+    active_chunks: int = Field(default=0, description="Currently processing chunks")
+    completed_chunks: int = Field(default=0, description="Successfully completed chunks")
+    failed_chunks: int = Field(default=0, description="Failed chunks")
+    task_ids: list[str] = Field(default_factory=list, description="Celery task IDs")
+    
     @computed_field
     @property
     def success_rate(self) -> Optional[float]:
@@ -172,6 +179,14 @@ class CrawlJobResponse(BaseModel):
     def is_completed(self) -> bool:
         """Check if job is completed."""
         return self.status in ("completed", "failed", "cancelled")
+    
+    @computed_field
+    @property
+    def chunk_progress(self) -> float:
+        """Calculate chunk completion progress (0-100)."""
+        if self.total_chunks == 0:
+            return 0.0
+        return round((self.completed_chunks / self.total_chunks) * 100, 2)
 
 
 class JobLogEntry(BaseModel):
