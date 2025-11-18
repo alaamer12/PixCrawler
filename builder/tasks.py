@@ -474,7 +474,11 @@ def task_generate_keywords_impl(
     try:
         # KeywordManagement.generate_keywords() only takes category parameter
         # The ai_model is set during KeywordManagement initialization
-        keyword_manager = KeywordManagement(ai_model=ai_model)
+        keyword_manager = KeywordManagement(
+            ai_model=ai_model,
+            keyword_generation="enabled",
+            generation_strategy="ai" if ai_model in ["gpt4", "gpt4-mini"] else "simple"
+        )
 
         generated_keywords = []
         errors = []

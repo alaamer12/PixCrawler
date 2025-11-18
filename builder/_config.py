@@ -79,6 +79,11 @@ CONFIG_SCHEMA: Dict[str, Any] = {
                     "enum": ["gpt4", "gpt4-mini"],
                     "description": "AI model to use for keyword generation"
                 },
+                "generation_strategy": {
+                    "type": "string",
+                    "enum": ["ai", "simple", "gpt", "basic"],
+                    "description": "Keyword generation strategy: 'ai'/'gpt' for AI-powered, 'simple'/'basic' for pattern-based"
+                },
                 "generate_labels": {
                     "type": "boolean",
                     "description": "Whether to generate label files for images"
@@ -196,6 +201,11 @@ class DatasetGenerationConfig(BaseSettings):
         description="AI model to use for keyword generation",
         examples=["gpt4", "gpt4-mini"]
     )
+    generation_strategy: str = Field(
+        default="ai",
+        description="Keyword generation strategy",
+        examples=["ai", "simple", "gpt", "basic"]
+    )
     generate_labels: bool = Field(
         default=True,
         description="Whether to generate label files for images",
@@ -230,6 +240,15 @@ class DatasetGenerationConfig(BaseSettings):
         valid_models = ["gpt4", "gpt4-mini"]
         if v not in valid_models:
             raise ValueError(f"ai_model must be one of {valid_models}")
+        return v
+
+    @field_validator('generation_strategy')
+    @classmethod
+    def validate_generation_strategy(cls, v: str) -> str:
+        """Validate keyword generation strategy."""
+        valid_strategies = ["ai", "simple", "gpt", "basic"]
+        if v not in valid_strategies:
+            raise ValueError(f"generation_strategy must be one of {valid_strategies}")
         return v
 
     @field_validator('search_variations')
