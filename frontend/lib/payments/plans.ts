@@ -1,4 +1,4 @@
-import { PricingPlan } from './types'
+import {PricingPlan} from './types'
 
 // PixCrawler Pricing Plans
 export const PRICING_PLANS: PricingPlan[] = [

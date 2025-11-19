@@ -1,5 +1,5 @@
-import { PaymentSuccess } from '@/components/stripe'
+import {PaymentSuccess} from '@/components/stripe'
 
 export default function PaymentSuccessPage() {
-  return <PaymentSuccess />
+  return <PaymentSuccess/>
 }

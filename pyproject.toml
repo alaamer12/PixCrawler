@@ -11,22 +11,22 @@ authors = [
 ]
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 keywords = []
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Code Generators",
 ]
 dependencies = [
     "pixcrawler-backend",
     "pixcrawler-builder",
-    "pixcrawler-logging",
+    "pixcrawler-utility",
     "pixcrawler-celery-core",
     "pixcrawler-validator",
     "pydantic>=2.0.0",
@@ -42,12 +42,12 @@ Issues = "https://github.com/pixcrawler/pixcrawler/issues"
 
 
 [tool.uv.workspace]
-members = ["backend", "builder", "logging_config", "celery_core", "validator"]
+members = ["backend", "builder", "utility", "celery_core", "validator"]
 
 [tool.uv.sources]
 pixcrawler-backend = { workspace = true }
 pixcrawler-builder = { workspace = true }
-pixcrawler-logging = { workspace = true }
+pixcrawler-utility = { workspace = true }
 pixcrawler-celery-core = { workspace = true }
 pixcrawler-validator = { workspace = true }
 
@@ -108,7 +108,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.ruff.lint.isort]
-known-first-party = ["fm", "pbm", "src"]
+known-first-party = ["backend", "builder", "logging_config", "celery_core", "validator"]
 force-sort-within-sections = true
 split-on-trailing-comma = true
 
@@ -118,7 +118,7 @@ split-on-trailing-comma = true
 
 # MyPy configuration
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -155,14 +155,12 @@ minversion = "7.0"
 addopts = [
     "--strict-markers",
     "--strict-config",
-    "--cov=src",
-    "--cov=fm",
-    "--cov=pbm",
+    "--cov=backend",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
 ]
-testpaths = ["tests"]
+testpaths = ["tests", "backend/tests", "builder/tests"]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
@@ -171,7 +169,7 @@ markers = [
 
 # Coverage configuration
 [tool.coverage.run]
-source = ["src", "fm", "pbm", "base", "utils"]
+source = ["backend"]
 omit = [
     "*/tests/*",
     "*/test_*.py",

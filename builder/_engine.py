@@ -1,13 +1,11 @@
-"""
-This module provides the core logic for processing search engines and downloading images. It includes classes for managing engine configurations, tracking statistics, and orchestrating parallel and sequential image downloads.
+"""This module provides the core logic for processing search engines and downloading images. It includes classes for managing engine configurations, tracking statistics, and orchestrating sequential image downloads.
 
 Classes:
-    EngineMode: Enumeration for different engine processing modes (parallel, sequential).
     EngineConfig: Configuration for a search engine, including offset range and variation step.
     VariationResult: Represents the outcome of processing a single search variation.
     EngineResult: Represents the aggregated result of processing a single search engine.
     EngineStats: Tracks performance statistics for individual search engines.
-    EngineProcessor: Manages and orchestrates image downloads across multiple search engines, supporting parallel and sequential modes.
+    EngineProcessor: Manages and orchestrates image downloads across multiple search engines in sequential mode.
     SingleEngineProcessor: Handles the detailed processing of a single search engine, including its variations.
 
 Functions:
@@ -17,18 +15,12 @@ Functions:
 Features:
     - Centralized management of search engine configurations.
     - Detailed tracking and logging of engine performance and download statistics.
-    - Support for parallel and sequential image downloading across various search engines.
+    - Sequential image downloading across various search engines.
     - Intelligent selection and processing of search variations to optimize image retrieval.
     - Robust error handling and monitoring during the download process.
+    - Note: Distributed processing is handled via Celery tasks.
 """
-
-import concurrent.futures
-import os
-import random
-import threading
-import time
 from dataclasses import dataclass
-from enum import StrEnum
 from typing import List, Dict, Any, Union, Type
 
 from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler
@@ -43,7 +35,6 @@ from builder._exceptions import DownloadError, CrawlerError, CrawlerInitializati
 # Image validation moved to validator package
 
 __all__ = [
-    'EngineMode',
     'EngineStats',
     'EngineProcessor',
     'SingleEngineProcessor'
@@ -85,11 +76,6 @@ def select_variations(variations: List[str], max_num: int) -> List[str]:
     selected = variations[:max_variations]
     random.shuffle(selected)
     return selected
-
-
-class EngineMode(StrEnum):
-    PARALLEL = "parallel"
-    SEQUENTIAL = "sequential"
 
 
 @dataclass
@@ -137,14 +123,12 @@ class EngineProcessor:
         self.image_downloader = image_downloader
         self.engine_configs = load_engine_configs()
         self.engine_stats: Dict[str, EngineStats] = {}
-        self.processing_lock = threading.Lock()
 
     def reset_stats(self) -> None:
         """
         Resets all accumulated engine statistics.
         """
-        with self.processing_lock:
-            self.engine_stats.clear()
+        self.engine_stats.clear()
 
     def _get_or_create_stats(self, engine_name: str) -> EngineStats:
         """
@@ -168,15 +152,14 @@ class EngineProcessor:
             engine_name (str): The name of the engine to update.
             result (VariationResult): The result object from a processed variation.
         """
-        with self.processing_lock:
-            stats = self._get_or_create_stats(engine_name)
-            stats.download_count += result.downloaded_count
-            stats.total_processing_time += result.processing_time
+        stats = self._get_or_create_stats(engine_name)
+        stats.download_count += result.downloaded_count
+        stats.total_processing_time += result.processing_time
 
-            if result.success:
-                stats.success_count += 1
-            else:
-                stats.failure_count += 1
+        if result.success:
+            stats.success_count += 1
+        else:
+            stats.failure_count += 1
 
     def log_engine_stats(self) -> None:
         """
@@ -208,98 +191,6 @@ class EngineProcessor:
             logger.info(f"  Total Processing Time: {stats.total_processing_time:.2f}s")
             logger.info("-" * 40)
 
-    @staticmethod
-    def _get_downloader(config_name: str):
-        engine_downloaders = {
-            "google": download_google_images,
-            "bing": download_bing_images,
-            "baidu": download_baidu_images,
-        }
-        return engine_downloaders.get(config_name)
-
-    def _submit_engine_task(self, executor, config, variations_copy, out_dir,
-                            per_engine_target, max_num, keyword):
-        downloader = self._get_downloader(config.name)
-        if downloader:
-            return executor.submit(
-                downloader, keyword, variations_copy, out_dir,
-                per_engine_target, config, self.image_downloader
-            )
-        else:
-            return executor.submit(
-                self._process_engine_parallel, config, variations_copy,
-                out_dir, per_engine_target, max_num
-            )
-
-    @staticmethod
-    def _handle_future_result(future, config) -> EngineResult:
-        try:
-            result = future.result(timeout=300)  # 5 minute timeout per engine
-            logger.info(
-                f"Engine {result.engine_name} completed: {result.total_downloaded} images")
-            return result
-        except concurrent.futures.TimeoutError:
-            logger.warning(f"Engine {config.name} timed out")
-            return EngineResult(
-                engine_name=config.name,
-                total_downloaded=0,
-                variations_processed=0,
-                success_rate=0.0,
-                processing_time=0.0,
-                variations=[]
-            )
-        except CrawlerError as ce:
-            logger.error(f"Engine {config.name} failed with crawler error: {ce}")
-            raise ce
-        except Exception as e:
-            logger.error(f"Engine {config.name} failed with unexpected error: {e}")
-            raise DownloadError(
-                f"Engine {config.name} failed during parallel download: {e}") from e
-
-    def download_with_parallel_engines(self, keyword: str, variations: List[str],
-                                       out_dir: str, max_num: int) -> List[
-        EngineResult]:
-        """
-        Downloads images using all configured search engines in parallel.
-
-        Args:
-            keyword (str): The main search keyword.
-            variations (List[str]): A list of search variations for the keyword.
-            out_dir (str): The output directory for downloaded images.
-            max_num (int): The maximum number of images to download in total.
-
-        Returns:
-            List[EngineResult]: A list of results from each processed engine.
-        """
-        logger.info(
-            f"Starting parallel engine processing for '{keyword}' (target: {max_num} images)")
-
-        per_engine_target = self._calculate_per_engine_target(max_num)
-
-        results = []
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.image_downloader.max_parallel_engines,
-            thread_name_prefix="EnginePool"
-        ) as executor:
-
-            engine_futures = {}
-            for config in self.engine_configs:
-                variations_copy = variations.copy()
-                future = self._submit_engine_task(executor, config, variations_copy,
-                                                  out_dir, per_engine_target, max_num,
-                                                  keyword)
-                engine_futures[future] = config
-
-            for future in concurrent.futures.as_completed(engine_futures):
-                if self._should_stop_processing(max_num):
-                    self._cancel_remaining_futures(engine_futures)
-                    break
-
-                config = engine_futures[future]
-                result = self._handle_future_result(future, config)
-                results.append(result)
-
-        return results
 
     def download_with_sequential_engines(self, keyword: str, variations: List[str],
                                          out_dir: str, max_num: int) -> List[
@@ -360,46 +251,6 @@ class EngineProcessor:
 
         return results
 
-    def _calculate_per_engine_target(self, max_num: int) -> int:
-        """
-        Calculates the target number of images per engine for parallel processing.
-
-        Args:
-            max_num (int): The total maximum number of images to download.
-
-        Returns:
-            int: The calculated target number of images for each engine.
-        """
-        base_target = max_num // len(self.engine_configs)
-        # Add buffer to ensure we get enough images
-        return max(5, int(base_target * 1.3))
-
-    def _process_engine_parallel(self, config: SearchEngineConfig,
-                                 variations: List[str],
-                                 out_dir: str, per_engine_target: int,
-                                 total_max: int) -> EngineResult:
-        """
-        Processes a single engine in parallel mode.
-
-        Args:
-            config (SearchEngineConfig): The configuration for the engine to process.
-            variations (List[str]): A list of search variations.
-            out_dir (str): The output directory for downloaded images.
-            per_engine_target (int): The target number of images for this specific engine.
-            total_max (int): The overall maximum number of images to download.
-
-        Returns:
-            EngineResult: The result of processing the engine.
-        """
-        engine_processor = SingleEngineProcessor(self.image_downloader, self)
-        result = engine_processor.process_engine(config, variations, out_dir,
-                                                 per_engine_target, total_max)
-
-        # Update statistics
-        for variation_result in result.variations:
-            self.update_stats(config.name, variation_result)
-
-        return result
 
     def _should_stop_processing(self, max_num: int) -> bool:
         """
@@ -414,17 +265,6 @@ class EngineProcessor:
         return (self.image_downloader.stop_workers or
                 self.image_downloader.total_downloaded >= max_num)
 
-    @staticmethod
-    def _cancel_remaining_futures(futures_dict: Dict) -> None:
-        """
-        Cancels all futures that have not yet completed.
-
-        Args:
-            futures_dict (Dict): A dictionary of futures, typically from a ThreadPoolExecutor.
-        """
-        for future in futures_dict.keys():
-            if not future.done():
-                future.cancel()
 
     def create_crawler(self, crawler_class: Type[Any], out_dir: str) -> Any:
         """
@@ -502,15 +342,10 @@ class SingleEngineProcessor:
             # Calculate variations to process
             variations_to_process = select_variations(variations, max_num)
 
-            # Process variations with parallel execution
-            if self.image_downloader.max_parallel_variations > 1:
-                variation_results = self._process_variations_parallel(
-                    config, variations_to_process, out_dir, max_num, total_max
-                )
-            else:
-                variation_results = self._process_variations_sequential(
-                    config, variations_to_process, out_dir, max_num, total_max
-                )
+            # Process variations sequentially
+            variation_results = self._process_variations_sequential(
+                config, variations_to_process, out_dir, max_num, total_max
+            )
 
             # Calculate totals
             downloaded_count = sum(
@@ -544,82 +379,6 @@ class SingleEngineProcessor:
             processing_time=processing_time,
             variations=variation_results
         )
-
-    def _process_variations_parallel(self, config: SearchEngineConfig,
-                                     variations: List[str],
-                                     out_dir: str, max_num: int, total_max: int) -> \
-        List[VariationResult]:
-        """
-        Processes multiple search variations in parallel for a given engine.
-
-        Args:
-            config (SearchEngineConfig): The configuration for the engine.
-            variations (List[str]): A list of search variations to process.
-            out_dir (str): The output directory for downloaded images.
-            max_num (int): The maximum number of images to download for this engine.
-            total_max (int): The overall maximum number of images to download across all engines.
-
-        Returns:
-            List[VariationResult]: A list of results for each processed variation.
-        """
-        results = []
-        per_variation_limit = max(2, max_num // len(variations))
-
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.image_downloader.max_parallel_variations,
-            thread_name_prefix=f"{config.name}VariationPool"
-        ) as executor:
-
-            # Submit variation tasks
-            variation_futures = {
-                executor.submit(
-                    self._process_single_variation,
-                    config, variation, i, out_dir, per_variation_limit, total_max
-                ): variation for i, variation in enumerate(variations)
-            }
-
-            # Collect results
-            for future in concurrent.futures.as_completed(variation_futures):
-                if self._should_stop_processing(total_max):
-                    break
-
-                try:
-                    result = future.result(
-                        timeout=120)  # 2 minute timeout per variation
-                    results.append(result)
-                    self._update_global_counters(result)
-                except concurrent.futures.TimeoutError:
-                    variation = variation_futures[future]
-                    logger.warning(
-                        f"Variation '{variation}' timed out for {config.name}")
-                    results.append(VariationResult(
-                        variation=variation,
-                        downloaded_count=0,
-                        success=False,
-                        error="Timeout"
-                    ))
-                except (CrawlerInitializationError, CrawlerExecutionError) as ce:
-                    variation = variation_futures[future]
-                    logger.error(
-                        f"Crawler error for variation '{variation}' in {config.name}: {ce}")
-                    results.append(VariationResult(
-                        variation=variation,
-                        downloaded_count=0,
-                        success=False,
-                        error=str(ce)
-                    ))
-                except Exception as e:
-                    variation = variation_futures[future]
-                    logger.error(
-                        f"Unexpected error for variation '{variation}' in {config.name}: {e}")
-                    results.append(VariationResult(
-                        variation=variation,
-                        downloaded_count=0,
-                        success=False,
-                        error=str(e)
-                    ))
-
-        return results
 
     def _process_variations_sequential(self, config: SearchEngineConfig,
                                        variations: List[str],
@@ -711,14 +470,18 @@ class SingleEngineProcessor:
             crawler = self._create_enhanced_crawler(config.name, out_dir)
             file_idx_offset = self._get_current_file_offset()
 
-            # Perform crawl
-            crawler.crawl(
-                keyword=variation,
-                max_num=actual_limit,
-                min_size=self.image_downloader.min_image_size,
-                offset=current_offset,
-                file_idx_offset=file_idx_offset
-            )
+            # Perform crawl with timeout protection
+            try:
+                crawler.crawl(
+                    keyword=variation,
+                    max_num=actual_limit,
+                    min_size=self.image_downloader.min_image_size,
+                    offset=current_offset,
+                    file_idx_offset=file_idx_offset
+                )
+            except Exception as crawl_error:
+                logger.warning(f"{config.name}: Crawl error for '{variation}': {crawl_error}")
+                # Continue to count what we got
 
             # Count results
             downloaded_count = self._count_variation_results(out_dir, file_idx_offset)

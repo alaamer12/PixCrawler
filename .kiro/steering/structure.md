@@ -73,7 +73,7 @@ The root `pyproject.toml` defines workspace members and manages inter-package de
 ## Import Patterns
 - **Internal Imports**: Use relative imports within packages
 - **Cross-Package**: Import via workspace dependency names
-- **First-Party Packages**: Configured in Ruff as `["fm", "pbm", "src"]`
+- **First-Party Packages**: Configured in Ruff as `["pixcrawler-backend", "pixcrawler-builder", "pixcrawler-logging", "pixcrawler-celery-core", "pixcrawler-validator"]`
 
 ## Configuration Management
 - **Root**: Workspace-wide linting, formatting, and build configuration

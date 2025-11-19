@@ -2,7 +2,24 @@
 
 import {AlertTriangle, Check, RotateCcw} from 'lucide-react'
 import {Button} from '@/components/ui/button'
+import Image from 'next/image'
 import type {TestResult} from '@/app/welcome/welcome-flow'
+
+// TODO: ⚠️ CRITICAL - PRODUCTION CHANGE REQUIRED ⚠️
+// This uses random local images for demo purposes ONLY.
+// In PRODUCTION, replace this with a fast API endpoint that:
+// - Fetches real crawled images from the test run
+// - Returns optimized thumbnails for quick loading
+// - Uses CDN/caching for performance
+// Example: GET /api/onboarding/test-images?testId={id}
+const SAMPLE_IMAGES = Array.from({length: 43}, (_, i) =>
+  `/images/vechile/car/${String(i + 1).padStart(4, '0')}.webp`
+)
+
+function getRandomImages(count: number): string[] {
+  const shuffled = [...SAMPLE_IMAGES].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, count)
+}
 
 interface TestResultsPanelProps {
   result: TestResult
@@ -33,12 +50,19 @@ export function TestResultsPanel({result, onRetry}: TestResultsPanelProps) {
             <div className="space-y-4">
               <p className="text-sm font-medium">Sample images found:</p>
               <div className="flex justify-center gap-4">
-                {result.sampleImages.slice(0, 4).map((imageUrl, index) => (
+                {getRandomImages(4).map((imagePath, index) => (
                   <div
                     key={index}
-                    className="w-20 h-20 bg-muted border border-border rounded-lg flex items-center justify-center text-xs text-muted-foreground"
+                    className="relative w-20 h-20 bg-muted border border-border rounded-lg overflow-hidden group hover:scale-105 transition-transform duration-200"
                   >
-                    Image {index + 1}
+                    <Image
+                      src={imagePath}
+                      alt={`Sample ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="80px"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors"/>
                   </div>
                 ))}
               </div>

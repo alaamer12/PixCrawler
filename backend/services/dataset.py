@@ -11,6 +11,8 @@ from backend.schemas.dataset import (
 )
 from backend.schemas.crawl_jobs import CrawlJobCreate, CrawlJobStatus
 from backend.repositories import DatasetRepository, CrawlJobRepository
+from backend.schemas.dataset import DatasetCreate, DatasetResponse, DatasetStats, \
+    DatasetUpdate
 from .base import BaseService
 
 

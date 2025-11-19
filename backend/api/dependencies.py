@@ -8,6 +8,7 @@ Functions:
     get_current_user: Get current authenticated user from Supabase token
     get_current_user_optional: Get current user or None if not authenticated
     get_supabase_auth_service: Get Supabase authentication service instance
+    get_session: Get async database session
 
 Features:
     - Supabase JWT token extraction and verification
@@ -15,24 +16,70 @@ Features:
     - Optional authentication support
     - Comprehensive error handling
 """
-from typing import Generator
-
-from backend.storage.base import StorageProvider
-from backend.storage.factory import get_storage_provider
-
-
-from typing import Optional, Dict, Any
+from typing import AsyncGenerator, Generator, Optional, Dict, Any, Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.exceptions import AuthenticationError
+from backend.database.connection import get_session as get_db_session
 from backend.services.supabase_auth import SupabaseAuthService
+from backend.storage.base import StorageProvider
+from backend.storage.factory import get_storage_provider
+from backend.repositories import (
+    CrawlJobRepository,
+    ProjectRepository,
+    ImageRepository,
+    ActivityLogRepository,
+    UserRepository
+)
+from backend.services.crawl_job import CrawlJobService
+from backend.services.dataset import DatasetService
+from backend.services.validation import ValidationService
+from backend.services.user import UserService
+from backend.services.storage import StorageService
+
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Get async database session.
+
+    FastAPI dependency that provides an async SQLAlchemy session
+    for database operations.
+
+    Yields:
+        AsyncSession: Async database session
+    """
+    async for session in get_db_session():
+        yield session
+
+# Type alias for dependency injection
+# DBSession type re-defined here to avoid circular import, it is re-exported from types.py file
+# You should use DBSession type from types.py file in your code
+DBSession = Annotated[AsyncSession, Depends(get_session)]
 
 __all__ = [
+    # Auth dependencies
     'get_current_user',
     'get_current_user_optional',
-    'get_supabase_auth_service'
+    'get_supabase_auth_service',
+    # Core dependencies
+    'get_session',
+    'get_storage',
+    'DBSession',
+    # Repository factories
+    'get_crawl_job_repository',
+    'get_project_repository',
+    'get_image_repository',
+    'get_user_repository',
+    'get_activity_log_repository',
+    # Service dependencies
+    'get_crawl_job_service',
+    'get_dataset_service',
+    'get_validation_service',
+    'get_user_service',
+    'get_storage_service',
+    'get_auth_service',
 ]
 
 # HTTP Bearer token scheme
@@ -138,7 +185,6 @@ async def get_current_user_optional(
         # Return None for any authentication errors in optional auth
         return None
 
-
 def get_storage() -> Generator[StorageProvider, None, None]:
     """
     Dependency that returns the configured storage provider.
@@ -152,3 +198,111 @@ def get_storage() -> Generator[StorageProvider, None, None]:
     finally:
         # Add any cleanup if needed
         pass
+
+
+# Repository Factory Functions
+def get_crawl_job_repository(session: DBSession) -> CrawlJobRepository:
+    """Get CrawlJobRepository instance."""
+    return CrawlJobRepository(session)
+
+
+def get_project_repository(session: DBSession) -> ProjectRepository:
+    """Get ProjectRepository instance."""
+    return ProjectRepository(session)
+
+
+def get_image_repository(session: DBSession) -> ImageRepository:
+    """Get ImageRepository instance."""
+    return ImageRepository(session)
+
+
+def get_user_repository(session: DBSession) -> UserRepository:
+    """Get UserRepository instance."""
+    return UserRepository(session)
+
+
+def get_activity_log_repository(session: DBSession) -> ActivityLogRepository:
+    """Get ActivityLogRepository instance."""
+    return ActivityLogRepository(session)
+
+
+# Service Dependencies
+async def get_crawl_job_service(session: DBSession) -> CrawlJobService:
+    """
+    Dependency injection for CrawlJobService.
+
+    Creates service with all required repositories.
+
+    Args:
+        session: Database session
+
+    Returns:
+        CrawlJobService instance
+    """
+    crawl_job_repo = CrawlJobRepository(session)
+    project_repo = ProjectRepository(session)
+    image_repo = ImageRepository(session)
+    activity_log_repo = ActivityLogRepository(session)
+
+    return CrawlJobService(
+        crawl_job_repo=crawl_job_repo,
+        project_repo=project_repo,
+        image_repo=image_repo,
+        activity_log_repo=activity_log_repo
+    )
+
+
+def get_dataset_service() -> DatasetService:
+    """
+    Dependency injection for DatasetService.
+
+    Returns:
+        DatasetService instance
+    """
+    return DatasetService()
+
+
+def get_validation_service(session: DBSession) -> ValidationService:
+    """
+    Dependency injection for ValidationService.
+
+    Args:
+        session: Database session
+
+    Returns:
+        ValidationService instance
+    """
+    return ValidationService(session)
+
+
+def get_user_service() -> UserService:
+    """
+    Dependency injection for UserService.
+
+    Returns:
+        UserService instance
+    """
+    return UserService()
+
+
+def get_storage_service(storage: StorageProvider = Depends(get_storage)) -> StorageService:
+    """
+    Dependency injection for StorageService.
+
+    Args:
+        storage: Storage provider instance
+
+    Returns:
+        StorageService instance
+    """
+    return StorageService(storage)
+
+
+def get_auth_service() -> SupabaseAuthService:
+    """
+    Dependency injection for SupabaseAuthService.
+
+    Returns:
+        SupabaseAuthService instance
+    """
+    return SupabaseAuthService()

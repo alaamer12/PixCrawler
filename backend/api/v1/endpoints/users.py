@@ -3,10 +3,10 @@ User management endpoints.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi_pagination import Page
 
-from backend.models.base import PaginatedResponse, PaginationParams
-from backend.models.user import UserCreate, UserResponse, UserUpdate
-from backend.services.user import UserService
+from backend.api.types import UserID, UserServiceDep
+from backend.schemas.user import UserCreate, UserResponse, UserUpdate
 
 router = APIRouter()
 
@@ -14,7 +14,7 @@ router = APIRouter()
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
     user_create: UserCreate,
-    user_service: UserService = Depends(),
+    user_service: UserServiceDep,
 ) -> UserResponse:
     """
     Create a new user account.
@@ -36,16 +36,17 @@ async def create_user(
     )
 
 
-@router.get("/", response_model=PaginatedResponse[UserResponse])
+@router.get("/", response_model=Page[UserResponse])
 async def list_users(
-    pagination: PaginationParams = Depends(),
-    user_service: UserService = Depends(),
-) -> PaginatedResponse[UserResponse]:
+    user_service: UserServiceDep,
+) -> Page[UserResponse]:
     """
     List users with pagination.
 
+    Pagination is handled automatically by fastapi-pagination.
+    Query parameters: page (default=1), size (default=50)
+
     Args:
-        pagination: Pagination parameters
         user_service: User service dependency
 
     Returns:
@@ -60,8 +61,8 @@ async def list_users(
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
-    user_id: int,
-    user_service: UserService = Depends(),
+    user_id: UserID,
+    user_service: UserServiceDep,
 ) -> UserResponse:
     """
     Get user by ID.
@@ -85,9 +86,9 @@ async def get_user(
 
 @router.put("/{user_id}", response_model=UserResponse)
 async def update_user(
-    user_id: int,
+    user_id: UserID,
     user_update: UserUpdate,
-    user_service: UserService = Depends(),
+    user_service: UserServiceDep,
 ) -> UserResponse:
     """
     Update user information.
@@ -112,8 +113,8 @@ async def update_user(
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
-    user_id: int,
-    user_service: UserService = Depends(),
+    user_id: UserID,
+    user_service: UserServiceDep,
 ) -> None:
     """
     Delete user account.

@@ -1,0 +1,182 @@
+{
+	"info": {
+		"_postman_id": "e5f6a7b8-c9d0-1234-ef01-345678901234",
+		"name": "PixCrawler API - Crawl Jobs",
+		"description": "Postman collection for the PixCrawler API - Crawl Jobs endpoints.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Crawl Jobs",
+			"item": [
+				{
+					"name": "Create Crawl Job",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": 1,\n  \"name\": \"string\",\n  \"keywords\": [\n    \"string\"\n  ],\n  \"max_images\": 0,\n  \"search_engine\": \"google\",\n  \"config\": {}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/v1/jobs/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"jobs",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Crawl Jobs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/jobs/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"jobs",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Crawl Job",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/jobs/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"jobs",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Crawl Job",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/jobs/1/cancel",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"jobs",
+								"1",
+								"cancel"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retry Crawl Job",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/jobs/1/retry",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"jobs",
+								"1",
+								"retry"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Crawl Job Logs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/jobs/1/logs",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"jobs",
+								"1",
+								"logs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Crawl Job Progress",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/jobs/1/progress",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"jobs",
+								"1",
+								"progress"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.request.headers.add({ key: 'Authorization', value: 'Bearer ' + pm.environment.get('access_token') });"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+					"pm.test(\"Response time is less than 2s\", function () { pm.expect(pm.response.responseTime).to.be.below(2000); });"
+				]
+			}
+		}
+	]
+}

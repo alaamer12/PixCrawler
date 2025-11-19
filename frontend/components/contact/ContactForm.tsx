@@ -3,6 +3,19 @@
 import {memo, useState} from 'react'
 import {Button} from '@/components/ui/button'
 import {Send} from 'lucide-react'
+import {FormField} from './FormField'
+import {FormSelect} from './FormSelect'
+import {FormTextarea} from './FormTextarea'
+import {ContactInfo} from './ContactInfo'
+
+const SUBJECT_OPTIONS = [
+  {value: 'general', label: 'General Inquiry'},
+  {value: 'support', label: 'Technical Support'},
+  {value: 'billing', label: 'Billing Question'},
+  {value: 'enterprise', label: 'Enterprise Sales'},
+  {value: 'partnership', label: 'Partnership'},
+  {value: 'feedback', label: 'Feedback'}
+]
 
 export const ContactForm = memo(() => {
   const [formData, setFormData] = useState({
@@ -13,10 +26,55 @@ export const ContactForm = memo(() => {
     message: ''
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<{
+    type: 'success' | 'error' | null
+    message: string
+  }>({type: null, message: ''})
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission
-    console.log('Form submitted:', formData)
+    setIsSubmitting(true)
+    setSubmitStatus({type: null, message: ''})
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setSubmitStatus({
+          type: 'success',
+          message: 'Thank you! Your message has been sent successfully. We\'ll get back to you soon.',
+        })
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          company: '',
+          subject: '',
+          message: '',
+        })
+      } else {
+        setSubmitStatus({
+          type: 'error',
+          message: data.error || 'Failed to send message. Please try again.',
+        })
+      }
+    } catch (error) {
+      setSubmitStatus({
+        type: 'error',
+        message: 'An error occurred. Please try again later.',
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -38,160 +96,77 @@ export const ContactForm = memo(() => {
               </h2>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium mb-2">
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      required
-                      value={formData.name}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                      placeholder="Enter your full name"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium mb-2">
-                      Email Address *
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      required
-                      value={formData.email}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                      placeholder="Enter your email"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="company" className="block text-sm font-medium mb-2">
-                    Company (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    id="company"
-                    name="company"
-                    value={formData.company}
+                  <FormField
+                    id="name"
+                    name="name"
+                    label="Full Name"
+                    required
+                    value={formData.name}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                    placeholder="Enter your company name"
+                    placeholder="Enter your full name"
+                  />
+                  <FormField
+                    id="email"
+                    name="email"
+                    label="Email Address"
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Enter your email"
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="subject" className="block text-sm font-medium mb-2">
-                    Subject *
-                  </label>
-                  <select
-                    id="subject"
-                    name="subject"
-                    required
-                    value={formData.subject}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                <FormField
+                  id="company"
+                  name="company"
+                  label="Company (Optional)"
+                  value={formData.company}
+                  onChange={handleChange}
+                  placeholder="Enter your company name"
+                />
+
+                <FormSelect
+                  id="subject"
+                  name="subject"
+                  label="Subject"
+                  required
+                  value={formData.subject}
+                  onChange={handleChange}
+                  options={SUBJECT_OPTIONS}
+                  placeholder="Select a subject"
+                />
+
+                <FormTextarea
+                  id="message"
+                  name="message"
+                  label="Message"
+                  required
+                  value={formData.message}
+                  onChange={handleChange}
+                  placeholder="Tell us how we can help you..."
+                />
+
+                {submitStatus.type && (
+                  <div
+                    className={`p-4 rounded-lg ${
+                      submitStatus.type === 'success'
+                        ? 'bg-green-50 text-green-800 border border-green-200'
+                        : 'bg-red-50 text-red-800 border border-red-200'
+                    }`}
                   >
-                    <option value="">Select a subject</option>
-                    <option value="general">General Inquiry</option>
-                    <option value="support">Technical Support</option>
-                    <option value="billing">Billing Question</option>
-                    <option value="enterprise">Enterprise Sales</option>
-                    <option value="partnership">Partnership</option>
-                    <option value="feedback">Feedback</option>
-                  </select>
-                </div>
+                    {submitStatus.message}
+                  </div>
+                )}
 
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium mb-2">
-                    Message *
-                  </label>
-                  <textarea
-                    id="message"
-                    name="message"
-                    required
-                    rows={6}
-                    value={formData.message}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent resize-none"
-                    placeholder="Tell us how we can help you..."
-                  />
-                </div>
-
-                <Button type="submit" size="lg" className="w-full">
+                <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
                   <Send className="w-4 h-4 mr-2"/>
-                  Send Message
+                  {isSubmitting ? 'Sending...' : 'Send Message'}
                 </Button>
               </form>
             </div>
 
-            {/* Contact Information */}
-            <div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-6">
-                Other ways to reach us
-              </h2>
-
-              <div className="space-y-6">
-                <div className="bg-card border border-border rounded-lg p-6">
-                  <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    <Mail className="w-5 h-5 text-primary"/>
-                    Email Support
-                  </h3>
-                  <p className="text-muted-foreground mb-3">
-                    Get help with technical issues, billing questions, or general inquiries.
-                  </p>
-                  <a
-                    href="mailto:support@pixcrawler.com"
-                    className="text-primary hover:underline"
-                  >
-                    support@pixcrawler.com
-                  </a>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Response time: &lt; 4 hours
-                  </p>
-                </div>
-
-                <div className="bg-card border border-border rounded-lg p-6">
-                  <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    <MessageCircle className="w-5 h-5 text-secondary"/>
-                    Live Chat
-                  </h3>
-                  <p className="text-muted-foreground mb-3">
-                    Chat with our support team in real-time for immediate assistance.
-                  </p>
-                  <Button variant="outline" size="sm">
-                    Start Live Chat
-                  </Button>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Available: Mon-Fri, 9 AM - 6 PM PST
-                  </p>
-                </div>
-
-                <div className="bg-card border border-border rounded-lg p-6">
-                  <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    <Phone className="w-5 h-5 text-warning"/>
-                    Enterprise Sales
-                  </h3>
-                  <p className="text-muted-foreground mb-3">
-                    Discuss custom solutions and enterprise pricing with our sales team.
-                  </p>
-                  <a
-                    href="mailto:sales@pixcrawler.com"
-                    className="text-primary hover:underline"
-                  >
-                    sales@pixcrawler.com
-                  </a>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Response time: &lt; 1 hour
-                  </p>
-                </div>
-              </div>
-            </div>
+            <ContactInfo/>
           </div>
         </div>
       </div>

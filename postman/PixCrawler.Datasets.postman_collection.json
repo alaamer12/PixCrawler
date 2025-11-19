@@ -1,0 +1,248 @@
+{
+	"info": {
+		"_postman_id": "d4e5f6a7-b8c9-0123-def0-234567890123",
+		"name": "PixCrawler API - Datasets",
+		"description": "Postman collection for the PixCrawler API - Datasets endpoints.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Datasets",
+			"item": [
+				{
+					"name": "Create Dataset",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"string\",\n  \"description\": \"string\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/v1/datasets/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"datasets",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Datasets",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/datasets/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"datasets",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Dataset Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/datasets/stats",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"datasets",
+								"stats"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Dataset",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/datasets/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"datasets",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Dataset",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"string\",\n  \"description\": \"string\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/v1/datasets/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"datasets",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Dataset",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/datasets/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"datasets",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Start Build Job",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/datasets/1/build",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"datasets",
+								"1",
+								"build"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Dataset Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/datasets/1/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"datasets",
+								"1",
+								"status"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Generate Download Link",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/datasets/1/download",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"datasets",
+								"1",
+								"download"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Dataset",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/datasets/1/cancel",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"datasets",
+								"1",
+								"cancel"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.request.headers.add({ key: 'Authorization', value: 'Bearer ' + pm.environment.get('access_token') });"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+					"pm.test(\"Response time is less than 2s\", function () { pm.expect(pm.response.responseTime).to.be.below(2000); });"
+				]
+			}
+		}
+	]
+}

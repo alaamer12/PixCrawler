@@ -1,0 +1,69 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pixcrawler-utility"
+version = "0.1.0"
+description = "Centralized utility system for the PixCrawler monorepo with compression, archiving, and logging"
+readme = "README.md"
+license = "MIT"
+authors = [
+    {name = "PixCrawler Team"}
+]
+maintainers = [
+    {name = "PixCrawler Team"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Archiving :: Compression",
+    "Topic :: System :: Logging",
+]
+keywords = [
+    "configuration",
+    "logging",
+    "compression",
+    "archiving",
+    "pydantic",
+    "loguru"
+]
+requires-python = ">=3.10"
+dependencies = [
+    "loguru>=0.7.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "zstandard>=0.21.0",
+    "pillow>=10.0.0",
+    "tqdm>=4.65.0"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/pixcrawler/pixcrawler"
+Repository = "https://github.com/pixcrawler/pixcrawler"
+Documentation = "https://github.com/pixcrawler/pixcrawler/tree/main/utility_config"
+Issues = "https://github.com/pixcrawler/pixcrawler/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "utility/",
+    "README.md",
+]

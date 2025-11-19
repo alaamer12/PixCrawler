@@ -1,9 +1,23 @@
-'use client'
-
+"use client"
 import React, {memo, useCallback, useEffect, useState} from 'react'
 import {Check, CheckCircle2, Database, Loader2, Search} from 'lucide-react'
-import {AnimatePresence, motion} from 'framer-motion'
-import {NextImage, ImageModal} from '@/components/Image'
+import dynamic from 'next/dynamic'
+import {
+  type Category,
+  getQualityColor,
+  getRandomCategory,
+  getRandomImagesForCategory,
+  getSourcesColor,
+  loadCategories
+} from '@/lib/imageLoader'
+
+const NextImage = dynamic(() => import('@/components/Image').then(mod => mod.NextImage), {
+  loading: () => <div className="w-full h-full bg-muted animate-pulse"/>
+})
+
+const ImageModal = dynamic(() => import('@/components/Image').then(mod => mod.ImageModal), {
+  ssr: false
+})
 
 // Types
 interface Step {
@@ -24,10 +38,6 @@ interface GalleryImage {
   title?: string
 }
 
-interface Category {
-  name: string
-  id: number
-}
 
 interface BuildStats {
   sources: number
@@ -36,16 +46,7 @@ interface BuildStats {
 }
 
 // Constants
-const CATEGORIES: Category[] = [
-  {name: 'nature', id: 1},
-  {name: 'architecture', id: 2},
-  {name: 'technology', id: 3},
-  {name: 'animals', id: 4},
-  {name: 'food', id: 5},
-  {name: 'travel', id: 6},
-  {name: 'abstract', id: 7},
-  {name: 'business', id: 8}
-]
+const CATEGORIES: Category[] = loadCategories()
 
 const TOTAL_IMAGES = 24
 const PRIORITY_THUMBNAIL_COUNT = 6
@@ -73,14 +74,9 @@ const TIMING = {
 const QUALITY_RANGE = {MIN: 90, MAX: 98} as const
 
 // Utility Functions
-const getRandomCategory = (): Category =>
-  CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]
 
 const getRandomQuality = (): number =>
   Math.floor(Math.random() * (QUALITY_RANGE.MAX - QUALITY_RANGE.MIN + 1)) + QUALITY_RANGE.MIN
-
-const createImageUrl = (category: string, timestamp: number, index: number): string =>
-  `https://picsum.photos/seed/${category}-${timestamp}-${index}/200/200`
 
 const createGalleryImage = (url: string, category: string, index: number): GalleryImage => ({
   src: url,
@@ -135,35 +131,21 @@ LoadingState.displayName = 'LoadingState'
 const QueryInput = memo(({
                            category,
                            isResetting,
-                           isBuilding,
-                           onTestModal,
-                           showTestButton
+                           isBuilding
                          }: {
   category: string
   isResetting: boolean
   isBuilding: boolean
-  onTestModal: () => void
-  showTestButton: boolean
 }) => (
   <div className="space-y-3">
     <div className="relative">
-      <motion.input
+      <input
         type="text"
         value={category}
         readOnly
-        className="w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none capitalize"
-        animate={{opacity: isResetting ? 0.5 : 1}}
-        transition={{duration: 0.3}}
+        className={`w-full px-4 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none capitalize transition-opacity duration-300 ${isResetting ? 'opacity-50' : 'opacity-100'}`}
       />
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
-        {showTestButton && (
-          <button
-            onClick={onTestModal}
-            className="px-2 py-1 bg-secondary text-secondary-foreground text-xs rounded"
-          >
-            Test Modal
-          </button>
-        )}
+      <div className="absolute right-2 top-1/2 -translate-y-1/2">
         <div
           className="px-4 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-md flex items-center gap-2">
           {isBuilding && <Loader2 className="w-3 h-3 animate-spin"/>}
@@ -192,83 +174,50 @@ const ProgressBar = memo(({progress}: { progress: number }) => (
 ProgressBar.displayName = 'ProgressBar'
 
 const StepIcon = memo(({step}: { step: Step }) => (
-  <motion.div
-    className={`w-12 h-12 rounded-full flex items-center justify-center relative ${
+  <div
+    className={`w-12 h-12 rounded-full flex items-center justify-center relative transition-all duration-400 ${
       step.status === 'complete'
-        ? 'bg-primary border-2 border-primary'
+        ? 'bg-primary border-2 border-primary scale-110 shadow-lg shadow-primary/30'
         : step.status === 'active'
-          ? 'bg-primary border-2 border-primary'
+          ? 'bg-primary border-2 border-primary shadow-lg shadow-primary/50'
           : 'bg-muted border-2 border-border'
     }`}
-    animate={{
-      scale: step.status === 'complete' ? 1.1 : 1,
-      boxShadow: step.status === 'active'
-        ? '0 10px 25px -5px rgba(var(--primary), 0.5)'
-        : step.status === 'complete'
-          ? '0 10px 25px -5px rgba(var(--primary), 0.3)'
-          : 'none'
-    }}
-    transition={{duration: 0.4, ease: "easeOut"}}
   >
-    <AnimatePresence mode="wait">
-      {step.status === 'complete' ? (
-        <motion.div
-          key="check"
-          initial={{scale: 0, rotate: -180}}
-          animate={{scale: 1, rotate: 0}}
-          exit={{scale: 0, rotate: 180}}
-          transition={{duration: 0.4, ease: "backOut"}}
-        >
-          <Check className="w-6 h-6 text-primary-foreground" strokeWidth={3}/>
-        </motion.div>
-      ) : (
-        <motion.div
-          key="icon"
-          initial={{scale: 0}}
-          animate={{scale: 1}}
-          exit={{scale: 0}}
-          transition={{duration: 0.3}}
-        >
-          <step.icon
-            className={`w-6 h-6 transition-all duration-300 ${
-              step.status === 'active'
-                ? 'text-primary-foreground'
-                : 'text-muted-foreground'
-            }`}
-            strokeWidth={2}
-          />
-        </motion.div>
-      )}
-    </AnimatePresence>
-    <AnimatePresence>
-      {step.status === 'active' && (
-        <motion.div
-          className="absolute inset-0 rounded-full border-2 border-primary"
-          initial={{scale: 1, opacity: 0.75}}
-          animate={{scale: 1.5, opacity: 0}}
-          exit={{scale: 1, opacity: 0}}
-          transition={{duration: 1, repeat: Infinity, ease: "easeOut"}}
+    {step.status === 'complete' ? (
+      <div className="animate-in zoom-in-0 spin-in-180 duration-400">
+        <Check className="w-6 h-6 text-primary-foreground" strokeWidth={3}/>
+      </div>
+    ) : (
+      <div className="animate-in zoom-in-0 duration-300">
+        <step.icon
+          className={`w-6 h-6 transition-all duration-300 ${
+            step.status === 'active'
+              ? 'text-primary-foreground'
+              : 'text-muted-foreground'
+          }`}
+          strokeWidth={2}
         />
-      )}
-    </AnimatePresence>
-  </motion.div>
+      </div>
+    )}
+    {step.status === 'active' && (
+      <div className="absolute inset-0 rounded-full border-2 border-primary animate-ping"/>
+    )}
+  </div>
 ))
 StepIcon.displayName = 'StepIcon'
 
 const StepConnector = memo(({isActive}: { isActive: boolean }) => (
   <div className="flex-1 h-1 mx-6 bg-muted rounded-full relative overflow-hidden">
-    <motion.div
-      className="absolute inset-0 bg-primary rounded-full"
-      initial={{scaleX: 0}}
-      animate={{scaleX: isActive ? 1 : 0}}
-      transition={{duration: 0.7, ease: "easeOut"}}
-      style={{transformOrigin: 'left'}}
+    <div
+      className={`absolute inset-0 bg-primary rounded-full transition-transform duration-700 origin-left ${
+        isActive ? 'scale-x-100' : 'scale-x-0'
+      }`}
     >
       {isActive && (
         <div
           className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-shimmer"/>
       )}
-    </motion.div>
+    </div>
   </div>
 ))
 StepConnector.displayName = 'StepConnector'
@@ -282,18 +231,13 @@ const ProcessFlow = memo(({steps, isResetting}: { steps: Step[]; isResetting: bo
       <React.Fragment key={step.label}>
         <div className="flex flex-col items-center gap-2 relative z-10">
           <StepIcon step={step}/>
-          <motion.span
-            className={`text-xs font-medium text-center whitespace-nowrap ${
-              step.status === 'pending' ? 'text-muted-foreground' : 'text-foreground'
-            }`}
-            animate={{
-              fontWeight: step.status === 'pending' ? 500 : 600,
-              scale: step.status === 'active' ? 1.05 : 1
-            }}
-            transition={{duration: 0.3}}
+          <span
+            className={`text-xs text-center whitespace-nowrap transition-all duration-300 ${
+              step.status === 'pending' ? 'text-muted-foreground font-medium' : 'text-foreground font-semibold'
+            } ${step.status === 'active' ? 'scale-105' : 'scale-100'}`}
           >
             {step.label}
-          </motion.span>
+          </span>
         </div>
         {i < steps.length - 1 && (
           <StepConnector
@@ -381,60 +325,44 @@ const DatasetGrid = memo(({
 ))
 DatasetGrid.displayName = 'DatasetGrid'
 
-const StatsBar = memo(({stats, isResetting}: { stats: BuildStats; isResetting: boolean }) => (
-  <div
-    className="flex items-center justify-between pt-4 border-t border-border text-xs text-muted-foreground transition-opacity duration-400"
-    style={{opacity: isResetting ? 0.3 : 1}}
-  >
-    <span
-      className="font-mono transition-opacity duration-300"
-      style={{opacity: stats.sources > 0 ? 1 : 0.5}}
+const StatsBar = memo(({stats, isResetting}: { stats: BuildStats; isResetting: boolean }) => {
+  const sourcesColor = getSourcesColor(stats.sources)
+  const qualityColor = getQualityColor(stats.quality)
+
+  return (
+    <div
+      className="flex items-center justify-between pt-4 border-t border-border text-xs transition-opacity duration-400"
+      style={{opacity: isResetting ? 0.3 : 1}}
     >
-      Sources: {stats.sources}/3 engines
-    </span>
-    <span
-      className="font-mono transition-opacity duration-300"
-      style={{opacity: stats.quality > 0 ? 1 : 0.5}}
-    >
-      Quality: {Math.round(stats.quality)}%
-    </span>
-    <span
-      className="font-mono transition-opacity duration-300"
-      style={{opacity: stats.time > 0 ? 1 : 0.5}}
-    >
-      Time: {stats.time.toFixed(1)}s
-    </span>
-  </div>
-))
+      <span
+        className={`font-mono transition-all duration-300 font-semibold ${sourcesColor}`}
+        style={{opacity: stats.sources > 0 ? 1 : 0.5}}
+      >
+        Sources: {stats.sources}/3 engines
+      </span>
+      <span
+        className={`font-mono transition-all duration-300 font-semibold ${qualityColor}`}
+        style={{opacity: stats.quality > 0 ? 1 : 0.5}}
+      >
+        Quality: {Math.round(stats.quality)}%
+      </span>
+      <span
+        className="font-mono transition-opacity duration-300 text-muted-foreground"
+        style={{opacity: stats.time > 0 ? 1 : 0.5}}
+      >
+        Time: {stats.time.toFixed(1)}s
+      </span>
+    </div>
+  )
+})
 StatsBar.displayName = 'StatsBar'
 
 const DecorativeBlobs = memo(() => (
   <>
-    <motion.div
-      className="absolute -top-8 -left-8 w-32 h-32 bg-primary/5 rounded-full blur-2xl -z-10"
-      animate={{
-        scale: [1, 1.2, 1],
-        opacity: [0.5, 0.8, 0.5]
-      }}
-      transition={{
-        duration: 4,
-        repeat: Infinity,
-        ease: "easeInOut"
-      }}
-    />
-    <motion.div
-      className="absolute -bottom-8 -right-8 w-32 h-32 bg-secondary/5 rounded-full blur-2xl -z-10"
-      animate={{
-        scale: [1, 1.3, 1],
-        opacity: [0.5, 0.7, 0.5]
-      }}
-      transition={{
-        duration: 5,
-        repeat: Infinity,
-        ease: "easeInOut",
-        delay: 1
-      }}
-    />
+    <div className="absolute -top-8 -left-8 w-32 h-32 bg-primary/5 rounded-full blur-2xl -z-10 animate-pulse"
+         style={{animationDuration: '4s'}}/>
+    <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-secondary/5 rounded-full blur-2xl -z-10 animate-pulse"
+         style={{animationDuration: '5s', animationDelay: '1s'}}/>
   </>
 ))
 DecorativeBlobs.displayName = 'DecorativeBlobs'
@@ -564,13 +492,15 @@ export const HeroVisual = memo(() => {
     setSteps(createSteps(['complete', 'active', 'pending']))
     setImages(createEmptyImages(TOTAL_IMAGES))
 
+    // Get random images for the selected category
+    const randomImagePaths = getRandomImagesForCategory(randomCategory.name, TOTAL_IMAGES)
+
     // Load images progressively
-    const timestamp = Date.now()
-    for (let i = 0; i < TOTAL_IMAGES; i++) {
+    for (let i = 0; i < randomImagePaths.length; i++) {
       const delay = Math.random() * (TIMING.IMAGE_DELAY_MAX - TIMING.IMAGE_DELAY_MIN) + TIMING.IMAGE_DELAY_MIN
       await new Promise(resolve => setTimeout(resolve, delay))
 
-      const imageUrl = createImageUrl(randomCategory.name, timestamp, i)
+      const imageUrl = randomImagePaths[i]
 
       setImages(prev => {
         const updated = [...prev]
@@ -629,12 +559,6 @@ export const HeroVisual = memo(() => {
     setModalOpen(true)
   }, [])
 
-  const handleTestModal = useCallback(() => {
-    if (galleryImages.length > 0) {
-      setCurrentImageIndex(0)
-      setModalOpen(true)
-    }
-  }, [galleryImages.length])
 
   if (!mounted) {
     return <LoadingState/>
@@ -655,8 +579,6 @@ export const HeroVisual = memo(() => {
             category={currentCategory.name}
             isResetting={isResetting}
             isBuilding={isBuilding}
-            onTestModal={handleTestModal}
-            showTestButton={process.env.NODE_ENV === 'development' && galleryImages.length > 0}
           />
 
           {isBuilding && progress > 0 && <ProgressBar progress={progress}/>}
@@ -681,12 +603,6 @@ export const HeroVisual = memo(() => {
         images={galleryImages}
         currentIndex={currentImageIndex}
         onIndexChange={setCurrentImageIndex}
-      />
-
-      <DebugInfo
-        modalOpen={modalOpen}
-        galleryImagesLength={galleryImages.length}
-        currentIndex={currentImageIndex}
       />
 
       <DecorativeBlobs/>

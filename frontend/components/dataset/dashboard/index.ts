@@ -1,1 +1,1 @@
-export { DatasetDashboard } from './dataset-dashboard'
+export {DatasetDashboard} from './dataset-dashboard'

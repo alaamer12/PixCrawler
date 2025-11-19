@@ -1,0 +1,60 @@
+# Azure Deployment Ignore File
+# Files and directories listed here will NOT be deployed to Azure App Service
+
+# Frontend (deployed separately to Vercel/Azure Static Web Apps)
+frontend/
+
+# Development files
+.git/
+.github/
+.vscode/
+.idea/
+*.pyc
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+.env
+.env.*
+!.env.azure
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Editor files
+.vscode/
+.idea/
+*.code-workspace
+.vs/
+.kiro/
+.windsurf/
+
+
+# Tests
+tests/
+**/tests/
+test_*.py
+*_test.py
+
+# Build artifacts
+dist/
+build/
+*.egg
+*.whl
+
+# Local development
+.pre-commit-config.yaml
+pyproject.toml
+uv.lock
+
+# Temporary files
+*.log
+*.tmp
+*.swp
+*~
+.DS_Store

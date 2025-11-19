@@ -2,24 +2,26 @@
 Dataset management endpoints.
 """
 
-from typing import Dict, Any
-
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi_limiter.depends import RateLimiter
+from fastapi_pagination import Page
 
-from backend.api.dependencies import get_current_user
-from backend.models.base import PaginatedResponse, PaginationParams
-from backend.models.dataset import DatasetCreate, DatasetResponse, DatasetStats, \
-    DatasetUpdate
-from backend.services.dataset import DatasetService
+from backend.api.types import CurrentUser, DBSession, DatasetID, DatasetServiceDep
+from backend.schemas.dataset import DatasetCreate, DatasetResponse, DatasetStats, DatasetUpdate
 
 router = APIRouter(prefix="/api/v1/datasets")
 
 
-@router.post("/", response_model=DatasetResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=DatasetResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(RateLimiter(times=10, seconds=60))]
+)
 async def create_dataset(
     dataset_create: DatasetCreate,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    dataset_service: DatasetService = Depends(),
+    current_user: CurrentUser,
+    dataset_service: DatasetServiceDep,
 ) -> DatasetResponse:
     """
     Create a new dataset generation job.
@@ -44,30 +46,33 @@ async def create_dataset(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/", response_model=PaginatedResponse[DatasetResponse])
+@router.get("/", response_model=Page[DatasetResponse])
 async def list_datasets(
-    pagination: PaginationParams = Depends(),
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    dataset_service: DatasetService = Depends(),
-) -> PaginatedResponse[DatasetResponse]:
+    current_user: CurrentUser,
+    session: DBSession,
+    dataset_service: DatasetServiceDep,
+) -> Page[DatasetResponse]:
     """
     List datasets with pagination.
 
+    Pagination is handled automatically by fastapi-pagination.
+    Query parameters: page (default=1), size (default=50)
+
     Args:
-        pagination: Pagination parameters
         current_user: Current authenticated user
+        session: Database session
         dataset_service: Dataset service dependency
 
     Returns:
         Paginated list of datasets
     """
-    # TODO: Implement list_datasets in DatasetService
+    # TODO: Implement list_datasets in DatasetService with pagination
     raise HTTPException(status_code=501, detail="List datasets not implemented yet")
 
 
 @router.get("/stats", response_model=DatasetStats)
 async def get_dataset_stats(
-    dataset_service: DatasetService = Depends(),
+    dataset_service: DatasetServiceDep,
 ) -> DatasetStats:
     """
     Get dataset statistics.
@@ -89,9 +94,9 @@ async def get_dataset_stats(
 
 @router.get("/{dataset_id}", response_model=DatasetResponse)
 async def get_dataset(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    dataset_service: DatasetService = Depends(),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
+    dataset_service: DatasetServiceDep,
 ) -> DatasetResponse:
     """
     Get dataset by ID.
@@ -113,12 +118,13 @@ async def get_dataset(
             status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
     return dataset
 
+
 @router.put("/{dataset_id}", response_model=DatasetResponse)
 async def update_dataset(
-    dataset_id: int,
+    dataset_id: DatasetID,
     dataset_update: DatasetUpdate,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    dataset_service: DatasetService = Depends(),
+    current_user: CurrentUser,
+    dataset_service: DatasetServiceDep,
 ) -> DatasetResponse:
     """
     Update dataset information.
@@ -148,9 +154,9 @@ async def update_dataset(
 
 @router.delete("/{dataset_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_dataset(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    dataset_service: DatasetService = Depends(),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
+    dataset_service: DatasetServiceDep,
 ) -> None:
     """
     Delete dataset.
@@ -173,11 +179,15 @@ async def delete_dataset(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.post("/{dataset_id}/build", response_model=DatasetResponse)
+@router.post(
+    "/{dataset_id}/build",
+    response_model=DatasetResponse,
+    dependencies=[Depends(RateLimiter(times=5, seconds=60))]
+)
 async def start_build_job(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    dataset_service: DatasetService = Depends(),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
+    dataset_service: DatasetServiceDep,
 ) -> DatasetResponse:
     """
     Start dataset build job.
@@ -199,9 +209,9 @@ async def start_build_job(
 
 @router.get("/{dataset_id}/status", response_model=DatasetResponse)
 async def get_dataset_status(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    dataset_service: DatasetService = Depends(),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
+    dataset_service: DatasetServiceDep,
 ) -> DatasetResponse:
     """
     Get dataset build status.
@@ -221,12 +231,12 @@ async def get_dataset_status(
     raise HTTPException(status_code=501, detail="Get build status not implemented yet")
 
 
-@router.post("/{dataset_id}/download", response_model=Dict[str, str])
+@router.post("/{dataset_id}/download", response_model=dict[str, str])
 async def generate_download_link(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    dataset_service: DatasetService = Depends(),
-) -> Dict[str, str]:
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
+    dataset_service: DatasetServiceDep,
+) -> dict[str, str]:
     """
     Generate dataset download link.
 
@@ -247,9 +257,9 @@ async def generate_download_link(
 
 @router.post("/{dataset_id}/cancel", response_model=DatasetResponse)
 async def cancel_dataset(
-    dataset_id: int,
-    current_user: Dict[str, Any] = Depends(get_current_user),
-    dataset_service: DatasetService = Depends(),
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
+    dataset_service: DatasetServiceDep,
 ) -> DatasetResponse:
     """
     Cancel dataset processing.

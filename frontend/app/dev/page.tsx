@@ -4,7 +4,20 @@ import {useEffect} from 'react'
 import {Button} from '@/components/ui/button'
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
 import {Badge} from '@/components/ui/badge'
-import {Code, Database, Eye, Home, Lock, Palette, Settings, TestTube, Unlock, User, UserPlus, CreditCard, ExternalLink, Copy} from 'lucide-react'
+import {
+  Code,
+  Copy,
+  CreditCard,
+  Database,
+  ExternalLink,
+  Eye,
+  Home,
+  Lock,
+  Settings,
+  Unlock,
+  User,
+  UserPlus
+} from 'lucide-react'
 import Link from 'next/link'
 import {useSearchParams} from 'next/navigation'
 
@@ -144,7 +157,31 @@ const PAGES: PageInfo[] = [
   {
     path: '/dashboard/projects/new',
     name: 'New Project',
-    description: 'Create new project form',
+    description: 'Create new project form (restructured)',
+    category: 'Dashboard',
+    requiresAuth: true,
+    icon: <Database className="size-4"/>
+  },
+  {
+    path: '/dashboard/projects/1',
+    name: 'Project View',
+    description: 'View project with datasets list and management',
+    category: 'Dashboard',
+    requiresAuth: true,
+    icon: <Database className="size-4"/>
+  },
+  {
+    path: '/dashboard/projects/1/datasets/new',
+    name: 'New Dataset (Under Project)',
+    description: 'Create dataset within a project with full configuration',
+    category: 'Dashboard',
+    requiresAuth: true,
+    icon: <Database className="size-4"/>
+  },
+  {
+    path: '/dashboard/projects/1/datasets/1',
+    name: 'Dataset View',
+    description: 'View dataset with job monitoring, logs, and real-time updates',
     category: 'Dashboard',
     requiresAuth: true,
     icon: <Database className="size-4"/>
@@ -159,7 +196,7 @@ const PAGES: PageInfo[] = [
   },
   {
     path: '/dashboard/datasets/cats_dogs_001',
-    name: 'Dataset Dashboard',
+    name: 'Dataset Dashboard (Old)',
     description: 'Complete dataset dashboard with overview, gallery, files',
     category: 'Dashboard',
     requiresAuth: true,
@@ -167,7 +204,7 @@ const PAGES: PageInfo[] = [
   },
   {
     path: '/dashboard/datasets/new',
-    name: 'New Dataset',
+    name: 'New Dataset (Old)',
     description: 'Create new dataset form',
     category: 'Dashboard',
     requiresAuth: true,
@@ -182,49 +219,13 @@ const PAGES: PageInfo[] = [
     icon: <User className="size-4"/>
   },
   {
-    path: '/dashboard/billing',
-    name: 'Billing',
-    description: 'Subscription and billing management',
+    path: '/notifications',
+    name: 'Notifications',
+    description: 'Notification center with filters and actions',
     category: 'Dashboard',
     requiresAuth: true,
     icon: <Database className="size-4"/>
   },
-  {
-    path: '/dashboard/settings',
-    name: 'Settings',
-    description: 'Application settings and preferences',
-    category: 'Dashboard',
-    requiresAuth: true,
-    icon: <Settings className="size-4"/>
-  },
-
-  // Demo Pages
-  {
-    path: '/demo',
-    name: 'Demo',
-    description: 'Product demonstration',
-    category: 'Demo',
-    requiresAuth: false,
-    icon: <TestTube className="size-4"/>
-  },
-  {
-    path: '/demo/buttons',
-    name: 'Button Demo',
-    description: 'UI component demonstrations',
-    category: 'Demo',
-    requiresAuth: false,
-    icon: <Palette className="size-4"/>
-  },
-
-  // Dev Pages
-  {
-    path: '/dev',
-    name: 'Dev Navigator',
-    description: 'This development page navigator',
-    category: 'Dev',
-    requiresAuth: false,
-    icon: <Code className="size-4"/>
-  }
 ]
 
 const CATEGORY_COLORS = {
@@ -416,7 +417,7 @@ export default function DevPage() {
                       </p>
                     </div>
                   </div>
-                  
+
                   {/* Action buttons in a separate row */}
                   <div className="flex items-center justify-end gap-1 px-3 pb-3 pt-0">
                     <Button

@@ -1,14 +1,14 @@
 'use client'
 
-import { memo, useState } from 'react'
-import { PricingCard } from './PricingCard'
-import { PRICING_PLANS, CREDIT_PACKAGES } from '@/lib/payments/plans'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent } from '@/components/ui/card'
-import { useAuth } from '@/lib/auth/hooks'
-import { useRouter } from 'next/navigation'
-import { MessageSquare, FileText, Sparkles } from 'lucide-react'
+import {memo, useState} from 'react'
+import {PricingCard} from './PricingCard'
+import {PRICING_PLANS, CREDIT_PACKAGES} from '@/lib/payments/plans'
+import {Button} from '@/components/ui/button'
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs'
+import {Card, CardContent} from '@/components/ui/card'
+import {useAuth} from '@/lib/auth/hooks'
+import {useRouter} from 'next/navigation'
+import {MessageSquare, FileText, Sparkles} from 'lucide-react'
 
 interface PricingGridProps {
   currentPlan?: string
@@ -17,12 +17,12 @@ interface PricingGridProps {
 }
 
 export const PricingGrid = memo(({
-  currentPlan,
-  showCredits = true,
-  className = ''
-}: PricingGridProps) => {
+                                   currentPlan,
+                                   showCredits = true,
+                                   className = ''
+                                 }: PricingGridProps) => {
   const [isLoading, setIsLoading] = useState(false)
-  const { user } = useAuth()
+  const {user} = useAuth()
   const router = useRouter()
 
   const handleSelectPlan = async (planId: string) => {
@@ -54,8 +54,8 @@ export const PricingGrid = memo(({
         throw new Error('Failed to create checkout session')
       }
 
-      const { url } = await response.json()
-      
+      const {url} = await response.json()
+
       if (url) {
         window.location.href = url
       }
@@ -72,12 +72,12 @@ export const PricingGrid = memo(({
       <Tabs defaultValue="plans" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-8 max-w-md mx-auto">
           <TabsTrigger value="plans" className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-4 h-4"/>
             Subscription Plans
           </TabsTrigger>
           {showCredits && (
             <TabsTrigger value="credits" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
+              <FileText className="w-4 h-4"/>
               Credit Packages
             </TabsTrigger>
           )}
@@ -111,51 +111,51 @@ export const PricingGrid = memo(({
             <div className="overflow-x-auto">
               <table className="w-full border border-border rounded-lg">
                 <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="text-left p-4 font-medium">Feature</th>
-                    {PRICING_PLANS.map(plan => (
-                      <th key={plan.id} className="text-center p-4 font-medium min-w-[120px]">
-                        {plan.name}
-                      </th>
-                    ))}
-                  </tr>
+                <tr className="border-b border-border bg-muted/50">
+                  <th className="text-left p-4 font-medium">Feature</th>
+                  {PRICING_PLANS.map(plan => (
+                    <th key={plan.id} className="text-center p-4 font-medium min-w-[120px]">
+                      {plan.name}
+                    </th>
+                  ))}
+                </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-border">
-                    <td className="p-4 font-medium">Monthly Images</td>
-                    <td className="p-4 text-center">1,000</td>
-                    <td className="p-4 text-center">10,000</td>
-                    <td className="p-4 text-center">50,000</td>
-                    <td className="p-4 text-center">Pay per use</td>
-                  </tr>
-                  <tr className="border-b border-border">
-                    <td className="p-4 font-medium">Datasets</td>
-                    <td className="p-4 text-center">3</td>
-                    <td className="p-4 text-center">Unlimited</td>
-                    <td className="p-4 text-center">Unlimited</td>
-                    <td className="p-4 text-center">Unlimited</td>
-                  </tr>
-                  <tr className="border-b border-border">
-                    <td className="p-4 font-medium">API Access</td>
-                    <td className="p-4 text-center">❌</td>
-                    <td className="p-4 text-center">✅</td>
-                    <td className="p-4 text-center">✅</td>
-                    <td className="p-4 text-center">✅</td>
-                  </tr>
-                  <tr className="border-b border-border">
-                    <td className="p-4 font-medium">Priority Support</td>
-                    <td className="p-4 text-center">❌</td>
-                    <td className="p-4 text-center">✅</td>
-                    <td className="p-4 text-center">✅</td>
-                    <td className="p-4 text-center">❌</td>
-                  </tr>
-                  <tr>
-                    <td className="p-4 font-medium">Custom Integrations</td>
-                    <td className="p-4 text-center">❌</td>
-                    <td className="p-4 text-center">❌</td>
-                    <td className="p-4 text-center">✅</td>
-                    <td className="p-4 text-center">❌</td>
-                  </tr>
+                <tr className="border-b border-border">
+                  <td className="p-4 font-medium">Monthly Images</td>
+                  <td className="p-4 text-center">1,000</td>
+                  <td className="p-4 text-center">10,000</td>
+                  <td className="p-4 text-center">50,000</td>
+                  <td className="p-4 text-center">Pay per use</td>
+                </tr>
+                <tr className="border-b border-border">
+                  <td className="p-4 font-medium">Datasets</td>
+                  <td className="p-4 text-center">3</td>
+                  <td className="p-4 text-center">Unlimited</td>
+                  <td className="p-4 text-center">Unlimited</td>
+                  <td className="p-4 text-center">Unlimited</td>
+                </tr>
+                <tr className="border-b border-border">
+                  <td className="p-4 font-medium">API Access</td>
+                  <td className="p-4 text-center">❌</td>
+                  <td className="p-4 text-center">✅</td>
+                  <td className="p-4 text-center">✅</td>
+                  <td className="p-4 text-center">✅</td>
+                </tr>
+                <tr className="border-b border-border">
+                  <td className="p-4 font-medium">Priority Support</td>
+                  <td className="p-4 text-center">❌</td>
+                  <td className="p-4 text-center">✅</td>
+                  <td className="p-4 text-center">✅</td>
+                  <td className="p-4 text-center">❌</td>
+                </tr>
+                <tr>
+                  <td className="p-4 font-medium">Custom Integrations</td>
+                  <td className="p-4 text-center">❌</td>
+                  <td className="p-4 text-center">❌</td>
+                  <td className="p-4 text-center">✅</td>
+                  <td className="p-4 text-center">❌</td>
+                </tr>
                 </tbody>
               </table>
             </div>
@@ -171,7 +171,7 @@ export const PricingGrid = memo(({
                 Purchase credits that never expire. Perfect for occasional use or supplementing your subscription.
               </p>
             </div>
-            
+
             <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
               {CREDIT_PACKAGES.map((pkg) => (
                 <PricingCard
@@ -233,7 +233,7 @@ export const PricingGrid = memo(({
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button variant="outline" size="lg" className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
+                <MessageSquare className="w-4 h-4"/>
                 Contact Sales
               </Button>
               <Button variant="outline" size="lg">

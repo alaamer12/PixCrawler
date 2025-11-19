@@ -1,90 +1,172 @@
-"""Storage provider factory for PixCrawler backend.
+"""Enhanced storage factory with Archive Tier support for PixCrawler.
 
-This module provides factory functions for creating storage provider instances
-with flexible configuration and graceful fallback handling.
+This module extends PixCrawler's storage factory to create storage providers
+with archive tier support while maintaining backward compatibility.
 
 Functions:
-    get_storage_provider: Create and return configured storage provider
+    create_storage_provider: Factory function to create storage providers
+    create_archive_enabled_provider: Create Azure provider with archive support
 
 Features:
-    - Environment-based provider selection
-    - Graceful fallback to local storage
-    - Comprehensive error handling and logging
-    - Support for multiple storage backends
+    - Backward compatible with existing PixCrawler code
+    - Automatic provider selection based on configuration
+    - Archive tier support for Azure provider
+    - Graceful fallback to standard provider
 """
 
-from functools import lru_cache
-from typing import Union
-
-from logging_config import get_logger
-
-from backend.storage.base import StorageProvider
 from backend.storage.config import StorageSettings
-from backend.storage.local import LocalStorageProvider
-from backend.storage.azure_blob import AzureBlobStorageProvider, AZURE_AVAILABLE
+from utility.logging_config import get_logger
 
-__all__ = ['get_storage_provider']
+__all__ = ['create_storage_provider', 'create_archive_enabled_provider']
 
 logger = get_logger(__name__)
 
 
-@lru_cache(maxsize=1)
-def get_storage_provider(settings: StorageSettings = None) -> StorageProvider:
-    """Get configured storage provider instance.
-    
-    Creates and returns a storage provider based on configuration settings.
-    Falls back to local storage if the requested provider is unavailable.
-    
+def create_archive_enabled_provider(settings: StorageSettings):
+    """Create Azure Blob Storage provider with archive tier support.
+
     Args:
-        settings: Storage settings. If None, loads from environment.
-        
+        settings: Enhanced storage settings with archive tier configuration
+
     Returns:
-        Configured storage provider instance
-        
+        AzureBlobArchiveProvider instance
+
     Raises:
-        ValueError: If configuration is invalid
+        ImportError: If azure-storage-blob is not installed
+        ValueError: If Azure configuration is invalid
+
+    Example:
+        settings = StorageSettings(
+            storage_provider="azure",
+            azure_connection_string="...",
+            azure_enable_archive_tier=True,
+            azure_default_tier="hot"
+        )
+        provider = create_archive_enabled_provider(settings)
     """
-    if settings is None:
+    try:
+        from backend.storage.azure_blob_archive import AzureBlobArchiveProvider, AccessTier
+
+        # Get tier enum from settings
+        default_tier = settings.get_tier_enum()
+
+        provider = AzureBlobArchiveProvider(
+            connection_string=settings.azure_connection_string,
+            container_name=settings.azure_container_name,
+            max_retries=settings.azure_max_retries,
+            enable_archive_tier=settings.azure_enable_archive_tier,
+            default_tier=default_tier
+        )
+
+        logger.info(
+            f"Created Azure Blob Storage provider with archive tier support "
+            f"(default tier: {settings.azure_default_tier})"
+        )
+        return provider
+
+    except ImportError as e:
+        logger.error(f"Failed to import Azure archive provider: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Failed to create archive-enabled provider: {e}")
+        raise
+
+
+def create_storage_provider(settings: StorageSettings):
+    """Create storage provider based on configuration.
+
+    Factory function that creates the appropriate storage provider
+    (local or Azure) based on settings. For Azure, creates archive-enabled
+    provider if archive tier is enabled, otherwise falls back to standard.
+
+    Args:
+        settings: Storage configuration settings
+
+    Returns:
+        Storage provider instance (LocalStorageProvider or AzureBlobArchiveProvider)
+
+    Raises:
+        ValueError: If provider type is invalid or configuration is incomplete
+        ImportError: If required dependencies are not installed
+
+    Example:
+        # From environment variables or .env file
         settings = StorageSettings()
-    
+        provider = create_storage_provider(settings)
+
+        # Upload file (works with both local and Azure)
+        provider.upload("image.jpg", "images/image.jpg")
+
+        # Archive file (only works with Azure archive-enabled provider)
+        if hasattr(provider, 'archive_blob'):
+            provider.archive_blob("images/old_image.jpg")
+    """
     provider_type = settings.storage_provider.lower()
-    
-    # Azure Blob Storage
-    if provider_type == "azure":
-        if not AZURE_AVAILABLE:
-            logger.warning(
-                "Azure storage requested but azure-storage-blob not installed. "
-                "Falling back to local storage."
-            )
-            return _create_local_provider(settings)
-        
-        if not settings.azure_connection_string:
-            logger.error("Azure provider selected but connection string not provided")
-            raise ValueError("azure_connection_string is required for Azure storage")
-        
+
+    if provider_type == "local":
+        # Create local storage provider
         try:
-            logger.info(f"Initializing Azure Blob Storage (container: {settings.azure_container_name})")
-            return AzureBlobStorageProvider(
+            from backend.storage.local import LocalStorageProvider
+
+            storage_path = settings.local_storage_path
+            provider = LocalStorageProvider(base_directory=storage_path)
+
+            logger.info(f"Created local storage provider at: {storage_path or 'default location'}")
+            return provider
+
+        except ImportError as e:
+            logger.error(f"Failed to import local storage provider: {e}")
+            raise ValueError(f"Local storage provider not available: {e}")
+
+    elif provider_type == "azure":
+        # Create Azure storage provider with archive support
+        if not settings.azure_connection_string:
+            raise ValueError("Azure connection string is required for Azure provider")
+
+        try:
+            # Try to create archive-enabled provider
+            if settings.azure_enable_archive_tier:
+                try:
+                    return create_archive_enabled_provider(settings)
+                except ImportError:
+                    logger.warning(
+                        "Archive tier support not available, falling back to standard Azure provider"
+                    )
+
+            # Fallback to standard Azure provider
+            from backend.storage.azure_blob import AzureBlobStorageProvider
+
+            provider = AzureBlobStorageProvider(
                 connection_string=settings.azure_connection_string,
                 container_name=settings.azure_container_name,
                 max_retries=settings.azure_max_retries
             )
-        except Exception as e:
-            logger.error(f"Failed to initialize Azure storage: {e}. Falling back to local storage.")
-            return _create_local_provider(settings)
-    
-    # Local storage (default)
-    return _create_local_provider(settings)
+
+            logger.info("Created standard Azure Blob Storage provider")
+            return provider
+
+        except ImportError as e:
+            logger.error(f"Failed to import Azure storage provider: {e}")
+            raise ValueError(f"Azure storage provider not available: {e}")
+
+    else:
+        raise ValueError(
+            f"Invalid storage provider: {provider_type}. "
+            "Must be 'local' or 'azure'"
+        )
 
 
-def _create_local_provider(settings: StorageSettings) -> LocalStorageProvider:
-    """Create local storage provider instance.
-    
+# Convenience function for backward compatibility
+def get_storage_provider(settings: StorageSettings = None):
+    """Get storage provider instance (convenience wrapper).
+
     Args:
-        settings: Storage settings
-        
+        settings: Optional storage settings (creates new if not provided)
+
     Returns:
-        LocalStorageProvider instance
+        Storage provider instance
     """
-    logger.info("Initializing local filesystem storage")
-    return LocalStorageProvider(base_directory=settings.local_storage_path)
+    if settings is None:
+        settings = StorageSettings()
+
+    return create_storage_provider(settings)

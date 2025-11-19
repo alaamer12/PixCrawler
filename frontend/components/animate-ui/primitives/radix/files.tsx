@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AnimatePresence, motion, type HTMLMotionProps } from 'motion/react';
+import {AnimatePresence, motion, type HTMLMotionProps} from 'motion/react';
 
 import {
   Highlight,
@@ -21,8 +21,8 @@ import {
   type AccordionTriggerProps,
   type AccordionContentProps,
 } from '@/components/animate-ui/primitives/radix/accordion';
-import { getStrictContext } from '@/lib/get-strict-context';
-import { useControlledState } from '@/hooks/use-controlled-state';
+import {getStrictContext} from '@/lib/get-strict-context';
+import {useControlledState} from '@/hooks/use-controlled-state';
 
 type FilesContextType = {
   open: string[];
@@ -58,13 +58,13 @@ type FilesProps = BaseFilesProps &
   (ControlledFilesProps | UncontrolledFilesProps);
 
 function Files({
-  children,
-  defaultOpen = [],
-  open,
-  onOpenChange,
-  style,
-  ...props
-}: FilesProps) {
+                 children,
+                 defaultOpen = [],
+                 open,
+                 onOpenChange,
+                 style,
+                 ...props
+               }: FilesProps) {
   const [openValue, setOpenValue] = useControlledState({
     value: open,
     defaultValue: defaultOpen,
@@ -72,7 +72,7 @@ function Files({
   });
 
   return (
-    <FilesProvider value={{ open: openValue ?? [] }}>
+    <FilesProvider value={{open: openValue ?? []}}>
       <Accordion
         data-slot="files"
         type="multiple"
@@ -94,7 +94,7 @@ function Files({
 
 type FilesHighlightProps = Omit<HighlightProps, 'controlledItems' | 'mode'>;
 
-function FilesHighlight({ hover = true, ...props }: FilesHighlightProps) {
+function FilesHighlight({hover = true, ...props}: FilesHighlightProps) {
   return (
     <Highlight
       data-slot="files-highlight"
@@ -108,11 +108,11 @@ function FilesHighlight({ hover = true, ...props }: FilesHighlightProps) {
 
 type FolderItemProps = AccordionItemProps;
 
-function FolderItem({ value, ...props }: FolderItemProps) {
-  const { open } = useFiles();
+function FolderItem({value, ...props}: FolderItemProps) {
+  const {open} = useFiles();
 
   return (
-    <FolderProvider value={{ isOpen: open.includes(value) }}>
+    <FolderProvider value={{isOpen: open.includes(value)}}>
       <AccordionItem data-slot="folder-item" value={value} {...props} />
     </FolderProvider>
   );
@@ -154,21 +154,21 @@ type FolderIconProps = HTMLMotionProps<'span'> & {
 };
 
 function FolderIcon({
-  closeIcon,
-  openIcon,
-  transition = { duration: 0.15 },
-  ...props
-}: FolderIconProps) {
-  const { isOpen } = useFolder();
+                      closeIcon,
+                      openIcon,
+                      transition = {duration: 0.15},
+                      ...props
+                    }: FolderIconProps) {
+  const {isOpen} = useFolder();
 
   return (
     <AnimatePresence mode="wait">
       <motion.span
         key={isOpen ? 'open' : 'close'}
         data-slot="folder-icon"
-        initial={{ scale: 0.9 }}
-        animate={{ scale: 1 }}
-        exit={{ scale: 0.9 }}
+        initial={{scale: 0.9}}
+        animate={{scale: 1}}
+        exit={{scale: 0.9}}
         transition={transition}
         {...props}
       >

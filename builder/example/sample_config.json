@@ -1,0 +1,27 @@
+{
+  "dataset_name": "animals_dataset",
+  "categories": {
+    "cats": [
+      "cat",
+      "kitten",
+      "feline"
+    ],
+    "dogs": [
+      "dog",
+      "puppy",
+      "canine"
+    ],
+    "birds": [
+      "bird",
+      "eagle",
+      "sparrow"
+    ]
+  },
+  "options": {
+    "max_images": 20,
+    "generate_labels": true,
+    "keyword_generation": "auto",
+    "ai_model": "gpt4-mini",
+    "generation_strategy": "ai"
+  }
+}

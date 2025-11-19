@@ -1,0 +1,125 @@
+{
+	"info": {
+		"_postman_id": "01234567-89ab-cdef-0123-456789abcdef",
+		"name": "PixCrawler API - Exports",
+		"description": "Postman collection for the PixCrawler API - Exports endpoints.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Exports",
+			"item": [
+				{
+					"name": "Export Dataset JSON",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/exports/datasets/1/export/json",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"exports",
+								"datasets",
+								"1",
+								"export",
+								"json"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Export Dataset CSV",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/exports/datasets/1/export/csv",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"exports",
+								"datasets",
+								"1",
+								"export",
+								"csv"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Export Dataset ZIP",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/exports/datasets/1/export/zip",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"exports",
+								"datasets",
+								"1",
+								"export",
+								"zip"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Download Image",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/v1/exports/datasets/1/images/1/download",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"v1",
+								"exports",
+								"datasets",
+								"1",
+								"images",
+								"1",
+								"download"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.request.headers.add({ key: 'Authorization', value: 'Bearer ' + pm.environment.get('access_token') });"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+					"pm.test(\"Response time is less than 2s\", function () { pm.expect(pm.response.responseTime).to.be.below(2000); });"
+				]
+			}
+		}
+	]
+}

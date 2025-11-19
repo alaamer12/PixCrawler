@@ -1,6 +1,6 @@
-import { PaymentService } from '@/lib/payments/service'
-import { createCheckoutSessionSchema } from '@/lib/payments/types'
-import { getPlanById } from '@/lib/payments/plans'
+import {PaymentService} from '@/lib/payments/service'
+import {createCheckoutSessionSchema} from '@/lib/payments/types'
+import {getPlanById} from '@/lib/payments/plans'
 
 export interface CreateCheckoutSessionRequest {
   planId: string
@@ -25,7 +25,7 @@ export class CheckoutSessionAPI {
       throw new Error(`Invalid request data: ${validationResult.error.errors.map(e => e.message).join(', ')}`)
     }
 
-    const { planId, userId, successUrl, cancelUrl, metadata } = validationResult.data
+    const {planId, userId, successUrl, cancelUrl, metadata} = validationResult.data
 
     // Get plan details
     const plan = getPlanById(planId)

@@ -79,6 +79,11 @@ CONFIG_SCHEMA: Dict[str, Any] = {
                     "enum": ["gpt4", "gpt4-mini"],
                     "description": "AI model to use for keyword generation"
                 },
+                "generation_strategy": {
+                    "type": "string",
+                    "enum": ["ai", "simple", "gpt", "basic"],
+                    "description": "Keyword generation strategy: 'ai'/'gpt' for AI-powered, 'simple'/'basic' for pattern-based"
+                },
                 "generate_labels": {
                     "type": "boolean",
                     "description": "Whether to generate label files for images"
@@ -196,6 +201,11 @@ class DatasetGenerationConfig(BaseSettings):
         description="AI model to use for keyword generation",
         examples=["gpt4", "gpt4-mini"]
     )
+    generation_strategy: str = Field(
+        default="ai",
+        description="Keyword generation strategy",
+        examples=["ai", "simple", "gpt", "basic"]
+    )
     generate_labels: bool = Field(
         default=True,
         description="Whether to generate label files for images",
@@ -232,6 +242,15 @@ class DatasetGenerationConfig(BaseSettings):
             raise ValueError(f"ai_model must be one of {valid_models}")
         return v
 
+    @field_validator('generation_strategy')
+    @classmethod
+    def validate_generation_strategy(cls, v: str) -> str:
+        """Validate keyword generation strategy."""
+        valid_strategies = ["ai", "simple", "gpt", "basic"]
+        if v not in valid_strategies:
+            raise ValueError(f"generation_strategy must be one of {valid_strategies}")
+        return v
+
     @field_validator('search_variations')
     @classmethod
     def validate_search_variations(cls, v: Optional[List[str]]) -> Optional[List[str]]:
@@ -243,9 +262,11 @@ class DatasetGenerationConfig(BaseSettings):
                 if not cleaned_variation:
                     continue
                 if "{keyword}" not in cleaned_variation:
-                    raise ValueError(f"Search variation '{cleaned_variation}' must contain '{{keyword}}' placeholder")
+                    raise ValueError(
+                        f"Search variation '{cleaned_variation}' must contain '{{keyword}}' placeholder")
                 if len(cleaned_variation) > 200:
-                    raise ValueError(f"Search variation too long: {len(cleaned_variation)} characters (max 200)")
+                    raise ValueError(
+                        f"Search variation too long: {len(cleaned_variation)} characters (max 200)")
                 cleaned.append(cleaned_variation)
             return cleaned if cleaned else None
         return v
@@ -255,5 +276,6 @@ class DatasetGenerationConfig(BaseSettings):
     def validate_dataset_name(cls, v: str) -> str:
         """Validate dataset name if provided."""
         if v and not v.replace('_', '').replace('-', '').replace(' ', '').isalnum():
-            raise ValueError("Dataset name can only contain alphanumeric characters, spaces, hyphens, and underscores")
+            raise ValueError(
+                "Dataset name can only contain alphanumeric characters, spaces, hyphens, and underscores")
         return v

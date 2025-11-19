@@ -129,11 +129,11 @@ class CelerySettings(BaseSettings):
     
     # Worker Settings
     worker_concurrency: int = Field(
-        default=4,
+        default=35,
         ge=1,
-        le=32,
+        le=128,
         description="Number of concurrent worker processes",
-        examples=[1, 2, 4, 8, 16]
+        examples=[1, 4, 16, 35, 64]
     )
     worker_prefetch_multiplier: int = Field(
         default=1,
@@ -155,6 +155,25 @@ class CelerySettings(BaseSettings):
         le=2000000,  # 2GB maximum
         description="Maximum memory per worker child process (KB)",
         examples=[100000, 200000, 500000, 1000000]
+    )
+    worker_autoscale_enabled: bool = Field(
+        default=False,
+        description="Enable autoscaling for worker pool",
+        examples=[True, False]
+    )
+    worker_autoscale_min: int = Field(
+        default=7,
+        ge=1,
+        le=128,
+        description="Minimum concurrency when autoscale is enabled",
+        examples=[7, 5, 10]
+    )
+    worker_autoscale_max: int = Field(
+        default=35,
+        ge=1,
+        le=256,
+        description="Maximum concurrency when autoscale is enabled",
+        examples=[35, 20, 50]
     )
     
     # Retry Settings
@@ -252,7 +271,21 @@ class CelerySettings(BaseSettings):
         description="Default queue for tasks",
         examples=["default", "tasks", "processing"]
     )
-    
+    task_queue_max_priority: int = Field(
+        default=10,
+        ge=1,
+        le=10,
+        description="Maximum priority levels supported by task queues (typically 0-9)",
+        examples=[10, 9]
+    )
+    task_default_priority: int = Field(
+        default=5,
+        ge=0,
+        le=9,
+        description="Default task priority (0-9, higher means higher priority)",
+        examples=[5, 7, 3]
+    )
+
     # Beat Schedule
     beat_schedule_enabled: bool = Field(
         default=False,
@@ -356,6 +389,8 @@ class CelerySettings(BaseSettings):
         # Validate worker settings
         if self.worker_max_memory_per_child < 50000:  # 50MB
             raise ValueError("worker_max_memory_per_child should be at least 50MB (50000 KB)")
+        if self.worker_autoscale_enabled and self.worker_autoscale_min > self.worker_autoscale_max:
+            raise ValueError("worker_autoscale_min cannot be greater than worker_autoscale_max")
         
         # Validate monitoring settings
         if self.enable_monitoring and not (1024 <= self.flower_port <= 65535):
@@ -415,6 +450,8 @@ class CelerySettings(BaseSettings):
             
             # Queue settings
             'task_default_queue': self.task_default_queue,
+            'task_queue_max_priority': self.task_queue_max_priority,
+            'task_default_priority': self.task_default_priority,
         }
         
         # Add compression if enabled
@@ -439,6 +476,7 @@ class CelerySettings(BaseSettings):
             'max_memory_per_child': self.worker_max_memory_per_child,
             'time_limit': self.task_time_limit,
             'soft_time_limit': self.task_soft_time_limit,
+            'autoscale': (self.worker_autoscale_max, self.worker_autoscale_min) if self.worker_autoscale_enabled else None,
         }
     
     def get_monitoring_config(self) -> Dict[str, Any]:

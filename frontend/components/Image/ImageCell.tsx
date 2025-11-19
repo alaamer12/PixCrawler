@@ -3,7 +3,6 @@
 import {memo, useEffect, useState} from 'react'
 import {Image as UnpicImage} from '@unpic/react'
 import {useInView} from 'react-intersection-observer'
-import {motion} from 'framer-motion'
 import {AlertCircle, Eye} from 'lucide-react'
 import {globalImageBuffer} from '@/lib/ImageBuffer'
 
@@ -43,13 +42,10 @@ const IN_VIEW_CONFIG = {
   triggerOnce: false
 }
 
-const ANIMATION_CONFIG = {
-  initial: {opacity: 0, scale: 0.9},
-  animate: {opacity: 1, scale: 1},
-  transition: {duration: 0.3},
-  hover: {scale: 1.02},
-  tap: {scale: 0.98}
-}
+const ANIMATION_CLASSES = {
+  container: 'animate-in fade-in zoom-in-95 duration-300',
+  hover: 'hover:scale-[1.02] active:scale-[0.98] transition-transform duration-200'
+} as const
 
 // Sub-components
 const LoadingSkeleton = memo(() => (
@@ -245,15 +241,10 @@ export const ImageCell = memo(({
   }
 
   return (
-    <motion.div
+    <div
       ref={ref}
-      className={`${aspectClass} ${className} relative overflow-hidden rounded-lg bg-muted cursor-pointer group`}
+      className={`${aspectClass} ${className} ${ANIMATION_CLASSES.container} ${ANIMATION_CLASSES.hover} relative overflow-hidden rounded-lg bg-muted cursor-pointer group`}
       onClick={handleClick}
-      initial={ANIMATION_CONFIG.initial}
-      animate={ANIMATION_CONFIG.animate}
-      transition={ANIMATION_CONFIG.transition}
-      whileHover={ANIMATION_CONFIG.hover}
-      whileTap={ANIMATION_CONFIG.tap}
       role="button"
       tabIndex={0}
       aria-label={`View ${image.alt}`}
@@ -277,7 +268,7 @@ export const ImageCell = memo(({
       )}
 
       {showOverlay && imageLoaded && <ImageOverlay title={image.title}/>}
-    </motion.div>
+    </div>
   )
 })
 

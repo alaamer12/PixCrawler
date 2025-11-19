@@ -24,14 +24,13 @@ Features:
 import time
 import traceback
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional
 from enum import Enum
 
 from celery import Task
-from celery.exceptions import Retry
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -313,11 +312,9 @@ class BaseTask(Task, ABC):
     """
 
     # Task configuration
-    autoretry_for = (Exception,)
-    retry_kwargs = {'max_retries': 3, 'countdown': 60}
-    retry_backoff = True
-    retry_backoff_max = 600  # 10 minutes
-    retry_jitter = True
+    autoretry_for = ()  # Disable auto-retry, use explicit retry only
+    max_retries = 3  # Max retry attempts for explicit retry
+    retry_jitter = True  # Add jitter to retry timing
 
     def __call__(self, *args, **kwargs):
         """

@@ -6,7 +6,7 @@
 - **Build Backend**: Hatchling for Python package building
 
 ## Backend Stack
-- **Language**: Python 3.10+ (supports 3.10, 3.11, 3.12)
+- **Language**: Python 3.11+ (supports 3.11, 3.12, 3.13)
 - **Package Manager**: UV with workspace support
 - **Logging**: Loguru-based centralized logging system
 - **Image Processing**: PIL (Pillow) for image validation and manipulation
@@ -77,7 +77,7 @@ uv run pytest tests/
 
 ## Code Quality Standards
 - **Line Length**: 88 characters (Black/Ruff standard)
-- **Python Version**: Minimum 3.10, target 3.10
+- **Python Version**: Minimum 3.11, target 3.11
 - **Import Sorting**: isort configuration with first-party packages
 - **Type Hints**: Required for all function definitions (MyPy strict mode)
 - **Documentation**: Comprehensive docstrings for all public APIs
