@@ -22,7 +22,7 @@ from sqlalchemy import (
     ForeignKey,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin
 
@@ -112,6 +112,13 @@ class JobChunk(Base, TimestampMixin):
         String(255),
         nullable=True,
         index=True,
+    )
+    
+    # Relationships
+    job: Mapped["CrawlJob"] = relationship(
+        "CrawlJob",
+        back_populates="chunks",
+        lazy="joined",
     )
 
     # Constraints

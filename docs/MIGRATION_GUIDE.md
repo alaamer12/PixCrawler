@@ -105,6 +105,97 @@ ALTER TABLE profiles ADD CONSTRAINT ck_profiles_user_tier_valid
 
 ---
 
+### Migration 003: Add Foreign Keys and Relationships
+
+**File**: `alembic/versions/003_add_foreign_keys_and_relationships.py`
+
+**Purpose**: Establishes referential integrity by adding all missing foreign key constraints and performance indexes across the schema.
+
+**Foreign Keys Added**:
+
+```sql
+-- Project relationships
+ALTER TABLE projects ADD CONSTRAINT fk_projects_user_id 
+    FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+
+-- CrawlJob relationships
+ALTER TABLE crawl_jobs ADD CONSTRAINT fk_crawl_jobs_project_id 
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
+
+-- Image relationships
+ALTER TABLE images ADD CONSTRAINT fk_images_crawl_job_id 
+    FOREIGN KEY (crawl_job_id) REFERENCES crawl_jobs(id) ON DELETE CASCADE;
+
+-- ActivityLog relationships
+ALTER TABLE activity_logs ADD CONSTRAINT fk_activity_logs_user_id 
+    FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+
+-- Credit relationships
+ALTER TABLE credit_accounts ADD CONSTRAINT fk_credit_accounts_user_id 
+    FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+
+ALTER TABLE credit_transactions ADD CONSTRAINT fk_credit_transactions_account_id 
+    FOREIGN KEY (account_id) REFERENCES credit_accounts(id) ON DELETE CASCADE;
+
+ALTER TABLE credit_transactions ADD CONSTRAINT fk_credit_transactions_user_id 
+    FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+
+-- API Key relationships
+ALTER TABLE api_keys ADD CONSTRAINT fk_api_keys_user_id 
+    FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+
+-- Notification relationships
+ALTER TABLE notifications ADD CONSTRAINT fk_notifications_user_id 
+    FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+
+ALTER TABLE notification_preferences ADD CONSTRAINT fk_notification_preferences_user_id 
+    FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+
+-- Usage metrics relationships
+ALTER TABLE usage_metrics ADD CONSTRAINT fk_usage_metrics_user_id 
+    FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+```
+
+**Indexes Added**:
+
+```sql
+-- Project indexes
+CREATE INDEX ix_projects_user_id ON projects(user_id);
+CREATE INDEX ix_projects_status ON projects(status);
+
+-- CrawlJob indexes
+CREATE INDEX ix_crawl_jobs_project_id ON crawl_jobs(project_id);
+CREATE INDEX ix_crawl_jobs_status ON crawl_jobs(status);
+CREATE INDEX ix_crawl_jobs_project_status ON crawl_jobs(project_id, status);
+CREATE INDEX ix_crawl_jobs_created_at ON crawl_jobs(created_at);
+
+-- Image indexes
+CREATE INDEX ix_images_crawl_job_id ON images(crawl_job_id);
+CREATE INDEX ix_images_created_at ON images(created_at);
+
+-- ActivityLog indexes
+CREATE INDEX ix_activity_logs_user_id ON activity_logs(user_id);
+CREATE INDEX ix_activity_logs_timestamp ON activity_logs(timestamp);
+CREATE INDEX ix_activity_logs_user_timestamp ON activity_logs(user_id, timestamp);
+CREATE INDEX ix_activity_logs_resource ON activity_logs(resource_type, resource_id);
+```
+
+**Benefits**:
+
+- **Data Integrity**: Foreign keys prevent orphaned records and enforce referential consistency
+- **Cascade Deletes**: Automatic cleanup when parent records are deleted
+- **Performance**: Indexes accelerate common query patterns (user lookups, status filtering, sorting)
+- **Query Optimization**: Composite indexes support multi-column WHERE and JOIN conditions
+
+**Impact**:
+
+- Existing data must satisfy FK constraints (no orphaned records)
+- Cascade deletes will remove related records when parent is deleted
+- Indexes consume additional storage but improve query performance
+- No downtime required for this migration
+
+---
+
 ## Running Migrations
 
 ### Prerequisites
@@ -294,29 +385,58 @@ alembic upgrade head
 ## Schema Diagram
 
 ```
-profiles (1) ──────────────────────── (many) projects
-    │                                      │
-    │                                      │
-    ├─ (1) ──────────────────── (many) crawl_jobs
-    │                                      │
-    │                                      ├─ (1) ──── (many) job_chunks
-    │                                      │
-    │                                      └─ (1) ──── (many) images
-    │
-    ├─ (1) ──────────────────── (many) activity_logs
-    │
-    ├─ (1) ──────────────────── (many) credit_accounts
-    │                                      │
-    │                                      └─ (1) ──── (many) credit_transactions
-    │
-    ├─ (1) ──────────────────── (many) notifications
-    │
-    ├─ (1) ──────────────────── (1) notification_preferences
-    │
-    ├─ (1) ──────────────────── (many) api_keys
-    │
-    └─ (1) ──────────────────── (many) usage_metrics
+                                    ┌─────────────────────────────────────────────────┐
+                                    │          PROFILES (Users)                       │
+                                    │  ────────────────────────────────────────────   │
+                                    │  id (UUID) | email | full_name | user_tier     │
+                                    └─────────────────────────────────────────────────┘
+                                                    │
+                    ┌───────────────────────────────┼───────────────────────────────┐
+                    │                               │                               │
+                    ▼                               ▼                               ▼
+        ┌──────────────────────┐      ┌──────────────────────┐      ┌──────────────────────┐
+        │ PROJECTS             │      │ ACTIVITY_LOGS        │      │ CREDIT_ACCOUNTS      │
+        │ ────────────────────│      │ ────────────────────│      │ ────────────────────│
+        │ id | name | user_id │      │ id | user_id | ... │      │ id | user_id | ... │
+        └──────────────────────┘      └──────────────────────┘      └──────────────────────┘
+                    │                                                         │
+                    ▼                                                         ▼
+        ┌──────────────────────┐                              ┌──────────────────────┐
+        │ CRAWL_JOBS           │                              │ CREDIT_TRANSACTIONS  │
+        │ ────────────────────│                              │ ────────────────────│
+        │ id | project_id | ..│                              │ id | account_id | ..│
+        └──────────────────────┘                              └──────────────────────┘
+                    │
+        ┌───────────┴───────────┐
+        │                       │
+        ▼                       ▼
+    ┌──────────────┐    ┌──────────────┐
+    │ JOB_CHUNKS   │    │ IMAGES       │
+    │ ────────────│    │ ────────────│
+    │ id | job_id │    │ id | job_id │
+    └──────────────┘    └──────────────┘
+
+Additional Relationships (all from PROFILES):
+    ├─ NOTIFICATIONS (1:many)
+    ├─ NOTIFICATION_PREFERENCES (1:1)
+    ├─ API_KEYS (1:many)
+    └─ USAGE_METRICS (1:many)
 ```
+
+**Key Relationships**:
+- All tables with `user_id` reference `profiles.id` with CASCADE delete
+- `projects.user_id` → `profiles.id`
+- `crawl_jobs.project_id` → `projects.id`
+- `images.crawl_job_id` → `crawl_jobs.id`
+- `job_chunks.job_id` → `crawl_jobs.id`
+- `activity_logs.user_id` → `profiles.id`
+- `credit_accounts.user_id` → `profiles.id`
+- `credit_transactions.account_id` → `credit_accounts.id`
+- `credit_transactions.user_id` → `profiles.id`
+- `api_keys.user_id` → `profiles.id`
+- `notifications.user_id` → `profiles.id`
+- `notification_preferences.user_id` → `profiles.id`
+- `usage_metrics.user_id` → `profiles.id`
 
 ---
 

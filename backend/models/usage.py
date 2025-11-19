@@ -20,6 +20,7 @@ from sqlalchemy import (
     UUID as SQLAlchemyUUID,
     CheckConstraint,
     Index,
+    ForeignKey,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -64,6 +65,7 @@ class UsageMetric(Base):
     # Foreign key
     user_id: Mapped[UUID] = mapped_column(
         SQLAlchemyUUID(as_uuid=True),
+        ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
