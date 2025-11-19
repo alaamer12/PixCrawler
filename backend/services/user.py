@@ -4,7 +4,6 @@ User service for user management operations.
 from typing import Optional, List
 from uuid import UUID
 
-from backend.schemas.user import UserCreate, UserResponse, UserUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.exceptions import NotFoundError, ValidationError, ExternalServiceError
