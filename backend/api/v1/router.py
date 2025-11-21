@@ -9,7 +9,7 @@ from fastapi import APIRouter
 from starlette.responses import JSONResponse
 
 from backend.api.v1.response_models import get_common_responses
-from .endpoints import auth, crawl_jobs, datasets, exports, health, storage, users, validation
+from .endpoints import auth, crawl_jobs, datasets, exports, health, storage, users, validation, temp_storage_cleanup
 
 __all__ = ['api_router']
 
@@ -75,5 +75,12 @@ api_router.include_router(
 api_router.include_router(
     validation.router,
     prefix="/validation",
+    include_in_schema=True,
+)
+
+# Temp Storage Cleanup - Temporary storage cleanup operations
+api_router.include_router(
+    temp_storage_cleanup.router,
+    prefix="/cleanup",
     include_in_schema=True,
 )

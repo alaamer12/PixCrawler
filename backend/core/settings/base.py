@@ -10,6 +10,7 @@ from .redis import RedisSettings
 from .security import SecuritySettings
 from .storage import StorageSettings
 from .supabase import SupabaseSettings
+from .temp_storage_cleanup import TempStorageCleanupSettings
 
 __all__ = ["CommonSettings"]
 
@@ -70,3 +71,4 @@ class CommonSettings(BaseSettings):
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
+    temp_storage_cleanup: TempStorageCleanupSettings = Field(default_factory=TempStorageCleanupSettings)

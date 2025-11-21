@@ -37,7 +37,7 @@ from builder._search_engines import (
 )
 from celery_core.app import get_celery_app
 from celery_core.base import BaseTask
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 logger = get_logger(__name__)
 app = get_celery_app()
@@ -115,6 +115,22 @@ def task_download_google_impl(
         )
 
         logger.info(f"Google download completed: {result.total_downloaded} images")
+
+        # Trigger temp storage cleanup for completed files
+        try:
+            from backend.tasks.temp_storage_cleanup import task_cleanup_after_chunk
+            # Extract job_id and chunk_id from output_dir if available
+            # Format: /path/to/temp/job_123_chunk_abc/
+            import re
+            match = re.search(r'job_(\d+)_chunk_([^/]+)', output_dir)
+            if match:
+                job_id = int(match.group(1))
+                chunk_id = match.group(2)
+                completed_files = [f"{keyword}_{i}" for i in range(result.total_downloaded)]
+                task_cleanup_after_chunk.delay(job_id, chunk_id, completed_files)
+                logger.info(f"Triggered cleanup for job {job_id}, chunk {chunk_id}")
+        except Exception as e:
+            logger.warning(f"Failed to trigger cleanup: {e}")
 
         return {
             'success': result.total_downloaded > 0,
@@ -223,6 +239,20 @@ def task_download_bing_impl(
 
         logger.info(f"Bing download completed: {result.total_downloaded} images")
 
+        # Trigger temp storage cleanup for completed files
+        try:
+            from backend.tasks.temp_storage_cleanup import task_cleanup_after_chunk
+            import re
+            match = re.search(r'job_(\d+)_chunk_([^/]+)', output_dir)
+            if match:
+                job_id = int(match.group(1))
+                chunk_id = match.group(2)
+                completed_files = [f"{keyword}_{i}" for i in range(result.total_downloaded)]
+                task_cleanup_after_chunk.delay(job_id, chunk_id, completed_files)
+                logger.info(f"Triggered cleanup for job {job_id}, chunk {chunk_id}")
+        except Exception as e:
+            logger.warning(f"Failed to trigger cleanup: {e}")
+
         return {
             'success': result.total_downloaded > 0,
             'engine': 'bing',
@@ -330,6 +360,20 @@ def task_download_baidu_impl(
 
         logger.info(f"Baidu download completed: {result.total_downloaded} images")
 
+        # Trigger temp storage cleanup for completed files
+        try:
+            from backend.tasks.temp_storage_cleanup import task_cleanup_after_chunk
+            import re
+            match = re.search(r'job_(\d+)_chunk_([^/]+)', output_dir)
+            if match:
+                job_id = int(match.group(1))
+                chunk_id = match.group(2)
+                completed_files = [f"{keyword}_{i}" for i in range(result.total_downloaded)]
+                task_cleanup_after_chunk.delay(job_id, chunk_id, completed_files)
+                logger.info(f"Triggered cleanup for job {job_id}, chunk {chunk_id}")
+        except Exception as e:
+            logger.warning(f"Failed to trigger cleanup: {e}")
+
         return {
             'success': result.total_downloaded > 0,
             'engine': 'baidu',
@@ -404,6 +448,20 @@ def task_download_duckduckgo_impl(
         success, downloaded = download_images_ddgs(keyword, output_dir, max_images)
 
         logger.info(f"DuckDuckGo download completed: {downloaded} images")
+
+        # Trigger temp storage cleanup for completed files
+        try:
+            from backend.tasks.temp_storage_cleanup import task_cleanup_after_chunk
+            import re
+            match = re.search(r'job_(\d+)_chunk_([^/]+)', output_dir)
+            if match:
+                job_id = int(match.group(1))
+                chunk_id = match.group(2)
+                completed_files = [f"{keyword}_{i}" for i in range(downloaded)]
+                task_cleanup_after_chunk.delay(job_id, chunk_id, completed_files)
+                logger.info(f"Triggered cleanup for job {job_id}, chunk {chunk_id}")
+        except Exception as e:
+            logger.warning(f"Failed to trigger cleanup: {e}")
 
         return {
             'success': success,

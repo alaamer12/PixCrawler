@@ -98,6 +98,8 @@ def setup_task_queues(app: Celery) -> None:
         'validator.tasks.*': {'queue': 'validation', 'priority': 5},
         'celery_core.cleanup_*': {'queue': 'maintenance', 'priority': 1},
         'celery_core.health_check': {'queue': 'maintenance', 'priority': 3},
+        'temp_storage.*': {'queue': 'maintenance', 'priority': 2},
+        'backend.tasks.temp_storage_cleanup.*': {'queue': 'maintenance', 'priority': 2},
     }
 
     logger.info("Configured task queues: crawl, validation, maintenance, default")
@@ -110,6 +112,9 @@ def setup_beat_schedule(app: Celery) -> None:
     Scheduled tasks:
         - cleanup_expired_results: Daily at 2 AM
         - health_check: Every 5 minutes
+        - temp_storage_scheduled_cleanup: Every hour
+        - temp_storage_emergency_check: Every 5 minutes
+        - temp_storage_orphaned_cleanup: Every 6 hours
 
     Args:
         app: Celery application instance
@@ -127,8 +132,25 @@ def setup_beat_schedule(app: Celery) -> None:
                 'task': 'celery_core.health_check',
                 'schedule': 300.0,  # Every 5 minutes
             },
+            # Temp Storage Cleanup Tasks
+            'temp-storage-scheduled-cleanup': {
+                'task': 'backend.tasks.temp_storage_cleanup.task_scheduled_cleanup',
+                'schedule': crontab(minute=0),  # Every hour at minute 0
+            },
+            'temp-storage-emergency-check': {
+                'task': 'backend.tasks.temp_storage_cleanup.task_get_storage_stats',
+                'schedule': 300.0,  # Every 5 minutes - check if emergency cleanup needed
+                'options': {
+                    'expires': 240,  # Expire after 4 minutes to avoid overlap
+                }
+            },
+            'temp-storage-orphaned-cleanup': {
+                'task': 'backend.tasks.temp_storage_cleanup.task_cleanup_orphaned_files',
+                'schedule': crontab(hour='*/6', minute=30),  # Every 6 hours at minute 30
+                'kwargs': {'max_age_hours': 24},
+            },
         }
-        logger.info("Configured Celery Beat schedule")
+        logger.info("Configured Celery Beat schedule with temp storage cleanup tasks")
 
 
 def revoke_task(task_id: str, terminate: bool = True, signal: str = 'SIGTERM') -> None:

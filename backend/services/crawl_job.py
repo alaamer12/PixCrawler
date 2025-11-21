@@ -22,6 +22,7 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.exceptions import NotFoundError, ValidationError
 from backend.models import CrawlJob, Image
 from backend.repositories import (
@@ -279,7 +280,18 @@ class CrawlJobService(BaseService):
         if status in ["completed", "failed", "cancelled"]:
             update_data["completed_at"] = datetime.utcnow()
 
-        return await self.crawl_job_repo.update(job, **update_data)
+        updated_job = await self.crawl_job_repo.update(job, **update_data)
+        
+        # Trigger cleanup for failed/cancelled jobs
+        if status in ["failed", "cancelled", "error"]:
+            try:
+                from backend.tasks.temp_storage_cleanup import task_cleanup_after_crash
+                task_cleanup_after_crash.delay(job_id=job_id)
+                self.logger.info(f"Triggered cleanup for failed job {job_id}")
+            except Exception as e:
+                self.logger.warning(f"Failed to trigger cleanup for job {job_id}: {e}")
+        
+        return updated_job
 
 
 async def execute_crawl_job(

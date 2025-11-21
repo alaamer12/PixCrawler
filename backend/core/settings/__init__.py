@@ -21,6 +21,7 @@ from .security import SecuritySettings
 from .supabase import SupabaseSettings
 from .rate_limit import RateLimitSettings
 from .storage import StorageSettings
+from .temp_storage_cleanup import TempStorageCleanupSettings
 from .environments import DevSettings, ProdSettings, TestSettings, Settings, get_settings
 
 __all__ = [
@@ -33,6 +34,7 @@ __all__ = [
     "SupabaseSettings",
     "RateLimitSettings",
     "StorageSettings",
+    "TempStorageCleanupSettings",
     # Environment-based settings
     "DevSettings",
     "ProdSettings",
