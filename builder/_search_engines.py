@@ -334,10 +334,10 @@ class DDGSImageDownloader(ISearchEngineDownloader):
 
 
 
-def _download_images_with_crawler(engine_name: str, crawler_class: Type, keyword: str,
-                                  variations: List[str], out_dir: str, max_num: int,
-                                  config: SearchEngineConfig,
-                                  image_downloader: Any) -> EngineResult:
+def _download_images_with_icrawler(engine_name: str, crawler_class: Type, keyword: str,
+                                   variations: List[str], out_dir: str, max_num: int,
+                                   config: SearchEngineConfig,
+                                   image_downloader: Any) -> EngineResult:
     """Generic function to download images using any crawler."""
     start_time = time.time()
     variation_results = []
@@ -412,9 +412,9 @@ def download_google_images(keyword: str, variations: List[str], out_dir: str,
                            config: SearchEngineConfig,
                            image_downloader: Any) -> EngineResult:
     """Download images using Google Image Crawler."""
-    return _download_images_with_crawler("google", GoogleImageCrawler, keyword,
-                                         variations, out_dir, max_num, config,
-                                         image_downloader)
+    return _download_images_with_icrawler("google", GoogleImageCrawler, keyword,
+                                          variations, out_dir, max_num, config,
+                                          image_downloader)
 
 
 def download_bing_images(keyword: str, variations: List[str], out_dir: str,
@@ -422,9 +422,9 @@ def download_bing_images(keyword: str, variations: List[str], out_dir: str,
                          config: SearchEngineConfig,
                          image_downloader: Any) -> EngineResult:
     """Download images using Bing Image Crawler."""
-    return _download_images_with_crawler("bing", BingImageCrawler, keyword,
-                                         variations, out_dir, max_num, config,
-                                         image_downloader)
+    return _download_images_with_icrawler("bing", BingImageCrawler, keyword,
+                                          variations, out_dir, max_num, config,
+                                          image_downloader)
 
 
 def download_baidu_images(keyword: str, variations: List[str], out_dir: str,
@@ -432,9 +432,9 @@ def download_baidu_images(keyword: str, variations: List[str], out_dir: str,
                           config: SearchEngineConfig,
                           image_downloader: Any) -> EngineResult:
     """Download images using Baidu Image Crawler."""
-    return _download_images_with_crawler("baidu", BaiduImageCrawler, keyword,
-                                         variations, out_dir, max_num, config,
-                                         image_downloader)
+    return _download_images_with_icrawler("baidu", BaiduImageCrawler, keyword,
+                                          variations, out_dir, max_num, config,
+                                          image_downloader)
 
 
 def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:

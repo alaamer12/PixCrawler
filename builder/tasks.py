@@ -25,7 +25,8 @@ from typing import Dict, List, Any, Optional
 
 from builder._config import get_engines
 from builder._downloader import ImageDownloader
-from builder._generator import KeywordManagement, LabelGenerator
+from builder._generator import LabelGenerator
+from _keywords import KeywordManagement
 from builder._predefined_variations import get_search_variations
 from builder._search_engines import (
     SearchEngineConfig,
@@ -475,9 +476,7 @@ def task_generate_keywords_impl(
         # KeywordManagement.generate_keywords() only takes category parameter
         # The ai_model is set during KeywordManagement initialization
         keyword_manager = KeywordManagement(
-            ai_model=ai_model,
-            keyword_generation="enabled",
-            generation_strategy="ai" if ai_model in ["gpt4", "gpt4-mini"] else "simple"
+            ai_model=ai_model
         )
 
         generated_keywords = []
