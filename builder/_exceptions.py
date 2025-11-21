@@ -36,3 +36,10 @@ class CrawlerInitializationError(CrawlerError):
 class CrawlerExecutionError(CrawlerError):
     """Exception raised when a crawler encounters an error during its execution."""
     pass
+
+
+class TimeoutException(Exception):
+    """
+    Custom exception raised when a timeout occurs during an operation.
+    """
+    pass

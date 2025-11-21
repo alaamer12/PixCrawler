@@ -32,12 +32,12 @@ class SupabaseSettings(BaseSettings):
         examples=["https://your-project.supabase.co"]
     )
     service_role_key: str = Field(
-        default="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRldmVsb3BtZW50Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY0NTE5MjgwMCwiZXhwIjoxOTYwNzY4ODAwfQ.dev_placeholder_key_for_local_development_only",
+        default="your_service_role_key.dev_placeholder_key_for_local_development_only",
         min_length=50,
         description="Supabase service role key (use real key in production)"
     )
     anon_key: str = Field(
-        default="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRldmVsb3BtZW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTI4MDAsImV4cCI6MTk2MDc2ODgwMH0.dev_placeholder_key_for_local_development_only",
+        default="your_anon_key.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRldmVsb3BtZW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTI4MDAsImV4cCI6MTk2MDc2ODgwMH0.dev_placeholder_key_for_local_development_only",
         min_length=50,
         description="Supabase anonymous key (use real key in production)"
     )

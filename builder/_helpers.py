@@ -612,3 +612,18 @@ class ProgressManager:
 
 # Create a global progress manager
 progress = ProgressManager()
+
+
+def rename_images_sequentially(directory: str, padding_width: Optional[int] = 4) -> int:
+    """
+    Rename all image files in a directory to a sequential, zero-padded format.
+
+    Args:
+        directory: Directory containing images to rename
+        padding_width: The desired width for zero-padding sequential filenames. Defaults to 4.
+
+    Returns:
+        int: Number of renamed files
+    """
+    renamer = FSRenamer(directory, padding_width)
+    return renamer.rename_sequentially()

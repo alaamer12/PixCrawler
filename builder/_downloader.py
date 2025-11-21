@@ -6,7 +6,7 @@ Classes:
     ABC: Abstract base class.
     SearchEngine: Base class for search engines.
     DuckDuckGo: A class to download images using DuckDuckGo search.
-    ImageDownloader: A class for downloading images using multiple image crawlers in parallel.
+    ImageDownloader: A class for downloading images using multiple image crawlers sequentially.
 
 Functions:
     download_images_ddgs: Downloads images directly using the DuckDuckGo search engine.
@@ -15,7 +15,7 @@ Features:
     - DuckDuckGo image search integration.
     - Multi-threaded image downloading.
     - Support for various search engines.
-    - Parallel and sequential download processing.
+    - Sequential download processing for optimal performance.
     - Fallback mechanisms for robust image retrieval.
 """
 
@@ -32,7 +32,7 @@ from _search_engines import download_images_ddgs
 from builder._constants import logger
 from builder._engine import EngineProcessor
 from builder._helpers import progress
-from builder._utilities import rename_images_sequentially
+from _helpers import rename_images_sequentially
 
 # Image validation moved to validator package
 
@@ -46,10 +46,11 @@ __all__ = [
 
 class ImageDownloader(IDownloader):
     """
-    A class for downloading images using multiple image crawlers in parallel.
+    A class for downloading images using multiple image crawlers sequentially.
 
-    Supports true parallel processing across all search engines simultaneously
-    for maximum speed while maintaining thread safety.
+    Uses sequential processing across search engines for optimal performance
+    and reliability. Parallel execution has been deprecated as it degraded
+    performance in production.
     """
 
     def __init__(self,
@@ -58,10 +59,7 @@ class ImageDownloader(IDownloader):
                  downloader_threads: int = 4,
                  min_image_size: Tuple[int, int] = (100, 100),
                  delay_between_searches: float = 0.5,
-                 log_level: int = logging.WARNING,
-                 max_parallel_engines: int = 4,
-                 max_parallel_variations: int = 3,
-                 use_all_engines: bool = True):
+                 log_level: int = logging.WARNING):
         """
         Initializes the ImageDownloader with configurable parameters.
 
@@ -72,9 +70,6 @@ class ImageDownloader(IDownloader):
             min_image_size (Tuple[int, int]): Minimum image size as (width, height) tuple.
             delay_between_searches (float): Delay in seconds between different search terms.
             log_level (int): Logging level for crawlers (e.g., logging.INFO, logging.WARNING).
-            max_parallel_engines (int): Maximum number of search engines to use in parallel.
-            max_parallel_variations (int): Maximum number of search variations to run in parallel per engine.
-            use_all_engines (bool): Whether to use all engines in parallel (True) or fallback mode (False).
         """
         self.feeder_threads = feeder_threads
         self.parser_threads = parser_threads
@@ -82,9 +77,6 @@ class ImageDownloader(IDownloader):
         self.min_image_size = min_image_size
         self.delay_between_searches = delay_between_searches
         self.log_level = log_level
-        self.max_parallel_engines = max_parallel_engines
-        self.max_parallel_variations = max_parallel_variations
-        self.use_all_engines = use_all_engines
 
         # Initialize engine manager
         self.engine_processor = EngineProcessor(self)
@@ -103,7 +95,7 @@ class ImageDownloader(IDownloader):
 
     def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
         """
-        Downloads images using multiple image crawlers, supporting both parallel and sequential processing.
+        Downloads images using multiple image crawlers sequentially.
         Includes fallback to DuckDuckGo if primary crawlers do not meet the download target.
 
         Args:
@@ -136,17 +128,9 @@ class ImageDownloader(IDownloader):
             # Shuffle variations to get more diverse results
             random.shuffle(variations)
 
-            if self.use_all_engines:
-                # Use all engines in parallel for maximum speed
-                progress.set_subtask_description(
-                    f"Downloading with parallel engines: {keyword}")
-                self.engine_processor.download_with_parallel_engines(keyword,
-                                                                     variations,
-                                                                     out_dir, max_num)
-            else:
-                # Use engines in sequence with fallbacks (original approach)
-                progress.set_subtask_description(f"Downloading sequentially: {keyword}")
-                self.engine_processor.download_with_sequential_engines(keyword,
+            # Use engines in sequence with fallbacks
+            progress.set_subtask_description(f"Downloading sequentially: {keyword}")
+            self.engine_processor.download_with_sequential_engines(keyword,
                                                                        variations,
                                                                        out_dir, max_num)
 
@@ -276,17 +260,17 @@ class APIDownloader(IDownloader):
     """Placeholder for API-based downloader. Disabled by default."""
 
     def __init__(self, api_key: Optional[str] = None, **kwargs):
-        raise NotImplementedError("AioHttpDownloader placeholder")
+        raise NotImplementedError("APIDownloader not implemented")
 
     def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
-        raise NotImplementedError("APIDownloader placeholder")
+        raise NotImplementedError("APIDownloader not implemented")
 
 
 class AioHttpDownloader(IDownloader):
     """Placeholder for async HTTP downloader. Disabled by default."""
 
     def __init__(self, max_concurrent: int = 10, **kwargs):
-        raise NotImplementedError("AioHttpDownloader placeholder")
+        raise NotImplementedError("AioHttpDownloader not implemented")
 
     def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
-        raise NotImplementedError("AioHttpDownloader placeholder")
+        raise NotImplementedError("AioHttpDownloader not implemented")

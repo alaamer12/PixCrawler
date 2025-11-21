@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Set
 
 
 def get_basic_variations() -> List[str]:
@@ -542,14 +542,14 @@ def get_generic_quality_variations() -> List[str]:
     ]
 
 
-def get_search_variations() -> List[str]:
+def get_search_variations() -> Set[str]:
     """
-    Get the list of search variations.
+    Get set [to ensure uniqueness] of search variations.
 
     Returns:
-        List of search variations
+        Set of search variations
     """
-    return (
+    return set(
         get_basic_variations() +
         get_quality_variations() +
         get_style_variations() +

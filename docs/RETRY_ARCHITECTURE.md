@@ -192,7 +192,9 @@ def process_chunk_task(self, chunk_id: str):
 - Temporary service unavailability (503 errors)
 
 **Configuration:**
+
 ```python
+import _exceptions
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -200,15 +202,16 @@ from tenacity import (
     retry_if_exception_type
 )
 
+
 class ChunkProcessor:
-    
+
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
         retry=retry_if_exception_type((
-            httpx.TimeoutException,
-            httpx.NetworkError,
-            httpx.HTTPStatusError
+                _exceptions.TimeoutException,
+                httpx.NetworkError,
+                httpx.HTTPStatusError
         )),
         reraise=True
     )
@@ -225,12 +228,12 @@ class ChunkProcessor:
             httpx.HTTPError: After all retries exhausted
         """
         response = httpx.get(url, timeout=30)
-        
+
         if response.status_code == 429:
             retry_after = int(response.headers.get('Retry-After', 5))
             time.sleep(retry_after)
             raise httpx.HTTPStatusError("Rate limited", request=None, response=response)
-        
+
         response.raise_for_status()
         return response.content
 ```
@@ -314,14 +317,17 @@ def process_chunk_task(self, chunk_id: str) -> dict[str, Any]:
 ### Pattern 2: Business Logic with Tenacity
 
 ```python
+import _exceptions
+
+
 class ChunkProcessor:
     """Processes image chunks with operation-level retries."""
-    
+
     def process_chunk(self, chunk_id: str) -> dict[str, Any]:
         """Process chunk without retry decorator."""
         chunk = self._get_chunk(chunk_id)
         results = {'successful': 0, 'failed': 0}
-        
+
         for url in chunk.urls:
             try:
                 image_data = self._download_image(url)
@@ -331,13 +337,13 @@ class ChunkProcessor:
                 logger.warning(f"Failed to download {url}: {e}")
                 results['failed'] += 1
                 continue
-        
+
         return results
-    
+
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type((httpx.TimeoutException, httpx.NetworkError)),
+        retry=retry_if_exception_type((_exceptions.TimeoutException, httpx.NetworkError)),
         reraise=True
     )
     def _download_image(self, url: str) -> bytes:
@@ -469,14 +475,16 @@ CELERY_TASK_CONFIG = {
 ### Tenacity Configuration
 
 ```python
+import _exceptions
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 NETWORK_RETRY_CONFIG = {
     'stop': stop_after_attempt(3),
     'wait': wait_exponential(multiplier=1, min=2, max=10),
-    'retry': retry_if_exception_type((httpx.TimeoutException, httpx.NetworkError)),
+    'retry': retry_if_exception_type((_exceptions.TimeoutException, httpx.NetworkError)),
     'reraise': True
 }
+
 
 @retry(**NETWORK_RETRY_CONFIG)
 def download_image(url: str) -> bytes:
@@ -490,25 +498,28 @@ def download_image(url: str) -> bytes:
 ### Unit Testing Retries
 
 ```python
+import _exceptions
 import pytest
 from unittest.mock import Mock
+
 
 def test_download_retries_on_timeout():
     """Test that download retries on timeout."""
     mock_client = Mock()
     mock_client.get.side_effect = [
-        httpx.TimeoutException("Timeout 1"),
-        httpx.TimeoutException("Timeout 2"),
+        _exceptions.TimeoutException("Timeout 1"),
+        _exceptions.TimeoutException("Timeout 2"),
         Mock(content=b"image_data", status_code=200)
     ]
-    
+
     processor = ChunkProcessor()
     processor.http_client = mock_client
-    
+
     result = processor._download_image("http://example.com/image.jpg")
-    
+
     assert result == b"image_data"
     assert mock_client.get.call_count == 3
+
 
 def test_download_no_retry_on_404():
     """Test that download doesn't retry on 404."""
@@ -518,13 +529,13 @@ def test_download_no_retry_on_404():
     response.raise_for_status.side_effect = httpx.HTTPStatusError(
         "Not found", request=None, response=response
     )
-    
+
     processor = ChunkProcessor()
     processor.http_client = mock_client
-    
+
     with pytest.raises(httpx.HTTPStatusError):
         processor._download_image("http://example.com/image.jpg")
-    
+
     assert mock_client.get.call_count == 1
 ```
 
