@@ -19,6 +19,7 @@ Features:
     - Repository pattern for clean architecture
 """
 import uuid
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 from backend.core.exceptions import NotFoundError, ValidationError
@@ -56,7 +57,8 @@ class CrawlJobService(BaseService):
         crawl_job_repo: CrawlJobRepository,
         project_repo: ProjectRepository,
         image_repo: ImageRepository,
-        activity_log_repo: ActivityLogRepository
+        activity_log_repo: ActivityLogRepository,
+        session: Optional[AsyncSession] = None
     ) -> None:
         """
         Initialize crawl job service with repositories.
@@ -66,12 +68,14 @@ class CrawlJobService(BaseService):
             project_repo: Project repository
             image_repo: Image repository
             activity_log_repo: ActivityLog repository
+            session: Optional database session (for backward compatibility)
         """
         super().__init__()
         self.crawl_job_repo = crawl_job_repo
         self.project_repo = project_repo
         self.image_repo = image_repo
         self.activity_log_repo = activity_log_repo
+        self._session = session
 
     async def create_job(
         self,
@@ -161,13 +165,21 @@ class CrawlJobService(BaseService):
         Returns:
             Updated job or None if not found
         """
-        return await self.crawl_job_repo.update_progress(
-            job_id=job_id,
-            progress=progress,
-            downloaded_images=downloaded_images,
-            valid_images=valid_images
-        )
-    
+        job = await self.crawl_job_repo.get_by_id(job_id)
+        if not job:
+            return None
+
+        update_data = {
+            "progress": progress,
+            "downloaded_images": downloaded_images,
+            "updated_at": datetime.utcnow()
+        }
+
+        if valid_images is not None:
+            update_data["valid_images"] = valid_images
+
+        return await self.crawl_job_repo.update(job, **update_data)
+
     async def get_jobs_by_project(self, project_id: int) -> List[CrawlJob]:
         """
         Get all jobs for a project.
@@ -179,7 +191,7 @@ class CrawlJobService(BaseService):
             List of crawl jobs
         """
         return await self.crawl_job_repo.get_by_project(project_id)
-    
+
     async def get_active_jobs(self) -> List[CrawlJob]:
         """
         Get all active jobs.
@@ -214,7 +226,7 @@ class CrawlJobService(BaseService):
             file_size=image_data.get("file_size"),
             format=image_data.get("format")
         )
-    
+
     async def store_bulk_images(
         self,
         job_id: int,
@@ -233,19 +245,192 @@ class CrawlJobService(BaseService):
         # Add job_id to each image data
         for data in images_data:
             data['crawl_job_id'] = job_id
-        
+
         return await self.image_repo.bulk_create(images_data)
 
+    async def update_job(
+        self,
+        job_id: int,
+        status: str,
+        error: Optional[str] = None,
+        **updates: Any
+    ) -> Optional[CrawlJob]:
+        """
+        Update crawl job status and metadata.
+
+        Args:
+            job_id: Crawl job ID
+            status: New status
+            error: Optional error message
+            **updates: Additional fields to update
+
+        Returns:
+            Updated job or None if not found
+        """
+        job = await self.crawl_job_repo.get_by_id(job_id)
+        if not job:
+            return None
+
+        update_data = {"status": status, **updates}
+
+        if error:
+            update_data["error"] = error[:500]  # Truncate long error messages
+
+        if status in ["completed", "failed", "cancelled"]:
+            update_data["completed_at"] = datetime.utcnow()
+
+        return await self.crawl_job_repo.update(job, **update_data)
 
 
-async def execute_crawl_job(job_id: int) -> None:
+async def execute_crawl_job(
+    job_id: int,
+    job_service: Optional[CrawlJobService] = None,
+    session: Optional[AsyncSession] = None
+) -> None:
     """
-    Execute a crawl job asynchronously.
-
-    This function runs the actual image crawling process using the
-    PixCrawler builder package and updates the job status in real-time.
+    Execute a crawl job asynchronously with retry logic.
 
     Args:
         job_id: ID of the crawl job to execute
+        job_service: Optional pre-configured CrawlJobService
+        session: Optional database session
+        
+    Raises:
+        NotFoundError: If job not found
+        ExternalServiceError: If job execution fails after retries
     """
-    raise NotImplementedError("Placeholder for job execution")
+    import asyncio
+    from datetime import datetime
+    from typing import Dict, Any, List
+    from backend.core.exceptions import (
+        NotFoundError, ExternalServiceError
+    )
+    from backend.database.connection import AsyncSessionLocal
+    from builder import Builder
+    from backend.core.async_helpers import run_sync, run_in_threadpool
+
+    MAX_RETRIES = 3
+    RETRY_DELAY = 5  # seconds
+    BATCH_SIZE = 50
+
+    # Use provided session or create a new one
+    should_close_session = False
+    if session is None:
+        session = AsyncSessionLocal()
+        should_close_session = True
+
+    # Initialize service if not provided
+    if job_service is None:
+        job_service = CrawlJobService(
+            crawl_job_repo=CrawlJobRepository(session),
+            project_repo=ProjectRepository(session),
+            image_repo=ImageRepository(session),
+            activity_log_repo=ActivityLogRepository(session),
+            session=session
+        )
+
+    try:
+        async with session.begin():
+            job = await job_service.get_job(job_id, session=session)
+            if not job:
+                raise NotFoundError(f"Crawl job not found: {job_id}")
+
+            await job_service.update_job(
+                job_id,
+                status="running",
+                started_at=datetime.utcnow(),
+                session=session
+            )
+
+        # Initialize builder with async support
+        builder_config = {
+            "keywords": job.keywords.get("keywords", []),
+            "max_images": job.max_images,
+            "output_dir": f"/tmp/crawl_{job_id}",
+            "concurrency": 5,
+            "timeout": 30,
+            "async_mode": True  # Enable async mode in builder
+        }
+
+        # Create builder instance in a thread pool
+        builder = await run_sync(Builder, config=builder_config)
+
+        # Process images in batches
+        processed_count = 0
+        valid_count = 0
+
+        async def process_batch(batch: List[Dict[str, Any]]) -> None:
+            nonlocal processed_count, valid_count
+            if not batch:
+                return
+
+            processed_count += len(batch)
+            valid_batch = [img for img in batch if img.get("is_valid", True)]
+            valid_count += len(valid_batch)
+
+            progress = min(int((processed_count / job.max_images) * 100), 100) if job.max_images > 0 else 0
+            
+            await job_service.update_job_progress(
+                job_id=job_id,
+                progress=progress,
+                downloaded_images=processed_count,
+                valid_images=valid_count,
+                session=session
+            )
+
+            if valid_batch:
+                await job_service.store_bulk_images(job_id, valid_batch, session=session)
+
+        # Process results as they come using async generator
+        try:
+            # Get the async generator from builder
+            async_gen = await run_in_threadpool(
+                builder.generate_async_batches,
+                batch_size=BATCH_SIZE
+            )
+            
+            # Process batches as they come
+            while True:
+                try:
+                    batch = await run_in_threadpool(next, async_gen)
+                    await process_batch(batch)
+                except StopAsyncIteration:
+                    break
+                    
+        except Exception as e:
+            raise ExternalServiceError(f"Error during batch processing: {str(e)}") from e
+            
+        # Ensure resources are cleaned up
+        await run_in_threadpool(builder.cleanup)
+
+        # Final update
+        async with session.begin():
+            await job_service.update_job(
+                job_id,
+                status="completed",
+                progress=100,
+                completed_at=datetime.utcnow(),
+                downloaded_images=processed_count,
+                valid_images=valid_count,
+                session=session
+            )
+
+    except Exception as e:
+        if 'session' in locals() and session.in_transaction():
+            await session.rollback()
+        
+        if 'job_service' in locals() and 'job_id' in locals():
+            async with session.begin():
+                await job_service.update_job(
+                    job_id,
+                    status="failed",
+                    error=str(e),
+                    completed_at=datetime.utcnow(),
+                    session=session
+                )
+        
+        raise ExternalServiceError(f"Job execution failed: {str(e)}") from e
+    
+    finally:
+        if should_close_session and 'session' in locals():
+            await session.close()
