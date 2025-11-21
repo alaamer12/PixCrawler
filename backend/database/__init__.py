@@ -2,7 +2,7 @@
 Database configuration and session management.
 """
 
-from .connection import get_session
-from .models import Base
+from backend.database.connection import get_session
+from backend.models import Base
 
 __all__ = ["get_session", "Base"]
