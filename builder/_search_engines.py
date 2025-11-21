@@ -82,12 +82,9 @@ class DDGSImageDownloader(ISearchEngineDownloader):
     A class to download images using DuckDuckGo search.
     """
 
-    def __init__(self, max_workers: int = 4):
+    def __init__(self):
         """
-        Initializes the DuckDuckGo with default settings.
-
-        Args:
-            max_workers (int): Deprecated parameter, kept for compatibility.
+        Initializes the DuckDuckGo downloader with default settings.
         """
         self.user_agent = USER_AGENT
         self.timeout = 20
@@ -455,8 +452,8 @@ def download_images_ddgs(keyword: str, out_dir: str, max_num: int) -> Tuple[bool
         # Create the output directory if it doesn't exist
         Path(out_dir).mkdir(parents=True, exist_ok=True)
 
-        # Initialize the DuckDuckGo downloader with parallel processing
-        ddg_downloader = DDGSImageDownloader(max_workers=6)
+        # Initialize the DuckDuckGo downloader
+        ddg_downloader = DDGSImageDownloader()
 
         # Get the current count of images in the directory
         initial_count = len([f for f in os.listdir(out_dir) if

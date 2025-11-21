@@ -131,9 +131,6 @@ class RetryConfig:
     feeder_threads: int = 2
     parser_threads: int = 2
     downloader_threads: int = 4
-    max_parallel_engines: int = 3
-    max_parallel_variations: int = 3
-    use_all_engines: bool = True
 
 
 @dataclass
@@ -201,15 +198,12 @@ class Retry:
     def _initial_download(self, max_num: int, keyword: str, out_dir: str) -> int:
         """Perform the initial download attempt"""
         logger.info(
-            f"Attempting to download {max_num} images for '{keyword}' using parallel processing")
+            f"Attempting to download {max_num} images for '{keyword}' using sequential processing")
 
         downloader = ImageDownloader(
             feeder_threads=self.config.feeder_threads,
             parser_threads=self.config.parser_threads,
-            downloader_threads=self.config.downloader_threads,
-            max_parallel_engines=self.config.max_parallel_engines,
-            max_parallel_variations=self.config.max_parallel_variations,
-            use_all_engines=self.config.use_all_engines
+            downloader_threads=self.config.downloader_threads
         )
 
         success, count = downloader.download(keyword, out_dir, max_num)
@@ -252,7 +246,7 @@ class Retry:
                 retry_engine = ENGINES[retries % len(ENGINES)]
                 logger.info(
                     f"Retry #{retries}: Using {retry_engine} with term '{retry_term}'")
-                downloader = ImageDownloader(use_all_engines=False)
+                downloader = ImageDownloader()
                 success, _ = downloader.download(retry_term, out_dir, images_needed)
 
             else:  # ALTERNATING strategy (default)
@@ -260,7 +254,7 @@ class Retry:
                     retry_engine = ENGINES[retries % len(ENGINES)]
                     logger.info(
                         f"Retry #{retries}: Using {retry_engine} with term '{retry_term}'")
-                    downloader = ImageDownloader(use_all_engines=False)
+                    downloader = ImageDownloader()
                     success, _ = downloader.download(retry_term, out_dir, images_needed)
                 else:
                     logger.info(

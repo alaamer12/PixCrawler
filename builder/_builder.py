@@ -47,7 +47,7 @@ from builder._exceptions import (
 from builder._generator import DatasetGenerator, ConfigManager
 from builder._helpers import ProgressManager
 
-# Image validation moved to backend package
+# Image validation moved to validator package
 
 __all__ = ['Builder']
 

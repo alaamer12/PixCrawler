@@ -112,7 +112,7 @@ class EngineStats:
 class EngineProcessor:
     """
     Enhanced engine processor for managing search engines and image downloading.
-    Provides both parallel and sequential processing modes with improved error handling.
+    Provides sequential processing with improved error handling and reliability.
     """
 
     def __init__(self, image_downloader: Any):
