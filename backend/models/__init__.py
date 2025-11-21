@@ -25,6 +25,7 @@ Features:
 
 from .base import Base, TimestampMixin
 from .api_keys import APIKey
+from .chunks import JobChunk
 from .credits import CreditAccount, CreditTransaction
 from .notifications import Notification, NotificationPreference
 from .usage import UsageMetric
@@ -102,6 +103,8 @@ __all__ = [
     'CrawlJob',
     'Image',
     'ActivityLog',
+    # Chunk models
+    'JobChunk',
     # Credit models
     'CreditAccount',
     'CreditTransaction',
@@ -128,6 +131,7 @@ class Profile(Base, TimestampMixin):
         full_name: User's full name
         avatar_url: URL to user's avatar image
         role: User role (default: 'user')
+        user_tier: Subscription tier (FREE, PRO, ENTERPRISE)
     """
 
     __tablename__ = "profiles"
@@ -137,6 +141,13 @@ class Profile(Base, TimestampMixin):
     full_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     avatar_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     role: Mapped[str] = mapped_column(String(20), nullable=False, default="user")
+    user_tier: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="FREE",
+        server_default="FREE",
+        index=True,
+    )
 
 
 class Project(Base, TimestampMixin):
