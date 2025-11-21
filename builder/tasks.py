@@ -464,12 +464,12 @@ def task_download_duckduckgo(
 # Keyword Generation Task
 # ============================================================================
 
-def task_generate_keywords_impl(
+def task_generate_keywords_basic_impl(
     base_keywords: List[str],
     ai_model: str = "gpt4-mini",
     count: int = 10
 ) -> Dict[str, Any]:
-    """Implementation for AI-powered keyword generation."""
+    """Implementation for basic keyword generation (CURRENT WORKING)."""
     logger.info(f"Starting keyword generation for: {base_keywords}")
 
     try:
@@ -547,8 +547,89 @@ def task_generate_keywords(
     ai_model: str = "gpt4-mini",
     count: int = 10
 ) -> Dict[str, Any]:
-    """Celery task for AI-powered keyword generation."""
-    return task_generate_keywords_impl(base_keywords, ai_model, count)
+    """Celery task for basic keyword generation (CURRENT WORKING)."""
+    return task_generate_keywords_basic_impl(base_keywords, ai_model, count)
+
+
+# ============================================================================
+# AI Keyword Generation (FUTURE)
+# ============================================================================
+
+# TODO: Uncomment when AI integration is ready
+# def task_generate_keywords_with_ai_impl(
+#     base_keywords: List[str],
+#     ai_model: str = "gpt4-mini",
+#     count: int = 10
+# ) -> Dict[str, Any]:
+#     """Implementation for AI-enhanced keyword generation (FUTURE)."""
+#     logger.info(f"Starting AI keyword generation for: {base_keywords}")
+#     
+#     try:
+#         # TODO: Use AI to select best predefined categories
+#         # TODO: Generate additional AI variations
+#         # TODO: Combine intelligently
+#         
+#         keyword_manager = KeywordManagement(ai_model=ai_model)
+#         generated_keywords = []
+#         errors = []
+#         
+#         for base_keyword in base_keywords:
+#             try:
+#                 new_keywords = keyword_manager.generate_keywords(base_keyword)
+#                 generated_keywords.extend(new_keywords)
+#             except Exception as e:
+#                 error_msg = f"Failed to generate keywords for '{base_keyword}': {str(e)}"
+#                 logger.error(error_msg)
+#                 errors.append(error_msg)
+#         
+#         generated_keywords = list(set(generated_keywords))
+#         logger.info(f"AI keyword generation completed: {len(generated_keywords)} keywords")
+#         
+#         return {
+#             'success': len(generated_keywords) > 0,
+#             'base_keywords': base_keywords,
+#             'generated_keywords': generated_keywords,
+#             'count': len(generated_keywords),
+#             'errors': errors
+#         }
+#     except Exception as e:
+#         logger.error(f"AI keyword generation failed: {str(e)}")
+#         return {
+#             'success': False,
+#             'base_keywords': base_keywords,
+#             'error': str(e),
+#             'generated_keywords': []
+#         }
+#
+#
+# @app.task(
+#     bind=True,
+#     base=BaseTask,
+#     name='builder.generate_keywords_with_ai',
+#     typing=True,
+#     autoretry_for=(ConnectionError, TimeoutError),
+#     max_retries=3,
+#     default_retry_delay=60,
+#     retry_backoff=True,
+#     retry_backoff_max=300,
+#     retry_jitter=True,
+#     ignore_result=False,
+#     store_errors_even_if_ignored=True,
+#     acks_late=True,
+#     track_started=True,
+#     soft_time_limit=300,
+#     time_limit=600,
+#     rate_limit="5/m",
+#     serializer="json",
+# )
+# def task_generate_keywords_with_ai(
+#     self,
+#     base_keywords: List[str],
+#     ai_model: str = "gpt4-mini",
+#     count: int = 10
+# ) -> Dict[str, Any]:
+#     """Celery task for AI-enhanced keyword generation (FUTURE)."""
+#     return task_generate_keywords_with_ai_impl(base_keywords, ai_model, count)
 
 
 def task_generate_labels_impl(

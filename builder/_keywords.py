@@ -133,6 +133,8 @@ class KeywordManagement:
                 f"Failed to generate keywords using {self.ai_model}: {str(e)}")
             raise GenerationError(
                 f"Failed to generate keywords for '{category}' using {self.ai_model}: {e}") from e
+    
+
 
     @staticmethod
     def _get_prompt(category: str) -> str:
@@ -298,11 +300,18 @@ class AlternativeKeyTermGenerator:
         """
         Initialize the generator with configuration keywords.
         """
+            # Fall back to predefined
+            self.generation_strategy = "predefined"
 
         self.category_functions = self._get_categories()
 
         # Extract clean terms from each category (remove {keyword} placeholder)
         self.clean_terms = self._extract_clean_terms()
+        
+        # AI components (will be initialized when AI is implemented)
+        self._ai_enhancer = None
+        if self.generation_strategy in ["ai-assisted", "ai-only"]:
+            self._initialize_ai_components()
 
     @staticmethod
     def _get_categories() -> dict:
@@ -463,10 +472,28 @@ class AlternativeKeyTermGenerator:
         else:
             return random.choice([6, 7, 8])
 
+    def _initialize_ai_components(self):
+        """
+        Initialize AI components for AI-assisted generation.
+        
+        This will be implemented when AI integration is ready.
+        For now, it's a placeholder that does nothing.
+        """
+        try:
+            from _ai_keyword_integration import AIKeywordEnhancer
+            self._ai_enhancer = AIKeywordEnhancer(self.ai_model)
+            logger.info(f"AI components initialized with model: {self.ai_model}")
+        except ImportError:
+            logger.warning("AI integration module not available")
+            self._ai_enhancer = None
+        except Exception as e:
+            logger.warning(f"Failed to initialize AI components: {e}")
+            self._ai_enhancer = None
+
     # noinspection PyArgumentList
     def generate(self, keyword: str, retry_count: int = 0) -> List[str]:
         """
-        Generate alternative search terms using intelligent combination strategies.
+        Generate alternative search terms using the configured strategy.
 
         Args:
             keyword: The original search keyword
@@ -478,6 +505,29 @@ class AlternativeKeyTermGenerator:
         if not keyword:
             return []
 
+        # Route to appropriate generation method based on strategy
+        if self.generation_strategy == "predefined":
+            return self._generate_with_predefined(keyword, retry_count)
+        elif self.generation_strategy == "ai-assisted":
+            return self._generate_with_ai_assisted(keyword, retry_count)
+        elif self.generation_strategy == "ai-only":
+            return self._generate_with_ai_only(keyword, retry_count)
+        else:
+            # Fallback to predefined
+            logger.warning(f"Unknown strategy '{self.generation_strategy}', using predefined")
+            return self._generate_with_predefined(keyword, retry_count)
+    
+    def _generate_with_predefined(self, keyword: str, retry_count: int) -> List[str]:
+        """
+        Generate variations using predefined keyword combinations (current implementation).
+        
+        Args:
+            keyword: The original search keyword
+            retry_count: Current retry count (influences strategy complexity)
+            
+        Returns:
+            List of keyword variations
+        """
         # Always start with the original keyword
         alternatives = [keyword]
 
@@ -511,6 +561,92 @@ class AlternativeKeyTermGenerator:
         random.shuffle(alternatives_to_shuffle)
 
         return [alternatives[0]] + alternatives_to_shuffle
+    
+    def _generate_with_ai_assisted(self, keyword: str, retry_count: int) -> List[str]:
+        """
+        Generate variations with AI assistance (FUTURE IMPLEMENTATION).
+        
+        This method will:
+        1. Use AI to select the best predefined variation function for the keyword
+        2. Get variations from selected predefined categories
+        3. Use AI to generate additional complementary variations
+        4. Combine predefined + AI-generated keywords intelligently
+        
+        Args:
+            keyword: The original search keyword
+            retry_count: Current retry count
+            
+        Returns:
+            List of keyword variations (predefined + AI-generated)
+            
+        TODO: Implement AI integration
+        - Use AIKeywordEnhancer.enhance_full_ai_assisted()
+        - Pass predefined categories to AI for selection
+        - Generate additional variations with AI
+        - Merge and deduplicate results
+        - Handle AI failures gracefully
+        """
+        logger.warning(
+            f"AI-assisted generation called for '{keyword}' but not implemented. "
+            "Falling back to predefined variations."
+        )
+        
+        # Future implementation:
+        # if self._ai_enhancer:
+        #     try:
+        #         return self._ai_enhancer.enhance_full_ai_assisted(
+        #             keyword=keyword,
+        #             predefined_categories=self.clean_terms,
+        #             retry_count=retry_count,
+        #             additional_count=5
+        #         )
+        #     except NotImplementedError:
+        #         logger.warning("AI enhancement not yet implemented, using predefined")
+        #     except Exception as e:
+        #         logger.error(f"AI enhancement failed: {e}, using predefined")
+        
+        # For now, fall back to predefined implementation
+        return self._generate_with_predefined(keyword, retry_count)
+    
+    def _generate_with_ai_only(self, keyword: str, retry_count: int) -> List[str]:
+        """
+        Generate variations using pure AI (FUTURE IMPLEMENTATION).
+        
+        This method will use AI exclusively to generate keyword variations,
+        without relying on predefined categories.
+        
+        Args:
+            keyword: The original search keyword
+            retry_count: Current retry count
+            
+        Returns:
+            List of AI-generated keyword variations
+            
+        TODO: Implement pure AI generation
+        - Use AIKeywordGenerator.generate_progressive_variations()
+        - Generate diverse variations based on retry count
+        - Validate and clean AI-generated keywords
+        - Ensure minimum quality and relevance
+        """
+        logger.warning(
+            f"AI-only generation called for '{keyword}' but not implemented. "
+            "Falling back to predefined variations."
+        )
+        
+        # Future implementation:
+        # if self._ai_enhancer:
+        #     try:
+        #         return self._ai_enhancer.generator.generate_progressive_variations(
+        #             keyword=keyword,
+        #             retry_count=retry_count
+        #         )
+        #     except NotImplementedError:
+        #         logger.warning("AI-only generation not yet implemented, using predefined")
+        #     except Exception as e:
+        #         logger.error(f"AI generation failed: {e}, using predefined")
+        
+        # For now, fall back to predefined implementation
+        return self._generate_with_predefined(keyword, retry_count)
 
     def _generate_simple_fallback(self, keyword: str, alternatives: list) -> None:
         simple_combinations = [
@@ -558,3 +694,52 @@ class AlternativeKeyTermGenerator:
         else:
             # Cycle through alternatives for very high retry counts
             return alternatives[retry_count % len(alternatives)]
+    
+    def _select_best_category_with_ai(self, keyword: str) -> str:
+        """
+        Use AI to select the best predefined variation category for a keyword.
+        
+        FUTURE IMPLEMENTATION: This will analyze the keyword and determine which
+        predefined category (professional, style, quality, etc.) best matches
+        the user's intent.
+        
+        Args:
+            keyword: User's input keyword
+            
+        Returns:
+            Best matching category name
+            
+        TODO: Implement AI-based category selection
+        Example approach:
+        - Prompt: "Given the keyword '{keyword}', which category best describes it:
+          professional, artistic/style, quality-focused, emotional/aesthetic, 
+          technical/camera, location-based, or generic?"
+        - Parse AI response to get category name
+        - Return corresponding category from self.category_functions
+        """
+        raise NotImplementedError("AI category selection not yet implemented")
+    
+    def _generate_additional_with_ai(self, keyword: str, count: int = 5) -> List[str]:
+        """
+        Use AI to generate additional keyword variations beyond predefined ones.
+        
+        FUTURE IMPLEMENTATION: This will use AI to create contextually relevant
+        keyword variations that complement the predefined variations.
+        
+        Args:
+            keyword: Base keyword
+            count: Number of additional variations to generate
+            
+        Returns:
+            List of AI-generated keyword variations
+            
+        TODO: Implement AI-based variation generation
+        Example approach:
+        - Prompt: "Generate {count} diverse search keyword variations for '{keyword}' 
+          that would help find high-quality images. Focus on terms that complement
+          these categories: quality, style, lighting, composition."
+        - Parse AI response to extract keywords
+        - Validate and clean generated keywords
+        - Return list of variations
+        """
+        raise NotImplementedError("AI variation generation not yet implemented")
