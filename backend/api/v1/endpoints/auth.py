@@ -18,7 +18,7 @@ Note: Authentication flow:
 """
 from typing import Union
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 
 from backend.api.types import CurrentUser, SupabaseAuthServiceDep
 from backend.api.v1.response_models import get_common_responses

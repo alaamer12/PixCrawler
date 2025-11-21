@@ -65,7 +65,6 @@ from builder._exceptions import ConfigurationError, DownloadError, \
 from builder._helpers import DatasetTracker, ProgressManager, progress, \
     valid_image_ext
 from builder._utilities import rename_images_sequentially
-from builder.protocols import KeywordGenerator
 
 __all__ = [
     'retry_download',
@@ -73,9 +72,6 @@ __all__ = [
     'validate_keywords',
     'update_logfile',
     'LabelGenerator',
-    'SimpleKeywordGenerator',
-    'AIKeywordGenerator',
-    'KeywordGeneratorFactory',
     'KeywordManagement',
     'DatasetGenerator',
     'generate_dataset',
@@ -1408,435 +1404,23 @@ class LabelGenerator:
                 f"Failed to write YAML label {label_path}: {e}") from e
 
 
-# ============================================================================
-# Keyword Generation Strategies
-# ============================================================================
-
-class SimpleKeywordGenerator:
-    """
-    Simple keyword generator that provides basic keyword expansion.
-    
-    This generator creates variations of the input keywords using
-    predefined patterns and simple transformations, without requiring
-    external AI services.
-    """
-    
-    def __init__(self):
-        """Initialize the simple keyword generator."""
-        self._name = "simple"
-        self._description = "Basic keyword expansion using predefined patterns"
-    
-    @property
-    def name(self) -> str:
-        """Get the generator name."""
-        return self._name
-    
-    @property
-    def description(self) -> str:
-        """Get the generator description."""
-        return self._description
-    
-    def configure(self, config: Dict[str, Any]) -> None:
-        """
-        Configure the simple keyword generator.
-        
-        Args:
-            config: Configuration dictionary (currently unused for simple generator)
-        """
-        # Simple generator doesn't need configuration
-        pass
-    
-    def generate(
-        self,
-        category: str,
-        base_keywords: Optional[List[str]] = None,
-        **kwargs
-    ) -> List[str]:
-        """
-        Generate keywords using simple expansion patterns.
-        
-        Args:
-            category: The category name for keyword generation
-            base_keywords: Optional list of base keywords to expand from
-            **kwargs: Additional parameters (unused for simple generator)
-            
-        Returns:
-            List of generated keywords
-        """
-        keywords = []
-        
-        # Always include the category itself
-        keywords.append(category)
-        
-        # If base keywords provided, use them
-        if base_keywords:
-            keywords.extend(base_keywords)
-        
-        # Generate simple variations
-        variations = self._generate_simple_variations(category)
-        keywords.extend(variations)
-        
-        # Remove duplicates while preserving order
-        return self._clean_and_deduplicate_keywords(keywords, category)
-    
-    def _generate_simple_variations(self, category: str) -> List[str]:
-        """
-        Generate simple variations of the category name.
-        
-        Args:
-            category: The category name
-            
-        Returns:
-            List of simple variations
-        """
-        variations = []
-        
-        # Basic patterns
-        patterns = [
-            f"{category} photo",
-            f"{category} image",
-            f"{category} picture",
-            f"high quality {category}",
-            f"beautiful {category}",
-            f"{category} photography",
-        ]
-        
-        variations.extend(patterns)
-        
-        # Plural/singular variations
-        if not category.endswith('s'):
-            variations.append(f"{category}s")
-        elif category.endswith('s') and len(category) > 1:
-            variations.append(category[:-1])
-        
-        return variations
-    
-    @staticmethod
-    def _clean_and_deduplicate_keywords(keywords: List[str], category: str) -> List[str]:
-        """
-        Clean and deduplicate a list of keywords.
-        
-        Args:
-            keywords: The list of keywords to clean
-            category: The original category name to ensure it's included
-            
-        Returns:
-            Cleaned and deduplicated list of keywords
-        """
-        # Remove duplicates and empty strings
-        keywords = [k.strip() for k in keywords if k and k.strip()]
-        keywords = list(dict.fromkeys(keywords))  # Remove duplicates while preserving order
-        
-        # Always include the category itself
-        if category not in keywords:
-            keywords.insert(0, category)
-        
-        return keywords
-
-
-class AIKeywordGenerator:
-    """
-    AI-powered keyword generator using GPT models.
-    
-    This generator uses AI models (GPT-4, GPT-4-mini) to generate
-    diverse and contextually relevant keywords for image search.
-    """
-    
-    def __init__(self, ai_model: str = "gpt4-mini"):
-        """
-        Initialize the AI keyword generator.
-        
-        Args:
-            ai_model: The AI model to use ("gpt4" or "gpt4-mini")
-        """
-        self.ai_model = ai_model
-        self._name = "ai"
-        self._description = f"AI-powered keyword generation using {ai_model}"
-    
-    @property
-    def name(self) -> str:
-        """Get the generator name."""
-        return self._name
-    
-    @property
-    def description(self) -> str:
-        """Get the generator description."""
-        return self._description
-    
-    def configure(self, config: Dict[str, Any]) -> None:
-        """
-        Configure the AI keyword generator.
-        
-        Args:
-            config: Configuration dictionary with AI model settings
-        """
-        if 'ai_model' in config:
-            self.ai_model = config['ai_model']
-            self._description = f"AI-powered keyword generation using {self.ai_model}"
-    
-    def generate(
-        self,
-        category: str,
-        base_keywords: Optional[List[str]] = None,
-        **kwargs
-    ) -> List[str]:
-        """
-        Generate keywords using AI models.
-        
-        Args:
-            category: The category name for keyword generation
-            base_keywords: Optional list of base keywords to expand from
-            **kwargs: Additional parameters
-            
-        Returns:
-            List of generated keywords
-            
-        Raises:
-            GenerationError: If AI keyword generation fails
-        """
-        try:
-            # Import g4f here to avoid import issues if not available
-            import g4f
-            
-            # Select the appropriate model
-            provider = None  # Let g4f choose the best available provider
-            model = g4f.models.gpt_4 if self.ai_model == "gpt4" else g4f.models.gpt_4o_mini
-            
-            # Create the prompt
-            prompt = self._get_prompt(category, base_keywords)
-            
-            # Make the API call
-            logger.info(f"Generating keywords for '{category}' using {self.ai_model}")
-            response = g4f.ChatCompletion.create(
-                model=model,
-                provider=provider,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            
-            # Extract keywords from response
-            keywords = self._extract_keywords_from_response(response, category)
-            
-            # Include base keywords if provided
-            if base_keywords:
-                keywords = list(set(keywords + base_keywords))
-            
-            logger.info(f"Generated {len(keywords)} keywords for '{category}' using {self.ai_model}")
-            return keywords
-            
-        except Exception as e:
-            logger.warning(f"Failed to generate keywords using {self.ai_model}: {str(e)}")
-            raise GenerationError(
-                f"Failed to generate keywords for '{category}' using {self.ai_model}: {e}"
-            ) from e
-    
-    def _get_prompt(self, category: str, base_keywords: Optional[List[str]] = None) -> str:
-        """
-        Generate the AI prompt for keyword generation.
-        
-        Args:
-            category: The category name
-            base_keywords: Optional base keywords to expand from
-            
-        Returns:
-            Formatted prompt string
-        """
-        base_text = ""
-        if base_keywords:
-            base_text = f"\nBase keywords to expand from: {', '.join(base_keywords)}"
-        
-        return f"""Generate 10-15 search keywords related to "{category}" that would be useful for
-finding diverse, high-quality images of this concept.{base_text}
-
-Include variations that would work well for image search engines.
-
-Return ONLY the keywords as a Python list of strings, with no explanation or other text.
-Example format: ["keyword 1", "keyword 2", "keyword 3"]
-"""
-    
-    def _extract_keywords_from_response(self, response: str, category: str) -> List[str]:
-        """
-        Extract keywords from AI response.
-        
-        Args:
-            response: Raw AI response
-            category: Original category name
-            
-        Returns:
-            List of extracted keywords
-        """
-        try:
-            # Try to find a list pattern in the response
-            list_pattern = r'\[.*?\]'
-            match = re.search(list_pattern, response, re.DOTALL)
-            
-            if match:
-                # Found a list pattern, try to parse it
-                list_str = match.group(0)
-                with contextlib.suppress(Exception):
-                    # Parse as Python list
-                    keywords = eval(list_str)
-                    if isinstance(keywords, list) and all(isinstance(k, str) for k in keywords):
-                        return self._clean_and_deduplicate_keywords(keywords, category)
-            
-            # If we couldn't parse a proper list, try to extract keywords line by line
-            lines = [line.strip() for line in response.split('\n')]
-            keywords = []
-            
-            for line in lines:
-                # Remove common list markers and quotes
-                line = re.sub(r'^[-*•"]', '', line).strip()
-                line = re.sub(r'^[0-9]+\.', '', line).strip()
-                line = line.strip('"\'')
-                
-                if line and not line.startswith('[') and not line.startswith(']'):
-                    keywords.append(line)
-            
-            return self._clean_and_deduplicate_keywords(keywords, category)
-            
-        except Exception as e:
-            logger.warning(f"Error extracting keywords from AI response: {str(e)}")
-            # Return at least the category itself
-            return [category]
-    
-    @staticmethod
-    def _clean_and_deduplicate_keywords(keywords: List[str], category: str) -> List[str]:
-        """
-        Clean and deduplicate keywords.
-        
-        Args:
-            keywords: List of keywords to clean
-            category: Original category name
-            
-        Returns:
-            Cleaned and deduplicated keywords
-        """
-        # Remove duplicates and empty strings
-        keywords = [k.strip() for k in keywords if k and k.strip()]
-        keywords = list(dict.fromkeys(keywords))  # Remove duplicates while preserving order
-        
-        # Always include the category itself
-        if category not in keywords:
-            keywords.insert(0, category)
-        
-        return keywords
-
-
-class KeywordGeneratorFactory:
-    """
-    Factory for creating keyword generator instances.
-    
-    This factory provides a centralized way to create and configure
-    keyword generators based on strategy names and configurations.
-    """
-    
-    _generators = {
-        'simple': SimpleKeywordGenerator,
-        'ai': AIKeywordGenerator,
-        'basic': SimpleKeywordGenerator,  # Alias for simple
-        'gpt': AIKeywordGenerator,  # Alias for AI
-    }
-    
-    @classmethod
-    def create_generator(
-        self,
-        strategy: str,
-        config: Optional[Dict[str, Any]] = None
-    ) -> KeywordGenerator:
-        """
-        Create a keyword generator instance.
-        
-        Args:
-            strategy: The generator strategy name ('simple', 'ai', 'basic', 'gpt')
-            config: Optional configuration dictionary
-            
-        Returns:
-            Configured keyword generator instance
-            
-        Raises:
-            ValueError: If strategy is not supported
-        """
-        if strategy not in self._generators:
-            available = ', '.join(self._generators.keys())
-            raise ValueError(f"Unknown keyword generation strategy '{strategy}'. Available: {available}")
-        
-        generator_class = self._generators[strategy]
-        
-        # Create generator with appropriate parameters
-        if strategy in ['ai', 'gpt']:
-            ai_model = config.get('ai_model', 'gpt4-mini') if config else 'gpt4-mini'
-            generator = generator_class(ai_model=ai_model)
-        else:
-            generator = generator_class()
-        
-        # Configure the generator
-        if config:
-            generator.configure(config)
-        
-        return generator
-    
-    @classmethod
-    def get_available_strategies(cls) -> List[str]:
-        """
-        Get list of available keyword generation strategies.
-        
-        Returns:
-            List of strategy names
-        """
-        return list(cls._generators.keys())
-    
-    @classmethod
-    def register_generator(cls, name: str, generator_class) -> None:
-        """
-        Register a new keyword generator class.
-        
-        Args:
-            name: Strategy name
-            generator_class: Generator class that implements KeywordGenerator protocol
-        """
-        cls._generators[name] = generator_class
-
-
 class KeywordManagement:
     """
     Class responsible for managing keyword generation and preparation for dataset categories.
-    This class now uses the protocol-based keyword generation strategy pattern for
-    extensible keyword generation approaches.
+    This class handles AI-based keyword generation, keyword validation, and preparation
+    of final keyword lists based on configuration settings.
     """
 
-    def __init__(
-        self, 
-        ai_model: str = "gpt4-mini", 
-        keyword_generation: str = "auto",
-        generation_strategy: str = "ai"
-    ):
+    def __init__(self, ai_model: str = "gpt4-mini", keyword_generation: str = "auto"):
         """
         Initializes the KeywordManagement instance.
 
         Args:
             ai_model (str): The AI model to use for keyword generation (e.g., "gpt4", "gpt4-mini").
             keyword_generation (str): The keyword generation mode ("auto", "enabled", "disabled").
-            generation_strategy (str): The keyword generation strategy ("ai", "simple", "gpt", "basic").
         """
         self.ai_model = ai_model
         self.keyword_generation = keyword_generation
-        self.generation_strategy = generation_strategy
-        
-        # Create the keyword generator using the factory
-        generator_config = {
-            'ai_model': ai_model
-        }
-        
-        try:
-            self.generator = KeywordGeneratorFactory.create_generator(
-                strategy=generation_strategy,
-                config=generator_config
-            )
-            logger.info(f"Initialized keyword generator: {self.generator.description}")
-        except ValueError as e:
-            logger.warning(f"Failed to create generator '{generation_strategy}': {e}")
-            # Fallback to simple generator
-            self.generator = KeywordGeneratorFactory.create_generator("simple")
-            logger.info(f"Fallback to simple generator: {self.generator.description}")
 
     def prepare_keywords(self, category_name: str, keywords: List[str]) -> Dict[
         str, Any]:
@@ -1862,11 +1446,11 @@ class KeywordManagement:
 
         if not keywords and self.keyword_generation in ["auto", "enabled"]:
             # No keywords provided and generation enabled
-            generated_keywords = self._generate_keywords_with_strategy(category_name)
+            generated_keywords = self.generate_keywords(category_name)
             keywords = generated_keywords
             generation_occurred = True
             logger.info(
-                f"No keywords provided for category '{category_name}', generated {len(keywords)} keywords using {self.generator.name} strategy")
+                f"No keywords provided for category '{category_name}', generated {len(keywords)} keywords")
 
         elif not keywords and self.keyword_generation == "disabled":
             # No keywords and generation disabled, use category name as keyword
@@ -1877,13 +1461,13 @@ class KeywordManagement:
 
         elif self.keyword_generation == "enabled" and keywords:
             # Keywords provided and asked to generate more
-            generated_keywords = self._generate_keywords_with_strategy(category_name, keywords)
+            generated_keywords = self.generate_keywords(category_name)
             # Add generated keywords to user-provided ones, avoiding duplicates
             original_count = len(keywords)
             keywords = list(set(keywords + generated_keywords))
             generation_occurred = True
             logger.info(
-                f"Added {len(keywords) - original_count} generated keywords to {original_count} user-provided ones using {self.generator.name} strategy"
+                f"Added {len(keywords) - original_count} generated keywords to {original_count} user-provided ones"
             )
 
         return {
@@ -1895,10 +1479,8 @@ class KeywordManagement:
 
     def generate_keywords(self, category: str) -> List[str]:
         """
-        Generates related keywords for a given category using the configured strategy.
-        
-        This method is kept for backward compatibility but now delegates to the
-        strategy-based approach.
+        Generates related keywords for a given category using the G4F (GPT-4) API.
+        This function attempts to generate diverse and high-quality search terms.
 
         Args:
             category (str): The category name for which to generate keywords.
@@ -1907,49 +1489,122 @@ class KeywordManagement:
             List[str]: A list of generated keywords related to the category.
 
         Raises:
-            GenerationError: If keyword generation fails.
-        """
-        return self._generate_keywords_with_strategy(category)
-    
-    def _generate_keywords_with_strategy(
-        self, 
-        category: str, 
-        base_keywords: Optional[List[str]] = None
-    ) -> List[str]:
-        """
-        Generate keywords using the configured strategy.
-        
-        Args:
-            category: The category name for keyword generation
-            base_keywords: Optional list of base keywords to expand from
-            
-        Returns:
-            List of generated keywords
-            
-        Raises:
-            GenerationError: If keyword generation fails
+            GenerationError: If keyword generation fails after retries.
         """
         try:
-            return self.generator.generate(
-                category=category,
-                base_keywords=base_keywords
+            # Import g4f here to avoid import issues if not available
+            import g4f
+
+            # Select the appropriate model
+            provider = None  # Let g4f choose the best available provider
+            model = g4f.models.gpt_4 if self.ai_model == "gpt4" else g4f.models.gpt_4o_mini
+
+            # Create the prompt
+            prompt = self._get_prompt(category)
+
+            # Make the API call
+            logger.info(f"Generating keywords for '{category}' using {self.ai_model}")
+            response = g4f.ChatCompletion.create(
+                model=model,
+                provider=provider,
+                messages=[{"role": "user", "content": prompt}]
             )
+
+            # Extract keywords from response
+            keywords = self._extract_keywords_from_response(response, category)
+
+            logger.info(
+                f"Generated {len(keywords)} keywords for '{category}' using {self.ai_model}")
+            return keywords
+
         except Exception as e:
-            logger.warning(f"Keyword generation failed with {self.generator.name} strategy: {e}")
-            # Fallback to simple strategy if current strategy fails
-            if self.generator.name != "simple":
-                logger.info("Falling back to simple keyword generation strategy")
-                try:
-                    fallback_generator = KeywordGeneratorFactory.create_generator("simple")
-                    return fallback_generator.generate(category=category, base_keywords=base_keywords)
-                except Exception as fallback_error:
-                    logger.error(f"Fallback strategy also failed: {fallback_error}")
-                    # Return at least the category itself
-                    return [category]
-            else:
-                # Simple strategy failed, return category only
-                logger.error(f"Simple strategy failed: {e}")
-                return [category]
+            logger.warning(
+                f"Failed to generate keywords using {self.ai_model}: {str(e)}")
+            raise GenerationError(
+                f"Failed to generate keywords for '{category}' using {self.ai_model}: {e}") from e
+
+    @staticmethod
+    def _get_prompt(category: str) -> str:
+        return f"""Generate 10-15 search keywords related to "{category}" that would be useful for
+            finding diverse, high-quality images of this concept.
+
+            Include variations that would work well for image search engines.
+
+            Return ONLY the keywords as a Python list of strings, with no explanation or other text.
+            Example format: ["keyword 1", "keyword 2", "keyword 3"]
+            """
+
+    def _extract_keywords_from_response(self, response: str, category: str) -> List[
+        str]:
+        """
+        Extracts a list of keywords from the raw AI model response string.
+        It attempts to parse a Python list structure first, then falls back to line-by-line extraction.
+
+        Args:
+            response (str): The raw response text received from the AI model.
+            category (str): The original category name, which is always included in the returned list.
+
+        Returns:
+            List[str]: A cleaned and deduplicated list of extracted keywords.
+        """
+        try:
+            # Try to find a list pattern in the response
+            list_pattern = r'\[.*?\]'
+            match = re.search(list_pattern, response, re.DOTALL)
+
+            if match:
+                # Found a list pattern, try to parse it
+                list_str = match.group(0)
+                with contextlib.suppress(Exception):
+                    # Parse as Python list
+                    keywords = eval(list_str)
+                    if not (not isinstance(keywords, list) or not all(
+                        isinstance(k, str) for k in keywords)):
+                        return self._clean_and_deduplicate_keywords(keywords, category)
+
+            # If we couldn't parse a proper list, try to extract keywords line by line
+            lines = [line.strip() for line in response.split('\n')]
+            keywords = []
+
+            for line in lines:
+                # Remove common list markers and quotes
+                line = re.sub(r'^[-*•"]', '', line).strip()
+                line = re.sub(r'^[0-9]+\.', '', line).strip()
+                line = line.strip('"\'')
+
+                if line and not line.startswith('[') and not line.startswith(']'):
+                    keywords.append(line)
+
+            return self._clean_and_deduplicate_keywords(keywords, category)
+
+        except Exception as e:
+            logger.warning(f"Error extracting keywords from AI response: {str(e)}")
+            # Return at least the category itself
+            return [category]
+
+    @staticmethod
+    def _clean_and_deduplicate_keywords(keywords: List[str], category: str) -> List[
+        str]:
+        """
+        Cleans and deduplicates a list of keywords.
+
+        Args:
+            keywords (List[str]): The list of keywords to clean.
+            category (str): The original category name to ensure it's included.
+
+        Returns:
+            List[str]: A cleaned and deduplicated list of keywords.
+        """
+        # Remove duplicates and empty strings
+        keywords = [k.strip() for k in keywords if k and k.strip()]
+        keywords = list(
+            dict.fromkeys(keywords))  # Remove duplicates while preserving order
+
+        # Always include the category itself
+        if category not in keywords:
+            keywords.insert(0, category)
+
+        return keywords
 
 
 class DatasetGenerator:
@@ -1989,8 +1644,7 @@ class DatasetGenerator:
         # Initialize KeywordManagement instance
         self.keyword_manager = KeywordManagement(
             ai_model=self.config.ai_model,
-            keyword_generation=self.config.keyword_generation,
-            generation_strategy=getattr(self.config, 'generation_strategy', 'ai')
+            keyword_generation=self.config.keyword_generation
         )
 
         # Add missing attributes that are referenced in methods but not initialized
