@@ -23,7 +23,12 @@ export function DashboardHeader({user}: DashboardHeaderProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-6">
           <div className="flex items-center">
-            <h1 className="text-xl font-bold text-gray-900">PixCrawler</h1>
+            <span className="sr-only">PixCrawler</span>
+            {/* Use brand-only text for header to avoid redundant icon */}
+            <span className="font-bold text-xl">
+              <span style={{color: '#7096b7'}}>Pix</span>
+              <span style={{color: '#878A8C'}}>Crawler</span>
+            </span>
           </div>
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-700">

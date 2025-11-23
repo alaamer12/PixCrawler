@@ -5,6 +5,7 @@ import {memo, useEffect, useState} from 'react'
 import {Menu, X} from 'lucide-react'
 import {Button, IconButton} from '@/components/ui/button'
 import {ThemeToggle} from '@/components/theme-toggle'
+import {Logo} from '@/components/shared/Logo'
 
 const NAV_ITEMS = [
   {href: '/', label: 'Home'},
@@ -102,8 +103,8 @@ export const Navigation = memo(() => {
     <>
       <nav className="border-b border-border sticky top-0 bg-background/95 backdrop-blur z-50">
         <div className="container mx-auto px-4 lg:px-8 h-[70px] flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold">
-            PixCrawler
+          <Link href="/" aria-label="PixCrawler Home">
+            <Logo showIcon showText size="md"/>
           </Link>
           <NavLinks/>
           <div className="flex items-center gap-3">

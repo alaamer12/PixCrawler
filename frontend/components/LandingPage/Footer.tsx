@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import {memo} from 'react'
 import {Github, Linkedin, Twitter} from 'lucide-react'
+import {Logo} from '@/components/shared/Logo'
 
 interface FooterLink {
   label: string
@@ -56,10 +57,8 @@ const SOCIAL_LINKS = [
 const BrandSection = memo(() => {
   return (
     <div className="col-span-2">
-      <Link href="/" className="inline-block">
-        <div className="font-bold text-lg mb-3 text-foreground hover:text-primary transition-colors">
-          PixCrawler
-        </div>
+      <Link href="/" className="inline-block" aria-label="PixCrawler Home">
+        <Logo showIcon={false} showText size="md" className="mb-3"/>
       </Link>
       <p className="text-sm text-foreground/60 leading-relaxed max-w-sm">
         Automated image dataset builder for ML & research. Transform keywords into

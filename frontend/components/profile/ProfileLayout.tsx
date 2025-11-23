@@ -179,7 +179,10 @@ export function ProfileLayout({children, activeSection, onSectionChange}: Profil
                 className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
                 <span className="text-primary-foreground text-sm font-bold">P</span>
               </div>
-              <span className="hidden sm:inline-block">PixCrawler</span>
+              <span className="hidden sm:inline-block font-bold">
+                <span style={{color: '#7096b7'}}>Pix</span>
+                <span style={{color: '#878A8C'}}>Crawler</span>
+              </span>
             </a>
           </div>
 

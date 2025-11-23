@@ -10,7 +10,7 @@ import {HeroBackground} from '@/components/LandingPage/HeroBackground';
 import {TopLoadingBar} from '@/components/TopLoadingBar';
 import {ErrorBoundaryProvider} from '@/components/providers/error-boundary-provider';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'PixCrawler - AI-Powered Image Dataset Builder for ML & Research',
   description: 'Build production-ready image datasets in minutes with AI-powered crawling, validation, and organization. Multi-source scraping from Google, Bing, and more. Perfect for ML researchers and developers.',
   keywords: ['image dataset', 'machine learning', 'AI dataset builder', 'image scraping', 'ML training data', 'computer vision', 'dataset generation'],
