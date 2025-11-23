@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { BrandIcon } from '@/components/icons/brands'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -57,21 +59,16 @@ const SourceButton = memo(({
   source: ImageSource
   onToggle: (id: string) => void 
 }) => {
-  const Icon = source.icon
   return (
     <button
       onClick={() => onToggle(source.id)}
-      className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
+      className={`flex items-center gap-4 p-5 rounded-xl border transition-all ${
         source.enabled
           ? 'bg-primary/10 border-primary shadow-md'
           : 'bg-background/50 hover:bg-accent border-border'
       }`}
     >
-      <Icon
-        className={`w-5 h-5 ${
-          source.enabled ? 'text-primary' : 'text-muted-foreground'
-        }`}
-      />
+      <BrandIcon name={source.id} className={`size-5 ${source.enabled ? '' : 'opacity-70'}`} />
       <span
         className={`font-medium ${
           source.enabled ? 'text-primary' : ''
@@ -97,6 +94,7 @@ export default function NewDatasetPage() {
   const [datasetName, setDatasetName] = useState('')
   const [keywords, setKeywords] = useState('')
   const [imageCount, setImageCount] = useState(100)
+  const [isEditingImageCount, setIsEditingImageCount] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [validation, setValidation] = useState<ValidationResult>({ valid: true, errors: {} })
   const [touched, setTouched] = useState({ name: false, keywords: false, sources: false })
@@ -229,10 +227,10 @@ export default function NewDatasetPage() {
   }), [estimatedImages])
 
   return (
-    <div className="space-y-6 mx-6 py-8">
+    <div className="space-y-8 mx-6 py-10">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="space-y-1">
+        <div className="space-y-2">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" asChild>
               <Link href={`/dashboard/projects/${projectId}`}>
@@ -241,7 +239,7 @@ export default function NewDatasetPage() {
               </Link>
             </Button>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold mt-12 tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
             Create New Dataset
           </h1>
           <p className="text-base text-muted-foreground">
@@ -270,7 +268,7 @@ export default function NewDatasetPage() {
       )}
 
       {/* Main Form */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-8 lg:grid-cols-3">
         {/* Left Column - Form */}
         <div className="lg:col-span-2 space-y-6">
           {/* Dataset Details */}
@@ -349,9 +347,32 @@ export default function NewDatasetPage() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <Label>Images per Keyword</Label>
-                  <span className="text-sm font-semibold text-primary">
-                    {imageCount} images
-                  </span>
+                  {isEditingImageCount ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={imageCount}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value || '0', 10)
+                          const clamped = Math.min(500, Math.max(10, isNaN(v) ? 10 : v))
+                          const normalized = Math.round(clamped / 10) * 10
+                          setImageCount(normalized)
+                        }}
+                        onBlur={() => setIsEditingImageCount(false)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') setIsEditingImageCount(false) }}
+                        className="w-24 h-8"
+                      />
+                      <span className="text-xs text-muted-foreground">Enter 10–500</span>
+                    </div>
+                  ) : (
+                    <span
+                      className="text-sm font-semibold text-primary cursor-pointer select-none"
+                      onDoubleClick={() => setIsEditingImageCount(true)}
+                      title="Double-click to type a value"
+                    >
+                      {imageCount} images
+                    </span>
+                  )}
                 </div>
                 <Slider
                   value={[imageCount]}
@@ -369,41 +390,7 @@ export default function NewDatasetPage() {
             </CardContent>
           </Card>
 
-          {/* Image Sources */}
-          <Card className="bg-card/80 backdrop-blur-md border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="w-5 h-5" />
-                Image Sources
-              </CardTitle>
-              <CardDescription>
-                Select where to crawl images from
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {sources.map((source) => (
-                  <SourceButton 
-                    key={source.id} 
-                    source={source} 
-                    onToggle={toggleSource} 
-                  />
-                ))}
-              </div>
-              {validation.errors.sources && touched.sources && (
-                <p className="text-xs text-destructive flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  {validation.errors.sources}
-                </p>
-              )}
-              {validation.warnings?.sources && !validation.errors.sources && touched.sources && (
-                <p className="text-xs text-yellow-600 flex items-center gap-1">
-                  <Info className="w-3 h-3" />
-                  {validation.warnings.sources}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          {/* Image Sources section removed */}
 
           {/* Advanced Configuration */}
           <Card className="bg-card/80 backdrop-blur-md border-border/50">
@@ -509,7 +496,7 @@ export default function NewDatasetPage() {
             <CardHeader>
               <CardTitle className="text-lg">Configuration</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
               <div className="flex justify-between items-center py-2 border-b border-border/50">
                 <span className="text-sm text-muted-foreground">Dataset Name</span>
                 <span className="text-sm font-medium text-right max-w-[150px] truncate">
@@ -522,7 +509,22 @@ export default function NewDatasetPage() {
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border/50">
                 <span className="text-sm text-muted-foreground">Sources</span>
-                <Badge variant="outline">{selectedSourcesCount} selected</Badge>
+                <div className="flex items-center gap-2">
+                  <TooltipProvider>
+                    {sources.filter(s => s.enabled).map(s => (
+                      <Tooltip key={s.id}>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center justify-center rounded-md border px-2 py-1 bg-background/60">
+                            <BrandIcon name={s.id} className="size-4" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="px-2 py-1 bg-card border border-border/50 text-foreground rounded-md shadow-md">
+                          <p className="text-xs">{s.name}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </TooltipProvider>
+                </div>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border/50">
                 <span className="text-sm text-muted-foreground">Per Keyword</span>
@@ -530,16 +532,13 @@ export default function NewDatasetPage() {
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border/50">
                 <span className="text-sm text-muted-foreground">Validation</span>
-                <Badge variant={validation.valid ? "default" : "destructive"} className="text-xs">
-                  {validation.valid ? "Valid" : "Errors"}
-                </Badge>
+                {validation.valid ? (
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-red-500" />
+                )}
               </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-muted-foreground">Est. Total</span>
-                <span className="text-sm font-semibold text-primary">
-                  ~{estimatedImages.toLocaleString()}
-                </span>
-              </div>
+              {/* Est. Total row removed */}
             </CardContent>
           </Card>
 
@@ -579,18 +578,7 @@ export default function NewDatasetPage() {
 
           {/* Enhanced Info Cards */}
           <div className="space-y-3">
-            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4">
-              <div className="flex gap-3">
-                <Clock className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-blue-500">Processing Time</p>
-                  <p className="text-xs text-muted-foreground">
-                    Estimated: {estimatedTime.min} - {estimatedTime.max} minutes
-                  </p>
-                </div>
-              </div>
-            </div>
-
+            {/* Processing Time card removed */}
             <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-4">
               <div className="flex gap-3">
                 <HardDrive className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />

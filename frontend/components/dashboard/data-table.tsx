@@ -81,12 +81,12 @@ export function DataTable<T extends Record<string, any>>({
         <TableHeader>
           <TableRow className="hover:bg-transparent border-b border-border/50">
             {columns.map((column) => (
-              <TableHead key={column.key} className={cn('font-semibold', column.className)}>
+              <TableHead key={column.key} className={cn('font-semibold px-4 md:px-5', column.className)}>
                 {column.header}
               </TableHead>
             ))}
             {(onView || onEdit || onDelete || actions) && (
-              <TableHead className="w-[100px] text-right">Actions</TableHead>
+              <TableHead className="w-[100px] text-right px-4 md:px-5">Actions</TableHead>
             )}
           </TableRow>
         </TableHeader>
@@ -104,7 +104,7 @@ export function DataTable<T extends Record<string, any>>({
             data.map((item, index) => (
               <TableRow key={index} className="hover:bg-muted/30 transition-colors">
                 {columns.map((column) => (
-                  <TableCell key={column.key} className={column.className}>
+                  <TableCell key={column.key} className={cn('px-4 md:px-5', column.className)}>
                     {column.cell ? column.cell(item) : item[column.key]}
                   </TableCell>
                 ))}
@@ -203,20 +203,34 @@ function DataTableSkeleton({ columns, rows }: { columns: number; rows: number })
 
 // Status badge component for consistent status display
 export function StatusBadge({ status }: { status: string }) {
-  const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: ReactNode }> = {
+  const normalized = status.toLowerCase()
+  const variants: Record<string, { variant: 'outline' | 'default' | 'secondary' | 'destructive'; icon: ReactNode }> = {
     pending: { variant: 'outline', icon: <Clock className="mr-1 h-3 w-3" /> },
-    running: { variant: 'default', icon: <Play className="mr-1 h-3 w-3" /> },
-    completed: { variant: 'secondary', icon: <CheckCircle className="mr-1 h-3 w-3" /> },
-    failed: { variant: 'destructive', icon: <XCircle className="mr-1 h-3 w-3" /> },
+    processing: { variant: 'outline', icon: <RotateCw className="mr-1 h-3 w-3" /> },
+    running: { variant: 'outline', icon: <RotateCw className="mr-1 h-3 w-3" /> },
+    completed: { variant: 'outline', icon: <CheckCircle className="mr-1 h-3 w-3" /> },
+    failed: { variant: 'outline', icon: <XCircle className="mr-1 h-3 w-3" /> },
     paused: { variant: 'outline', icon: <Pause className="mr-1 h-3 w-3" /> },
-    active: { variant: 'default', icon: <CheckCircle className="mr-1 h-3 w-3" /> },
+    active: { variant: 'outline', icon: <CheckCircle className="mr-1 h-3 w-3" /> },
     archived: { variant: 'outline', icon: <AlertCircle className="mr-1 h-3 w-3" /> }
   }
 
-  const config = variants[status.toLowerCase()] || { variant: 'outline', icon: null }
+  const styles: Record<string, string> = {
+    completed: 'bg-green-500/10 text-green-700 border-green-500/30',
+    processing: 'bg-blue-500/10 text-blue-700 border-blue-500/30',
+    running: 'bg-blue-500/10 text-blue-700 border-blue-500/30',
+    pending: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/30',
+    failed: 'bg-red-500/10 text-red-600 border-red-500/30',
+    paused: 'bg-muted/30 text-muted-foreground border-border/50',
+    active: 'bg-primary/10 text-primary border-primary/30',
+    archived: 'bg-muted/20 text-muted-foreground border-border/50'
+  }
+
+  const config = variants[normalized] || { variant: 'outline', icon: null }
+  const colorClass = styles[normalized] || 'bg-muted/20 text-muted-foreground border-border/50'
 
   return (
-    <Badge variant={config.variant} className="font-medium">
+    <Badge variant={config.variant} className={cn('font-medium ml-2 my-1', colorClass)}>
       {config.icon}
       {status}
     </Badge>

@@ -20,6 +20,7 @@ export default function NewProjectPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isDevMode = searchParams.get('dev_bypass') === 'true'
+  const enableAdvanced = process.env.NEXT_PUBLIC_ENABLE_ADVANCED_CONFIG === 'true'
 
   const [projectName, setProjectName] = useState('')
   const [description, setDescription] = useState('')
@@ -229,36 +230,38 @@ export default function NewProjectPage() {
             </CardContent>
           </Card>
 
-          {/* Advanced Configuration Toggle */}
-          <Card className="bg-gradient-to-br from-primary/5 to-purple-500/5 border-primary/20 backdrop-blur-md">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Settings2 className="w-5 h-5 text-primary" />
+          {/* Advanced Configuration Toggle (Feature-flagged) */}
+          {enableAdvanced && (
+            <Card className="bg-gradient-to-br from-primary/5 to-purple-500/5 border-primary/20 backdrop-blur-md">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Settings2 className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Advanced Project Configuration</CardTitle>
+                      <CardDescription className="text-xs mt-1">
+                        Fine-tune processing, AI features, storage, and security settings
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-lg">Advanced Project Configuration</CardTitle>
-                    <CardDescription className="text-xs mt-1">
-                      Fine-tune processing, AI features, storage, and security settings
-                    </CardDescription>
-                  </div>
+                  <Button
+                    variant={showAdvancedConfig ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShowAdvancedConfig(!showAdvancedConfig)}
+                    className="min-w-[100px]"
+                  >
+                    {showAdvancedConfig ? "Hide" : "Configure"}
+                  </Button>
                 </div>
-                <Button
-                  variant={showAdvancedConfig ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setShowAdvancedConfig(!showAdvancedConfig)}
-                  className="min-w-[100px]"
-                >
-                  {showAdvancedConfig ? "Hide" : "Configure"}
-                </Button>
-              </div>
-            </CardHeader>
-            {!showAdvancedConfig && null}
-          </Card>
+              </CardHeader>
+              {!showAdvancedConfig && null}
+            </Card>
+          )}
 
-          {/* Advanced Configuration Sections */}
-          {showAdvancedConfig && (
+          {/* Advanced Configuration Sections (Feature-flagged) */}
+          {enableAdvanced && showAdvancedConfig && (
             <div className="animate-in slide-in-from-top-4 duration-300">
               <AdvancedConfigSection
                 sections={projectConfigSections}

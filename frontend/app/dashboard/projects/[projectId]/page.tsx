@@ -5,6 +5,8 @@ import { useRouter, useParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { BrandIcon } from '@/components/icons/brands'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   ArrowLeft,
@@ -199,12 +201,21 @@ export default function ProjectViewPage() {
       key: 'sources',
       header: 'Sources',
       cell: (dataset) => (
-        <div className="flex gap-1">
-          {dataset.sources.map(source => (
-            <Badge key={source} variant="outline" className="text-xs">
-              {source}
-            </Badge>
-          ))}
+        <div className="flex items-center gap-2">
+          <TooltipProvider>
+            {dataset.sources.map(source => (
+              <Tooltip key={source}>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex items-center justify-center rounded-md border px-2 py-1 bg-background/60">
+                    <BrandIcon name={source} className="size-4" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="px-2 py-1 bg-card border border-border/50 text-foreground rounded-md shadow-md">
+                  <p className="text-xs capitalize">{source}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </TooltipProvider>
         </div>
       )
     },
@@ -242,11 +253,11 @@ export default function ProjectViewPage() {
   }
 
   return (
-    <div className="space-y-6 mx-6 py-8">
+    <div className="space-y-8 mx-6 py-10">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-6">
         <div className="space-y-1 flex-1">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" asChild>
               <Link href="/dashboard">
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -263,7 +274,7 @@ export default function ProjectViewPage() {
               {project.description}
             </p>
           )}
-          <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2">
+          <div className="flex items-center gap-6 text-sm text-muted-foreground pt-3">
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
               Created {new Date(project.createdAt).toLocaleDateString()}
