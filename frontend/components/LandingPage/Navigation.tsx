@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import {memo, useEffect, useState} from 'react'
+import {memo, useState} from 'react'
 import {Menu, X} from 'lucide-react'
 import {Button, IconButton} from '@/components/ui/button'
 import {ThemeToggle} from '@/components/theme-toggle'
 import {Logo} from '@/components/shared/Logo'
+import {usePathname} from 'next/navigation'
 
 const NAV_ITEMS = [
   {href: '/', label: 'Home'},
@@ -54,22 +55,7 @@ const NavLink = memo(({href, label, isActive, onClick, isMobile = false}: NavLin
 NavLink.displayName = 'NavLink'
 
 const NavLinks = memo(() => {
-  const [activeSection, setActiveSection] = useState('')
-
-  useEffect(() => {
-    const updateActiveSection = () => {
-      if (typeof window !== 'undefined') {
-        setActiveSection(window.location.pathname)
-      }
-    }
-
-    updateActiveSection()
-    window.addEventListener('popstate', updateActiveSection)
-
-    return () => {
-      window.removeEventListener('popstate', updateActiveSection)
-    }
-  }, [])
+  const pathname = usePathname() || '/'
 
   return (
     <div className="hidden md:flex gap-8">
@@ -78,7 +64,7 @@ const NavLinks = memo(() => {
           key={item.href}
           href={item.href}
           label={item.label}
-          isActive={activeSection === item.href}
+          isActive={pathname === item.href}
         />
       ))}
     </div>

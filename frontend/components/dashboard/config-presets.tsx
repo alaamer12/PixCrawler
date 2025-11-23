@@ -281,11 +281,9 @@ export const projectConfigSections: ConfigSection[] = [
         value: ['yolo', 'pascal'],
         type: 'multi-select',
         options: [
-          { value: 'yolo', label: 'YOLO' },
           { value: 'pascal', label: 'Pascal VOC' },
           { value: 'csv', label: 'CSV' },
           { value: 'json', label: 'JSON' },
-          { value: 'tfrecord', label: 'TFRecord' }
         ],
         description: 'Available export formats for datasets'
       },

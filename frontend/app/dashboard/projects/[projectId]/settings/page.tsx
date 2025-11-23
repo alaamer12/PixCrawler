@@ -20,7 +20,22 @@ import {Checkbox} from '@/components/ui/checkbox'
 import {Slider} from '@/components/ui/slider'
 import {useToast} from '@/components/ui/use-toast'
 import {cn} from '@/lib/utils'
-import {ArrowLeft, Settings, Save, Database, Trash2, Archive, Copy, RefreshCw, AlertCircle} from 'lucide-react'
+import {
+  ArrowLeft,
+  Settings,
+  Save,
+  Trash2,
+  Archive,
+  Copy,
+  RefreshCw,
+  AlertCircle,
+  Sparkles,
+  Download,
+  Database,
+  Zap,
+  Info,
+  FileCheck
+} from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,7 +47,203 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import Link from 'next/link'
+
+// Types
+interface ProjectSettings {
+  name: string
+  description: string
+  safeMode: boolean
+  aiKeywordExpansion: boolean
+  engines: { google: boolean; bing: boolean; pixabay: boolean; ddg: boolean }
+  dedupLevel: 'none' | 'fast' | 'medium' | 'aggressive'
+  validationProfile: 'fast' | 'balanced' | 'strict'
+  minResolution: [number, number]
+  formats: { jpg: boolean; png: boolean; webp: boolean }
+  maxConcurrency: number
+  chunkSize: number
+  retryCount: number
+  respectRobots: boolean
+  storageTier: 'hot' | 'warm'
+  exportFormat: 'zip' | '7z'
+  labelFormats: { json: boolean; csv: boolean; txt: boolean }
+}
+
+const DEFAULT_SETTINGS: ProjectSettings = {
+  name: 'Wildlife Conservation Dataset',
+  description: 'African wildlife images for conservation AI and research purposes',
+  safeMode: true,
+  aiKeywordExpansion: true,
+  engines: { google: true, bing: true, pixabay: true, ddg: false },
+  dedupLevel: 'medium',
+  validationProfile: 'balanced',
+  minResolution: [512, 512],
+  formats: { jpg: true, png: true, webp: true },
+  maxConcurrency: 6,
+  chunkSize: 100,
+  retryCount: 3,
+  respectRobots: true,
+  storageTier: 'hot',
+  exportFormat: 'zip',
+  labelFormats: { json: true, csv: false, txt: false}
+}
+
+// Focused Components
+const SettingsSection = ({ 
+  id, 
+  icon: Icon, 
+  title, 
+  description, 
+  children,
+  variant = 'default'
+}: { 
+  id: string
+  icon: any
+  title: string
+  description: string
+  children: React.ReactNode
+  variant?: 'default' | 'danger'
+}) => (
+  <Card 
+    id={`section-${id}`} 
+    className={cn(
+      "transition-all duration-200 hover:shadow-lg",
+      variant === 'danger' && "border-destructive/40 bg-destructive/5"
+    )}
+  >
+    <CardHeader>
+      <CardTitle className={cn(
+        "flex items-center gap-2.5 text-lg",
+        variant === 'danger' && "text-destructive"
+      )}>
+        <div className={cn(
+          "p-1.5 rounded-md",
+          variant === 'danger' ? "bg-destructive/10" : "bg-primary/10"
+        )}>
+          <Icon className="w-4 h-4" />
+        </div>
+        {title}
+      </CardTitle>
+      <CardDescription>{description}</CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-5">
+      {children}
+    </CardContent>
+  </Card>
+)
+
+const SettingRow = ({ 
+  label, 
+  description, 
+  tooltip,
+  children 
+}: { 
+  label: string
+  description?: string
+  tooltip?: string
+  children: React.ReactNode 
+}) => (
+  <div className="flex items-start justify-between gap-4 py-1">
+    <div className="space-y-0.5 flex-1">
+      <div className="flex items-center gap-2">
+        <Label className="text-sm font-medium leading-none">{label}</Label>
+        {tooltip && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">{tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
+      {description && (
+        <p className="text-xs text-muted-foreground leading-snug">{description}</p>
+      )}
+    </div>
+    <div className="flex-shrink-0">
+      {children}
+    </div>
+  </div>
+)
+
+const SliderSetting = ({
+  label,
+  description,
+  value,
+  min,
+  max,
+  step,
+  unit,
+  onChange
+}: {
+  label: string
+  description?: string
+  value: number
+  min: number
+  max: number
+  step: number
+  unit: string
+  onChange: (value: number) => void
+}) => (
+  <div className="space-y-3">
+    <div className="flex items-center justify-between">
+      <Label className="text-sm font-medium">{label}</Label>
+      <Badge variant="secondary" className="font-mono text-xs">
+        {value} {unit}
+      </Badge>
+    </div>
+    {description && (
+      <p className="text-xs text-muted-foreground">{description}</p>
+    )}
+    <Slider 
+      value={[value]} 
+      min={min} 
+      max={max} 
+      step={step} 
+      onValueChange={(v) => onChange(v[0])}
+      className="py-1"
+    />
+  </div>
+)
+
+const SectionNav = ({ 
+  sections, 
+  activeSection, 
+  onNavigate 
+}: { 
+  sections: Array<{id: string; label: string; icon: any}>
+  activeSection: string
+  onNavigate: (id: string) => void 
+}) => (
+  <div className="sticky top-4 space-y-1">
+    {sections.map(({id, label, icon: Icon}) => (
+      <button
+        key={id}
+        onClick={() => onNavigate(id)}
+        className={cn(
+          "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all",
+          "hover:bg-accent hover:text-accent-foreground",
+          activeSection === id 
+            ? "bg-primary text-primary-foreground shadow-sm" 
+            : "text-muted-foreground"
+        )}
+      >
+        <Icon className="w-4 h-4 flex-shrink-0" />
+        <span>{label}</span>
+      </button>
+    ))}
+  </div>
+)
 
 export default function ProjectSettingsPage() {
   const router = useRouter()
@@ -41,363 +252,573 @@ export default function ProjectSettingsPage() {
   const {toast} = useToast()
 
   const [loading, setLoading] = useState(true)
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [safeMode, setSafeMode] = useState(true)
-  const [aiKeywordExpansion, setAiKeywordExpansion] = useState(true)
-  const [engines, setEngines] = useState<{ google: boolean; bing: boolean; pixabay: boolean; ddg: boolean }>({ google: true, bing: true, pixabay: true, ddg: false })
-  const [dedupLevel, setDedupLevel] = useState<'none' | 'fast' | 'medium' | 'aggressive'>('medium')
-  const [validationProfile, setValidationProfile] = useState<'fast' | 'balanced' | 'strict'>('balanced')
-  const [minResolution, setMinResolution] = useState<[number, number]>([512, 512])
-  const [formats, setFormats] = useState<{ jpg: boolean; png: boolean; webp: boolean }>({ jpg: true, png: true, webp: true })
-  const [maxConcurrency, setMaxConcurrency] = useState(6)
-  const [chunkSize, setChunkSize] = useState(100)
-  const [retryCount, setRetryCount] = useState(3)
-  const [respectRobots, setRespectRobots] = useState(true)
-  const [storageTier, setStorageTier] = useState<'hot' | 'warm'>('hot')
-  const [exportFormat, setExportFormat] = useState<'zip' | '7z'>('zip')
-  const [labelFormats, setLabelFormats] = useState<{ json: boolean; csv: boolean; yolo: boolean; coco: boolean }>({ json: true, csv: false, yolo: true, coco: false })
-  const sections = ['general','processing','download','validation','storage','danger']
-  const [activeSection, setActiveSection] = useState<string>('general')
+  const [saving, setSaving] = useState(false)
+  const [hasChanges, setHasChanges] = useState(false)
+  const [settings, setSettings] = useState<ProjectSettings>(DEFAULT_SETTINGS)
+  const [activeSection, setActiveSection] = useState('general')
+
+  const sections = [
+    { id: 'general', label: 'General', icon: Settings },
+    { id: 'search', label: 'Search & AI', icon: Sparkles },
+    { id: 'validation', label: 'Validation', icon: FileCheck },
+    { id: 'download', label: 'Download', icon: Download },
+    { id: 'storage', label: 'Storage', icon: Database },
+    { id: 'danger', label: 'Danger Zone', icon: AlertCircle }
+  ]
+
+  const updateSetting = <K extends keyof ProjectSettings>(
+    key: K, 
+    value: ProjectSettings[K]
+  ) => {
+    setSettings(prev => ({ ...prev, [key]: value }))
+    setHasChanges(true)
+  }
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(`section-${id}`)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (el) {
+      const offset = 80
+      const top = el.getBoundingClientRect().top + window.scrollY - offset
+      window.scrollTo({ top, behavior: 'smooth' })
+    }
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    await new Promise(resolve => setTimeout(resolve, 800))
+    setSaving(false)
+    setHasChanges(false)
+    toast({ 
+      title: 'Settings saved',
+      description: 'Your project configuration has been updated successfully'
+    })
   }
 
   const resetToDefaults = () => {
-    setSafeMode(true)
-    setAiKeywordExpansion(true)
-    setEngines({ google: true, bing: true, pixabay: true, ddg: false })
-    setDedupLevel('medium')
-    setValidationProfile('balanced')
-    setMinResolution([512, 512])
-    setFormats({ jpg: true, png: true, webp: true })
-    setMaxConcurrency(6)
-    setChunkSize(100)
-    setRetryCount(3)
-    setRespectRobots(true)
-    setStorageTier('hot')
-    setExportFormat('zip')
-    setLabelFormats({ json: true, csv: false, yolo: true, coco: false })
-    toast({ title: 'Defaults restored', description: 'Project settings reset to recommended defaults' })
+    setSettings(DEFAULT_SETTINGS)
+    setHasChanges(true)
+    toast({ 
+      title: 'Defaults restored',
+      description: 'All settings have been reset to recommended defaults'
+    })
   }
 
   const exportSettings = () => {
-    const payload = {
-      name,
-      description,
-      safeMode,
-      aiKeywordExpansion,
-      engines,
-      dedupLevel,
-      validationProfile,
-      minResolution,
-      formats,
-      maxConcurrency,
-      chunkSize,
-      retryCount,
-      respectRobots,
-      storageTier,
-      exportFormat,
-      labelFormats,
-    }
-    const dataStr = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2))
+    const dataStr = 'data:application/json;charset=utf-8,' + 
+      encodeURIComponent(JSON.stringify(settings, null, 2))
     const link = document.createElement('a')
     link.setAttribute('href', dataStr)
     link.setAttribute('download', `project_${projectId}_settings.json`)
     document.body.appendChild(link)
     link.click()
     link.remove()
-    toast({ title: 'Settings exported', description: 'Project settings downloaded as JSON' })
+    toast({ 
+      title: 'Settings exported',
+      description: 'Configuration downloaded as JSON file'
+    })
   }
 
   useEffect(() => {
-    setTimeout(() => {
-      setName('Wildlife Conservation Dataset')
-      setDescription('African wildlife images for conservation AI and research purposes')
-      setLoading(false)
-    }, 500)
+    setTimeout(() => setLoading(false), 500)
   }, [projectId])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        const visible = entries.filter(e => e.isIntersecting).sort((a,b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]
-        if (visible?.target?.id) setActiveSection(visible.target.id.replace('section-',''))
+        const visible = entries
+          .filter(e => e.isIntersecting)
+          .sort((a,b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]
+        if (visible?.target?.id) {
+          setActiveSection(visible.target.id.replace('section-',''))
+        }
       },
-      { rootMargin: '-35% 0px -55% 0px', threshold: 0.2 }
+      { rootMargin: '-20% 0px -60% 0px', threshold: 0.1 }
     )
-    sections.forEach(id => {
+    
+    sections.forEach(({id}) => {
       const el = document.getElementById(`section-${id}`)
       if (el) observer.observe(el)
     })
+    
     return () => observer.disconnect()
   }, [])
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[300px]">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading settings...</p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading project settings...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-8 mx-6 py-10">
-      <div className="flex items-start justify-between gap-6">
-        <div className="space-y-1 flex-1">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href={`/dashboard/projects/${projectId}`}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Project
-              </Link>
-            </Button>
-            <Badge variant="outline" className="ml-2 my-1 bg-primary/10 text-primary border-primary/30">Settings</Badge>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      {/* Header */}
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+        <div className="container max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" asChild>
+                <Link href={`/dashboard/projects/${projectId}`}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Link>
+              </Button>
+              <div className="h-6 w-px bg-border" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-semibold tracking-tight">Project Settings</h1>
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                    {settings.name}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Configure defaults and behavior for this project
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {hasChanges && (
+                <Badge variant="secondary" className="animate-pulse">
+                  Unsaved changes
+                </Badge>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportSettings}
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={!hasChanges || saving}
+              >
+                {saving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Project Settings</h1>
-          <p className="text-sm text-muted-foreground">Manage project-level configuration and defaults</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" leftIcon={<Database className="w-4 h-4" />} onClick={() => router.push(`/dashboard/projects/${projectId}`)}>
-            View Project
-          </Button>
-          <Button
-            leftIcon={<Save className="w-4 h-4" />}
-            onClick={() => {
-              toast({ title: 'Settings saved', description: 'Project defaults updated successfully' })
-            }}
-          >
-            Save Changes
-          </Button>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Sections</CardTitle>
-            <CardDescription>Quick navigation</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {sections.map(id => (
-                <Button
-                  key={id}
-                  size="sm"
-                  variant={activeSection === id ? 'default' : 'outline'}
-                  onClick={() => scrollTo(id)}
-                  className={cn('rounded-full')}
+      {/* Main Content */}
+      <div className="container max-w-7xl mx-auto px-6 py-8">
+        <div className="grid lg:grid-cols-[240px_1fr] gap-8">
+          {/* Sidebar Navigation */}
+          <aside className="hidden lg:block">
+            <SectionNav 
+              sections={sections}
+              activeSection={activeSection}
+              onNavigate={scrollTo}
+            />
+          </aside>
+
+          {/* Settings Sections */}
+          <div className="space-y-6">
+            {/* General */}
+            <SettingsSection
+              id="general"
+              icon={Settings}
+              title="General Information"
+              description="Basic project details and identification"
+            >
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="project-name">Project Name</Label>
+                  <Input 
+                    id="project-name" 
+                    value={settings.name}
+                    onChange={(e) => updateSetting('name', e.target.value)}
+                    className="font-medium"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="project-description">Description</Label>
+                  <Textarea 
+                    id="project-description" 
+                    value={settings.description}
+                    onChange={(e) => updateSetting('description', e.target.value)}
+                    rows={3}
+                    className="resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Provide context about the purpose and scope of this project
+                  </p>
+                </div>
+              </div>
+            </SettingsSection>
+
+            {/* Search & AI */}
+            <SettingsSection
+              id="search"
+              icon={Sparkles}
+              title="Search & AI Processing"
+              description="Configure search behavior and AI-powered features"
+            >
+              <SettingRow
+                label="Safe Search"
+                description="Filter adult and explicit content from results"
+                tooltip="Recommended for production datasets and compliance requirements"
+              >
+                <Switch 
+                  checked={settings.safeMode}
+                  onCheckedChange={(v) => updateSetting('safeMode', v)}
+                />
+              </SettingRow>
+
+              <SettingRow
+                label="AI Keyword Expansion"
+                description="Automatically expand search terms using AI"
+                tooltip="Uses semantic understanding to find related terms and improve coverage"
+              >
+                <Switch 
+                  checked={settings.aiKeywordExpansion}
+                  onCheckedChange={(v) => updateSetting('aiKeywordExpansion', v)}
+                />
+              </SettingRow>
+
+              <div className="space-y-3 pt-2">
+                <Label className="text-sm font-medium">Search Engines</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.entries(settings.engines).map(([engine, enabled]) => (
+                    <div key={engine} className="flex items-center gap-2">
+                      <Checkbox 
+                        id={`engine-${engine}`}
+                        checked={enabled}
+                        onCheckedChange={(v) => updateSetting('engines', {
+                          ...settings.engines,
+                          [engine]: !!v
+                        })}
+                      />
+                      <Label 
+                        htmlFor={`engine-${engine}`}
+                        className="text-sm capitalize cursor-pointer"
+                      >
+                        {engine === 'ddg' ? 'DuckDuckGo' : engine}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <Label htmlFor="dedup-level">Deduplication Level</Label>
+                <Select 
+                  value={settings.dedupLevel}
+                  onValueChange={(v) => updateSetting('dedupLevel', v as any)}
                 >
-                  {id === 'general' && 'General'}
-                  {id === 'processing' && 'Processing'}
-                  {id === 'download' && 'Download'}
-                  {id === 'validation' && 'Validation'}
-                  {id === 'storage' && 'Storage'}
-                  {id === 'danger' && 'Danger Zone'}
+                  <SelectTrigger id="dedup-level">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None - Keep all images</SelectItem>
+                    <SelectItem value="fast">Fast - Basic duplicate detection</SelectItem>
+                    <SelectItem value="medium">Medium - Balanced accuracy</SelectItem>
+                    <SelectItem value="aggressive">Aggressive - Maximum removal</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </SettingsSection>
+
+            {/* Validation */}
+            <SettingsSection
+              id="validation"
+              icon={FileCheck}
+              title="Validation & Quality"
+              description="Set quality standards and format requirements"
+            >
+              <div className="space-y-2">
+                <Label htmlFor="validation-profile">Validation Profile</Label>
+                <Select 
+                  value={settings.validationProfile}
+                  onValueChange={(v) => updateSetting('validationProfile', v as any)}
+                >
+                  <SelectTrigger id="validation-profile">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fast">Fast - Minimal checks</SelectItem>
+                    <SelectItem value="balanced">Balanced - Standard validation</SelectItem>
+                    <SelectItem value="strict">Strict - Comprehensive checks</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <SliderSetting
+                label="Minimum Resolution"
+                description="Reject images below this resolution threshold"
+                value={settings.minResolution[0]}
+                min={128}
+                max={2048}
+                step={64}
+                unit="px"
+                onChange={(v) => updateSetting('minResolution', [v, v])}
+              />
+
+              <div className="space-y-3 pt-2">
+                <Label className="text-sm font-medium">Allowed Formats</Label>
+                <div className="flex items-center gap-6">
+                  {Object.entries(settings.formats).map(([format, enabled]) => (
+                    <div key={format} className="flex items-center gap-2">
+                      <Checkbox 
+                        id={`format-${format}`}
+                        checked={enabled}
+                        onCheckedChange={(v) => updateSetting('formats', {
+                          ...settings.formats,
+                          [format]: !!v
+                        })}
+                      />
+                      <Label 
+                        htmlFor={`format-${format}`}
+                        className="text-sm uppercase cursor-pointer font-mono"
+                      >
+                        {format}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </SettingsSection>
+
+            {/* Download */}
+            <SettingsSection
+              id="download"
+              icon={Download}
+              title="Download & Performance"
+              description="Configure download behavior and reliability"
+            >
+              <SliderSetting
+                label="Max Concurrency"
+                description="Number of parallel download workers"
+                value={settings.maxConcurrency}
+                min={1}
+                max={16}
+                step={1}
+                unit="workers"
+                onChange={(v) => updateSetting('maxConcurrency', v)}
+              />
+
+              <SliderSetting
+                label="Chunk Size"
+                description="Items processed per batch"
+                value={settings.chunkSize}
+                min={25}
+                max={500}
+                step={25}
+                unit="items"
+                onChange={(v) => updateSetting('chunkSize', v)}
+              />
+
+              <div className="space-y-2">
+                <Label htmlFor="retry-count">Retry Attempts</Label>
+                <Input 
+                  id="retry-count"
+                  type="number"
+                  min={0}
+                  max={10}
+                  value={settings.retryCount}
+                  onChange={(e) => updateSetting('retryCount', parseInt(e.target.value) || 0)}
+                  className="w-32"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Number of retry attempts for failed downloads
+                </p>
+              </div>
+
+              <SettingRow
+                label="Respect robots.txt"
+                description="Honor website crawling restrictions"
+                tooltip="Recommended for ethical web scraping practices"
+              >
+                <Switch 
+                  checked={settings.respectRobots}
+                  onCheckedChange={(v) => updateSetting('respectRobots', v)}
+                />
+              </SettingRow>
+            </SettingsSection>
+
+            {/* Storage */}
+            <SettingsSection
+              id="storage"
+              icon={Database}
+              title="Storage & Export"
+              description="Configure storage tiers and export formats"
+            >
+              <div className="space-y-2">
+                <Label htmlFor="storage-tier">Storage Tier</Label>
+                <Select 
+                  value={settings.storageTier}
+                  onValueChange={(v) => updateSetting('storageTier', v as any)}
+                >
+                  <SelectTrigger id="storage-tier">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hot">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4" />
+                        <div>
+                          <div className="font-medium">Hot Storage</div>
+                          <div className="text-xs text-muted-foreground">Fastest access, higher cost</div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="warm">
+                      <div className="flex items-center gap-2">
+                        <Archive className="w-4 h-4" />
+                        <div>
+                          <div className="font-medium">Warm Storage</div>
+                          <div className="text-xs text-muted-foreground">Balanced performance</div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="export-format">Compression Format</Label>
+                <Select 
+                  value={settings.exportFormat}
+                  onValueChange={(v) => updateSetting('exportFormat', v as any)}
+                >
+                  <SelectTrigger id="export-format">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="zip">ZIP - Universal compatibility</SelectItem>
+                    <SelectItem value="7z">7z - Higher compression ratio</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <Label className="text-sm font-medium">Label Export Formats</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.entries(settings.labelFormats).map(([format, enabled]) => (
+                    <div key={format} className="flex items-center gap-2">
+                      <Checkbox 
+                        id={`label-${format}`}
+                        checked={enabled}
+                        onCheckedChange={(v) => updateSetting('labelFormats', {
+                          ...settings.labelFormats,
+                          [format]: !!v
+                        })}
+                      />
+                      <Label 
+                        htmlFor={`label-${format}`}
+                        className="text-sm uppercase cursor-pointer font-mono"
+                      >
+                        {format}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </SettingsSection>
+
+            {/* Danger Zone */}
+            <SettingsSection
+              id="danger"
+              icon={AlertCircle}
+              title="Danger Zone"
+              description="Irreversible actions - proceed with extreme caution"
+              variant="danger"
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button 
+                  variant="outline" 
+                  onClick={resetToDefaults}
+                  className="justify-start"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Reset to Defaults
                 </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        <Card id="section-general" className="bg-card/80 backdrop-blur-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              General
-            </CardTitle>
-            <CardDescription>Basic information about this project</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="project-name">Project Name</Label>
-              <Input id="project-name" value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="project-description">Description</Label>
-              <Textarea id="project-description" value={description} onChange={(e) => setDescription(e.target.value)} />
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card id="section-processing" className="bg-card/80 backdrop-blur-md">
-          <CardHeader>
-            <CardTitle>Processing Defaults</CardTitle>
-            <CardDescription>Apply defaults to datasets created under this project</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">Safe Search</p>
-                <p className="text-xs text-muted-foreground">Filter adult or explicit content</p>
+                <Button 
+                  variant="outline"
+                  onClick={exportSettings}
+                  className="justify-start"
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Export Configuration
+                </Button>
+
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    toast({ 
+                      title: 'Project archived',
+                      description: 'Project moved to archive section'
+                    })
+                    setTimeout(() => router.push('/dashboard/projects'), 1000)
+                  }}
+                  className="justify-start"
+                >
+                  <Archive className="w-4 h-4 mr-2" />
+                  Archive Project
+                </Button>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="justify-start">
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Project
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 text-destructive" />
+                        Delete "{settings.name}"?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="space-y-2">
+                        <p>This action cannot be undone. This will permanently delete:</p>
+                        <ul className="list-disc list-inside space-y-1 text-sm">
+                          <li>All datasets under this project</li>
+                          <li>All processing jobs and results</li>
+                          <li>All project settings and configurations</li>
+                          <li>All associated metadata and labels</li>
+                        </ul>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => {
+                          toast({ 
+                            title: 'Project deleted',
+                            description: `"${settings.name}" has been permanently removed`
+                          })
+                          setTimeout(() => router.push('/dashboard/projects'), 1000)
+                        }}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        Delete Project
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
-              <Switch checked={safeMode} onCheckedChange={setSafeMode} />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">AI Keyword Expansion</p>
-                <p className="text-xs text-muted-foreground">Automatically expand search terms</p>
-              </div>
-              <Switch checked={aiKeywordExpansion} onCheckedChange={setAiKeywordExpansion} />
-            </div>
-            <div className="space-y-2">
-              <p className="font-medium text-sm">Validation Profile</p>
-              <Select value={validationProfile} onValueChange={(v) => setValidationProfile(v as any)}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fast">Fast</SelectItem>
-                  <SelectItem value="balanced">Balanced</SelectItem>
-                  <SelectItem value="strict">Strict</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <p className="font-medium text-sm">Deduplication Level</p>
-              <Select value={dedupLevel} onValueChange={(v) => setDedupLevel(v as any)}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="fast">Fast</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="aggressive">Aggressive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        
-
-        <Card id="section-download" className="bg-card/80 backdrop-blur-md">
-          <CardHeader>
-            <CardTitle>Download & Chunking</CardTitle>
-            <CardDescription>Performance and reliability</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Max Concurrency</p>
-              <Slider value={[maxConcurrency]} min={1} max={16} step={1} onValueChange={(v) => setMaxConcurrency(v[0])} />
-              <p className="text-xs text-muted-foreground">{maxConcurrency} workers</p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Chunk Size</p>
-              <Slider value={[chunkSize]} min={25} max={500} step={25} onValueChange={(v) => setChunkSize(v[0])} />
-              <p className="text-xs text-muted-foreground">{chunkSize} items</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="retry-count">Retry Count</Label>
-              <Input id="retry-count" type="number" value={retryCount} onChange={(e) => setRetryCount(parseInt(e.target.value || '0'))} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card id="section-validation" className="bg-card/80 backdrop-blur-md">
-          <CardHeader>
-            <CardTitle>Validation & Formats</CardTitle>
-            <CardDescription>Quality and accepted formats</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Minimum Resolution</p>
-              <Slider value={minResolution} min={128} max={2048} step={64} onValueChange={(v) => setMinResolution([v[0], v[1] || v[0]])} />
-              <p className="text-xs text-muted-foreground">{minResolution[0]} × {minResolution[1]} px</p>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Allowed Formats</p>
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2"><Checkbox checked={formats.jpg} onCheckedChange={(v) => setFormats(s => ({...s, jpg: !!v}))} /><span className="text-sm">JPG</span></div>
-                <div className="flex items-center gap-2"><Checkbox checked={formats.png} onCheckedChange={(v) => setFormats(s => ({...s, png: !!v}))} /><span className="text-sm">PNG</span></div>
-                <div className="flex items-center gap-2"><Checkbox checked={formats.webp} onCheckedChange={(v) => setFormats(s => ({...s, webp: !!v}))} /><span className="text-sm">WEBP</span></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card id="section-storage" className="bg-card/80 backdrop-blur-md">
-          <CardHeader>
-            <CardTitle>Storage & Export</CardTitle>
-            <CardDescription>Delivery options</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Storage Tier</p>
-              <Select value={storageTier} onValueChange={(v) => setStorageTier(v as any)}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hot">Hot</SelectItem>
-                  <SelectItem value="warm">Warm</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Compression</p>
-              <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as any)}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="zip">ZIP</SelectItem>
-                  <SelectItem value="7z">7z</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Label Formats</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-2"><Checkbox checked={labelFormats.json} onCheckedChange={(v) => setLabelFormats(s => ({...s, json: !!v}))} /><span className="text-sm">JSON</span></div>
-                <div className="flex items-center gap-2"><Checkbox checked={labelFormats.csv} onCheckedChange={(v) => setLabelFormats(s => ({...s, csv: !!v}))} /><span className="text-sm">CSV</span></div>
-                <div className="flex items-center gap-2"><Checkbox checked={labelFormats.yolo} onCheckedChange={(v) => setLabelFormats(s => ({...s, yolo: !!v}))} /><span className="text-sm">YOLO</span></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card id="section-danger" className="bg-card/80 backdrop-blur-md border-destructive/40">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="w-5 h-5" />
-              Danger Zone
-            </CardTitle>
-            <CardDescription>Irreversible actions. Proceed with caution.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Button variant="outline" leftIcon={<RefreshCw className="w-4 h-4" />} onClick={resetToDefaults}>
-                Reset to Defaults
-              </Button>
-              <Button variant="outline" leftIcon={<Copy className="w-4 h-4" />} onClick={exportSettings}>
-                Export Settings
-              </Button>
-              <Button variant="outline" leftIcon={<Archive className="w-4 h-4" />} onClick={() => toast({ title: 'Project archived', description: 'Project moved to archive' })}>
-                Archive Project
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" leftIcon={<Trash2 className="w-4 h-4" />}>
-                    Delete Project
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete this project?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. All datasets, jobs, and settings under this project will be permanently removed.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => {
-                      toast({ title: 'Project deleted', description: `Project ${projectId} has been removed` })
-                      router.push('/dashboard/projects')
-                    }}>Delete</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </CardContent>
-        </Card>
+            </SettingsSection>
+          </div>
+        </div>
       </div>
     </div>
   )
