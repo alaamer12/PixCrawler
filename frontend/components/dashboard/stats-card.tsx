@@ -28,7 +28,7 @@ export function StatsCard({
   iconColor = 'text-muted-foreground'
 }: StatsCardProps) {
   return (
-    <Card className={cn('bg-card/80 backdrop-blur-md border-border/50 hover:shadow-lg transition-all duration-200', className)}>
+    <Card className={cn('relative overflow-hidden bg-card/80 backdrop-blur-md border-border/50 hover:shadow-2xl transform transition-all duration-300 hover:scale-[1.02] group', className)}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -49,10 +49,12 @@ export function StatsCard({
             )}
           </div>
           <div className={cn('p-3 rounded-lg bg-muted/50', iconColor)}>
-            <Icon className="h-6 w-6" />
+            <Icon className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
           </div>
         </div>
       </CardContent>
+      <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-primary to-primary/50 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-700" />
+      <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
     </Card>
   )
 }

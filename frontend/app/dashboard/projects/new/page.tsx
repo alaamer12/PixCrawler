@@ -121,11 +121,6 @@ export default function NewProjectPage() {
                 Back to Dashboard
               </Link>
             </Button>
-            {isDevMode && (
-              <Badge variant="outline" className="bg-yellow-500/10 border-yellow-500/30 text-yellow-600">
-                Dev Mode
-              </Badge>
-            )}
           </div>
           <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
             Create New Project
@@ -259,27 +254,7 @@ export default function NewProjectPage() {
                 </Button>
               </div>
             </CardHeader>
-            {!showAdvancedConfig && (
-              <CardContent>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="flex flex-col items-center p-3 rounded-lg bg-background/50 border border-border/50">
-                    <Zap className="w-5 h-5 text-primary mb-2" />
-                    <span className="text-2xl font-bold">{configSummary.enabled}</span>
-                    <span className="text-xs text-muted-foreground">Features Enabled</span>
-                  </div>
-                  <div className="flex flex-col items-center p-3 rounded-lg bg-background/50 border border-border/50">
-                    <Sparkles className="w-5 h-5 text-yellow-500 mb-2" />
-                    <span className="text-2xl font-bold">{configSummary.premium}</span>
-                    <span className="text-xs text-muted-foreground">PRO Features</span>
-                  </div>
-                  <div className="flex flex-col items-center p-3 rounded-lg bg-background/50 border border-border/50">
-                    <TrendingUp className="w-5 h-5 text-green-500 mb-2" />
-                    <span className="text-2xl font-bold">Optimal</span>
-                    <span className="text-xs text-muted-foreground">Performance</span>
-                  </div>
-                </div>
-              </CardContent>
-            )}
+            {!showAdvancedConfig && null}
           </Card>
 
           {/* Advanced Configuration Sections */}

@@ -344,6 +344,12 @@ export default function DevPage() {
                 <span className="text-sm">Dashboard</span>
               </Link>
             </Button>
+            <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
+              <Link href="/dashboard/projects?dev_bypass=true">
+                <Database className="size-5"/>
+                <span className="text-sm">Projects</span>
+              </Link>
+            </Button>
           </div>
         </CardContent>
       </Card>

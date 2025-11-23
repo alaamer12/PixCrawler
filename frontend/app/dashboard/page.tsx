@@ -11,7 +11,8 @@ import {
   Zap,
   Image,
   Clock,
-  BarChart3
+  BarChart3,
+  ChevronRight
 } from 'lucide-react'
 
 import { useAuth } from '@/lib/auth/hooks'
@@ -280,7 +281,7 @@ function DashboardPage() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full max-w-[400px] grid-cols-4">
+        <TabsList className="w-full">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="projects">Projects</TabsTrigger>
           <TabsTrigger value="datasets">Datasets</TabsTrigger>
@@ -392,27 +393,33 @@ function DashboardPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button
-                  className="w-full justify-start"
+                  className="w-full justify-between group"
+                  size="lg"
                   variant="outline"
                   leftIcon={<Plus className="w-4 h-4" />}
+                  rightIcon={<ChevronRight className="w-4 h-4 opacity-70 transition-transform duration-200 group-hover:translate-x-0.5" />}
                   onClick={() => router.push('/dashboard/projects/new')}
                   aria-label="Create new project"
                 >
                   Create New Project
                 </Button>
                 <Button
-                  className="w-full justify-start"
+                  className="w-full justify-between group"
+                  size="lg"
                   variant="outline"
                   leftIcon={<Database className="w-4 h-4" />}
+                  rightIcon={<ChevronRight className="w-4 h-4 opacity-70 transition-transform duration-200 group-hover:translate-x-0.5" />}
                   onClick={() => router.push('/dashboard/projects')}
                   aria-label="Browse all projects"
                 >
                   Browse Projects
                 </Button>
                 <Button
-                  className="w-full justify-start"
+                  className="w-full justify-between group"
+                  size="lg"
                   variant="outline"
                   leftIcon={<BarChart3 className="w-4 h-4" />}
+                  rightIcon={<ChevronRight className="w-4 h-4 opacity-70 transition-transform duration-200 group-hover:translate-x-0.5" />}
                   onClick={() => router.push('/dashboard/analytics')}
                   aria-label="View analytics dashboard"
                 >

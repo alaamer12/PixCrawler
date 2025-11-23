@@ -100,11 +100,11 @@ export function ActivityTimeline({
               <div
                 key={activity.id}
                 className={cn(
-                  'flex gap-3 pb-4',
+                  'flex items-start gap-3 pb-4',
                   index < displayActivities.length - 1 && 'border-b border-border/50'
                 )}
               >
-                <div className={cn('p-2 rounded-lg bg-muted/50', color)}>
+                <div className={cn('flex-none grid h-8 w-8 place-items-center rounded-lg bg-muted/50', color)}>
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="flex-1 space-y-1">
