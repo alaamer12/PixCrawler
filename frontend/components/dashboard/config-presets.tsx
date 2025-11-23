@@ -278,10 +278,9 @@ export const projectConfigSections: ConfigSection[] = [
       {
         id: 'export_formats',
         label: 'Export Formats',
-        value: ['coco', 'yolo', 'pascal'],
+        value: ['yolo', 'pascal'],
         type: 'multi-select',
         options: [
-          { value: 'coco', label: 'COCO' },
           { value: 'yolo', label: 'YOLO' },
           { value: 'pascal', label: 'Pascal VOC' },
           { value: 'csv', label: 'CSV' },

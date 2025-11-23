@@ -219,12 +219,20 @@ const PAGES: PageInfo[] = [
     icon: <User className="size-4"/>
   },
   {
-    path: '/notifications',
+    path: '/dashboard/notifications',
     name: 'Notifications',
     description: 'Notification center with filters and actions',
     category: 'Dashboard',
     requiresAuth: true,
     icon: <Database className="size-4"/>
+  },
+  {
+    path: '/dashboard/projects/1/settings',
+    name: 'Project Settings',
+    description: 'Manage project-level settings and configuration',
+    category: 'Dashboard',
+    requiresAuth: true,
+    icon: <Settings className="size-4"/>
   },
 ]
 
