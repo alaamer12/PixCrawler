@@ -206,8 +206,8 @@ export function StatusBadge({ status }: { status: string }) {
   const normalized = status.toLowerCase()
   const variants: Record<string, { variant: 'outline' | 'default' | 'secondary' | 'destructive'; icon: ReactNode }> = {
     pending: { variant: 'outline', icon: <Clock className="mr-1 h-3 w-3" /> },
-    processing: { variant: 'outline', icon: <RotateCw className="mr-1 h-3 w-3" /> },
-    running: { variant: 'outline', icon: <RotateCw className="mr-1 h-3 w-3" /> },
+    processing: { variant: 'outline', icon: <RotateCw className="mr-1 h-3 w-3 animate-spin" /> },
+    running: { variant: 'outline', icon: <RotateCw className="mr-1 h-3 w-3 animate-spin" /> },
     completed: { variant: 'outline', icon: <CheckCircle className="mr-1 h-3 w-3" /> },
     failed: { variant: 'outline', icon: <XCircle className="mr-1 h-3 w-3" /> },
     paused: { variant: 'outline', icon: <Pause className="mr-1 h-3 w-3" /> },
@@ -229,10 +229,14 @@ export function StatusBadge({ status }: { status: string }) {
   const config = variants[normalized] || { variant: 'outline', icon: null }
   const colorClass = styles[normalized] || 'bg-muted/20 text-muted-foreground border-border/50'
 
+  const showProgress = normalized === 'processing' || normalized === 'running'
   return (
-    <Badge variant={config.variant} className={cn('font-medium ml-2 my-1', colorClass)}>
+    <Badge variant={config.variant} className={cn('relative overflow-hidden font-medium ml-2 my-1 px-2 py-0.5', colorClass)}>
       {config.icon}
       {status}
+      {showProgress && (
+        <span className="absolute bottom-0 left-0 h-[2px] w-full bg-gradient-to-r from-blue-500 via-blue-400 to-blue-300 animate-shimmer" />
+      )}
     </Badge>
   )
 }

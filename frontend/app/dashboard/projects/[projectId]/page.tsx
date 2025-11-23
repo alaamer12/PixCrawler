@@ -309,24 +309,36 @@ export default function ProjectViewPage() {
           value={datasets.length}
           icon={Database}
           description={`${completedDatasets} completed`}
+          accent="primary"
+          className="animate-in zoom-in-0 duration-500"
+          style={{animationDelay: '100ms'}}
         />
         <QuickStatsCard
           title="Total Images"
           value={totalImages.toLocaleString()}
           icon={ImageIcon}
           description="Across all datasets"
+          accent="blue"
+          className="animate-in zoom-in-0 duration-500"
+          style={{animationDelay: '200ms'}}
         />
         <QuickStatsCard
           title="Active Jobs"
           value={activeJobs}
           icon={Activity}
           description={activeJobs > 0 ? 'Currently processing' : 'No active jobs'}
+          accent="yellow"
+          className="animate-in zoom-in-0 duration-500"
+          style={{animationDelay: '300ms'}}
         />
         <QuickStatsCard
           title="Completion Rate"
           value={`${Math.round((completedDatasets / datasets.length) * 100)}%`}
           icon={BarChart3}
           description={`${completedDatasets}/${datasets.length} datasets`}
+          accent="green"
+          className="animate-in zoom-in-0 duration-500"
+          style={{animationDelay: '400ms'}}
         />
       </div>
 
