@@ -1,15 +1,15 @@
 'use client'
 
-import React, {useState} from 'react'
-import {Button} from '@/components/ui/button'
-import {Input} from '@/components/ui/input'
-import {Label} from '@/components/ui/label'
-import {Textarea} from '@/components/ui/textarea'
-import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar'
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
-import {Badge} from '@/components/ui/badge'
-import {Separator} from '@/components/ui/separator'
-import {Switch} from '@/components/ui/switch'
+import React, { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,7 +27,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {useToast} from '@/components/ui/use-toast'
+import { useToast } from '@/components/ui/use-toast'
 import {
   Camera,
   Globe,
@@ -58,8 +58,28 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react'
-import {useAuth} from '@/lib/auth/hooks'
-import {cn} from '@/lib/utils'
+import { useAuth } from '@/lib/auth/hooks'
+import { cn } from '@/lib/utils'
+import { z } from 'zod'
+
+// Validation Schema
+const profileSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().optional(),
+  bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
+  company: z.string().optional(),
+  jobTitle: z.string().optional(),
+  location: z.string().optional(),
+  website: z.string().url("Invalid URL").optional().or(z.literal('')),
+  linkedin: z.string().optional(),
+  github: z.string().optional(),
+  twitter: z.string().optional(),
+  publicProfile: z.boolean(),
+  emailNotifications: z.boolean(),
+  marketingEmails: z.boolean(),
+})
 
 // Types
 interface ProfileData {
@@ -103,13 +123,13 @@ const DEFAULT_PROFILE: ProfileData = {
 }
 
 // Focused Components
-const ProfileSection = ({ 
-  icon: Icon, 
-  title, 
-  description, 
+const ProfileSection = ({
+  icon: Icon,
+  title,
+  description,
   children,
   action
-}: { 
+}: {
   icon: any
   title: string
   description: string
@@ -142,12 +162,14 @@ const FormField = ({
   icon: Icon,
   tooltip,
   required,
+  error,
   children
 }: {
   label: string
   icon?: any
   tooltip?: string
   required?: boolean
+  error?: string
   children: React.ReactNode
 }) => (
   <div className="space-y-2">
@@ -171,6 +193,7 @@ const FormField = ({
       )}
     </div>
     {children}
+    {error && <p className="text-xs text-destructive font-medium">{error}</p>}
   </div>
 )
 
@@ -179,14 +202,12 @@ const SocialLink = ({
   platform,
   value,
   onChange,
-  disabled,
   color
 }: {
   icon: any
   platform: string
   value: string
   onChange: (value: string) => void
-  disabled: boolean
   color?: string
 }) => (
   <div className="flex items-center gap-3">
@@ -199,7 +220,6 @@ const SocialLink = ({
     <Input
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      disabled={disabled}
       placeholder={`${platform} username`}
       className="flex-1"
     />
@@ -212,14 +232,12 @@ const PrivacyToggle = ({
   description,
   checked,
   onCheckedChange,
-  disabled
 }: {
   icon: any
   label: string
   description: string
   checked: boolean
   onCheckedChange: (checked: boolean) => void
-  disabled: boolean
 }) => (
   <div className="flex items-start justify-between gap-4 py-2">
     <div className="flex gap-3 flex-1">
@@ -236,7 +254,6 @@ const PrivacyToggle = ({
     <Switch
       checked={checked}
       onCheckedChange={onCheckedChange}
-      disabled={disabled}
     />
   </div>
 )
@@ -260,14 +277,14 @@ const InfoItem = ({
 )
 
 export function AccountProfile() {
-  const {toast} = useToast()
-  const {user, signOut} = useAuth()
-  const [isEditing, setIsEditing] = useState(false)
+  const { toast } = useToast()
+  const { user, signOut, updateUser } = useAuth()
   const [isSaving, setIsSaving] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState(user?.profile?.avatarUrl || '')
   const [hasChanges, setHasChanges] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [profileData, setProfileData] = useState<ProfileData>({
     ...DEFAULT_PROFILE,
@@ -278,20 +295,66 @@ export function AccountProfile() {
 
   const [editedData, setEditedData] = useState<ProfileData>(profileData)
 
+  const validateField = (key: keyof ProfileData, value: any) => {
+    try {
+      (profileSchema.shape as any)[key].parse(value)
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[key]
+        return newErrors
+      })
+      return true
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        setErrors(prev => ({ ...prev, [key]: error.errors[0].message }))
+      }
+      return false
+    }
+  }
+
   const updateField = <K extends keyof ProfileData>(
     key: K,
     value: ProfileData[K]
   ) => {
     setEditedData(prev => ({ ...prev, [key]: value }))
     setHasChanges(true)
+    validateField(key, value)
   }
 
   const handleSave = async () => {
+    // Validate all fields before saving
+    const result = profileSchema.safeParse(editedData)
+    if (!result.success) {
+      const newErrors: Record<string, string> = {}
+      result.error.errors.forEach(err => {
+        if (err.path[0]) {
+          newErrors[err.path[0] as string] = err.message
+        }
+      })
+      setErrors(newErrors)
+      toast({
+        title: 'Validation Error',
+        description: 'Please fix the errors in the form',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setIsSaving(true)
     await new Promise(resolve => setTimeout(resolve, 1200))
 
+    // Update global user state
+    updateUser({
+      email: editedData.email,
+      profile: {
+        ...user?.profile!,
+        fullName: `${editedData.firstName} ${editedData.lastName}`.trim(),
+        avatarUrl: avatarUrl,
+        email: editedData.email
+      }
+    })
+
     setProfileData(editedData)
-    setIsEditing(false)
     setIsSaving(false)
     setHasChanges(false)
 
@@ -299,12 +362,6 @@ export function AccountProfile() {
       title: 'Profile updated',
       description: 'Your changes have been saved successfully',
     })
-  }
-
-  const handleCancel = () => {
-    setEditedData(profileData)
-    setIsEditing(false)
-    setHasChanges(false)
   }
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -399,7 +456,7 @@ export function AccountProfile() {
     }
   }
 
-  const displayData = isEditing ? editedData : profileData
+  const displayData = editedData // Always show edited data since we are always editing
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
@@ -407,55 +464,36 @@ export function AccountProfile() {
       <div className="hidden md:block border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between gap-6">
-          <div >
-  <h1 className="text-2xl font-semibold tracking-tight">Account Profile</h1>
-  <p className="text-sm text-muted-foreground mt-0.5">
-    Manage your personal information and preferences
-  </p>
-</div>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">Account Profile</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Manage your personal information and preferences
+              </p>
+            </div>
 
-            
             <div className="flex items-center gap-2">
-              {hasChanges && !isEditing && (
+              {hasChanges && (
                 <Badge variant="secondary" className="animate-pulse">
                   Unsaved changes
                 </Badge>
               )}
-              {!isEditing ? (
-                <Button onClick={() => setIsEditing(true)} size="sm">
-                  <Edit2 className="h-4 w-4 mr-2"/>
-                  Edit Profile
-                </Button>
-              ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCancel}
-                    disabled={isSaving}
-                  >
-                    <X className="h-4 w-4 mr-2"/>
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleSave}
-                    disabled={isSaving || !hasChanges}
-                  >
-                    {isSaving ? (
-                      <>
-                        <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"/>
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-2"/>
-                        Save Changes
-                      </>
-                    )}
-                  </Button>
-                </>
-              )}
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving || !hasChanges || Object.keys(errors).length > 0}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </div>
@@ -477,21 +515,19 @@ export function AccountProfile() {
                   <User className="h-14 w-14 text-muted-foreground" />
                 </AvatarFallback>
               </Avatar>
-              {isEditing && (
-                <label
-                  htmlFor="avatar-upload"
-                  className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Camera className="h-6 w-6 text-white"/>
-                  <input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    onChange={handleAvatarUpload}
-                  />
-                </label>
-              )}
+              <label
+                htmlFor="avatar-upload"
+                className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Camera className="h-6 w-6 text-white" />
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                />
+              </label>
             </div>
             <div className="flex-1 space-y-3">
               <div>
@@ -502,33 +538,31 @@ export function AccountProfile() {
                   Recommended: Square image, at least 400×400px (max 5MB)
                 </p>
               </div>
-              {isEditing && (
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" asChild>
-                    <label htmlFor="avatar-upload" className="cursor-pointer">
-                      <Upload className="h-4 w-4 mr-2"/>
-                      Upload New
-                      <input
-                        id="avatar-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleAvatarUpload}
-                      />
-                    </label>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" asChild>
+                  <label htmlFor="avatar-upload" className="cursor-pointer">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload New
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                    />
+                  </label>
+                </Button>
+                {avatarUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRemoveAvatar}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Remove
                   </Button>
-                  {avatarUrl && (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleRemoveAvatar}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2"/>
-                      Remove
-                    </Button>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </ProfileSection>
@@ -541,71 +575,68 @@ export function AccountProfile() {
         >
           <div className="grid gap-5">
             <div className="grid md:grid-cols-2 gap-4">
-              <FormField label="First Name" required>
+              <FormField label="First Name" required error={errors.firstName}>
                 <Input
                   value={displayData.firstName}
                   onChange={(e) => updateField('firstName', e.target.value)}
-                  disabled={!isEditing}
                   placeholder="John"
                 />
               </FormField>
-              <FormField label="Last Name" required>
+              <FormField label="Last Name" required error={errors.lastName}>
                 <Input
                   value={displayData.lastName}
                   onChange={(e) => updateField('lastName', e.target.value)}
-                  disabled={!isEditing}
                   placeholder="Doe"
                 />
               </FormField>
             </div>
 
-            <FormField 
-              label="Email Address" 
+            <FormField
+              label="Email Address"
               icon={Mail}
               required
               tooltip="Your primary email for account notifications"
+              error={errors.email}
             >
               <div className="flex gap-2">
                 <Input
                   type="email"
                   value={displayData.email}
                   onChange={(e) => updateField('email', e.target.value)}
-                  disabled={!isEditing}
                   placeholder="john@example.com"
                   className="flex-1"
                 />
                 <Badge variant="secondary" className="self-center px-3">
-                  <Check className="h-3 w-3 mr-1"/>
+                  <Check className="h-3 w-3 mr-1" />
                   Verified
                 </Badge>
               </div>
             </FormField>
 
-            <FormField label="Phone Number">
+            <FormField label="Phone Number" error={errors.phone}>
               <Input
                 type="tel"
                 value={displayData.phone}
                 onChange={(e) => updateField('phone', e.target.value)}
-                disabled={!isEditing}
                 placeholder="+1 (555) 123-4567"
               />
             </FormField>
 
-            <FormField 
-              label="Bio" 
+            <FormField
+              label="Bio"
               tooltip="Tell others about yourself and your work"
+              error={errors.bio}
             >
               <Textarea
-                value={displayData.bio}
+                value={displayData.bio || ''}
                 onChange={(e) => updateField('bio', e.target.value)}
-                disabled={!isEditing}
                 placeholder="Tell us about yourself..."
                 rows={4}
                 maxLength={500}
                 className="resize-none"
               />
               <p className="text-xs text-muted-foreground text-right">
-                {displayData.bio.length}/500
+                {(displayData.bio || '').length}/500
               </p>
             </FormField>
           </div>
@@ -619,43 +650,39 @@ export function AccountProfile() {
         >
           <div className="grid gap-5">
             <div className="grid md:grid-cols-2 gap-4">
-              <FormField label="Company" icon={Building}>
+              <FormField label="Company" icon={Building} error={errors.company}>
                 <Input
                   value={displayData.company}
                   onChange={(e) => updateField('company', e.target.value)}
-                  disabled={!isEditing}
                   placeholder="Company name"
                 />
               </FormField>
-              <FormField label="Job Title">
+              <FormField label="Job Title" error={errors.jobTitle}>
                 <Input
                   value={displayData.jobTitle}
                   onChange={(e) => updateField('jobTitle', e.target.value)}
-                  disabled={!isEditing}
                   placeholder="Your role"
                 />
               </FormField>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
-              <FormField label="Location" icon={MapPin}>
+              <FormField label="Location" icon={MapPin} error={errors.location}>
                 <Input
                   value={displayData.location}
                   onChange={(e) => updateField('location', e.target.value)}
-                  disabled={!isEditing}
                   placeholder="City, Country"
                 />
               </FormField>
-              <FormField label="Website" icon={Globe}>
+              <FormField label="Website" icon={Globe} error={errors.website}>
                 <div className="relative">
                   <Input
                     type="url"
                     value={displayData.website}
                     onChange={(e) => updateField('website', e.target.value)}
-                    disabled={!isEditing}
                     placeholder="https://example.com"
                   />
-                  {displayData.website && !isEditing && (
+                  {displayData.website && (
                     <a
                       href={displayData.website}
                       target="_blank"
@@ -683,7 +710,6 @@ export function AccountProfile() {
               platform="LinkedIn"
               value={displayData.linkedin}
               onChange={(v) => updateField('linkedin', v)}
-              disabled={!isEditing}
               color="#0077B5"
             />
             <SocialLink
@@ -691,14 +717,12 @@ export function AccountProfile() {
               platform="GitHub"
               value={displayData.github}
               onChange={(v) => updateField('github', v)}
-              disabled={!isEditing}
             />
             <SocialLink
               icon={Twitter}
               platform="Twitter"
               value={displayData.twitter}
               onChange={(v) => updateField('twitter', v)}
-              disabled={!isEditing}
               color="#1DA1F2"
             />
           </div>
@@ -717,7 +741,6 @@ export function AccountProfile() {
               description="Allow other users to view your profile information"
               checked={displayData.publicProfile}
               onCheckedChange={(v) => updateField('publicProfile', v)}
-              disabled={!isEditing}
             />
             <Separator />
             <PrivacyToggle
@@ -726,7 +749,6 @@ export function AccountProfile() {
               description="Receive important updates and alerts via email"
               checked={displayData.emailNotifications}
               onCheckedChange={(v) => updateField('emailNotifications', v)}
-              disabled={!isEditing}
             />
             <Separator />
             <PrivacyToggle
@@ -735,7 +757,6 @@ export function AccountProfile() {
               description="Get news, tips, and special offers from PixCrawler"
               checked={displayData.marketingEmails}
               onCheckedChange={(v) => updateField('marketingEmails', v)}
-              disabled={!isEditing}
             />
           </div>
         </ProfileSection>
@@ -782,19 +803,19 @@ export function AccountProfile() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleExportData}
               >
-                <Download className="h-4 w-4 mr-2"/>
+                <Download className="h-4 w-4 mr-2" />
                 Export My Data
               </Button>
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" size="sm">
-                    <Trash2 className="h-4 w-4 mr-2"/>
+                    <Trash2 className="h-4 w-4 mr-2" />
                     Delete Account
                   </Button>
                 </AlertDialogTrigger>
@@ -828,7 +849,7 @@ export function AccountProfile() {
                   </AlertDialogHeader>
 
                   <div className="space-y-4 py-2">
-                    <FormField 
+                    <FormField
                       label="Type DELETE MY ACCOUNT to confirm"
                       required
                     >
@@ -843,7 +864,7 @@ export function AccountProfile() {
                     </FormField>
 
                     <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                      <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0"/>
+                      <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
                       <p className="text-xs text-destructive leading-relaxed">
                         This action is immediate and cannot be reversed. All your data will be permanently erased from our servers.
                       </p>
@@ -861,7 +882,7 @@ export function AccountProfile() {
                     >
                       {isDeleting ? (
                         <>
-                          <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"/>
+                          <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
                           Deleting...
                         </>
                       ) : (

@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/components/ui/use-toast'
+import { cn } from '@/lib/utils'
 import {
   CreditCard,
   Calendar,
@@ -455,6 +456,4 @@ export function Subscription() {
   )
 }
 
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ')
-}
+
