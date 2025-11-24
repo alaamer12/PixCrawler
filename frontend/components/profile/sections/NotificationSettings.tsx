@@ -1,12 +1,12 @@
 'use client'
 
-import React, {useState} from 'react'
-import {Button} from '@/components/ui/button'
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
-import {Label} from '@/components/ui/label'
-import {Switch} from '@/components/ui/switch'
-import {Separator} from '@/components/ui/separator'
-import {Badge} from '@/components/ui/badge'
+import React, { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {useToast} from '@/components/ui/use-toast'
+import { useToast } from '@/components/ui/use-toast'
 import {
   Bell,
   Mail,
@@ -63,7 +63,7 @@ interface NotificationCategory {
 }
 
 export function NotificationSettings() {
-  const {toast} = useToast()
+  const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
   const [emailFrequency, setEmailFrequency] = useState('instant')
   const [quietHoursEnabled, setQuietHoursEnabled] = useState(true)
@@ -78,14 +78,6 @@ export function NotificationSettings() {
       enabled: true,
       verified: true,
       description: 'john.doe@example.com',
-    },
-    {
-      id: 'sms',
-      name: 'SMS',
-      icon: Smartphone,
-      enabled: false,
-      verified: false,
-      description: '+1 (555) 123-4567',
     },
   ])
 
@@ -146,7 +138,7 @@ export function NotificationSettings() {
     setChannels(prev =>
       prev.map(channel =>
         channel.id === channelId
-          ? {...channel, enabled: !channel.enabled}
+          ? { ...channel, enabled: !channel.enabled }
           : channel
       )
     )
@@ -158,7 +150,7 @@ export function NotificationSettings() {
     setCategories(prev =>
       prev.map(category =>
         category.id === categoryId
-          ? {...category, [channelType]: !category[channelType]}
+          ? { ...category, [channelType]: !category[channelType] }
           : category
       )
     )
@@ -195,12 +187,12 @@ export function NotificationSettings() {
         <Button onClick={handleSave} disabled={isSaving}>
           {isSaving ? (
             <>
-              <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"/>
+              <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
               Saving...
             </>
           ) : (
             <>
-              <Save className="h-4 w-4 mr-2"/>
+              <Save className="h-4 w-4 mr-2" />
               Save Changes
             </>
           )}
@@ -225,19 +217,19 @@ export function NotificationSettings() {
               >
                 <div className="flex items-center gap-4">
                   <div className={`p-2 rounded-lg ${channel.enabled ? 'bg-primary/10' : 'bg-muted'}`}>
-                    <Icon className={`h-5 w-5 ${channel.enabled ? 'text-primary' : 'text-muted-foreground'}`}/>
+                    <Icon className={`h-5 w-5 ${channel.enabled ? 'text-primary' : 'text-muted-foreground'}`} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{channel.name}</p>
                       {channel.verified ? (
                         <Badge variant="secondary" className="text-xs">
-                          <CheckCircle className="h-3 w-3 mr-1"/>
+                          <CheckCircle className="h-3 w-3 mr-1" />
                           Verified
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="text-xs">
-                          <AlertCircle className="h-3 w-3 mr-1"/>
+                          <AlertCircle className="h-3 w-3 mr-1" />
                           Not Verified
                         </Badge>
                       )}
@@ -299,7 +291,7 @@ export function NotificationSettings() {
               return (
                 <div key={category.id} className="grid grid-cols-5 gap-4 items-center">
                   <div className="col-span-2 flex items-start gap-3">
-                    <Icon className="h-5 w-5 text-muted-foreground mt-0.5"/>
+                    <Icon className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="font-medium text-sm">{category.name}</p>
                       <p className="text-xs text-muted-foreground">{category.description}</p>
@@ -389,13 +381,13 @@ export function NotificationSettings() {
                       notification.type === 'success' && "text-green-600 dark:text-green-400",
                       notification.type === 'warning' && "text-yellow-600 dark:text-yellow-400",
                       notification.type === 'info' && "text-blue-600 dark:text-blue-400"
-                    )}/>
+                    )} />
                   </div>
                   <div className="flex-1">
                     <p className="font-medium text-sm">{notification.title}</p>
                     <p className="text-sm text-muted-foreground">{notification.description}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      <Clock className="h-3 w-3 inline mr-1"/>
+                      <Clock className="h-3 w-3 inline mr-1" />
                       {notification.time}
                     </p>
                   </div>

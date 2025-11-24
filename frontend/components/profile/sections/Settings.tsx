@@ -1,13 +1,11 @@
 'use client'
 
-import React, {useState} from 'react'
-import {Button} from '@/components/ui/button'
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
-import {Label} from '@/components/ui/label'
-import {Switch} from '@/components/ui/switch'
-import {Separator} from '@/components/ui/separator'
-import {Input} from '@/components/ui/input'
-import {RadioGroup, RadioGroupItem} from '@/components/ui/radio-group'
+import React, { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Separator } from '@/components/ui/separator'
 import {
   Select,
   SelectContent,
@@ -15,45 +13,317 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {Slider} from '@/components/ui/slider'
-import {useToast} from '@/components/ui/use-toast'
-import {useTheme} from 'next-themes'
+import { Slider } from '@/components/ui/slider'
+import { useToast } from '@/components/ui/use-toast'
+import { useTheme } from 'next-themes'
 import {
-  Monitor,
-  Moon,
-  Sun,
   Globe,
-  Clock,
-  Palette,
-  Type,
-  Volume2,
-  Keyboard,
-  MousePointer,
-  Zap,
-  Eye,
-  Download,
-  Upload,
-  HardDrive,
-  Cpu,
-  Wifi,
-  Battery,
+  Grid,
   Shield,
-  Lock,
   Key,
-  Fingerprint,
+  Lock,
   Save,
   RotateCcw,
   Info,
-  CheckCircle,
-  AlertCircle,
-  Terminal,
-  Code,
-  FileCode,
-  Layers,
-  Grid,
-  List,
-  LayoutGrid,
 } from 'lucide-react'
+
+
+interface SettingsSelectProps {
+  id: string
+  label: string
+  description?: string
+  value: string
+  onValueChange: (value: string) => void
+  options: { value: string; label: string }[]
+}
+
+const SettingsSelect = ({ id, label, description, value, onValueChange, options }: SettingsSelectProps) => (
+  <div className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+    <div className="space-y-0.5">
+      <Label htmlFor={id} className="text-base font-medium">{label}</Label>
+      {description && <p className="text-sm text-muted-foreground">{description}</p>}
+    </div>
+    <Select value={value} onValueChange={onValueChange}>
+      <SelectTrigger id={id} className="w-[200px]">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  </div>
+)
+
+interface SettingsSwitchProps {
+  label: string
+  description: string
+  checked: boolean
+  onCheckedChange: (checked: boolean) => void
+}
+
+const SettingsSwitch = ({ label, description, checked, onCheckedChange }: SettingsSwitchProps) => (
+  <div className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+    <div className="space-y-0.5">
+      <Label className="text-base font-medium">{label}</Label>
+      <p className="text-sm text-muted-foreground">{description}</p>
+    </div>
+    <Switch checked={checked} onCheckedChange={onCheckedChange} />
+  </div>
+)
+
+// --- Section Components ---
+
+interface LocalizationSettingsProps {
+  language: string
+  setLanguage: (v: string) => void
+  timezone: string
+  setTimezone: (v: string) => void
+  dateFormat: string
+  setDateFormat: (v: string) => void
+  timeFormat: string
+  setTimeFormat: (v: string) => void
+  currency: string
+  setCurrency: (v: string) => void
+}
+
+const LocalizationSettings = ({
+  language,
+  setLanguage,
+  timezone,
+  setTimezone,
+  dateFormat,
+  setDateFormat,
+  timeFormat,
+  setTimeFormat,
+  currency,
+  setCurrency,
+}: LocalizationSettingsProps) => (
+  <div className="divide-y">
+    <SettingsSelect
+      id="language"
+      label="Language"
+      description="Select your preferred language"
+      value={language}
+      onValueChange={setLanguage}
+      options={[
+        { value: 'en', label: 'English' },
+        { value: 'es', label: 'Español' },
+        { value: 'fr', label: 'Français' },
+        { value: 'de', label: 'Deutsch' },
+        { value: 'ja', label: '日本語' },
+        { value: 'zh', label: '中文' },
+      ]}
+    />
+    <SettingsSelect
+      id="timezone"
+      label="Timezone"
+      description="Set your local timezone"
+      value={timezone}
+      onValueChange={setTimezone}
+      options={[
+        { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+        { value: 'America/Denver', label: 'Mountain Time (MT)' },
+        { value: 'America/Chicago', label: 'Central Time (CT)' },
+        { value: 'America/New_York', label: 'Eastern Time (ET)' },
+        { value: 'Europe/London', label: 'London (GMT)' },
+        { value: 'Europe/Paris', label: 'Paris (CET)' },
+        { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
+      ]}
+    />
+    <SettingsSelect
+      id="date-format"
+      label="Date Format"
+      description="Choose how dates are displayed"
+      value={dateFormat}
+      onValueChange={setDateFormat}
+      options={[
+        { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
+        { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
+        { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' },
+      ]}
+    />
+    <SettingsSelect
+      id="time-format"
+      label="Time Format"
+      description="Choose 12-hour or 24-hour format"
+      value={timeFormat}
+      onValueChange={setTimeFormat}
+      options={[
+        { value: '12h', label: '12-hour (AM/PM)' },
+        { value: '24h', label: '24-hour' },
+      ]}
+    />
+    <SettingsSelect
+      id="currency"
+      label="Currency"
+      description="Select your preferred currency"
+      value={currency}
+      onValueChange={setCurrency}
+      options={[
+        { value: 'USD', label: 'USD ($)' },
+        { value: 'EUR', label: 'EUR (€)' },
+        { value: 'GBP', label: 'GBP (£)' },
+        { value: 'JPY', label: 'JPY (¥)' },
+        { value: 'CNY', label: 'CNY (¥)' },
+      ]}
+    />
+  </div>
+)
+
+interface WorkspaceSettingsProps {
+  itemsPerPage: number
+  setItemsPerPage: (v: number) => void
+  showThumbnails: boolean
+  setShowThumbnails: (v: boolean) => void
+  autoExpandFolders: boolean
+  setAutoExpandFolders: (v: boolean) => void
+  confirmDelete: boolean
+  setConfirmDelete: (v: boolean) => void
+}
+
+const WorkspaceSettings = ({
+  itemsPerPage,
+  setItemsPerPage,
+  showThumbnails,
+  setShowThumbnails,
+  autoExpandFolders,
+  setAutoExpandFolders,
+  confirmDelete,
+  setConfirmDelete,
+}: WorkspaceSettingsProps) => (
+  <div className="divide-y">
+    <div className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+      <div className="space-y-0.5">
+        <Label htmlFor="items-per-page" className="text-base font-medium">Items per page</Label>
+        <p className="text-sm text-muted-foreground">Number of items to show in lists</p>
+      </div>
+      <div className="flex items-center gap-4 w-[200px]">
+        <Slider
+          id="items-per-page"
+          min={10}
+          max={100}
+          step={10}
+          value={[itemsPerPage]}
+          onValueChange={(value) => setItemsPerPage(value[0])}
+          className="flex-1"
+        />
+        <span className="text-sm font-medium w-8 text-right">{itemsPerPage}</span>
+      </div>
+    </div>
+
+    <SettingsSwitch
+      label="Show Thumbnails"
+      description="Display image previews in lists"
+      checked={showThumbnails}
+      onCheckedChange={setShowThumbnails}
+    />
+    <SettingsSwitch
+      label="Auto-expand Folders"
+      description="Automatically open folders on click"
+      checked={autoExpandFolders}
+      onCheckedChange={setAutoExpandFolders}
+    />
+    <SettingsSwitch
+      label="Confirm Delete"
+      description="Ask for confirmation before deleting items"
+      checked={confirmDelete}
+      onCheckedChange={setConfirmDelete}
+    />
+  </div>
+)
+
+interface PrivacySecuritySettingsProps {
+  telemetry: boolean
+  setTelemetry: (v: boolean) => void
+  crashReports: boolean
+  setCrashReports: (v: boolean) => void
+  analytics: boolean
+  setAnalytics: (v: boolean) => void
+  sessionRecording: boolean
+  setSessionRecording: (v: boolean) => void
+}
+
+const PrivacySecuritySettings = ({
+  telemetry,
+  setTelemetry,
+  crashReports,
+  setCrashReports,
+  analytics,
+  setAnalytics,
+  sessionRecording,
+  setSessionRecording,
+}: PrivacySecuritySettingsProps) => (
+  <div className="space-y-6">
+    <div className="divide-y">
+      <SettingsSwitch
+        label="Telemetry"
+        description="Help improve the app with usage data"
+        checked={telemetry}
+        onCheckedChange={setTelemetry}
+      />
+      <SettingsSwitch
+        label="Crash Reports"
+        description="Send crash reports to help fix issues"
+        checked={crashReports}
+        onCheckedChange={setCrashReports}
+      />
+      <SettingsSwitch
+        label="Analytics"
+        description="Share anonymous usage statistics"
+        checked={analytics}
+        onCheckedChange={setAnalytics}
+      />
+      <SettingsSwitch
+        label="Session Recording"
+        description="Record sessions for support purposes"
+        checked={sessionRecording}
+        onCheckedChange={setSessionRecording}
+      />
+    </div>
+
+    <Separator />
+
+    <div className="space-y-4">
+      <h4 className="text-sm font-medium">Security</h4>
+
+      <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-full">
+            <Key className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <p className="font-medium">Password</p>
+            <p className="text-sm text-muted-foreground">Last changed 30 days ago</p>
+          </div>
+        </div>
+        <Button variant="outline" size="sm">
+          Change
+        </Button>
+      </div>
+
+      <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-full">
+            <Lock className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <p className="font-medium">Active Sessions</p>
+            <p className="text-sm text-muted-foreground">3 devices logged in</p>
+          </div>
+        </div>
+        <Button variant="outline" size="sm">
+          Manage
+        </Button>
+      </div>
+    </div>
+  </div>
+)
+
+// --- Main Component ---
 
 interface SettingSection {
   title: string
@@ -63,8 +333,8 @@ interface SettingSection {
 }
 
 export function Settings() {
-  const {theme, setTheme} = useTheme()
-  const {toast} = useToast()
+  const { theme, setTheme } = useTheme()
+  const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
 
   // Localization
@@ -112,87 +382,18 @@ export function Settings() {
       description: 'Language, timezone, and regional preferences',
       icon: Globe,
       content: (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="language">Language</Label>
-              <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger id="language">
-                  <SelectValue/>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="es">Español</SelectItem>
-                  <SelectItem value="fr">Français</SelectItem>
-                  <SelectItem value="de">Deutsch</SelectItem>
-                  <SelectItem value="ja">日本語</SelectItem>
-                  <SelectItem value="zh">中文</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
-              <Select value={timezone} onValueChange={setTimezone}>
-                <SelectTrigger id="timezone">
-                  <SelectValue/>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
-                  <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
-                  <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
-                  <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
-                  <SelectItem value="Europe/London">London (GMT)</SelectItem>
-                  <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
-                  <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="date-format">Date Format</Label>
-              <Select value={dateFormat} onValueChange={setDateFormat}>
-                <SelectTrigger id="date-format">
-                  <SelectValue/>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
-                  <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
-                  <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="time-format">Time Format</Label>
-              <Select value={timeFormat} onValueChange={setTimeFormat}>
-                <SelectTrigger id="time-format">
-                  <SelectValue/>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="12h">12-hour (AM/PM)</SelectItem>
-                  <SelectItem value="24h">24-hour</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger id="currency">
-                  <SelectValue/>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USD">USD ($)</SelectItem>
-                  <SelectItem value="EUR">EUR (€)</SelectItem>
-                  <SelectItem value="GBP">GBP (£)</SelectItem>
-                  <SelectItem value="JPY">JPY (¥)</SelectItem>
-                  <SelectItem value="CNY">CNY (¥)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
+        <LocalizationSettings
+          language={language}
+          setLanguage={setLanguage}
+          timezone={timezone}
+          setTimezone={setTimezone}
+          dateFormat={dateFormat}
+          setDateFormat={setDateFormat}
+          timeFormat={timeFormat}
+          setTimeFormat={setTimeFormat}
+          currency={currency}
+          setCurrency={setCurrency}
+        />
       ),
     },
     {
@@ -200,48 +401,16 @@ export function Settings() {
       description: 'Configure your default workspace preferences',
       icon: Grid,
       content: (
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="items-per-page">Items per page</Label>
-              <span className="text-sm text-muted-foreground">{itemsPerPage}</span>
-            </div>
-            <Slider
-              id="items-per-page"
-              min={10}
-              max={100}
-              step={10}
-              value={[itemsPerPage]}
-              onValueChange={(value) => setItemsPerPage(value[0])}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Show Thumbnails</Label>
-                <p className="text-sm text-muted-foreground">Display image previews</p>
-              </div>
-              <Switch checked={showThumbnails} onCheckedChange={setShowThumbnails}/>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Auto-expand Folders</Label>
-                <p className="text-sm text-muted-foreground">Automatically open folders on click</p>
-              </div>
-              <Switch checked={autoExpandFolders} onCheckedChange={setAutoExpandFolders}/>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Confirm Delete</Label>
-                <p className="text-sm text-muted-foreground">Ask before deleting items</p>
-              </div>
-              <Switch checked={confirmDelete} onCheckedChange={setConfirmDelete}/>
-            </div>
-          </div>
-        </div>
+        <WorkspaceSettings
+          itemsPerPage={itemsPerPage}
+          setItemsPerPage={setItemsPerPage}
+          showThumbnails={showThumbnails}
+          setShowThumbnails={setShowThumbnails}
+          autoExpandFolders={autoExpandFolders}
+          setAutoExpandFolders={setAutoExpandFolders}
+          confirmDelete={confirmDelete}
+          setConfirmDelete={setConfirmDelete}
+        />
       ),
     },
     {
@@ -249,73 +418,16 @@ export function Settings() {
       description: 'Control data collection and security settings',
       icon: Shield,
       content: (
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Telemetry</Label>
-                <p className="text-sm text-muted-foreground">Help improve the app with usage data</p>
-              </div>
-              <Switch checked={telemetry} onCheckedChange={setTelemetry}/>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Crash Reports</Label>
-                <p className="text-sm text-muted-foreground">Send crash reports to help fix issues</p>
-              </div>
-              <Switch checked={crashReports} onCheckedChange={setCrashReports}/>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Analytics</Label>
-                <p className="text-sm text-muted-foreground">Share anonymous usage statistics</p>
-              </div>
-              <Switch checked={analytics} onCheckedChange={setAnalytics}/>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Session Recording</Label>
-                <p className="text-sm text-muted-foreground">Record sessions for support purposes</p>
-              </div>
-              <Switch checked={sessionRecording} onCheckedChange={setSessionRecording}/>
-            </div>
-          </div>
-
-          <Separator/>
-
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium">Security</h4>
-
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <Key className="h-5 w-5 text-primary"/>
-                <div>
-                  <p className="font-medium">Password</p>
-                  <p className="text-sm text-muted-foreground">Last changed 30 days ago</p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm">
-                Change
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <Lock className="h-5 w-5 text-primary"/>
-                <div>
-                  <p className="font-medium">Active Sessions</p>
-                  <p className="text-sm text-muted-foreground">3 devices logged in</p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm">
-                Manage
-              </Button>
-            </div>
-          </div>
-        </div>
+        <PrivacySecuritySettings
+          telemetry={telemetry}
+          setTelemetry={setTelemetry}
+          crashReports={crashReports}
+          setCrashReports={setCrashReports}
+          analytics={analytics}
+          setAnalytics={setAnalytics}
+          sessionRecording={sessionRecording}
+          setSessionRecording={setSessionRecording}
+        />
       ),
     },
   ]
@@ -332,18 +444,18 @@ export function Settings() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={handleReset}>
-            <RotateCcw className="h-4 w-4 mr-2"/>
+            <RotateCcw className="h-4 w-4 mr-2" />
             Reset to Defaults
           </Button>
           <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? (
               <>
-                <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent"/>
+                <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
                 Saving...
               </>
             ) : (
               <>
-                <Save className="h-4 w-4 mr-2"/>
+                <Save className="h-4 w-4 mr-2" />
                 Save Changes
               </>
             )}
@@ -359,7 +471,7 @@ export function Settings() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
-                  <Icon className="h-5 w-5 text-primary"/>
+                  <Icon className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <CardTitle>{section.title}</CardTitle>
@@ -376,7 +488,7 @@ export function Settings() {
       <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
         <CardContent className="pt-6">
           <div className="flex gap-3">
-            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5"/>
+            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
             <div className="space-y-1">
               <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
                 Settings are saved automatically
