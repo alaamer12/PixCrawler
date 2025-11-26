@@ -19,9 +19,10 @@ from sqlalchemy import (
     UUID as SQLAlchemyUUID,
     CheckConstraint,
     Index,
+    ForeignKey,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin
 
@@ -64,6 +65,7 @@ class APIKey(Base, TimestampMixin):
     # Foreign key
     user_id: Mapped[UUID] = mapped_column(
         SQLAlchemyUUID(as_uuid=True),
+        ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -135,6 +137,13 @@ class APIKey(Base, TimestampMixin):
         DateTime(timezone=True),
         nullable=True,
         index=True,
+    )
+    
+    # Relationships
+    user: Mapped["Profile"] = relationship(
+        "Profile",
+        back_populates="api_keys",
+        lazy="joined",
     )
     
     # Constraints

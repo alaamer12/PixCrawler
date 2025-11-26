@@ -1080,7 +1080,8 @@ class DatasetGenerator:
         # Initialize KeywordManagement instance
         self.keyword_manager = KeywordManagement(
             ai_model=self.config.ai_model,
-            keyword_generation=self.config.keyword_generation
+            keyword_generation=self.config.keyword_generation,
+            generation_strategy=getattr(self.config, 'generation_strategy', 'ai')
         )
 
         # Add missing attributes that are referenced in methods but not initialized

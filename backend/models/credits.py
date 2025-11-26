@@ -21,6 +21,7 @@ from sqlalchemy import (
     UUID as SQLAlchemyUUID,
     CheckConstraint,
     Index,
+    ForeignKey,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -63,6 +64,7 @@ class CreditAccount(Base, TimestampMixin):
     # Foreign key
     user_id: Mapped[UUID] = mapped_column(
         SQLAlchemyUUID(as_uuid=True),
+        ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
         unique=True,
         index=True,
@@ -120,6 +122,11 @@ class CreditAccount(Base, TimestampMixin):
     )
     
     # Relationships
+    user: Mapped["Profile"] = relationship(
+        "Profile",
+        back_populates="credit_account",
+        lazy="joined",
+    )
     transactions: Mapped[list["CreditTransaction"]] = relationship(
         "CreditTransaction",
         back_populates="account",
@@ -170,12 +177,14 @@ class CreditTransaction(Base):
     # Foreign keys
     account_id: Mapped[UUID] = mapped_column(
         SQLAlchemyUUID(as_uuid=True),
+        ForeignKey("credit_accounts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     
     user_id: Mapped[UUID] = mapped_column(
         SQLAlchemyUUID(as_uuid=True),
+        ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
