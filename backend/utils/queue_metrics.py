@@ -18,7 +18,7 @@ async def get_celery_queue_depth(
     broker_url: Optional[str] = None
 ) -> int:
     """
-    Get the current depth of a Celery queue.
+    Get the current depth of a Celery queue using Redis.
     
     Args:
         queue_name: Name of the queue to check
@@ -28,39 +28,28 @@ async def get_celery_queue_depth(
         Current queue depth (number of pending tasks)
     """
     try:
-        # Try to import celery
-        from celery import Celery
+        # Import here to avoid circular imports
+        from backend.core.settings.redis import get_redis_settings
+        import redis.asyncio as redis
         
-        # Create a temporary Celery app to inspect the queue
-        # In production, you'd use the actual app instance
-        if broker_url:
-            app = Celery(broker=broker_url)
-        else:
-            # Use default broker from environment
-            app = Celery()
+        if not broker_url:
+            settings = get_redis_settings()
+            broker_url = settings.url
+            
+        # Connect to Redis
+        client = redis.from_url(broker_url)
         
-        # Get queue length
-        # This is a simplified version - actual implementation would
-        # use the broker's API to get queue length
-        inspect = app.control.inspect()
-        active = inspect.active()
-        
-        if active:
-            # Count active tasks
-            total_active = sum(len(tasks) for tasks in active.values())
-        else:
-            total_active = 0
-        
-        # For queue depth, we'd need to query the broker directly
-        # This is a placeholder - actual implementation depends on broker type
-        # (Redis, RabbitMQ, etc.)
-        return total_active
-        
-    except ImportError:
-        # Celery not available
-        return 0
-    except Exception:
-        # Error getting queue depth
+        try:
+            # Get queue length directly from Redis
+            # Celery stores tasks in a list with the queue name
+            depth = await client.llen(queue_name)
+            return int(depth)
+        finally:
+            await client.aclose()
+            
+    except Exception as e:
+        # Fallback or log error
+        print(f"Error getting queue depth: {e}")
         return 0
 
 
