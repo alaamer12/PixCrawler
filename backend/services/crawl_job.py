@@ -22,11 +22,16 @@ Features:
     - Image metadata storage
     - Repository pattern for clean architecture
     - Tier-based concurrent job rate limiting (Free: 1, Pro: 3, Enterprise: 10)
+    - Server-Sent Events (SSE) for real-time progress updates
 """
 import uuid
+import json
+import asyncio
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, AsyncGenerator
+from fastapi import HTTPException
 from celery import current_app as celery_app
+from sse_starlette.sse import EventSourceResponse
 from backend.core.exceptions import NotFoundError, ValidationError
 from backend.models import CrawlJob, Image
 from backend.repositories import (
@@ -36,6 +41,7 @@ from backend.repositories import (
     ActivityLogRepository
 )
 from .base import BaseService
+from backend.core.supabase import get_supabase_client
 
 __all__ = [
     'CrawlJobService',
@@ -356,34 +362,67 @@ class CrawlJobService(BaseService):
         job_id: int,
         progress: int,
         downloaded_images: int,
-        valid_images: Optional[int] = None
+        valid_images: Optional[int] = None,
+        session: Optional[AsyncSession] = None
     ) -> Optional[CrawlJob]:
         """
-        Update crawl job progress.
+        Update crawl job progress and broadcast via SSE.
 
         Args:
             job_id: Crawl job ID
             progress: Progress percentage (0-100)
             downloaded_images: Number of images downloaded
             valid_images: Number of valid images
+            session: Optional database session
 
         Returns:
             Updated job or None if not found
         """
-        job = await self.crawl_job_repo.get_by_id(job_id)
-        if not job:
-            return None
+        # Ensure progress is within bounds
+        progress = max(0, min(100, progress))
 
-        update_data = {
-            "progress": progress,
-            "downloaded_images": downloaded_images,
-            "updated_at": datetime.utcnow()
+        updates = {
+            'progress': progress,
+            'downloaded_images': downloaded_images,
+            'last_activity': datetime.utcnow(),
+            'status': 'in_progress' if progress < 100 else 'completed'
         }
 
         if valid_images is not None:
-            update_data["valid_images"] = valid_images
+            updates['valid_images'] = valid_images
 
-        return await self.crawl_job_repo.update(job, **update_data)
+        job = await self.crawl_job_repo.update(job_id, **updates, session=session)
+
+        if job:
+            # Broadcast progress update via Supabase
+            supabase = get_supabase_client()
+            if supabase:
+                channel = supabase.channel(f'crawl_job_{job_id}')
+                update_data = {
+                    'job_id': job_id,
+                    'progress': progress,
+                    'downloaded_images': downloaded_images,
+                    'valid_images': valid_images or 0,
+                    'total_images': job.max_images,
+                    'status': job.status,
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+
+                await channel.send({
+                    'type': 'broadcast',
+                    'event': 'progress',
+                    'payload': update_data
+                })
+
+                # Also update the job status in the database for real-time subscriptions
+                if progress >= 100:
+                    await self.update_job_status(
+                        job_id=job_id,
+                        status='completed',
+                        session=session
+                    )
+
+        return job
 
     async def get_jobs_by_project(self, project_id: int) -> List[CrawlJob]:
         """
@@ -453,38 +492,233 @@ class CrawlJobService(BaseService):
 
         return await self.image_repo.bulk_create(images_data)
 
-    async def update_job(
+    async def update_job_status(
         self,
         job_id: int,
         status: str,
         error: Optional[str] = None,
+        session: Optional[AsyncSession] = None,
         **updates: Any
     ) -> Optional[CrawlJob]:
         """
-        Update crawl job status and metadata.
+        Update crawl job status and metadata with real-time updates.
 
         Args:
             job_id: Crawl job ID
             status: New status
             error: Optional error message
+            session: Optional database session
             **updates: Additional fields to update
 
         Returns:
             Updated job or None if not found
         """
-        job = await self.crawl_job_repo.get_by_id(job_id)
-        if not job:
-            return None
-
-        update_data = {"status": status, **updates}
-
+        updates['status'] = status
         if error:
-            update_data["error"] = error[:500]  # Truncate long error messages
+            updates['error'] = error
+            updates['completed_at'] = datetime.utcnow()
+        elif status == 'completed':
+            updates['completed_at'] = datetime.utcnow()
+            updates['progress'] = 100
 
-        if status in ["completed", "failed", "cancelled"]:
-            update_data["completed_at"] = datetime.utcnow()
+        job = await self.crawl_job_repo.update(job_id, **updates, session=session)
 
-        return await self.crawl_job_repo.update(job, **update_data)
+        if job:
+            # Log activity
+            await self._log_activity(
+                job.project_id,
+                f"Job {job_id} status updated to: {status}",
+                job_id=job_id,
+                status=status,
+                **{k: v for k, v in updates.items() if k != 'status'}
+            )
+
+            # Broadcast status change via Supabase
+            supabase = get_supabase_client()
+            if supabase:
+                channel = supabase.channel(f'crawl_job_{job_id}')
+                update_data = {
+                    'job_id': job_id,
+                    'status': status,
+                    'progress': job.progress or 0,
+                    'downloaded_images': job.downloaded_images or 0,
+                    'valid_images': job.valid_images or 0,
+                    'total_images': job.max_images,
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+
+                if error:
+                    update_data['error'] = error
+
+                await channel.send({
+                    'type': 'broadcast',
+                    'event': 'status_update',
+                    'payload': update_data
+                })
+
+        return job
+
+    # Alias for backward compatibility
+    update_job = update_job_status
+
+    async def get_job_progress_stream(self, job_id: int) -> AsyncGenerator[Dict[str, Any], None]:
+        """
+        Get a stream of job progress updates.
+
+        Args:
+            job_id: Crawl job ID
+
+        Yields:
+            Job progress updates as a dictionary with the following keys:
+            - job_id: ID of the crawl job
+            - progress: Current progress percentage (0-100)
+            - downloaded_images: Number of images downloaded so far
+            - valid_images: Number of valid images
+            - total_images: Total number of images to download
+            - status: Current job status
+            - timestamp: ISO timestamp of the update
+        """
+        # Get current job state first
+        job = await self.get_job(job_id)
+        if not job:
+            raise NotFoundError(f"Crawl job not found: {job_id}")
+
+        # Yield initial state
+        initial_state = {
+            'job_id': job_id,
+            'progress': job.progress or 0,
+            'downloaded_images': job.downloaded_images or 0,
+            'valid_images': job.valid_images or 0,
+            'total_images': job.max_images,
+            'status': job.status,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        yield initial_state
+
+        # If job is already completed, no need to subscribe to updates
+        if job.status in ['completed', 'failed', 'cancelled']:
+            return
+
+        # Subscribe to real-time updates
+        supabase = get_supabase_client()
+        if not supabase:
+            return
+
+        channel = supabase.channel(f'crawl_job_{job_id}')
+
+        try:
+            # Subscribe to the channel
+            subscription = await channel.subscribe()
+
+            # Track last update time to detect stale connections
+            last_update = time.time()
+
+            # Listen for messages
+            while True:
+                try:
+                    message = await asyncio.wait_for(subscription.receive(), timeout=30.0)
+                    last_update = time.time()
+
+                    if message and message.get('type') == 'broadcast':
+                        event = message.get('event')
+                        if event in ['progress', 'status_update']:
+                            if isinstance(message.get('payload'), dict):
+                                yield message['payload']
+                            else:
+                                # Handle string payload for backward compatibility
+                                try:
+                                    payload = json.loads(message['payload'])
+                                    yield payload
+                                except (json.JSONDecodeError, TypeError):
+                                    yield {'error': 'Invalid message format'}
+
+                    # If job is completed, stop the stream
+                    if message and message.get('payload', {}).get('status') in ['completed', 'failed', 'cancelled']:
+                        break
+
+                except asyncio.TimeoutError:
+                    # Send a heartbeat to keep the connection alive
+                    if time.time() - last_update > 30:
+                        yield {
+                            'job_id': job_id,
+                            'event': 'heartbeat',
+                            'timestamp': datetime.utcnow().isoformat()
+                        }
+
+                # Small sleep to prevent busy waiting
+                await asyncio.sleep(0.1)
+
+        except asyncio.CancelledError:
+            # Clean up on cancellation
+            await channel.unsubscribe()
+            raise
+        except Exception as e:
+            logger.error(f"Error in job progress stream: {str(e)}")
+            yield {
+                'job_id': job_id,
+                'error': str(e),
+                'status': 'error',
+                'timestamp': datetime.utcnow().isoformat()
+            }
+        finally:
+            # Ensure we always clean up
+            if 'channel' in locals():
+                await channel.unsubscribe()
+
+    async def get_job_progress_sse(self, job_id: int) -> EventSourceResponse:
+        """
+        Get a Server-Sent Events (SSE) stream of job progress updates.
+
+        Args:
+            job_id: Crawl job ID
+
+        Returns:
+            An EventSourceResponse object
+        """
+        async def event_generator():
+            try:
+                # Keep the connection alive with a heartbeat
+                last_activity = time.time()
+
+                async for update in self.get_job_progress_stream(job_id):
+                    # Send a heartbeat every 30 seconds if no updates
+                    if time.time() - last_activity > 30:
+                        yield {
+                            'event': 'heartbeat',
+                            'data': json.dumps({'timestamp': datetime.utcnow().isoformat()})
+                        }
+
+                    # Send the actual progress update
+                    yield {
+                        'event': 'crawl_progress',
+                        'data': json.dumps(update),
+                        'retry': 3000  # 3 second retry delay for reconnections
+                    }
+                    last_activity = time.time()
+
+            except asyncio.CancelledError:
+                # Handle client disconnection
+                pass
+            except Exception as e:
+                # Log any errors that occur during streaming
+                logger.error(f"Error in SSE stream for job {job_id}: {str(e)}")
+                yield {
+                    'event': 'error',
+                    'data': json.dumps({
+                        'error': 'An error occurred while streaming progress',
+                        'timestamp': datetime.utcnow().isoformat()
+                    })
+                }
+
+        # Create the SSE response with appropriate headers
+        return EventSourceResponse(
+            event_generator(),
+            headers={
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'X-Accel-Buffering': 'no'  # Disable buffering for Nginx
+            }
+        )
 
 
 async def execute_crawl_job(
@@ -574,18 +808,29 @@ async def execute_crawl_job(
         # Process images in batches
         processed_count = 0
         valid_count = 0
+        total_chunks = max(1, job.max_images // 50)  # 50 images per chunk
+        current_chunk = 0
 
         async def process_batch(batch: List[Dict[str, Any]]) -> None:
-            nonlocal processed_count, valid_count
+            nonlocal processed_count, valid_count, current_chunk
             if not batch:
                 return
 
             processed_count += len(batch)
             valid_batch = [img for img in batch if img.get("is_valid", True)]
             valid_count += len(valid_batch)
+            current_chunk = min(current_chunk + 1, total_chunks)
 
-            progress = min(int((processed_count / job.max_images)
-                           * 100), 100) if job.max_images > 0 else 0
+            # Calculate overall progress (0-100)
+            if job.max_images > 0:
+                progress = min(
+                    int((processed_count / job.max_images) * 100), 100)
+            else:
+                progress = 0
+
+            # Calculate chunk progress (0-100)
+            chunk_progress = min(
+                int((current_chunk / total_chunks) * 100), 100) if total_chunks > 0 else 0
 
             await job_service.update_job_progress(
                 job_id=job_id,
@@ -611,20 +856,55 @@ async def execute_crawl_job(
                 try:
                     batch = await run_in_threadpool(next, async_gen)
                     await process_batch(batch)
+
+                    # Send progress update after each batch
+                    progress = min(
+                        int((processed_count / job.max_images) * 100), 100) if job.max_images > 0 else 0
+
+                    # Update job progress with more detailed information
+                    await job_service.update_job_progress(
+                        job_id=job_id,
+                        progress=progress,
+                        downloaded_images=processed_count,
+                        valid_images=valid_count,
+                        session=session
+                    )
+
                 except StopAsyncIteration:
                     break
 
+            # Final progress update
+            progress = 100 if processed_count >= job.max_images else min(
+                int((processed_count / job.max_images) * 100), 99)
+            await job_service.update_job_progress(
+                job_id=job_id,
+                progress=progress,
+                downloaded_images=processed_count,
+                valid_images=valid_count,
+                session=session
+            )
+
         except Exception as e:
+            # Update job status to failed in case of errors
+            await job_service.update_job_status(
+                job_id=job_id,
+                status="failed",
+                error=str(e),
+                session=session
+            )
             raise ExternalServiceError(
                 f"Error during batch processing: {str(e)}") from e
+        finally:
+            # Ensure resources are cleaned up
+            try:
+                await run_in_threadpool(builder.cleanup)
+            except Exception as cleanup_error:
+                logger.error(f"Error during cleanup: {str(cleanup_error)}")
 
-        # Ensure resources are cleaned up
-        await run_in_threadpool(builder.cleanup)
-
-        # Final update
+        # Final update with completion status
         async with session.begin():
-            await job_service.update_job(
-                job_id,
+            await job_service.update_job_status(
+                job_id=job_id,
                 status="completed",
                 progress=100,
                 completed_at=datetime.utcnow(),
@@ -644,6 +924,8 @@ async def execute_crawl_job(
                     status="failed",
                     error=str(e),
                     completed_at=datetime.utcnow(),
+                    downloaded_images=processed_count if 'processed_count' in locals() else 0,
+                    valid_images=valid_count if 'valid_count' in locals() else 0,
                     session=session
                 )
         raise ExternalServiceError(f"Job execution failed: {str(e)}") from e
