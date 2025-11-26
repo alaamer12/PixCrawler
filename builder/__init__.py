@@ -35,7 +35,7 @@ Features:
     - Progress tracking and task management
     - Customizable configuration and search parameters
 
-Note: Image integrity checking and duplicate removal moved to backend package.
+Note: Image integrity checking and duplicate removal moved to validator package.
 """
 
 from builder._builder import Builder

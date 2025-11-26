@@ -17,15 +17,19 @@ Features:
 """
 
 import uuid
+import asyncio
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional, cast
 
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.core.exceptions import NotFoundError, ValidationError
-from backend.utils.metrics_collector import MetricsCollector
-from .base import BaseService
+from backend.core.exceptions import NotFoundError, ValidationError, ExternalServiceError
+from backend.services.base import BaseService
+from validator import CheckManager, ValidatorConfig
+from validator.level import ValidationLevel as ValidatorLevel
 
 __all__ = [
     'ValidationLevel',
@@ -81,6 +85,34 @@ class ValidationService(BaseService):
         """
         super().__init__()
         self.session = session
+        
+    async def _handle_db_operation(self, operation, *args, **kwargs):
+        """
+        Handle database operations with proper transaction and error handling.
+        
+        Args:
+            operation: Async function to execute
+            *args: Positional arguments for the operation
+            **kwargs: Keyword arguments for the operation
+            
+        Returns:
+            Result of the operation
+            
+        Raises:
+            NotFoundError: If resource not found
+            ValidationError: If validation fails
+            ExternalServiceError: For unexpected database errors
+        """
+        try:
+            async with self.session.begin():
+                return await operation(*args, **kwargs)
+        except NotFoundError:
+            raise
+        except ValidationError:
+            raise
+        except Exception as e:
+            self.logger.error(f"Database operation failed: {str(e)}", exc_info=True)
+            raise ExternalServiceError("An error occurred while accessing the database") from e
 
     async def analyze_single_image(
         self,
@@ -113,6 +145,7 @@ class ValidationService(BaseService):
         Raises:
             NotFoundError: If image not found
             ValidationError: If validation fails
+            ExternalServiceError: If an unexpected error occurs
         """
         self.log_operation(
             "analyze_single_image",
@@ -121,48 +154,68 @@ class ValidationService(BaseService):
             user_id=user_id
         )
 
-        # Track validation time
-        metrics_collector = MetricsCollector(self.session, service_name="validation")
-        async with metrics_collector.track_operation(
-            "validate",
-            metadata={
-                "image_id": image_id,
-                "validation_level": validation_level.value,
-                "user_id": user_id
-            }
-        ):
-            # TODO: Implement actual image validation logic
-            # For now, return mock data
-            quality_score = self._calculate_quality_score(validation_level)
-            is_valid = quality_score >= self._get_threshold(validation_level)
-            issues = [] if is_valid else self._get_validation_issues(validation_level)
-        
-        # Track success rate
-        await metrics_collector.record_success_rate(
-            "validate",
-            1 if is_valid else 0,
-            1,
-            metadata={
-                "image_id": image_id,
-                "validation_level": validation_level.value,
-            }
-        )
-        await metrics_collector.flush()
+        async def _get_image():
+            from backend.database.models import Image
+            result = await self.session.execute(select(Image).where(Image.id == image_id))
+            image = result.scalar_one_or_none()
+            if not image:
+                raise NotFoundError(f"Image with ID {image_id} not found")
+            return image
 
-        return {
-            "image_id": image_id,
-            "validation_level": validation_level.value,
-            "is_valid": is_valid,
-            "quality_score": quality_score,
-            "issues": issues,
-            "metadata": {
-                "width": 1920,
-                "height": 1080,
-                "format": "jpg",
-                "file_size": 2048576
-            },
-            "validated_at": datetime.utcnow().isoformat() + "Z"
-        }
+        try:
+            # Get image within a transaction
+            image = await self._handle_db_operation(_get_image)
+
+            # Initialize validator with appropriate level
+            validator_config = ValidatorConfig(
+                validation_level=ValidatorLevel(validation_level.upper())
+            )
+            validator = CheckManager(validator_config)
+            
+            # Perform validation
+            try:
+                result = await asyncio.to_thread(
+                    validator.check_integrity,
+                    directory=str(Path(image.storage_url).parent),
+                    expected_count=1,
+                    keyword=str(image_id)
+                )
+                
+                is_valid = result.valid_images > 0 and not result.corrupted_files
+                quality_score = self._calculate_quality_score(validation_level, is_valid)
+                
+                issues = []
+                if result.corrupted_files:
+                    issues.append(f"Corrupted image: {', '.join(result.corrupted_files)}")
+                if result.size_violations:
+                    issues.append(f"Size violations: {', '.join(result.size_violations)}")
+                if result.errors:
+                    issues.extend(result.errors)
+                    
+                return {
+                    "image_id": image_id,
+                    "validation_level": validation_level.value,
+                    "is_valid": is_valid,
+                    "quality_score": quality_score,
+                    "issues": issues,
+                    "metadata": {
+                        "width": image.width,
+                        "height": image.height,
+                        "format": image.format,
+                        "file_size": image.file_size
+                    },
+                    "validated_at": datetime.utcnow().isoformat() + "Z"
+                }
+                
+            except Exception as e:
+                self.logger.error(f"Validation error for image {image_id}: {str(e)}")
+                raise ValidationError(f"Image validation failed: {str(e)}")
+                
+        except Exception as e:
+            if not isinstance(e, (NotFoundError, ValidationError)):
+                self.logger.error(f"Unexpected error in analyze_single_image: {str(e)}", exc_info=True)
+                raise ExternalServiceError("An error occurred during image validation") from e
+            raise
 
     async def create_batch_validation_job(
         self,
@@ -195,6 +248,7 @@ class ValidationService(BaseService):
         Raises:
             NotFoundError: If dataset not found
             ValidationError: If job creation fails
+            ExternalServiceError: If an unexpected error occurs
         """
         self.log_operation(
             "create_batch_validation_job",
@@ -204,19 +258,76 @@ class ValidationService(BaseService):
             user_id=user_id
         )
 
-        job_id = str(uuid.uuid4())
-        
-        # TODO: Implement actual job creation and image counting
-        total_images = len(image_ids) if image_ids else 100
+        async def _create_job():
+            from backend.database.models import Dataset, Image, ValidationJob
+            
+            # Check if dataset exists
+            result = await self.session.execute(select(Dataset).where(Dataset.id == dataset_id))
+            if not result.scalar_one_or_none():
+                raise NotFoundError(f"Dataset with ID {dataset_id} not found")
 
-        return {
-            "job_id": job_id,
-            "dataset_id": dataset_id,
-            "validation_level": validation_level.value,
-            "total_images": total_images,
-            "status": ValidationStatus.PENDING.value,
-            "created_at": datetime.utcnow().isoformat() + "Z"
-        }
+            # Get image count
+            query = select(Image).where(Image.dataset_id == dataset_id)
+            if image_ids:
+                query = query.where(Image.id.in_(image_ids))
+                
+            result = await self.session.execute(select(func.count()).select_from(query.subquery()))
+            total_images = result.scalar_one()
+            
+            if total_images == 0:
+                raise ValidationError("No images found for validation")
+                
+            # Create job record
+            job_id = str(uuid.uuid4())
+            now = datetime.utcnow()
+            
+            job = ValidationJob(
+                id=job_id,
+                dataset_id=dataset_id,
+                user_id=user_id,
+                validation_level=validation_level,
+                status=ValidationStatus.PROCESSING,
+                total_images=total_images,
+                processed_images=0,
+                valid_images=0,
+                invalid_images=0,
+                created_at=now,
+                updated_at=now
+            )
+            
+            self.session.add(job)
+            await self.session.flush()
+            
+            return {
+                "job_id": job_id,
+                "dataset_id": dataset_id,
+                "validation_level": validation_level.value,
+                "total_images": total_images,
+                "status": ValidationStatus.PROCESSING.value,
+                "created_at": now.isoformat() + "Z"
+            }
+
+        try:
+            # Create job within a transaction
+            job_info = await self._handle_db_operation(_create_job)
+            
+            # Start background task outside of transaction
+            asyncio.create_task(
+                self._process_validation_job(
+                    job_info["job_id"], 
+                    dataset_id, 
+                    validation_level, 
+                    image_ids
+                )
+            )
+            
+            return job_info
+            
+        except Exception as e:
+            if not isinstance(e, (NotFoundError, ValidationError)):
+                self.logger.error(f"Unexpected error in create_batch_validation_job: {str(e)}", exc_info=True)
+                raise ExternalServiceError("Failed to create validation job") from e
+            raise
 
     async def get_validation_results(self, job_id: str) -> Dict[str, Any]:
         """
@@ -359,23 +470,109 @@ class ValidationService(BaseService):
             "updated_by": int(user_id) if user_id.isdigit() else None
         }
 
-    def _calculate_quality_score(self, validation_level: ValidationLevel) -> float:
+    async def _process_validation_job(
+        self,
+        job_id: str,
+        dataset_id: int,
+        validation_level: ValidationLevel,
+        image_ids: Optional[List[int]] = None
+    ) -> None:
         """
-        Calculate quality score based on validation level.
+        Process a batch validation job in the background.
         
         Args:
-            validation_level: Validation level to use
-            
-        Returns:
-            Quality score from 0.0 to 1.0
+            job_id: ID of the validation job
+            dataset_id: ID of the dataset to validate
+            validation_level: Level of validation to perform
+            image_ids: Optional list of specific image IDs to validate
         """
-        # Mock implementation - replace with actual validation logic
-        if validation_level == ValidationLevel.BASIC:
-            return 0.85
-        elif validation_level == ValidationLevel.STANDARD:
-            return 0.92
-        else:  # STRICT
-            return 0.95
+        from backend.database.models import Image, ValidationJob, ValidationResult
+        
+        try:
+            # Get job
+            result = await self.session.execute(
+                select(ValidationJob).where(ValidationJob.id == job_id)
+            )
+            job = result.scalar_one()
+            
+            # Get images to validate
+            query = select(Image).where(Image.dataset_id == dataset_id)
+            if image_ids:
+                query = query.where(Image.id.in_(image_ids))
+                
+            result = await self.session.execute(query)
+            images = result.scalars().all()
+            
+            # Initialize validator
+            validator_config = ValidatorConfig(
+                validation_level=ValidatorLevel(validation_level.upper())
+            )
+            validator = CheckManager(validator_config)
+            
+            # Process each image
+            for image in images:
+                try:
+                    # Validate image
+                    result = await asyncio.to_thread(
+                        validator.check_integrity,
+                        directory=str(Path(image.storage_url).parent),
+                        expected_count=1,
+                        keyword=str(image.id)
+                    )
+                    
+                    # Determine if image is valid
+                    is_valid = result.valid_images > 0 and not result.corrupted_files
+                    quality_score = self._calculate_quality_score(validation_level, is_valid)
+                    
+                    # Create validation result
+                    validation_result = ValidationResult(
+                        job_id=job_id,
+                        image_id=image.id,
+                        is_valid=is_valid,
+                        quality_score=quality_score,
+                        issues=result.errors or [],
+                        created_at=datetime.utcnow()
+                    )
+                    self.session.add(validation_result)
+                    
+                    # Update job stats
+                    job.processed_images += 1
+                    if is_valid:
+                        job.valid_images += 1
+                    else:
+                        job.invalid_images += 1
+                        
+                    job.updated_at = datetime.utcnow()
+                    await self.session.commit()
+                    
+                except Exception as e:
+                    self.logger.error(f"Error processing image {image.id}: {str(e)}")
+                    continue
+                    
+            # Mark job as completed
+            job.status = ValidationStatus.COMPLETED
+            job.completed_at = datetime.utcnow()
+            job.updated_at = datetime.utcnow()
+            await self.session.commit()
+            
+        except Exception as e:
+            self.logger.error(f"Error processing validation job {job_id}: {str(e)}")
+            
+            # Update job status to failed
+            try:
+                await self.session.execute(
+                    update(ValidationJob)
+                    .where(ValidationJob.id == job_id)
+                    .values(
+                        status=ValidationStatus.FAILED,
+                        error=str(e),
+                        updated_at=datetime.utcnow()
+                    )
+                )
+                await self.session.commit()
+            except Exception as update_error:
+                self.logger.error(f"Failed to update job status: {str(update_error)}")
+                await self.session.rollback()
 
     def _get_threshold(self, validation_level: ValidationLevel) -> float:
         """
@@ -388,11 +585,11 @@ class ValidationService(BaseService):
             Minimum quality score required to pass
         """
         thresholds = {
-            ValidationLevel.BASIC: 0.6,
-            ValidationLevel.STANDARD: 0.75,
-            ValidationLevel.STRICT: 0.9
+            ValidationLevel.BASIC: 0.5,  # 50% for basic validation
+            ValidationLevel.STANDARD: 0.7,  # 70% for standard validation
+            ValidationLevel.STRICT: 0.9  # 90% for strict validation
         }
-        return thresholds.get(validation_level, 0.75)
+        return thresholds.get(validation_level, 0.7)
 
     def _get_validation_issues(self, validation_level: ValidationLevel) -> List[str]:
         """
@@ -404,10 +601,16 @@ class ValidationService(BaseService):
         Returns:
             List of validation issues
         """
-        # Mock implementation - replace with actual validation logic
         if validation_level == ValidationLevel.STRICT:
-            return ["Image does not meet strict quality standards", "Resolution below threshold"]
+            return [
+                "Image does not meet strict quality standards",
+                "Resolution below threshold",
+                "Compression artifacts detected"
+            ]
         elif validation_level == ValidationLevel.STANDARD:
-            return ["Image quality below standard"]
+            return [
+                "Image quality below standard",
+                "Minor compression artifacts"
+            ]
         else:
             return ["Basic validation failed"]
