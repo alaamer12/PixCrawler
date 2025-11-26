@@ -22,6 +22,8 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.core.exceptions import NotFoundError, ValidationError
 from backend.models import CrawlJob, Image
 from backend.repositories import (

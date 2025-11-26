@@ -19,6 +19,7 @@ from .project_repository import ProjectRepository
 from .image_repository import ImageRepository
 from .user_repository import UserRepository
 from .activity_log_repository import ActivityLogRepository
+from .dataset_repository import DatasetRepository
 
 __all__ = [
     "BaseRepository",

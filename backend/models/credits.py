@@ -21,6 +21,7 @@ from sqlalchemy import (
     UUID as SQLAlchemyUUID,
     CheckConstraint,
     Index,
+    ForeignKey,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -170,6 +171,7 @@ class CreditTransaction(Base):
     # Foreign keys
     account_id: Mapped[UUID] = mapped_column(
         SQLAlchemyUUID(as_uuid=True),
+        ForeignKey("credit_accounts.id"),
         nullable=False,
         index=True,
     )
