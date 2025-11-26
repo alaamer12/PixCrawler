@@ -71,7 +71,7 @@ class LocalStorageProvider:
 
         # Security: Ensure path is within base_directory
         try:
-            full_path.relative_to(self.base_directory)
+            full_path.relative_to(self.base_directory.resolve())
         except ValueError:
             raise ValueError(f"Invalid file path: {file_path} (directory traversal detected)")
 

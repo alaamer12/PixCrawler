@@ -5,7 +5,7 @@ This module defines Pydantic schemas for usage tracking,
 metrics, and analytics.
 """
 
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
@@ -99,7 +99,7 @@ class UsageMetricCreate(UsageMetricBase):
     """Schema for creating usage metrics."""
     
     user_id: UUID = Field(description="User ID")
-    metric_date: date = Field(description="Date for metrics")
+    metric_date: Date = Field(description="Date for metrics")
 
 
 class UsageMetricUpdate(BaseModel):
@@ -118,7 +118,7 @@ class UsageMetricResponse(UsageMetricBase):
     
     id: UUID = Field(description="Metric ID")
     user_id: UUID = Field(description="User ID")
-    metric_date: date = Field(description="Date for metrics")
+    metric_date: Date = Field(description="Date for metrics")
     created_at: datetime = Field(description="Creation timestamp")
     
     @computed_field
@@ -191,8 +191,8 @@ class UsageSummary(BaseModel):
     average_daily_api_calls: float = Field(ge=0.0, description="Average daily API calls")
     average_daily_bandwidth_gb: Decimal = Field(ge=Decimal("0.00"), description="Average daily bandwidth")
     
-    period_start: date = Field(description="Period start date")
-    period_end: date = Field(description="Period end date")
+    period_start: Date = Field(description="Period start date")
+    period_end: Date = Field(description="Period end date")
     days_count: int = Field(gt=0, description="Number of days in period")
 
 
@@ -201,7 +201,7 @@ class UsageTrend(BaseModel):
     
     model_config = ConfigDict(validate_assignment=True)
     
-    date: date = Field(description="Date")
+    trend_date: Date = Field(description="Date")
     images_processed: int = Field(ge=0, description="Images processed")
     storage_used_gb: Decimal = Field(ge=Decimal("0.00"), description="Storage used")
     api_calls: int = Field(ge=0, description="API calls")

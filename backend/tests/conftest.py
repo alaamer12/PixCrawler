@@ -167,64 +167,61 @@ def local_storage_provider(temp_storage_dir: Path):
 
 
 @pytest.fixture(scope="function")
-def sample_text_file(temp_storage_dir: Path) -> Path:
+def sample_text_file() -> Generator[Path, None, None]:
     """
     Create a sample text file for testing.
-
-    Args:
-        temp_storage_dir: Temporary directory fixture
 
     Returns:
         Path to sample text file
     """
-
-    file_path = temp_storage_dir / "sample_text.txt"
-    file_path.write_text("Sample content for testing")
-    return file_path
+    import tempfile
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        file_path = Path(tmpdir) / "sample_text.txt"
+        file_path.write_text("Sample content for testing")
+        yield file_path
 
 
 @pytest.fixture(scope="function")
-def sample_json_file(temp_storage_dir: Path) -> Path:
+def sample_json_file() -> Generator[Path, None, None]:
     """
     Create a sample JSON file for testing.
-
-    Args:
-        temp_storage_dir: Temporary directory fixture
 
     Returns:
         Path to sample JSON file
     """
     import json
-
-    file_path = temp_storage_dir / "sample_data.json"
-    data = {
-        "name": "test_dataset",
-        "version": "1.0",
-        "images": ["img1.jpg", "img2.jpg"],
-        "metadata": {"created": "2024-01-01", "author": "test"}
-    }
-    file_path.write_text(json.dumps(data, indent=2))
-    return file_path
+    import tempfile
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        file_path = Path(tmpdir) / "sample_data.json"
+        data = {
+            "name": "test_dataset",
+            "version": "1.0",
+            "images": ["img1.jpg", "img2.jpg"],
+            "metadata": {"created": "2024-01-01", "author": "test"}
+        }
+        file_path.write_text(json.dumps(data, indent=2))
+        yield file_path
 
 
 @pytest.fixture(scope="function")
-def sample_image_file(temp_storage_dir: Path) -> Path:
+def sample_image_file() -> Generator[Path, None, None]:
     """
     Create a sample PNG image file for testing.
-
-    Args:
-        temp_storage_dir: Temporary directory fixture
 
     Returns:
         Path to sample PNG image file
     """
-
-    # Minimal valid PNG file (1x1 transparent pixel)
-    png_data = (
-        b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01'
-        b'\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01'
-        b'\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
-    )
-    file_path = temp_storage_dir / "sample_image.png"
-    file_path.write_bytes(png_data)
-    return file_path
+    import tempfile
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Minimal valid PNG file (1x1 transparent pixel)
+        png_data = (
+            b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01'
+            b'\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01'
+            b'\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+        )
+        file_path = Path(tmpdir) / "sample_image.png"
+        file_path.write_bytes(png_data)
+        yield file_path
