@@ -16,12 +16,16 @@ from starlette.responses import StreamingResponse, FileResponse
 from starlette.concurrency import run_in_threadpool
 
 from backend.api.types import CurrentUser, DBSession, DatasetServiceDep
+from backend.api.v1.response_models import get_common_responses
 from backend.core.exceptions import NotFoundError
 from utility.logging_config import get_logger
 
 logger = get_logger(__name__)
 
-router = APIRouter()
+router = APIRouter(
+    tags=["Exports"],
+    responses=get_common_responses(401, 404, 500),
+)
 
 
 async def generate_json_stream(data: list[Dict[str, Any]]) -> AsyncIterator[bytes]:
@@ -127,7 +131,27 @@ async def generate_zip_archive(
     return await run_in_threadpool(_create_zip)
 
 
-@router.get("/datasets/{dataset_id}/export/json")
+@router.get(
+    "/datasets/{dataset_id}/export/json",
+    summary="Export Dataset as JSON",
+    description="Export dataset images and metadata as streaming JSON.",
+    response_description="Streaming JSON file download",
+    operation_id="exportDatasetJson",
+    responses={
+        200: {
+            "description": "Dataset exported successfully as JSON",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {"id": 1, "url": "https://example.com/img1.jpg", "label": "cat"},
+                        {"id": 2, "url": "https://example.com/img2.jpg", "label": "dog"}
+                    ]
+                }
+            }
+        },
+        **get_common_responses(401, 404, 500)
+    }
+)
 async def export_dataset_json(
     dataset_id: int,
     current_user: CurrentUser,
@@ -136,11 +160,15 @@ async def export_dataset_json(
     """
     Export dataset as streaming JSON.
 
+    Exports all images and metadata in JSON format using streaming
+    for efficient handling of large datasets.
+
+    **Authentication Required:** Bearer token
+
     Args:
         dataset_id: Dataset ID to export
         current_user: Current authenticated user
         dataset_service: Dataset service
-        session: Database session
 
     Returns:
         Streaming JSON response
@@ -172,7 +200,24 @@ async def export_dataset_json(
         )
 
 
-@router.get("/datasets/{dataset_id}/export/csv")
+@router.get(
+    "/datasets/{dataset_id}/export/csv",
+    summary="Export Dataset as CSV",
+    description="Export dataset images and metadata as streaming CSV.",
+    response_description="Streaming CSV file download",
+    operation_id="exportDatasetCsv",
+    responses={
+        200: {
+            "description": "Dataset exported successfully as CSV",
+            "content": {
+                "text/csv": {
+                    "example": "id,url,label\n1,https://example.com/img1.jpg,cat\n2,https://example.com/img2.jpg,dog"
+                }
+            }
+        },
+        **get_common_responses(401, 404, 500)
+    }
+)
 async def export_dataset_csv(
     dataset_id: int,
     current_user: CurrentUser,
@@ -181,11 +226,15 @@ async def export_dataset_csv(
     """
     Export dataset as streaming CSV.
 
+    Exports all images and metadata in CSV format using streaming
+    for efficient handling of large datasets.
+
+    **Authentication Required:** Bearer token
+
     Args:
         dataset_id: Dataset ID to export
         current_user: Current authenticated user
         dataset_service: Dataset service
-        session: Database session
 
     Returns:
         Streaming CSV response
@@ -217,7 +266,27 @@ async def export_dataset_csv(
         )
 
 
-@router.get("/datasets/{dataset_id}/export/zip")
+@router.get(
+    "/datasets/{dataset_id}/export/zip",
+    summary="Export Dataset as ZIP",
+    description="Export dataset as a ZIP archive with images and metadata.",
+    response_description="ZIP file download",
+    operation_id="exportDatasetZip",
+    responses={
+        200: {
+            "description": "Dataset exported successfully as ZIP",
+            "content": {
+                "application/zip": {
+                    "schema": {
+                        "type": "string",
+                        "format": "binary"
+                    }
+                }
+            }
+        },
+        **get_common_responses(401, 404, 500)
+    }
+)
 async def export_dataset_zip(
     dataset_id: int,
     current_user: CurrentUser,
@@ -226,11 +295,15 @@ async def export_dataset_zip(
     """
     Export dataset as ZIP archive.
 
+    Creates a ZIP archive containing images, metadata.json, images.json,
+    and README.md. Processed in thread pool for efficient handling.
+
+    **Authentication Required:** Bearer token
+
     Args:
         dataset_id: Dataset ID to export
         current_user: Current authenticated user
         dataset_service: Dataset service
-        session: Database session
 
     Returns:
         ZIP file response
@@ -273,7 +346,33 @@ async def export_dataset_zip(
         )
 
 
-@router.get("/datasets/{dataset_id}/images/{image_id}/download")
+@router.get(
+    "/datasets/{dataset_id}/images/{image_id}/download",
+    summary="Download Single Image",
+    description="Download a specific image file from a dataset.",
+    response_description="Image file download",
+    operation_id="downloadDatasetImage",
+    responses={
+        200: {
+            "description": "Image downloaded successfully",
+            "content": {
+                "image/jpeg": {
+                    "schema": {
+                        "type": "string",
+                        "format": "binary"
+                    }
+                },
+                "image/png": {
+                    "schema": {
+                        "type": "string",
+                        "format": "binary"
+                    }
+                }
+            }
+        },
+        **get_common_responses(401, 404, 500)
+    }
+)
 async def download_image(
     dataset_id: int,
     image_id: int,
@@ -283,8 +382,13 @@ async def download_image(
     """
     Download a single image file.
 
-    Uses FileResponse for efficient file serving with proper
-    content-type detection and range request support.
+    Uses FileResponse for efficient file serving with automatic:
+    - Content-Type detection
+    - Range request support (partial content)
+    - ETag generation
+    - Last-Modified headers
+
+    **Authentication Required:** Bearer token
 
     Args:
         dataset_id: Dataset ID

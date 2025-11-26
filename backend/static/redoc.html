@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixCrawler API Documentation</title>
+    <link rel="icon" type="image/png" href="https://fastapi.tiangolo.com/img/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===== CSS Variables - PixCrawler Design System ===== */
+        :root {
+            /* Light Mode Colors */
+            --pc-background: hsl(45, 20%, 96%);
+            --pc-foreground: hsl(210, 25%, 12%);
+            --pc-card: hsl(0, 0%, 100%);
+            --pc-sidebar: hsl(50, 25%, 98%);
+            --pc-primary: hsl(210, 25%, 40%);
+            --pc-primary-foreground: hsl(0, 0%, 100%);
+            --pc-secondary: hsl(150, 20%, 45%);
+            --pc-muted: hsl(45, 18%, 92%);
+            --pc-muted-foreground: hsl(210, 12%, 45%);
+            --pc-border: hsl(45, 15%, 88%);
+            --pc-success: hsl(150, 20%, 45%);
+            --pc-warning: hsl(35, 60%, 60%);
+            --pc-destructive: hsl(0, 50%, 55%);
+            --pc-info: hsl(200, 70%, 55%);
+        }
+
+        /* Dark Mode Colors */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --pc-background: hsl(210, 15%, 10%);
+                --pc-foreground: hsl(210, 10%, 90%);
+                --pc-card: hsl(210, 15%, 14%);
+                --pc-sidebar: hsl(210, 15%, 12%);
+                --pc-primary: hsl(210, 20%, 55%);
+                --pc-secondary: hsl(150, 15%, 55%);
+                --pc-muted: hsl(210, 10%, 18%);
+                --pc-muted-foreground: hsl(210, 8%, 65%);
+                --pc-border: hsl(210, 10%, 20%);
+            }
+        }
+
+        /* ===== Base Reset ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Manrope', -apple-system, system-ui, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background: var(--pc-background);
+            color: var(--pc-foreground);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ===== Compact Header - Maximum Efficiency ===== */
+        .api-header {
+            background: var(--pc-card);
+            border-bottom: 2px solid var(--pc-border);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .api-header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .api-header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--pc-foreground);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .api-header h1 .icon {
+            font-size: 1.5rem;
+        }
+
+        .api-header .version {
+            background: var(--pc-muted);
+            color: var(--pc-foreground);
+            padding: 0.25rem 0.625rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid var(--pc-border);
+        }
+
+        .api-header-right {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--pc-secondary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid currentColor;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: currentColor;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .download-btn {
+            background: var(--pc-primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.8125rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .download-btn:hover {
+            background: var(--pc-secondary);
+            transform: translateY(-1px);
+        }
+
+        /* ===== Enhanced Scrollbar ===== */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--pc-background);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--pc-primary);
+            border-radius: 5px;
+            border: 2px solid var(--pc-background);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--pc-secondary);
+        }
+
+        ::selection {
+            background: var(--pc-primary);
+            color: white;
+        }
+
+        /* ===== Loading Screen ===== */
+        .loading-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--pc-background);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.3s;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--pc-muted);
+            border-top-color: var(--pc-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 1rem;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: var(--pc-muted-foreground);
+        }
+
+        /* ===== ReDoc Container Wrapper ===== */
+        #redoc-container {
+            margin-top: 0;
+        }
+
+        /* ===== SIDEBAR (Left Column) - Clean & Organized ===== */
+        [role="navigation"],
+        .menu-content,
+        nav,
+        div[class*="menu"] {
+            background: var(--pc-sidebar) !important;
+            border-right: 1px solid var(--pc-border) !important;
+            padding: 1rem 0 !important;
+        }
+
+        /* Search box in sidebar */
+        [role="navigation"] input,
+        .menu-content input,
+        nav input {
+            background: var(--pc-card) !important;
+            border: 1px solid var(--pc-border) !important;
+            border-radius: 6px !important;
+            color: var(--pc-foreground) !important;
+            padding: 0.625rem 0.875rem !important;
+            font-size: 0.875rem !important;
+            margin: 0 1rem 1rem 1rem !important;
+            width: calc(100% - 2rem) !important;
+            font-family: 'Manrope', sans-serif !important;
+        }
+
+        [role="navigation"] input::placeholder,
+        .menu-content input::placeholder,
+        nav input::placeholder {
+            color: var(--pc-muted-foreground) !important;
+        }
+
+        [role="navigation"] input:focus,
+        .menu-content input:focus,
+        nav input:focus {
+            outline: none !important;
+            border-color: var(--pc-primary) !important;
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1) !important;
+        }
+
+        /* Menu items - FORCE DARK TEXT */
+        [role="navigation"] label,
+        [role="navigation"] a,
+        [role="navigation"] span,
+        .menu-content label,
+        .menu-content a,
+        .menu-content span,
+        nav label,
+        nav a,
+        nav span,
+        li label,
+        li a,
+        li span {
+            color: var(--pc-foreground) !important;
+            font-size: 0.875rem !important;
+            font-weight: 500 !important;
+            padding: 0.5rem 1.5rem !important;
+            display: block !important;
+            transition: all 0.15s !important;
+            border-left: 3px solid transparent !important;
+            font-family: 'Manrope', sans-serif !important;
+        }
+
+        [role="navigation"] label:hover,
+        [role="navigation"] a:hover,
+        .menu-content label:hover,
+        .menu-content a:hover,
+        nav label:hover,
+        nav a:hover,
+        li label:hover,
+        li a:hover {
+            background: var(--pc-muted) !important;
+            color: var(--pc-primary) !important;
+            border-left-color: var(--pc-primary) !important;
+        }
+
+        /* Active menu item */
+        [role="navigation"] a[aria-selected="true"],
+        [role="navigation"] li.active > label,
+        [role="navigation"] li.active > a,
+        .menu-content a[aria-selected="true"],
+        .menu-content li.active > label,
+        nav a[aria-selected="true"],
+        nav li.active > label {
+            background: linear-gradient(90deg, rgba(74, 144, 226, 0.15), transparent) !important;
+            color: var(--pc-primary) !important;
+            border-left-color: var(--pc-primary) !important;
+            font-weight: 700 !important;
+        }
+
+        /* Group labels - FORCE VISIBLE */
+        [role="navigation"] > label,
+        .menu-content > label,
+        nav > label,
+        ul > li > label[class*="group"],
+        div[class*="MenuGroup"] > label {
+            color: var(--pc-muted-foreground) !important;
+            font-size: 0.6875rem !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.08em !important;
+            padding: 0.75rem 1.5rem 0.375rem !important;
+            margin-top: 0.5rem !important;
+            background: transparent !important;
+        }
+
+        /* ===== MIDDLE COLUMN (Content) - Clean White Background ===== */
+        [role="main"],
+        .api-content,
+        div[class*="api-content"],
+        section[class*="api-content"] {
+            background: var(--pc-card) !important;
+            padding: 2rem !important;
+            max-width: 100% !important;
+        }
+
+        /* Force all nested containers to be transparent/white */
+        [role="main"] > div,
+        [role="main"] section,
+        [role="main"] article,
+        .api-content > div,
+        .api-content section,
+        .api-content article {
+            background: var(--pc-card) !important;
+        }
+
+        /* Override ReDoc's dark theme completely */
+        div[class*="ApiContent"],
+        div[class*="api-content"],
+        div[class*="ApiInfo"] {
+            background-color: var(--pc-card) !important;
+            color: var(--pc-foreground) !important;
+        }
+
+        /* Typography hierarchy - FORCE DARK TEXT */
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--pc-foreground) !important;
+            font-family: 'Manrope', sans-serif !important;
+            font-weight: 700 !important;
+            letter-spacing: -0.01em !important;
+        }
+
+        h1 {
+            font-size: 2rem !important;
+            font-weight: 800 !important;
+            color: var(--pc-foreground) !important;
+            margin: 0 0 1rem 0 !important;
+            letter-spacing: -0.02em !important;
+        }
+
+        h2 {
+            font-size: 1.5rem !important;
+            font-weight: 700 !important;
+            color: var(--pc-foreground) !important;
+            margin: 2.5rem 0 1rem 0 !important;
+            padding-bottom: 0.5rem !important;
+            border-bottom: 2px solid var(--pc-border) !important;
+            letter-spacing: -0.01em !important;
+        }
+
+        h3 {
+            font-size: 1.125rem !important;
+            font-weight: 700 !important;
+            color: var(--pc-foreground) !important;
+            margin: 1.5rem 0 0.75rem 0 !important;
+        }
+
+        h4, h5 {
+            font-size: 1rem !important;
+            font-weight: 600 !important;
+            color: var(--pc-foreground) !important;
+            margin: 1rem 0 0.5rem 0 !important;
+        }
+
+        /* Paragraph text - FORCE DARK */
+        p, span, div, td, li {
+            color: var(--pc-foreground) !important;
+            line-height: 1.7 !important;
+            font-size: 0.9375rem !important;
+        }
+
+        p {
+            margin-bottom: 1rem !important;
+        }
+
+        /* Description blocks */
+        div[class*="description"],
+        div[class*="Description"],
+        .redoc-markdown,
+        div[class*="Markdown"] {
+            color: var(--pc-foreground) !important;
+            line-height: 1.7 !important;
+        }
+
+        div[class*="description"] p,
+        div[class*="Description"] p,
+        .redoc-markdown p,
+        div[class*="Markdown"] p {
+            color: var(--pc-foreground) !important;
+        }
+
+        /* Links */
+        a {
+            color: var(--pc-primary) !important;
+            text-decoration: none !important;
+            font-weight: 600 !important;
+            transition: opacity 0.2s !important;
+        }
+
+        a:hover {
+            opacity: 0.7 !important;
+            text-decoration: underline !important;
+        }
+
+        /* ===== HTTP Method Badges - Compact & Clear ===== */
+        span[type*="get" i],
+        .http-verb.get {
+            background: var(--pc-primary) !important;
+            color: white !important;
+            padding: 0.25rem 0.625rem !important;
+            border-radius: 4px !important;
+            font-weight: 700 !important;
+            font-size: 0.6875rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            display: inline-block !important;
+        }
+
+        span[type*="post" i],
+        .http-verb.post {
+            background: var(--pc-secondary) !important;
+            color: white !important;
+            padding: 0.25rem 0.625rem !important;
+            border-radius: 4px !important;
+            font-weight: 700 !important;
+            font-size: 0.6875rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            display: inline-block !important;
+        }
+
+        span[type*="put" i],
+        .http-verb.put {
+            background: var(--pc-warning) !important;
+            color: white !important;
+            padding: 0.25rem 0.625rem !important;
+            border-radius: 4px !important;
+            font-weight: 700 !important;
+            font-size: 0.6875rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            display: inline-block !important;
+        }
+
+        span[type*="delete" i],
+        .http-verb.delete {
+            background: var(--pc-destructive) !important;
+            color: white !important;
+            padding: 0.25rem 0.625rem !important;
+            border-radius: 4px !important;
+            font-weight: 700 !important;
+            font-size: 0.6875rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            display: inline-block !important;
+        }
+
+        span[type*="patch" i],
+        .http-verb.patch {
+            background: var(--pc-info) !important;
+            color: white !important;
+            padding: 0.25rem 0.625rem !important;
+            border-radius: 4px !important;
+            font-weight: 700 !important;
+            font-size: 0.6875rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            display: inline-block !important;
+        }
+
+        /* ===== Code Blocks - Professional Styling ===== */
+        pre {
+            background: var(--pc-muted) !important;
+            border: 1px solid var(--pc-border) !important;
+            border-radius: 8px !important;
+            padding: 1rem !important;
+            overflow-x: auto !important;
+            margin: 1rem 0 !important;
+            font-family: 'JetBrains Mono', 'Monaco', monospace !important;
+            font-size: 0.8125rem !important;
+            line-height: 1.6 !important;
+        }
+
+        code {
+            background: var(--pc-muted) !important;
+            color: var(--pc-primary) !important;
+            padding: 0.125rem 0.375rem !important;
+            border-radius: 3px !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 0.875rem !important;
+            border: 1px solid var(--pc-border) !important;
+        }
+
+        pre code {
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            color: var(--pc-foreground) !important;
+        }
+
+        /* ===== RIGHT COLUMN (Code Examples) - Dark Theme ===== */
+        [role="tabpanel"],
+        .api-right {
+            background: hsl(210, 15%, 12%) !important;
+            border-left: 1px solid var(--pc-border) !important;
+            padding: 1.5rem !important;
+        }
+
+        /* Tabs */
+        [role="tablist"] {
+            display: flex !important;
+            gap: 0.25rem !important;
+            margin-bottom: 1rem !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+
+        button[role="tab"] {
+            background: transparent !important;
+            color: rgba(255, 255, 255, 0.6) !important;
+            border: none !important;
+            border-bottom: 2px solid transparent !important;
+            padding: 0.5rem 1rem !important;
+            font-weight: 600 !important;
+            font-size: 0.8125rem !important;
+            cursor: pointer !important;
+            transition: all 0.2s !important;
+            font-family: 'Manrope', sans-serif !important;
+        }
+
+        button[role="tab"]:hover {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        button[role="tab"][aria-selected="true"] {
+            color: white !important;
+            border-bottom-color: var(--pc-primary) !important;
+        }
+
+        /* Code in right panel */
+        [role="tabpanel"] pre {
+            background: hsl(210, 15%, 8%) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        [role="tabpanel"] code {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        /* Response samples heading */
+        [role="tabpanel"] h5,
+        [role="tabpanel"] h6 {
+            color: white !important;
+            font-size: 0.75rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            margin-bottom: 0.75rem !important;
+            font-weight: 700 !important;
+        }
+
+        /* ===== Tables - Data Display ===== */
+        table {
+            width: 100% !important;
+            border-collapse: separate !important;
+            border-spacing: 0 !important;
+            border: 1px solid var(--pc-border) !important;
+            border-radius: 8px !important;
+            overflow: hidden !important;
+            margin: 1rem 0 !important;
+            background: var(--pc-card) !important;
+        }
+
+        thead {
+            background: var(--pc-muted) !important;
+        }
+
+        th {
+            color: var(--pc-foreground) !important;
+            font-weight: 700 !important;
+            padding: 0.75rem 1rem !important;
+            text-align: left !important;
+            font-size: 0.8125rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+            border-bottom: 2px solid var(--pc-border) !important;
+        }
+
+        td {
+            padding: 0.75rem 1rem !important;
+            border-bottom: 1px solid var(--pc-border) !important;
+            color: var(--pc-foreground) !important;
+            font-size: 0.875rem !important;
+        }
+
+        tbody tr:hover {
+            background: var(--pc-muted) !important;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none !important;
+        }
+
+        /* ===== Schema/Models - Expandable ===== */
+        div[class*="schema"] {
+            background: var(--pc-muted) !important;
+            border: 1px solid var(--pc-border) !important;
+            border-radius: 8px !important;
+            padding: 1rem !important;
+            margin: 1rem 0 !important;
+        }
+
+        /* Property names */
+        span[class*="property"],
+        .property-name {
+            color: var(--pc-primary) !important;
+            font-weight: 600 !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 0.875rem !important;
+        }
+
+        /* Type labels */
+        span[class*="type"],
+        .type {
+            color: var(--pc-secondary) !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 0.8125rem !important;
+        }
+
+        /* Required indicator */
+        span[class*="required"] {
+            color: var(--pc-destructive) !important;
+            font-weight: 700 !important;
+        }
+
+        /* ===== Status Codes ===== */
+        [class*="response-"] {
+            padding: 0.25rem 0.5rem !important;
+            border-radius: 4px !important;
+            font-weight: 700 !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 0.875rem !important;
+        }
+
+        [class*="response-2"] {
+            background: rgba(34, 197, 94, 0.15) !important;
+            color: var(--pc-secondary) !important;
+        }
+
+        [class*="response-4"] {
+            background: rgba(237, 137, 54, 0.15) !important;
+            color: var(--pc-warning) !important;
+        }
+
+        [class*="response-5"] {
+            background: rgba(220, 38, 38, 0.15) !important;
+            color: var(--pc-destructive) !important;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 768px) {
+            .api-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+
+            .api-header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        /* ===== NUCLEAR OVERRIDE - Force Light Theme ===== */
+
+        /* Override ALL ReDoc default dark backgrounds */
+        div[class*="sc-"],
+        section[class*="sc-"],
+        article[class*="sc-"] {
+            background-color: var(--pc-card) !important;
+        }
+
+        /* Force light background on main content area */
+        div[class*="ApiContent"],
+        div[class*="api-content"],
+        section[class*="ApiContent"],
+        div[data-section-id] {
+            background-color: var(--pc-card) !important;
+        }
+
+        /* Force dark text everywhere in content */
+        div[class*="ApiContent"] *,
+        div[class*="api-content"] *,
+        section[class*="ApiContent"] *,
+        div[data-section-id] * {
+            color: var(--pc-foreground) !important;
+        }
+
+        /* Exception: keep code blocks styled properly */
+        pre, pre *, code {
+            color: inherit !important;
+        }
+
+        /* Exception: keep right panel dark */
+        [role="tabpanel"],
+        [role="tabpanel"] *,
+        div[class*="ResponseSamples"],
+        div[class*="ResponseSamples"] * {
+            background-color: inherit !important;
+            color: inherit !important;
+        }
+
+        /* Force white background on operation blocks */
+        div[class*="Operation"],
+        div[data-section-id*="operation"] {
+            background-color: var(--pc-card) !important;
+        }
+
+        /* HTTP verb path display */
+        div[class*="Operation"] > div:first-child,
+        div[class*="OperationHeader"] {
+            background-color: var(--pc-muted) !important;
+            border-radius: 8px !important;
+            padding: 1rem !important;
+            margin-bottom: 1rem !important;
+        }
+
+        /* Endpoint path text */
+        span[class*="Endpoint"],
+        code[class*="Endpoint"] {
+            color: var(--pc-foreground) !important;
+            background: var(--pc-card) !important;
+            padding: 0.375rem 0.75rem !important;
+            border-radius: 4px !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            border: 1px solid var(--pc-border) !important;
+        }
+
+        /* Parameter tables */
+        table[class*="Parameters"],
+        div[class*="Parameters"] table {
+            background: var(--pc-card) !important;
+        }
+
+        /* Schema sections */
+        div[class*="Schema"],
+        div[class*="RequestBody"],
+        div[class*="ResponseBody"] {
+            background: var(--pc-muted) !important;
+            border-radius: 8px !important;
+            padding: 1rem !important;
+        }
+
+        /* Force sidebar light background */
+        div[class*="Menu"],
+        nav[class*="Menu"] {
+            background: var(--pc-sidebar) !important;
+        }
+
+        /* Menu items dark text */
+        div[class*="MenuItem"],
+        a[class*="MenuItem"],
+        label[class*="MenuItem"] {
+            color: var(--pc-foreground) !important;
+        }
+
+        /* Search input */
+        input[class*="Search"] {
+            background: var(--pc-card) !important;
+            color: var(--pc-foreground) !important;
+            border-color: var(--pc-border) !important;
+        }
+
+        input[class*="Search"]::placeholder {
+            color: var(--pc-muted-foreground) !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loader"></div>
+        <div class="loading-text">Loading API Documentation...</div>
+    </div>
+
+    <!-- Compact Efficient Header -->
+    <header class="api-header">
+        <div class="api-header-left">
+            <h1><span class="icon">🖼️</span>PixCrawler API</h1>
+            <span class="version">v1.0.0</span>
+        </div>
+        <div class="api-header-right">
+            <span class="status-badge">
+                <span class="status-dot"></span>
+                Online
+            </span>
+            <a href="/openapi.json" class="download-btn" download>
+                <span>↓</span> OpenAPI Spec
+            </a>
+        </div>
+    </header>
+
+    <!-- ReDoc Container -->
+    <div id="redoc-container">
+        <redoc
+            spec-url="/openapi.json"
+            hide-hostname="true"
+            expand-responses="200,201"
+            json-sample-expand-level="2"
+            menu-toggle="true"
+            native-scrollbars="true"
+            path-in-middle-panel="true"
+            required-props-first="true"
+            untrusted-spec="false"
+            hide-loading="true"
+            theme='{
+                "colors": {
+                    "primary": {
+                        "main": "#5a7fa6"
+                    }
+                },
+                "typography": {
+                    "fontSize": "15px",
+                    "fontFamily": "Manrope, sans-serif",
+                    "headings": {
+                        "fontFamily": "Manrope, sans-serif"
+                    },
+                    "code": {
+                        "fontFamily": "JetBrains Mono, monospace"
+                    }
+                },
+                "sidebar": {
+                    "backgroundColor": "#faf9f7",
+                    "textColor": "#1a2332"
+                },
+                "rightPanel": {
+                    "backgroundColor": "#1a1f2e"
+                }
+            }'
+        ></redoc>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/redoc@latest/bundles/redoc.standalone.js"></script>
+    <script>
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('loadingScreen').classList.add('hidden');
+            }, 400);
+
+            console.log('%c🖼️ PixCrawler API', 'color: #4a90e2; font-size: 18px; font-weight: bold;');
+            console.log('%cBuilt with FastAPI & ReDoc', 'color: #6c757d; font-size: 11px;');
+        });
+    </script>
+</body>
+</html>

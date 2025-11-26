@@ -33,7 +33,7 @@ Example:
 
 import os
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Set
 
 from _predefined_variations import get_search_variations
 from builder._config import DatasetGenerationConfig, get_engines
@@ -47,7 +47,7 @@ from builder._exceptions import (
 from builder._generator import DatasetGenerator, ConfigManager
 from builder._helpers import ProgressManager
 
-# Image validation moved to backend package
+# Image validation moved to validator package
 
 __all__ = ['Builder']
 
@@ -359,7 +359,7 @@ class Builder:
         return [engine['name'] for engine in get_engines()]
 
     @staticmethod
-    def search_variations() -> List[str]:
+    def search_variations() -> Set[str]:
         """
         Get list of available search variations.
 

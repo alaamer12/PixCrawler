@@ -408,7 +408,8 @@ class BaseTask(Task, ABC):
         """
         pass
 
-    def _get_retry_countdown(self, retry_count: int) -> int:
+    @staticmethod
+    def _get_retry_countdown(retry_count: int) -> int:
         """
         Calculate retry countdown with exponential backoff.
 

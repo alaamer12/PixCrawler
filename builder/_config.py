@@ -81,8 +81,8 @@ CONFIG_SCHEMA: Dict[str, Any] = {
                 },
                 "generation_strategy": {
                     "type": "string",
-                    "enum": ["ai", "simple", "gpt", "basic"],
-                    "description": "Keyword generation strategy: 'ai'/'gpt' for AI-powered, 'simple'/'basic' for pattern-based"
+                    "enum": ["predefined", "ai-assisted", "ai-only"],
+                    "description": "Keyword variation strategy: 'predefined' (current working), 'ai-assisted' (AI selects best predefined + generates additional), 'ai-only' (pure AI generation)"
                 },
                 "generate_labels": {
                     "type": "boolean",
@@ -202,9 +202,9 @@ class DatasetGenerationConfig(BaseSettings):
         examples=["gpt4", "gpt4-mini"]
     )
     generation_strategy: str = Field(
-        default="ai",
-        description="Keyword generation strategy",
-        examples=["ai", "simple", "gpt", "basic"]
+        default="predefined",
+        description="Keyword variation strategy: 'predefined' (current working), 'ai-assisted' (future), 'ai-only' (future)",
+        examples=["predefined", "ai-assisted", "ai-only"]
     )
     generate_labels: bool = Field(
         default=True,
@@ -246,9 +246,19 @@ class DatasetGenerationConfig(BaseSettings):
     @classmethod
     def validate_generation_strategy(cls, v: str) -> str:
         """Validate keyword generation strategy."""
-        valid_strategies = ["ai", "simple", "gpt", "basic"]
+        valid_strategies = ["predefined", "ai-assisted", "ai-only"]
         if v not in valid_strategies:
             raise ValueError(f"generation_strategy must be one of {valid_strategies}")
+        
+        # Show warning if AI strategies are selected (not yet implemented)
+        if v in ["ai-assisted", "ai-only"]:
+            import warnings
+            warnings.warn(
+                f"⚠️  Strategy '{v}' is not yet implemented. "
+                "Will fall back to 'predefined' keyword variations.",
+                UserWarning
+            )
+        
         return v
 
     @field_validator('search_variations')

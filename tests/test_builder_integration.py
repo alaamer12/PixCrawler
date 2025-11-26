@@ -162,7 +162,7 @@ def test_retry_download_failure(mock_ddgs, mock_downloader, temp_dir):
 def test_keyword_management_basic():
     """Test basic keyword management functionality."""
     try:
-        from builder._generator import KeywordManagement
+        from _keywords import KeywordManagement
 
         # Test instantiation
         km = KeywordManagement(ai_model="gpt4-mini", keyword_generation="auto")
@@ -211,7 +211,7 @@ def test_keyword_generation_via_task():
     """Test keyword generation via task implementation."""
     try:
         from builder import tasks as builder_tasks
-        from builder._generator import KeywordManagement
+        from _keywords import KeywordManagement
 
         # Mock KeywordManagement.generate_keywords to avoid external AI calls
         generated = ["cat", "kitten", "feline"]

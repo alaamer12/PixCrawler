@@ -19,10 +19,11 @@ Best Practices:
     - Improves code reusability and type safety
 """
 
-from typing import Annotated, Dict, Any, Optional, TYPE_CHECKING
+from typing import Dict, Any, Optional
 
 from fastapi import Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing_extensions import Annotated
 
 from backend.api.dependencies import (
     get_current_user,
@@ -34,14 +35,12 @@ from backend.api.dependencies import (
     get_storage_service,
     get_auth_service,
 )
-
-if TYPE_CHECKING:
-    from backend.services.crawl_job import CrawlJobService
-    from backend.services.dataset import DatasetService
-    from backend.services.validation import ValidationService
-    from backend.services.user import UserService
-    from backend.services.storage import StorageService
-    from backend.services.supabase_auth import SupabaseAuthService
+from backend.services.crawl_job import CrawlJobService
+from backend.services.dataset import DatasetService
+from backend.services.storage import StorageService
+from backend.services.supabase_auth import SupabaseAuthService
+from backend.services.user import UserService
+from backend.services.validation import ValidationService
 
 __all__ = [
     # Auth & Session
@@ -108,7 +107,7 @@ Usage:
 # ============================================================================
 
 CrawlJobServiceDep = Annotated[
-    'CrawlJobService',
+    CrawlJobService,
     Depends(get_crawl_job_service)
 ]
 """
@@ -127,7 +126,7 @@ Usage:
 """
 
 DatasetServiceDep = Annotated[
-    'DatasetService',
+    DatasetService,
     Depends(get_dataset_service)
 ]
 """
@@ -145,7 +144,7 @@ Usage:
 """
 
 ValidationServiceDep = Annotated[
-    'ValidationService',
+    ValidationService,
     Depends(get_validation_service)
 ]
 """
@@ -163,7 +162,7 @@ Usage:
 """
 
 UserServiceDep = Annotated[
-    'UserService',
+    UserService,
     Depends(get_user_service)
 ]
 """
@@ -181,7 +180,7 @@ Usage:
 """
 
 StorageServiceDep = Annotated[
-    'StorageService',
+    StorageService,
     Depends(get_storage_service)
 ]
 """
@@ -198,7 +197,7 @@ Usage:
 """
 
 SupabaseAuthServiceDep = Annotated[
-    'SupabaseAuthService',
+    SupabaseAuthService,
     Depends(get_auth_service)
 ]
 """
