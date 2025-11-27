@@ -1,11 +1,11 @@
 # Resource Monitoring Service
 
 ## Module Overview
-The **Resource Monitoring Service** is a lightweight, standalone microservice within the **BackSprout** project (part of PixCrawler). Its primary objective is to monitor system health (disk, memory) and application-specific metrics (active processing chunks) to ensure stability and prevent resource exhaustion.
+The **Resource Monitoring Service** is a production-ready microservice designed to ensure the stability of the PixCrawler platform. It continuously monitors system resources (disk, memory) and application-specific metrics (active processing chunks) to prevent resource exhaustion and ensure smooth operation.
 
-It operates in two modes:
-- **Local**: Uses `psutil` to monitor the local machine.
-- **Azure**: Queries Azure Monitor via REST API for cloud metrics.
+It supports two operational modes:
+- **Local**: Uses `psutil` for direct system monitoring.
+- **Azure**: Integrates with Azure Monitor via REST API to retrieve cloud metrics.
 
 ## Folder Structure and Files
 
@@ -21,111 +21,115 @@ It operates in two modes:
 | `alerting.py` | Handles logging of alerts and warnings to the project logger. |
 | `metrics_endpoint.py` | FastAPI application exposing `/metrics` and `/health` endpoints. |
 
-## Installation & Dependencies
+## Production-Ready Action Plan
 
-The service requires Python 3.10+ and the following dependencies:
+To deploy this service in a production environment:
 
-```bash
-pip install psutil requests python-dotenv fastapi uvicorn pydantic pydantic-settings sqlalchemy asyncpg
-```
+1.  **Environment Configuration**: Ensure all required environment variables (especially for Azure and Database) are securely injected.
+2.  **Deployment Strategy**: Deploy as a sidecar container alongside the main backend or as a standalone service in Azure App Service/Functions.
+3.  **Monitoring Integration**: Configure your centralized logging system (e.g., Azure Application Insights, ELK Stack) to ingest logs from this service.
+4.  **Alerting Rules**: Set up external alerts based on the `/metrics` endpoint or specific log patterns (`RESOURCE ALERT`).
 
-### Environment Setup
-Create a `.env` file in the project root (or set environment variables):
+## Verification Steps
 
-```ini
-# Core
-PIXCRAWLER_MODE=local                  # "local" or "azure"
-PIXCRAWLER_POLL_INTERVAL_SECONDS=60    # Polling frequency
-
-# Database (Optional - defaults to backend config or localhost)
-PIXCRAWLER_DB_URL=postgresql+asyncpg://user:pass@localhost:5432/pixcrawler
-
-# Azure (Required if MODE=azure)
-AZURE_CLIENT_ID=...
-AZURE_CLIENT_SECRET=...
-AZURE_TENANT_ID=...
-PIXCRAWLER_AZURE_RESOURCE_ID=/subscriptions/.../resourceGroups/.../providers/...
-```
-
-## Configuration
-
-Configuration is managed via `config.py`. You can override defaults using environment variables.
-
-| Setting | Env Variable | Default | Description |
-|---------|--------------|---------|-------------|
-| Mode | `PIXCRAWLER_MODE` | `local` | Operation mode (`local` or `azure`). |
-| Poll Interval | `PIXCRAWLER_POLL_INTERVAL_SECONDS` | `60` | Seconds between metric checks. |
-| Disk Warn | `PIXCRAWLER_DISK_THRESHOLD_WARN` | `80.0` | Warning threshold for disk usage (%). |
-| Disk Alert | `PIXCRAWLER_DISK_THRESHOLD_ALERT` | `90.0` | Alert threshold for disk usage (%). |
-| Memory Warn | `PIXCRAWLER_MEMORY_THRESHOLD_WARN` | `80.0` | Warning threshold for memory usage (%). |
-| Memory Alert | `PIXCRAWLER_MEMORY_THRESHOLD_ALERT` | `90.0` | Alert threshold for memory usage (%). |
-| Chunk Warn | `PIXCRAWLER_CHUNK_THRESHOLD_WARN` | `35` | Warning threshold for active chunks. |
-| Chunk Alert | `PIXCRAWLER_CHUNK_THRESHOLD_ALERT` | `40` | Alert threshold for active chunks. |
-
-## How It Works
-
-1.  **Polling Loop**: `service_runner.py` runs a background task that wakes up every `POLL_INTERVAL_SECONDS`.
-2.  **Metric Collection**:
-    *   **Local**: Calls `monitoring_local.py` to get disk/memory % via `psutil`.
-    *   **Azure**: Calls `monitoring_azure.py` to query Azure Monitor API.
-    *   **Chunks**: Calls `chunk_tracker.py` to query the database for chunks with `status='processing'`.
-3.  **Threshold Evaluation**: `threshold_manager.py` compares metrics against configured limits.
-4.  **Alerting**: If thresholds are breached, `alerting.py` logs warnings or errors.
-5.  **State Update**: The latest metrics and statuses are stored in memory and exposed via the API.
-
-## Running the Service
-
-### Local Development
-Run the service module from the project root:
-
-```bash
-python -m backsprout.resource_monitoring.service_runner
-```
-
-The service will start on `http://0.0.0.0:8000`.
-
-### Production
-The service is designed to run as a sidecar or standalone container. Ensure environment variables are injected securely.
-
-## Testing
-
-### Local Testing
-1.  Start the service locally.
-2.  Check the health endpoint:
+### Local Verification
+1.  **Install Dependencies**:
+    ```bash
+    pip install psutil requests python-dotenv fastapi uvicorn pydantic pydantic-settings sqlalchemy asyncpg
+    ```
+2.  **Run Service**:
+    ```bash
+    python -m backsprout.resource_monitoring.service_runner
+    ```
+3.  **Check Health**:
     ```bash
     curl http://localhost:8000/health
+    # Output: {"status": "healthy"}
     ```
-3.  Check metrics:
+4.  **Check Metrics**:
     ```bash
     curl http://localhost:8000/metrics
     ```
-    Response:
-    ```json
-    {
-      "metrics": {
-        "disk_pct": 45.2,
-        "memory_pct": 62.1,
-        "active_chunks": 12
-      },
-      "statuses": {
-        "disk": "OK",
-        "memory": "OK",
-        "chunks": "OK",
-        "overall": "OK"
-      },
-      "last_updated": "2023-10-27T10:00:00.123456"
-    }
+
+### Azure Verification
+1.  Set `PIXCRAWLER_MODE=azure`.
+2.  Set `PIXCRAWLER_AZURE_RESOURCE_ID` and ensure the environment has a Managed Identity with `Monitoring Reader` permissions.
+3.  Run the service and verify logs show successful metric queries.
+
+## Threshold Testing Instructions
+
+To verify the alerting logic without waiting for a real disaster:
+
+1.  **Modify Thresholds**: Temporarily lower the thresholds in your `.env` file or environment variables.
+    ```ini
+    PIXCRAWLER_MEMORY_THRESHOLD_WARN=10.0
+    PIXCRAWLER_MEMORY_THRESHOLD_ALERT=20.0
     ```
+2.  **Restart Service**: The service picks up new config on restart.
+3.  **Observe Logs**: You should see `RESOURCE WARNING` or `RESOURCE ALERT` logs immediately if your system usage is above these low values.
+4.  **Verify Endpoint**: Check `/metrics` and confirm the `statuses` dictionary reflects `WARN` or `ALERT`.
 
-### Simulating Alerts
-To test alerting, temporarily lower the thresholds in `.env`:
-```ini
-PIXCRAWLER_MEMORY_THRESHOLD_WARN=10.0
+## Logging and Monitoring
+
+The service uses the standard Python `logging` module with the namespace `PixCrawler.resource_monitoring`.
+
+**Log Format**:
+```text
+RESOURCE [LEVEL] [TIMESTAMP] - [METRIC]: [VALUE] (Status: [STATUS])
 ```
-Restart the service and check the logs for `RESOURCE WARNING` messages.
 
-## Notes / Next Steps
+**Example**:
+```text
+RESOURCE ALERT [2023-10-27T14:30:00.123] - MEMORY: 95.5 (Status: ALERT)
+```
 
-*   **Azure Permissions**: Ensure the Managed Identity or Service Principal has `Monitoring Reader` role on the target resource.
-*   **Database Access**: The service attempts to use the project's existing `backend` models. If the `backend` package is not installed or configured, it falls back to raw SQL using `PIXCRAWLER_DB_URL`.
-*   **Integration**: Configure your external monitoring system (e.g., Prometheus, Datadog) to scrape the `/metrics` endpoint or parse the structured logs.
+**Metrics Endpoint**:
+`GET /metrics` returns a JSON object containing:
+- `metrics`: Raw values (e.g., `memory_pct`, `active_chunks`).
+- `statuses`: Evaluated status for each metric (`OK`, `WARN`, `ALERT`).
+- `last_updated`: Timestamp of the last poll.
+
+## Deployment Instructions
+
+### Docker
+The service can be containerized using a standard Python image. Ensure the `backsprout` directory is in the `PYTHONPATH`.
+
+```dockerfile
+FROM python:3.10-slim
+WORKDIR /app
+COPY . .
+RUN pip install -r requirements.txt
+CMD ["python", "-m", "backsprout.resource_monitoring.service_runner"]
+```
+
+### Azure
+Deploy as a background worker or sidecar. Ensure the Managed Identity is assigned to the resource.
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PIXCRAWLER_MODE` | `local` | `local` or `azure` |
+| `PIXCRAWLER_POLL_INTERVAL_SECONDS` | `60` | Polling frequency in seconds |
+| `PIXCRAWLER_DB_URL` | (Backend Config) | Database connection string |
+| `PIXCRAWLER_DISK_THRESHOLD_WARN` | `80.0` | Disk warning threshold (%) |
+| `PIXCRAWLER_DISK_THRESHOLD_ALERT` | `90.0` | Disk alert threshold (%) |
+| `PIXCRAWLER_MEMORY_THRESHOLD_WARN` | `80.0` | Memory warning threshold (%) |
+| `PIXCRAWLER_MEMORY_THRESHOLD_ALERT` | `90.0` | Memory alert threshold (%) |
+| `PIXCRAWLER_CHUNK_THRESHOLD_WARN` | `35` | Active chunks warning threshold |
+| `PIXCRAWLER_CHUNK_THRESHOLD_ALERT` | `40` | Active chunks alert threshold |
+| `AZURE_CLIENT_ID` | `None` | Service Principal Client ID (Fallback) |
+| `AZURE_CLIENT_SECRET` | `None` | Service Principal Secret (Fallback) |
+| `AZURE_TENANT_ID` | `None` | Service Principal Tenant ID (Fallback) |
+| `PIXCRAWLER_AZURE_RESOURCE_ID` | `None` | Azure Resource ID to monitor |
+
+## Feedback & Fixes Applied
+
+During the final review, the following improvements and fixes were applied to ensure production readiness:
+
+1.  **Azure Metrics Parsing**: Implemented robust JSON parsing for Azure Monitor responses to correctly extract metric values (handling `average` and `total` aggregations).
+2.  **Signal Handling**: Simplified `service_runner.py` to leverage Uvicorn's built-in signal handling for graceful shutdowns.
+3.  **Metric Key Standardization**: Standardized internal metric keys (e.g., using `memory_pct` consistently) to ensure `threshold_manager.py` correctly evaluates all metrics.
+4.  **Import Robustness**: Enhanced `chunk_tracker.py` to gracefully handle *any* exception during backend model import (including Pydantic validation errors), ensuring the service falls back to raw SQL reliability.
+5.  **Configuration Flexibility**: Added `AZURE_METRIC_NAMES` to `config.py` to allow customization of queried Azure metrics without code changes.
+6.  **Code Cleanup**: Removed redundant code in the polling loop.

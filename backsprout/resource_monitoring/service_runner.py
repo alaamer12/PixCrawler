@@ -30,7 +30,7 @@ async def poll_metrics():
             if settings.MODE == "local":
                 from .monitoring_local import get_disk_usage_pct, get_memory_usage_pct
                 metrics["disk_pct"] = get_disk_usage_pct()
-                metrics["disk_pct"] = get_disk_usage_pct()
+
                 metrics["memory_pct"] = get_memory_usage_pct()
             elif settings.MODE == "azure":
                 from .monitoring_azure import query_metrics
