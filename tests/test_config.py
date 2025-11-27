@@ -16,7 +16,7 @@ from level import (
     get_validation_strategy,
     FastValidation
 )
-
+from pathlib import Path
 
 def create_test_image(path: str, width: int = 100, height: int = 100, format_: str = 'JPEG'):
     """Create a test image file."""
@@ -138,13 +138,6 @@ def test_validation_result_model():
     except Exception as e:
         print(f"Correctly caught invalid result: {e}")
 
-
-# !/usr/bin/env python3
-"""
-Test script to verify the enhanced Pydantic configurations work correctly.
-"""
-
-from pathlib import Path
 
 
 def test_root_config():
