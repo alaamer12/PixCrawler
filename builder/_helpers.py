@@ -128,7 +128,7 @@ class DatasetTracker:
 class FSRenamer:
     """
     A self-encapsulated class for renaming image files sequentially within a specified directory.
-    It handles the complete process of renaming image files to a sequential, zero-padded format
+    It handles the complete process of renaming image files to a sequential, zero-padded format_
     while maintaining data integrity through temporary directory operations.
     """
 
@@ -149,7 +149,7 @@ class FSRenamer:
 
     def rename_sequentially(self) -> int:
         """
-        Renames all image files in the initialized directory to a sequential, zero-padded format.
+        Renames all image files in the initialized directory to a sequential, zero-padded format_.
         This process involves copying files to a temporary directory with new names, deleting
         original files, moving the renamed files back, and cleaning up the temporary directory.
 
@@ -616,7 +616,7 @@ progress = ProgressManager()
 
 def rename_images_sequentially(directory: str, padding_width: Optional[int] = 4) -> int:
     """
-    Rename all image files in a directory to a sequential, zero-padded format.
+    Rename all image files in a directory to a sequential, zero-padded format_.
 
     Args:
         directory: Directory containing images to rename

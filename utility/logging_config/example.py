@@ -37,7 +37,7 @@ def main() -> None:
     setup_logging(config=prod_config)
     logger = get_logger()
 
-    logger.info("Production logging - structured JSON format")
+    logger.info("Production logging - structured JSON format_")
     logger.bind(user_id="user123", operation="test").info("Contextual logging")
 
     print("\n=== Custom Configuration ===")

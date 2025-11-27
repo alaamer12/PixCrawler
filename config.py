@@ -124,7 +124,7 @@ class ProjectSettings(BaseSettings):
         default="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         min_length=10,
         max_length=200,
-        description="Log format string",
+        description="Log format_ string",
         examples=["%(asctime)s - %(name)s - %(levelname)s - %(message)s"]
     )
 

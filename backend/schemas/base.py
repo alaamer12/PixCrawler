@@ -13,7 +13,7 @@ Classes:
 
 Features:
     - Consistent model configuration across all schemas
-    - Structured error response format
+    - Structured error response format_
     - Timestamp mixin for audit trails
 
 Note:
@@ -74,12 +74,12 @@ class TimestampMixin(BaseSchema):
     """
 
     created_at: datetime = Field(
-        ..., 
+        ...,
         description="Creation timestamp",
         examples=["2024-01-15T10:30:00Z"]
     )
     updated_at: datetime = Field(
-        ..., 
+        ...,
         description="Last update timestamp",
         examples=["2024-01-15T14:45:30Z"]
     )
@@ -96,7 +96,7 @@ class ErrorDetail(BaseSchema):
     """
     Error detail schema for structured error responses.
 
-    Provides a consistent format for API error responses
+    Provides a consistent format_ for API error responses
     with optional additional details.
 
     Attributes:
@@ -106,14 +106,14 @@ class ErrorDetail(BaseSchema):
     """
 
     type: str = Field(
-        ..., 
+        ...,
         min_length=1,
         max_length=100,
         description="Error type identifier",
         examples=["validation_error", "not_found", "permission_denied"]
     )
     message: str = Field(
-        ..., 
+        ...,
         min_length=1,
         max_length=500,
         description="Human-readable error message",
@@ -149,18 +149,18 @@ class HealthCheck(BaseSchema):
     """
 
     status: str = Field(
-        ..., 
+        ...,
         pattern=r'^(healthy|unhealthy|degraded)$',
         description="Service status indicator",
         examples=["healthy", "unhealthy", "degraded"]
     )
     timestamp: datetime = Field(
-        ..., 
+        ...,
         description="Check timestamp",
         examples=["2024-01-15T10:30:00Z"]
     )
     version: str = Field(
-        ..., 
+        ...,
         min_length=1,
         max_length=20,
         pattern=r'^\d+\.\d+\.\d+$',
@@ -168,7 +168,7 @@ class HealthCheck(BaseSchema):
         examples=["1.0.0", "2.1.3"]
     )
     environment: str = Field(
-        ..., 
+        ...,
         min_length=1,
         max_length=20,
         description="Environment name",

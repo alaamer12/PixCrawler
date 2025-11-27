@@ -11,12 +11,12 @@ __all__ = ["StorageSettings"]
 class StorageSettings(BaseSettings):
     """
     File upload and storage configuration.
-    
+
     Environment variables:
         STORAGE_UPLOAD_MAX_SIZE: Max upload size in bytes
         STORAGE_UPLOAD_ALLOWED_EXTENSIONS: Comma-separated extensions
     """
-    
+
     model_config = SettingsConfigDict(
         env_prefix="STORAGE_",
         env_file=".env",
@@ -24,7 +24,7 @@ class StorageSettings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
-    
+
     upload_max_size: int = Field(
         default=10 * 1024 * 1024,  # 10MB
         ge=1024,  # 1KB minimum
@@ -38,11 +38,11 @@ class StorageSettings(BaseSettings):
         description="Allowed file extensions for uploads",
         examples=[[".jpg", ".png"], [".jpg", ".jpeg", ".png", ".gif", ".webp"]]
     )
-    
+
     @field_validator('upload_allowed_extensions')
     @classmethod
     def validate_extensions(cls, v: List[str]) -> List[str]:
-        """Validate file extensions format."""
+        """Validate file extensions format_."""
         validated = []
         for ext in v:
             ext = ext.strip().lower()

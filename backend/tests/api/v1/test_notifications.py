@@ -29,9 +29,9 @@ def override_dependencies(app, mock_notification_service):
 
     app.dependency_overrides[get_notification_service] = lambda: mock_notification_service
     app.dependency_overrides[get_current_user] = lambda: mock_user
-    
+
     yield mock_notification_service, user_id
-    
+
     app.dependency_overrides = {}
 
 
@@ -39,13 +39,13 @@ def test_list_notifications(client, override_dependencies):
     mock_service, user_id = override_dependencies
     mock_notifications = [
         Notification(
-            id=1, 
-            user_id=user_id, 
-            title="Test", 
-            message="Msg", 
+            id=1,
+            user_id=user_id,
+            title="Test",
+            message="Msg",
             type="info",
             is_read=False,
-            created_at="2024-01-01T00:00:00Z"
+            created_at=datetime("2024-01-01T00:00:00Z"),
         )
     ]
     mock_service.get_notifications.return_value = mock_notifications

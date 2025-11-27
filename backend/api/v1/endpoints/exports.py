@@ -160,7 +160,7 @@ async def export_dataset_json(
     """
     Export dataset as streaming JSON.
 
-    Exports all images and metadata in JSON format using streaming
+    Exports all images and metadata in JSON format_ using streaming
     for efficient handling of large datasets.
 
     **Authentication Required:** Bearer token
@@ -226,7 +226,7 @@ async def export_dataset_csv(
     """
     Export dataset as streaming CSV.
 
-    Exports all images and metadata in CSV format using streaming
+    Exports all images and metadata in CSV format_ using streaming
     for efficient handling of large datasets.
 
     **Authentication Required:** Bearer token
@@ -279,7 +279,7 @@ async def export_dataset_csv(
                 "application/zip": {
                     "schema": {
                         "type": "string",
-                        "format": "binary"
+                        "format_": "binary"
                     }
                 }
             }
@@ -359,13 +359,13 @@ async def export_dataset_zip(
                 "image/jpeg": {
                     "schema": {
                         "type": "string",
-                        "format": "binary"
+                        "format_": "binary"
                     }
                 },
                 "image/png": {
                     "schema": {
                         "type": "string",
-                        "format": "binary"
+                        "format_": "binary"
                     }
                 }
             }

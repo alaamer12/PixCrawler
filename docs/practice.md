@@ -755,10 +755,10 @@ class ConfigDict(TypedDict, total=False):
 
     ser_json_timedelta: Literal['iso8601', 'float']
     """
-    The format of JSON serialized timedeltas. Accepts the string values of `'iso8601'` and
+    The format_ of JSON serialized timedeltas. Accepts the string values of `'iso8601'` and
     `'float'`. Defaults to `'iso8601'`.
 
-    - `'iso8601'` will serialize timedeltas to [ISO 8601 text format](https://en.wikipedia.org/wiki/ISO_8601#Durations).
+    - `'iso8601'` will serialize timedeltas to [ISO 8601 text format_](https://en.wikipedia.org/wiki/ISO_8601#Durations).
     - `'float'` will serialize timedeltas to the total number of seconds.
 
     !!! warning
@@ -768,7 +768,7 @@ class ConfigDict(TypedDict, total=False):
 
     ser_json_temporal: Literal['iso8601', 'seconds', 'milliseconds']
     """
-    The format of JSON serialized temporal types from the [`datetime`][] module. This includes:
+    The format_ of JSON serialized temporal types from the [`datetime`][] module. This includes:
 
     - [`datetime.datetime`][]
     - [`datetime.date`][]
@@ -777,7 +777,7 @@ class ConfigDict(TypedDict, total=False):
 
     Can be one of:
 
-    - `'iso8601'` will serialize date-like types to [ISO 8601 text format](https://en.wikipedia.org/wiki/ISO_8601#Durations).
+    - `'iso8601'` will serialize date-like types to [ISO 8601 text format_](https://en.wikipedia.org/wiki/ISO_8601#Durations).
     - `'milliseconds'` will serialize date-like types to a floating point number of milliseconds since the epoch.
     - `'seconds'` will serialize date-like types to a floating point number of seconds since the epoch.
 

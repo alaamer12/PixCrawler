@@ -263,14 +263,14 @@ def setup_logging(environment: Optional[str] = None,
             sys.stdout,
             level=config.file_level.value,
             format="{message}",
-            serialize=True,  # JSON format
+            serialize=True,  # JSON format_
             filter=_package_filter
         )
     elif config.environment != Environment.TESTING:
         # Development: File handlers with rotation
         file_format = _get_file_format(config)
         config.log_dir.mkdir(parents=True, exist_ok=True)
-        
+
         logger.add(
             config.log_dir / config.log_filename,
             level=config.file_level.value,
@@ -298,7 +298,7 @@ def setup_logging(environment: Optional[str] = None,
 
 
 def _get_console_format(config: LoggingSettings) -> str:
-    """Get console format string based on configuration."""
+    """Get console format_ string based on configuration."""
     if config.environment == Environment.DEVELOPMENT:
         return "<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
     elif config.use_json:
@@ -308,7 +308,7 @@ def _get_console_format(config: LoggingSettings) -> str:
 
 
 def _get_file_format(config: LoggingSettings) -> str:
-    """Get file format string based on configuration."""
+    """Get file format_ string based on configuration."""
     if config.use_json:
         return "{message}"  # JSON serialization handles formatting
     else:

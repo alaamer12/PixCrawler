@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
           id: 3,
           userId: 'dev-user',
           title: 'Dataset exported',
-          message: 'Your dataset "Dog Breeds" has been exported to COCO format',
+          message: 'Your dataset "Dog Breeds" has been exported to COCO format_',
           type: 'info',
           category: 'dataset',
           icon: 'download',

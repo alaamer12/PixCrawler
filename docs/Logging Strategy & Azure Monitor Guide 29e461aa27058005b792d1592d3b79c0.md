@@ -1331,7 +1331,7 @@ Your logging configuration is split between development and production environme
     self.use_json = False    self.use_colors = True    # File handlers YOU control    logger.add(
         "logs/pixcrawler.log",
         level="DEBUG",
-        rotation="10 MB",      # ← You control        retention=5,           # ← You control (5 files)        serialize=False        # ← Text format    )
+        rotation="10 MB",      # ← You control        retention=5,           # ← You control (5 files)        serialize=False        # ← Text format_    )
 ```
 
 **You manage:**
@@ -1347,9 +1347,9 @@ Your logging configuration is split between development and production environme
 # logging_config/config.pyif environment == Environment.PRODUCTION:
     self.console_level = LogLevel.WARNING
     self.file_level = LogLevel.INFO
-    self.use_json = True      # ← JSON for Azure    self.use_colors = False    # Only configure OUTPUT format    logger.add(
+    self.use_json = True      # ← JSON for Azure    self.use_colors = False    # Only configure OUTPUT format_    logger.add(
         sys.stdout,            # ← Write to stdout        level="INFO",
-        serialize=True         # ← JSON format    )
+        serialize=True         # ← JSON format_    )
     # NO file handlers needed!
 ```
 
@@ -1424,7 +1424,7 @@ Your production logging config becomes VERY simple:
     logger.remove()  # Remove defaults    # Single handler: JSON to stdout    logger.add(
         sys.stdout,
         level="INFO",
-        serialize=True,      # JSON format        format="{message}"   # Let Azure handle formatting    )
+        serialize=True,      # JSON format_        format_="{message}"   # Let Azure handle formatting    )
     # That's it! Azure handles the rest
 ```
 
@@ -1483,7 +1483,7 @@ Your production logging config becomes VERY simple:
         sys.stdout,
         level=config.file_level.value,
         format="{message}",
-        serialize=True,  # JSON format        filter=_package_filter
+        serialize=True,  # JSON format_        filter=_package_filter
     )
 ```
 

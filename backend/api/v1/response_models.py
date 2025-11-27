@@ -19,7 +19,7 @@ class ErrorDetail(BaseModel):
         description="Error message describing what went wrong",
         min_length=1,
         max_length=500,
-        examples=["Invalid email format", "Field is required", "Value must be greater than 0"]
+        examples=["Invalid email format_", "Field is required", "Value must be greater than 0"]
     )
     error_code: Optional[str] = Field(
         None,

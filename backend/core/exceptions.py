@@ -21,7 +21,7 @@ Functions:
     setup_exception_handlers: Setup all exception handlers for FastAPI app
 
 Features:
-    - Structured error responses with consistent format
+    - Structured error responses with consistent format_
     - Comprehensive logging of all exceptions
     - Proper HTTP status code mapping
     - Request context in error logs
@@ -190,7 +190,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
     """
     Handle FastAPI HTTP exceptions.
 
-    Provides consistent error response format for standard
+    Provides consistent error response format_ for standard
     FastAPI HTTP exceptions.
 
     Args:

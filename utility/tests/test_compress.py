@@ -212,7 +212,7 @@ class TestCompressFunction:
         result = compress(
             input_dir=mock_image_dir,
             output_dir=output_dir,
-            format="webp",
+            format_="webp",
             quality=85,
         )
 
@@ -227,7 +227,7 @@ class TestCompressFunction:
         result = compress(
             input_dir=mock_image_dir,
             output_dir=output_dir / "compressed",
-            format="webp",
+            format_="webp",
             quality=90,
             archive=True,
             archive_output=archive_output,
@@ -242,7 +242,7 @@ class TestCompressFunction:
         result = compress(
             input_dir=mock_image_dir,
             output_dir=output_dir,
-            format="png",
+            format_="png",
             lossless=True,
         )
 
@@ -258,7 +258,7 @@ class TestCompressFunction:
             result = compress(
                 input_dir=mock_image_dir,
                 output_dir=out,
-                format=fmt,
+                format_=fmt,
             )
 
             assert result == out
@@ -353,11 +353,11 @@ class TestDecompressFunction:
         assert extract_dir.exists()
 
     def test_decompress_unsupported_format(self, output_dir: Path) -> None:
-        """Test decompression with unsupported format."""
+        """Test decompression with unsupported format_."""
         archive_path = output_dir / "test.rar"
         archive_path.touch()
 
-        with pytest.raises(ValueError, match="Unsupported archive format"):
+        with pytest.raises(ValueError, match="Unsupported archive format_"):
             decompress(archive_path, output_dir / "extracted")
 
     @patch("builtins.print")
@@ -398,7 +398,7 @@ class TestIntegration:
         archive_path = compress(
             input_dir=mock_image_dir,
             output_dir=compressed_dir,
-            format="webp",
+            format_="webp",
             quality=85,
             archive=True,
             archive_output=temp_dir / "dataset.zst",
@@ -420,7 +420,7 @@ class TestIntegration:
         compress(
             input_dir=mock_image_dir,
             output_dir=output_dir,
-            format="webp",
+            format_="webp",
             quality=95,
         )
 
@@ -441,7 +441,7 @@ class TestIntegration:
             result = compress(
                 input_dir=mock_image_dir,
                 output_dir=out_dir,
-                format=fmt,
+                format_=fmt,
                 quality=85,
             )
 

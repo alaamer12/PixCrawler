@@ -24,11 +24,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate email format
+    // Validate email format_
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
       return NextResponse.json(
-        {success: false, error: 'Invalid email format'},
+        {success: false, error: 'Invalid email format_'},
         {status: 400}
       )
     }

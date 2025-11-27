@@ -93,7 +93,8 @@ class DataLakeBlobProvider:
     # ----------------------------
     # Helpers
     # ----------------------------
-    def _to_stream(self, data: Uploadable) -> BinaryIO:
+    @staticmethod
+    def _to_stream(data: Uploadable) -> BinaryIO:
         """Normalize input data into a binary stream.
 
         Accepts bytes-like data, a filesystem path, or a file-like object and

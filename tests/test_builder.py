@@ -176,7 +176,7 @@ def test_builder_instantiation(temp_dir, sample_config):
 
 
 def test_label_generation_txt_format(temp_dir):
-    """Test label generation in TXT format."""
+    """Test label generation in TXT format_."""
     try:
         from builder._generator import LabelGenerator
 
@@ -213,7 +213,7 @@ def test_label_generation_txt_format(temp_dir):
 
 
 def test_label_generation_json_format(temp_dir):
-    """Test label generation in JSON format."""
+    """Test label generation in JSON format_."""
     try:
         from builder._generator import LabelGenerator
 

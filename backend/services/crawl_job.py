@@ -468,7 +468,7 @@ class CrawlJobService(BaseService):
             width=image_data.get("width"),
             height=image_data.get("height"),
             file_size=image_data.get("file_size"),
-            format=image_data.get("format")
+            format=image_data.get("format_")
         )
 
     async def store_bulk_images(
@@ -630,7 +630,7 @@ class CrawlJobService(BaseService):
                                     payload = json.loads(message['payload'])
                                     yield payload
                                 except (json.JSONDecodeError, TypeError):
-                                    yield {'error': 'Invalid message format'}
+                                    yield {'error': 'Invalid message format_'}
 
                     # If job is completed, stop the stream
                     if message and message.get('payload', {}).get('status') in ['completed', 'failed', 'cancelled']:

@@ -32,6 +32,7 @@ pip install -e ".[test]"
 ## Quick Start
 
 ### Simple Compression
+
 ```python
 from utility.compress import compress, decompress
 
@@ -40,11 +41,11 @@ compress("./raw_images", "./compressed")
 
 # With archiving
 archive = compress(
-    "./raw_images",
-    "./compressed",
-    format="webp",
-    quality=90,
-    archive=True
+  "./raw_images",
+  "./compressed",
+  format_="webp",
+  quality=90,
+  archive=True
 )
 
 # Decompress

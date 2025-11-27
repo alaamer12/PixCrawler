@@ -129,7 +129,8 @@ class AzureBlobArchiveProvider:
             logger.error(f"Failed to initialize Azure storage: {e}")
             raise
 
-    def _tier_to_standard_blob_tier(self, tier: AccessTier) -> StandardBlobTier:
+    @staticmethod
+    def _tier_to_standard_blob_tier(tier: AccessTier) -> StandardBlobTier:
         """Convert AccessTier enum to StandardBlobTier."""
         tier_mapping = {
             AccessTier.HOT: StandardBlobTier.HOT,

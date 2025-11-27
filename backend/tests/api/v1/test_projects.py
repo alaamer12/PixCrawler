@@ -29,9 +29,9 @@ def override_dependencies(app, mock_project_service):
 
     app.dependency_overrides[get_project_service] = lambda: mock_project_service
     app.dependency_overrides[get_current_user] = lambda: mock_user
-    
+
     yield mock_project_service, user_id
-    
+
     app.dependency_overrides = {}
 
 
@@ -39,13 +39,13 @@ def test_list_projects(client, override_dependencies):
     mock_service, user_id = override_dependencies
     mock_projects = [
         Project(
-            id=1, 
-            user_id=user_id, 
-            name="Test Project", 
+            id=1,
+            user_id=user_id,
+            name="Test Project",
             description="Desc",
             status="active",
-            created_at="2024-01-01T00:00:00Z",
-            updated_at="2024-01-01T00:00:00Z"
+            created_at=datetime("2024-01-01T00:00:00Z"),
+            updated_at=datetime("2024-01-01T00:00:00Z")
         )
     ]
     mock_service.get_projects.return_value = mock_projects
@@ -63,13 +63,13 @@ def test_create_project(client, override_dependencies):
     mock_service, user_id = override_dependencies
     project_data = {"name": "New Project", "description": "Desc"}
     mock_project = Project(
-        id=1, 
-        user_id=user_id, 
-        name="New Project", 
+        id=1,
+        user_id=user_id,
+        name="New Project",
         description="Desc",
         status="active",
-        created_at="2024-01-01T00:00:00Z",
-        updated_at="2024-01-01T00:00:00Z"
+        created_at=datetime("2024-01-01T00:00:00Z"),
+        updated_at=datetime("2024-01-01T00:00:00Z")
     )
     mock_service.create_project.return_value = mock_project
 
@@ -84,12 +84,12 @@ def test_create_project(client, override_dependencies):
 def test_get_project(client, override_dependencies):
     mock_service, user_id = override_dependencies
     mock_project = Project(
-        id=1, 
-        user_id=user_id, 
+        id=1,
+        user_id=user_id,
         name="Test Project",
         status="active",
-        created_at="2024-01-01T00:00:00Z",
-        updated_at="2024-01-01T00:00:00Z"
+        created_at=datetime("2024-01-01T00:00:00Z"),
+        updated_at=datetime("2024-01-01T00:00:00Z")
     )
     mock_service.get_project.return_value = mock_project
 
@@ -105,12 +105,12 @@ def test_update_project(client, override_dependencies):
     mock_service, user_id = override_dependencies
     update_data = {"name": "Updated Name"}
     mock_project = Project(
-        id=1, 
-        user_id=user_id, 
+        id=1,
+        user_id=user_id,
         name="Updated Name",
         status="active",
-        created_at="2024-01-01T00:00:00Z",
-        updated_at="2024-01-01T00:00:00Z"
+        created_at=datetime("2024-01-01T00:00:00Z"),
+        updated_at=datetime("2024-01-01T00:00:00Z")
     )
     mock_service.update_project.return_value = mock_project
 

@@ -143,7 +143,7 @@ async function generateFavicons() {
       icoBuffers.push(buffer);
     }
 
-    // Convert PNG buffers to ICO format
+    // Convert PNG buffers to ICO format_
     const icoBuffer = await toIco(icoBuffers);
 
     // Write ICO file

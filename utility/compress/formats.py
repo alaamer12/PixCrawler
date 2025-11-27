@@ -1,14 +1,14 @@
 """
-Image format conversion and compression utilities.
+Image format_ conversion and compression utilities.
 
 This module provides functions for compressing images to various formats
 (WebP, AVIF, PNG) using external tools when available, falling back to PIL.
 
 Functions:
-    compress_webp: Compress image to WebP format
-    compress_png: Compress image to PNG format
-    compress_avif: Compress image to AVIF format
-    compress_image: Main compression function with format detection
+    compress_webp: Compress image to WebP format_
+    compress_png: Compress image to PNG format_
+    compress_avif: Compress image to AVIF format_
+    compress_image: Main compression function with format_ detection
 
 Features:
     - External tool support (cwebp, pngquant, avifenc) for better quality
@@ -61,7 +61,7 @@ def _ensure_parent(path: Path) -> None:
 
 def compress_webp(src: Path, dst: Path, quality: int, lossless: bool) -> None:
     """
-    Compress image to WebP format.
+    Compress image to WebP format_.
 
     Tries to use cwebp external tool first, falls back to PIL if unavailable.
 
@@ -72,16 +72,16 @@ def compress_webp(src: Path, dst: Path, quality: int, lossless: bool) -> None:
         lossless: Enable lossless compression
     """
     _ensure_parent(dst)
-    
+
     # Build cwebp command arguments
     q = ["-q", str(quality)]
     if lossless:
         q = ["-lossless"]  # Override quality for lossless mode
-    
+
     # Try external cwebp tool first (better quality)
     if _run_cmd(["cwebp", *q, str(src), "-o", str(dst)]):
         return
-    
+
     # Fallback to PIL if cwebp not available
     with Image.open(src) as im:
         im.save(dst, format="WEBP", quality=quality, lossless=lossless, method=6)
@@ -89,7 +89,7 @@ def compress_webp(src: Path, dst: Path, quality: int, lossless: bool) -> None:
 
 def compress_png(src: Path, dst: Path, quality: int, lossless: bool) -> None:
     """
-    Compress image to PNG format.
+    Compress image to PNG format_.
 
     Tries to use pngquant external tool first, falls back to PIL if unavailable.
 
@@ -100,11 +100,11 @@ def compress_png(src: Path, dst: Path, quality: int, lossless: bool) -> None:
         lossless: Enable lossless compression (PNG is always lossless)
     """
     _ensure_parent(dst)
-    
+
     # Try pngquant for better compression (quality range with 5-point tolerance)
     if _run_cmd(["pngquant", "--force", "--output", str(dst), "--quality", f"{max(0, quality-5)}-{quality}", str(src)]):
         return
-    
+
     # Fallback to PIL optimization
     with Image.open(src) as im:
         im.save(dst, format="PNG", optimize=True)
@@ -112,7 +112,7 @@ def compress_png(src: Path, dst: Path, quality: int, lossless: bool) -> None:
 
 def compress_avif(src: Path, dst: Path, quality: int, lossless: bool) -> None:
     """
-    Compress image to AVIF format.
+    Compress image to AVIF format_.
 
     Tries to use avifenc external tool first, falls back to PIL if unavailable.
 
@@ -123,17 +123,17 @@ def compress_avif(src: Path, dst: Path, quality: int, lossless: bool) -> None:
         lossless: Enable lossless compression
     """
     _ensure_parent(dst)
-    
+
     # Build avifenc command arguments
     cq = ["-Q", str(quality)]
     if lossless:
         # Use lossless encoding parameters
         cq = ["-s", "0", "-a", "end-usage=q", "-a", "cq-level=0"]
-    
+
     # Try external avifenc tool first (better quality)
     if _run_cmd(["avifenc", *cq, str(src), str(dst)]):
         return
-    
+
     # Fallback to PIL if avifenc not available
     with Image.open(src) as im:
         im.save(dst, format="AVIF", quality=quality, lossless=lossless)
@@ -141,41 +141,41 @@ def compress_avif(src: Path, dst: Path, quality: int, lossless: bool) -> None:
 
 def compress_image(src: Path, dst: Path, fmt: str, quality: int, lossless: bool) -> None:
     """
-    Compress image to specified format.
+    Compress image to specified format_.
 
-    Main compression function that dispatches to format-specific functions.
+    Main compression function that dispatches to format_-specific functions.
 
     Args:
         src: Source image path
         dst: Destination file path
-        fmt: Target format ("webp", "avif", "png", "jxl")
+        fmt: Target format_ ("webp", "avif", "png", "jxl")
         quality: Compression quality (0-100)
         lossless: Enable lossless compression
 
     Raises:
-        ValueError: If format is not supported
+        ValueError: If format_ is not supported
     """
     f = fmt.lower()
-    
-    # Dispatch to format-specific compression function
+
+    # Dispatch to format_-specific compression function
     if f == "webp":
         # Ensure correct file extension
         if dst.suffix.lower() != ".webp":
             dst = dst.with_suffix(".webp")
         compress_webp(src, dst, quality, lossless)
         return
-    
+
     if f == "png":
         if dst.suffix.lower() != ".png":
             dst = dst.with_suffix(".png")
         compress_png(src, dst, quality, lossless)
         return
-    
+
     if f == "avif":
         if dst.suffix.lower() != ".avif":
             dst = dst.with_suffix(".avif")
         compress_avif(src, dst, quality, lossless)
         return
-    
-    # Unsupported format
-    raise ValueError(f"Unsupported format: {fmt}")
+
+    # Unsupported format_
+    raise ValueError(f"Unsupported format_: {fmt}")

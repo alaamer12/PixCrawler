@@ -150,7 +150,7 @@ uv run pytest
 ### Code Formatting
 
 ```bash
-uv run ruff format .
+uv run ruff format_ .
 uv run ruff check .
 ```
 

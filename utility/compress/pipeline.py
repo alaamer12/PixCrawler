@@ -12,9 +12,16 @@ Features:
     - Optional dataset archiving
     - Configuration from environment variables
 """
+from __future__ import annotations
 
 from pathlib import Path
 from typing import Optional
+
+import os
+import tarfile
+import zipfile
+import zstandard as zstd
+import tempfile
 
 from utility.compress.archiver import Archiver
 from utility.compress.compressor import ImageCompressor
@@ -37,11 +44,11 @@ def run() -> None:
     """
     # Load configuration from environment
     cfg = get_compression_settings()
-    
+
     # Compress all images
     compressor = ImageCompressor(cfg)
     compressor.run()
-    
+
     # Create archive if enabled
     if cfg.archive.enable:
         archiver = Archiver(cfg.output_dir)
@@ -53,7 +60,7 @@ def run() -> None:
 def compress(
     input_dir: str | Path = "./images",
     output_dir: str | Path = "./compressed",
-    format: str = "webp",
+    format_: str = "webp",
     quality: int = 85,
     lossless: bool = False,
     workers: int = 0,
@@ -67,7 +74,7 @@ def compress(
     Args:
         input_dir: Directory containing images to compress
         output_dir: Directory for compressed images
-        format: Image format (webp, avif, png, jxl)
+        format_: Image format (webp, avif, png, jxl)
         quality: Compression quality (0-100)
         lossless: Enable lossless compression
         workers: Number of worker threads (0 = auto-detect)
@@ -93,19 +100,20 @@ def compress(
         )
         ```
     """
-    import os
-    
+
     # Create configuration from parameters
     cfg = CompressionSettings(
         input_dir=Path(input_dir),
         output_dir=Path(output_dir),
-        format=format,  # type: ignore
+        format=format_,  # type: ignore
         quality=quality,
         lossless=lossless,
         workers=workers,
     )
-    
+
     # Calculate input directory size if debug mode
+    input_size: Optional[float] = None
+    output_size: Optional[float] = None
     if debug:
         input_size = sum(
             os.path.getsize(os.path.join(dirpath, filename))
@@ -127,11 +135,11 @@ def compress(
         print(f"Lossless: {cfg.lossless}")
         print(f"Workers: {cfg.resolved_workers}")
         print(f"{'='*60}\n")
-    
+
     # Compress images
     compressor = ImageCompressor(cfg)
     compressor.run()
-    
+
     # Calculate output directory size if debug mode
     if debug:
         output_size = sum(
@@ -153,17 +161,17 @@ def compress(
         print(f"Space Saved: {(input_size - output_size) / (1024*1024):.2f} MB")
         print(f"Compression Ratio: {compression_ratio:.2f}%")
         print(f"{'='*60}\n")
-    
+
     # Create archive if requested
     if archive:
         archiver = Archiver(cfg.output_dir)
         out = Path(archive_output) if archive_output else Path("./dataset.zst")
-        
+
         if debug:
             print(f"Creating archive: {out}")
-        
+
         archive_path = archiver.create(out, use_tar=True, kind="zstd", level=10)
-        
+
         if debug:
             archive_size = os.path.getsize(archive_path)
             archive_ratio = (1 - archive_size / output_size) * 100 if output_size > 0 else 0
@@ -176,9 +184,9 @@ def compress(
             print(f"Total Space Saved: {(input_size - archive_size) / (1024*1024):.2f} MB")
             print(f"Total Compression: {(1 - archive_size / input_size) * 100:.2f}%")
             print(f"{'='*60}\n")
-        
+
         return archive_path
-    
+
     return cfg.output_dir
 
 
@@ -204,16 +212,12 @@ def decompress(
         decompress("./dataset.zst", "./extracted")
         ```
     """
-    import os
-    import tarfile
-    import zipfile
-    import zstandard as zstd
-    import tempfile
-    
+
     archive_path = Path(archive_path)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+    archive_size: Optional[float] = None
+
     # Get archive size if debug mode
     if debug:
         archive_size = os.path.getsize(archive_path)
@@ -225,13 +229,13 @@ def decompress(
         print(f"Archive Size: {archive_size / (1024*1024):.2f} MB")
         print(f"Output Directory: {output_dir}")
         print(f"{'='*60}\n")
-    
+
     # Handle different archive types based on extension
     if archive_path.suffix == ".zip":
         # Extract ZIP archive
         with zipfile.ZipFile(archive_path, "r") as zf:
             zf.extractall(output_dir)
-    
+
     elif archive_path.suffix == ".zst":
         # Decompress zstd, then extract tar
         with tempfile.TemporaryDirectory() as td:
@@ -240,19 +244,19 @@ def decompress(
             dctx = zstd.ZstdDecompressor()
             with open(archive_path, "rb") as f_in, open(tar_path, "wb") as f_out:
                 dctx.copy_stream(f_in, f_out)
-            
+
             # Extract tar archive
             with tarfile.open(tar_path, "r") as tf:
                 tf.extractall(output_dir)
-    
+
     elif archive_path.suffix == ".tar":
         # Extract tar archive directly
         with tarfile.open(archive_path, "r") as tf:
             tf.extractall(output_dir)
-    
+
     else:
-        raise ValueError(f"Unsupported archive format: {archive_path.suffix}")
-    
+        raise ValueError(f"Unsupported archive format_: {archive_path.suffix}")
+
     # Calculate extracted size if debug mode
     if debug:
         extracted_size = sum(
@@ -273,7 +277,7 @@ def decompress(
         print(f"Expansion Ratio: {expansion_ratio:.2f}x")
         print(f"Space Saved by Archive: {(extracted_size - archive_size) / (1024*1024):.2f} MB")
         print(f"{'='*60}\n")
-    
+
     return output_dir
 
 

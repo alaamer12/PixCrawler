@@ -48,7 +48,7 @@ class ArchiveSettings(BaseSettings):
 
     Attributes:
         enable: Whether to enable archiving
-        tar: Whether to use tar format before compression
+        tar: Whether to use tar format_ before compression
         type: Archive compression type (zstd, zip, none)
         level: Compression level (1-19 for zstd)
         output: Output file path for the archive
@@ -68,7 +68,7 @@ class ArchiveSettings(BaseSettings):
     )
     tar: bool = Field(
         default=True,
-        description="Use tar format before compression",
+        description="Use tar format_ before compression",
         examples=[True, False]
     )
     type: ArchiveTypeLiteral = Field(
@@ -114,13 +114,13 @@ class CompressionSettings(BaseSettings):
     Main compression and archive configuration.
 
     This class defines all configuration options for image compression
-    and archiving, including input/output directories, compression format,
+    and archiving, including input/output directories, compression format_,
     quality settings, and archive options.
 
     Attributes:
         input_dir: Input directory containing images to compress
         output_dir: Output directory for compressed images
-        format: Image compression format (webp, avif, png, jxl)
+        format: Image compression format_ (webp, avif, png, jxl)
         quality: Compression quality (0-100)
         lossless: Enable lossless compression
         workers: Number of worker threads (0 = auto-detect)
@@ -153,7 +153,7 @@ class CompressionSettings(BaseSettings):
     )
     format: FormatLiteral = Field(
         default="webp",
-        description="Image compression format",
+        description="Image compression format_",
         examples=["webp", "avif", "png", "jxl"]
     )
     quality: int = Field(

@@ -1250,7 +1250,7 @@ class ProgressCheckpointAdapter:
             return await self.legacy_progress.get_progress(job_id)
     
     def _convert_checkpoint_to_progress(self, checkpoint: JobCheckpoint) -> dict:
-        """Convert checkpoint format to legacy progress format"""
+        """Convert checkpoint format_ to legacy progress format_"""
         return {
             'job_id': checkpoint.job_id,
             'total_images': checkpoint.max_images,
