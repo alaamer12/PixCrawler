@@ -21,6 +21,22 @@ from backend.schemas.crawl_jobs import CrawlJobStatus
 from backend.services.dataset import DatasetService
 
 
+def copy_model(model, **updates):
+    """Helper to create a copy of a SQLAlchemy model with updates."""
+    # Get all mapped columns
+    mapper = model.__class__.__mapper__
+    data = {}
+    for column in mapper.columns:
+        if hasattr(model, column.key):
+            data[column.key] = getattr(model, column.key)
+    
+    # Apply updates
+    data.update(updates)
+    
+    # Create new instance
+    return model.__class__(**data)
+
+
 @pytest.fixture
 def mock_dataset_repo():
     """Create mock dataset repository."""

@@ -72,14 +72,16 @@ class DatasetService(BaseService):
         }
         
         # Create crawl job for the dataset
-        crawl_job = await self.crawl_job_repo.create(
-            CrawlJobCreate(
-                name=f"{dataset_create.name} - Crawl Job",
-                keywords=dataset_create.keywords,
-                max_images=dataset_create.max_images,
-                sources=dataset_create.search_engines
-            )
-        )
+        # Note: CrawlJob model doesn't have sources field, only keywords
+        # Search engines are stored in the Dataset model
+        crawl_job_data = {
+            "project_id": 1,  # TODO: Get from context or create project
+            "name": f"{dataset_create.name} - Crawl Job",
+            "keywords": {"keywords": dataset_create.keywords},  # CrawlJob expects JSONB format
+            "max_images": dataset_create.max_images,
+            "status": "pending",
+        }
+        crawl_job = await self.crawl_job_repo.create(crawl_job_data)
         
         dataset_data["crawl_job_id"] = crawl_job.id
         dataset = await self.dataset_repo.create(dataset_data)

@@ -15,6 +15,22 @@ from backend.models import Profile
 from backend.services.user import UserService
 
 
+def copy_model(model, **updates):
+    """Helper to create a copy of a SQLAlchemy model with updates."""
+    # Get all mapped columns
+    mapper = model.__class__.__mapper__
+    data = {}
+    for column in mapper.columns:
+        if hasattr(model, column.key):
+            data[column.key] = getattr(model, column.key)
+    
+    # Apply updates
+    data.update(updates)
+    
+    # Create new instance
+    return model.__class__(**data)
+
+
 @pytest.fixture
 def mock_user_repo():
     """Create mock user repository."""
@@ -166,14 +182,7 @@ async def test_list_users(user_service, mock_user_repo):
 @pytest.mark.asyncio
 async def test_update_user_success(user_service, mock_user_repo, sample_user):
     """Test successful user update."""
-    updated_user = Profile(
-        id=sample_user.id,
-        email=sample_user.email,
-        full_name="Updated Name",
-        role=sample_user.role
-    )
-    updated_user.created_at = sample_user.created_at
-    updated_user.updated_at = datetime.utcnow()
+    updated_user = copy_model(sample_user, full_name="Updated Name", updated_at=datetime.utcnow())
     
     mock_user_repo.get_by_uuid.return_value = sample_user
     mock_user_repo.get_by_email.return_value = None
@@ -225,14 +234,7 @@ async def test_update_user_duplicate_email(user_service, mock_user_repo, sample_
 @pytest.mark.asyncio
 async def test_update_user_same_email(user_service, mock_user_repo, sample_user):
     """Test update with same email (should succeed)."""
-    updated_user = Profile(
-        id=sample_user.id,
-        email=sample_user.email,
-        full_name="Updated Name",
-        role=sample_user.role
-    )
-    updated_user.created_at = sample_user.created_at
-    updated_user.updated_at = datetime.utcnow()
+    updated_user = copy_model(sample_user, full_name="Updated Name", updated_at=datetime.utcnow())
     
     mock_user_repo.get_by_uuid.return_value = sample_user
     mock_user_repo.update.return_value = updated_user

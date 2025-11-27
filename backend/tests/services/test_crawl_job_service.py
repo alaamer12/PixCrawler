@@ -361,11 +361,11 @@ async def test_update_job_status_with_error(
     sample_crawl_job
 ):
     """Test status update with error message."""
-    updated_job = CrawlJob(**{
-        **sample_crawl_job.__dict__,
-        "status": "failed",
-        "error": "Test error"
-    })
+    updated_job = copy_model(
+        sample_crawl_job,
+        status="failed",
+        error="Test error"
+    )
     mock_crawl_job_repo.update.return_value = updated_job
     
     result = await crawl_job_service.update_job_status(
@@ -398,7 +398,7 @@ async def test_store_image_metadata(
         "width": 800,
         "height": 600,
         "file_size": 102400,
-        "format_": "jpeg"
+        "format": "jpeg"
     }
     
     mock_image = Image(id=1, crawl_job_id=1, **image_data)
@@ -496,7 +496,7 @@ async def test_cancel_job_success(
     sample_crawl_job.status = "running"
     sample_crawl_job.task_ids = []
     
-    cancelled_job = CrawlJob(**{**sample_crawl_job.__dict__, "status": "cancelled"})
+    cancelled_job = copy_model(sample_crawl_job, status="cancelled")
     
     mock_crawl_job_repo.get_by_id.return_value = sample_crawl_job
     mock_crawl_job_repo.update.return_value = cancelled_job
