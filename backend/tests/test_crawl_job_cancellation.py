@@ -9,14 +9,13 @@ Tests the cancel_job method in CrawlJobService including:
 - API endpoint integration
 """
 
-import pytest
-import uuid
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from datetime import datetime
+from unittest.mock import Mock, AsyncMock, patch
 
-from backend.services.crawl_job import CrawlJobService
+import pytest
+
 from backend.core.exceptions import NotFoundError, ValidationError
-from backend.models import CrawlJob, Project
+from backend.models import CrawlJob
+from backend.services.crawl_job import CrawlJobService
 
 
 class TestCancelJobService:
@@ -43,7 +42,7 @@ class TestCancelJobService:
         project_repo = AsyncMock()
         image_repo = AsyncMock()
         activity_log_repo = AsyncMock()
-        
+
         service = CrawlJobService(
             crawl_job_repo=crawl_job_repo,
             project_repo=project_repo,
@@ -60,13 +59,13 @@ class TestCancelJobService:
         service.update_job_status = AsyncMock(return_value=mock_job)
         service._revoke_celery_tasks = AsyncMock()
         service._cleanup_job_storage = AsyncMock()
-        
+
         # Execute
         result = await service.cancel_job(
             job_id=1,
             user_id="user-123"
         )
-        
+
         # Assert
         assert result == mock_job
         service._revoke_celery_tasks.assert_called_once_with(
@@ -87,10 +86,10 @@ class TestCancelJobService:
         service.update_job_status = AsyncMock(return_value=mock_job)
         service._revoke_celery_tasks = AsyncMock()
         service._cleanup_job_storage = AsyncMock()
-        
+
         # Execute
         result = await service.cancel_job(job_id=1)
-        
+
         # Assert
         assert result == mock_job
         service._revoke_celery_tasks.assert_called_once_with([], terminate=True)
@@ -101,7 +100,7 @@ class TestCancelJobService:
         """Test cancelling a non-existent job."""
         # Setup
         service.get_job = AsyncMock(return_value=None)
-        
+
         # Execute & Assert
         with pytest.raises(NotFoundError, match="Crawl job not found: 999"):
             await service.cancel_job(job_id=999)
@@ -112,7 +111,7 @@ class TestCancelJobService:
         # Setup
         mock_job.status = "completed"
         service.get_job = AsyncMock(return_value=mock_job)
-        
+
         # Execute & Assert
         with pytest.raises(ValidationError, match="Cannot cancel job with status"):
             await service.cancel_job(job_id=1)
@@ -123,7 +122,7 @@ class TestCancelJobService:
         # Setup
         mock_job.status = "failed"
         service.get_job = AsyncMock(return_value=mock_job)
-        
+
         # Execute & Assert
         with pytest.raises(ValidationError, match="Cannot cancel job with status"):
             await service.cancel_job(job_id=1)
@@ -136,10 +135,10 @@ class TestCancelJobService:
         service.update_job_status = AsyncMock(return_value=mock_job)
         service._revoke_celery_tasks = AsyncMock()
         service._cleanup_job_storage = AsyncMock(side_effect=Exception("Storage error"))
-        
+
         # Execute - should not raise exception
         result = await service.cancel_job(job_id=1)
-        
+
         # Assert - job should still be cancelled
         assert result == mock_job
         service.update_job_status.assert_called_once()
@@ -150,13 +149,13 @@ class TestCancelJobService:
         with patch('backend.services.crawl_job.celery_app') as mock_celery:
             mock_control = Mock()
             mock_celery.control = mock_control
-            
+
             # Execute
             await service._revoke_celery_tasks(
                 ["task-1", "task-2"],
                 terminate=True
             )
-            
+
             # Assert
             assert mock_control.revoke.call_count == 2
             mock_control.revoke.assert_any_call(
@@ -176,13 +175,13 @@ class TestCancelJobService:
         with patch('backend.services.crawl_job.celery_app') as mock_celery:
             mock_control = Mock()
             mock_celery.control = mock_control
-            
+
             # Execute
             await service._revoke_celery_tasks(
                 ["task-1"],
                 terminate=False
             )
-            
+
             # Assert
             mock_control.revoke.assert_called_once_with(
                 "task-1",
@@ -201,10 +200,10 @@ class TestCancelJobService:
                 "job_1/image3.jpg"
             ]
             mock_get_storage.return_value = mock_storage
-            
+
             # Execute
             await service._cleanup_job_storage(job_id=1)
-            
+
             # Assert
             mock_storage.list_files.assert_called_once_with(prefix="job_1/")
             assert mock_storage.delete.call_count == 3
@@ -216,10 +215,10 @@ class TestCancelJobService:
             mock_storage = Mock()
             mock_storage.list_files.return_value = []
             mock_get_storage.return_value = mock_storage
-            
+
             # Execute
             await service._cleanup_job_storage(job_id=1)
-            
+
             # Assert
             mock_storage.list_files.assert_called_once_with(prefix="job_1/")
             mock_storage.delete.assert_not_called()

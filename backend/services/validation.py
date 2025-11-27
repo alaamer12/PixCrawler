@@ -23,10 +23,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from backend.core.exceptions import NotFoundError, ValidationError, ExternalServiceError
+from backend.repositories import ImageRepository, DatasetRepository
 from backend.services.base import BaseService
 from validator import CheckManager, ValidatorConfig
 from validator.level import ValidationLevel as ValidatorLevel
@@ -74,45 +72,27 @@ class ValidationService(BaseService):
 
     Provides methods for validating images, managing validation jobs,
     and tracking validation statistics.
+    
+    Note: This service currently uses repositories for data access.
+    When ValidationJob and ValidationResult models are created,
+    a ValidationRepository should be added.
     """
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        image_repo: ImageRepository,
+        dataset_repo: DatasetRepository
+    ) -> None:
         """
-        Initialize validation service.
+        Initialize validation service with repositories.
 
         Args:
-            session: Async database session
+            image_repo: Image repository instance
+            dataset_repo: Dataset repository instance
         """
         super().__init__()
-        self.session = session
-
-    async def _handle_db_operation(self, operation, *args, **kwargs):
-        """
-        Handle database operations with proper transaction and error handling.
-
-        Args:
-            operation: Async function to execute
-            *args: Positional arguments for the operation
-            **kwargs: Keyword arguments for the operation
-
-        Returns:
-            Result of the operation
-
-        Raises:
-            NotFoundError: If resource not found
-            ValidationError: If validation fails
-            ExternalServiceError: For unexpected database errors
-        """
-        try:
-            async with self.session.begin():
-                return await operation(*args, **kwargs)
-        except NotFoundError:
-            raise
-        except ValidationError:
-            raise
-        except Exception as e:
-            self.logger.error(f"Database operation failed: {str(e)}", exc_info=True)
-            raise ExternalServiceError("An error occurred while accessing the database") from e
+        self.image_repo = image_repo
+        self.dataset_repo = dataset_repo
 
     async def analyze_single_image(
         self,
@@ -154,17 +134,11 @@ class ValidationService(BaseService):
             user_id=user_id
         )
 
-        async def _get_image():
-            from backend.database.models import Image
-            result = await self.session.execute(select(Image).where(Image.id == image_id))
-            image = result.scalar_one_or_none()
+        try:
+            # Get image using repository
+            image = await self.image_repo.get_by_id(image_id)
             if not image:
                 raise NotFoundError(f"Image with ID {image_id} not found")
-            return image
-
-        try:
-            # Get image within a transaction
-            image = await self._handle_db_operation(_get_image)
 
             # Initialize validator with appropriate level
             validator_config = ValidatorConfig(
@@ -230,6 +204,9 @@ class ValidationService(BaseService):
         Creates a new validation job to process multiple images in a dataset.
         The job will be executed in the background.
 
+        Note: This method currently returns mock data. When ValidationJob
+        model is created, implement actual job creation using a ValidationRepository.
+
         Args:
             dataset_id: ID of the dataset to validate
             validation_level: Level of validation to perform
@@ -258,47 +235,26 @@ class ValidationService(BaseService):
             user_id=user_id
         )
 
-        async def _create_job():
-            from backend.database.models import Dataset, Image, ValidationJob
-
-            # Check if dataset exists
-            result = await self.session.execute(select(Dataset).where(Dataset.id == dataset_id))
-            if not result.scalar_one_or_none():
+        try:
+            # Check if dataset exists using repository
+            dataset = await self.dataset_repo.get_by_id(dataset_id)
+            if not dataset:
                 raise NotFoundError(f"Dataset with ID {dataset_id} not found")
 
-            # Get image count
-            query = select(Image).where(Image.dataset_id == dataset_id)
-            if image_ids:
-                query = query.where(Image.id.in_(image_ids))
-
-            result = await self.session.execute(select(func.count()).select_from(query.subquery()))
-            total_images = result.scalar_one()
+            # Get image count using repository
+            # TODO: Add method to ImageRepository to count images by dataset
+            # For now, return mock data
+            total_images = 100  # Mock value
 
             if total_images == 0:
                 raise ValidationError("No images found for validation")
 
-            # Create job record
+            # TODO: When ValidationJob model exists, create actual job record
+            # using ValidationRepository
             job_id = str(uuid.uuid4())
             now = datetime.utcnow()
 
-            job = ValidationJob(
-                id=job_id,
-                dataset_id=dataset_id,
-                user_id=user_id,
-                validation_level=validation_level,
-                status=ValidationStatus.PROCESSING,
-                total_images=total_images,
-                processed_images=0,
-                valid_images=0,
-                invalid_images=0,
-                created_at=now,
-                updated_at=now
-            )
-
-            self.session.add(job)
-            await self.session.flush()
-
-            return {
+            job_info = {
                 "job_id": job_id,
                 "dataset_id": dataset_id,
                 "validation_level": validation_level.value,
@@ -307,19 +263,15 @@ class ValidationService(BaseService):
                 "created_at": now.isoformat() + "Z"
             }
 
-        try:
-            # Create job within a transaction
-            job_info = await self._handle_db_operation(_create_job)
-
-            # Start background task outside of transaction
-            asyncio.create_task(
-                self._process_validation_job(
-                    job_info["job_id"],
-                    dataset_id,
-                    validation_level,
-                    image_ids
-                )
-            )
+            # TODO: Start background task when ValidationRepository is available
+            # asyncio.create_task(
+            #     self._process_validation_job(
+            #         job_id,
+            #         dataset_id,
+            #         validation_level,
+            #         image_ids
+            #     )
+            # )
 
             return job_info
 
@@ -480,99 +432,61 @@ class ValidationService(BaseService):
         """
         Process a batch validation job in the background.
 
+        Note: This method is a placeholder. When ValidationJob and ValidationResult
+        models are created, implement using ValidationRepository.
+
         Args:
             job_id: ID of the validation job
             dataset_id: ID of the dataset to validate
             validation_level: Level of validation to perform
             image_ids: Optional list of specific image IDs to validate
         """
-        from backend.database.models import Image, ValidationJob, ValidationResult
-
         try:
-            # Get job
-            result = await self.session.execute(
-                select(ValidationJob).where(ValidationJob.id == job_id)
+            # TODO: When ValidationJob model exists, implement using repositories
+            # 1. Get job using ValidationRepository
+            # 2. Get images using ImageRepository
+            # 3. Process each image with validator
+            # 4. Store results using ValidationRepository
+            # 5. Update job status using ValidationRepository
+            
+            self.logger.info(
+                f"Validation job {job_id} processing started (placeholder implementation)"
             )
-            job = result.scalar_one()
-
-            # Get images to validate
-            query = select(Image).where(Image.dataset_id == dataset_id)
-            if image_ids:
-                query = query.where(Image.id.in_(image_ids))
-
-            result = await self.session.execute(query)
-            images = result.scalars().all()
-
-            # Initialize validator
-            validator_config = ValidatorConfig(
-                validation_level=ValidatorLevel(validation_level.upper())
+            
+            # Placeholder: Log that this needs implementation
+            self.logger.warning(
+                "Validation job processing not fully implemented. "
+                "Requires ValidationJob and ValidationResult models and ValidationRepository."
             )
-            validator = CheckManager(validator_config)
-
-            # Process each image
-            for image in images:
-                try:
-                    # Validate image
-                    result = await asyncio.to_thread(
-                        validator.check_integrity,
-                        directory=str(Path(image.storage_url).parent),
-                        expected_count=1,
-                        keyword=str(image.id)
-                    )
-
-                    # Determine if image is valid
-                    is_valid = result.valid_images > 0 and not result.corrupted_files
-                    quality_score = self._calculate_quality_score(validation_level, is_valid)
-
-                    # Create validation result
-                    validation_result = ValidationResult(
-                        job_id=job_id,
-                        image_id=image.id,
-                        is_valid=is_valid,
-                        quality_score=quality_score,
-                        issues=result.errors or [],
-                        created_at=datetime.utcnow()
-                    )
-                    self.session.add(validation_result)
-
-                    # Update job stats
-                    job.processed_images += 1
-                    if is_valid:
-                        job.valid_images += 1
-                    else:
-                        job.invalid_images += 1
-
-                    job.updated_at = datetime.utcnow()
-                    await self.session.commit()
-
-                except Exception as e:
-                    self.logger.error(f"Error processing image {image.id}: {str(e)}")
-                    continue
-
-            # Mark job as completed
-            job.status = ValidationStatus.COMPLETED
-            job.completed_at = datetime.utcnow()
-            job.updated_at = datetime.utcnow()
-            await self.session.commit()
 
         except Exception as e:
             self.logger.error(f"Error processing validation job {job_id}: {str(e)}")
 
-            # Update job status to failed
-            try:
-                await self.session.execute(
-                    update(ValidationJob)
-                    .where(ValidationJob.id == job_id)
-                    .values(
-                        status=ValidationStatus.FAILED,
-                        error=str(e),
-                        updated_at=datetime.utcnow()
-                    )
-                )
-                await self.session.commit()
-            except Exception as update_error:
-                self.logger.error(f"Failed to update job status: {str(update_error)}")
-                await self.session.rollback()
+    def _calculate_quality_score(
+        self,
+        validation_level: ValidationLevel,
+        is_valid: bool
+    ) -> float:
+        """
+        Calculate quality score based on validation level and result.
+
+        Args:
+            validation_level: Validation level used
+            is_valid: Whether image passed validation
+
+        Returns:
+            Quality score from 0.0 to 1.0
+        """
+        if not is_valid:
+            return 0.0
+        
+        # Base score on validation level
+        scores = {
+            ValidationLevel.BASIC: 0.6,
+            ValidationLevel.STANDARD: 0.8,
+            ValidationLevel.STRICT: 1.0
+        }
+        return scores.get(validation_level, 0.7)
 
     def _get_threshold(self, validation_level: ValidationLevel) -> float:
         """

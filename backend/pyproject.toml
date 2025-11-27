@@ -28,6 +28,7 @@ dependencies = [
   "platformdirs",
   "sse_starlette",
   "azure-storage-blob",
+  "psutil",
 ]
 
 [project.optional-dependencies]

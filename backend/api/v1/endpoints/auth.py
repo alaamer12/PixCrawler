@@ -210,32 +210,12 @@ async def sync_user_profile(
         Success message indicating whether profile was created or updated
     """
     try:
-        user_id = current_user["user_id"]
-        email = current_user["email"]
-        user_metadata = current_user.get("user_metadata", {})
-
-        # Check if profile exists
-        try:
-            await auth_service.get_user_profile(user_id)
-            # Profile exists, update it
-            await auth_service.update_user_profile(user_id, {
-                "email": email,
-                "full_name": user_metadata.get("full_name"),
-                "avatar_url": user_metadata.get("avatar_url"),
-                "updated_at": "now()"
-            })
-            action = "updated"
-
-        except Exception:
-            # Profile doesn't exist, create it
-            await auth_service.create_user_profile({
-                "id": user_id,
-                "email": email,
-                "full_name": user_metadata.get("full_name"),
-                "avatar_url": user_metadata.get("avatar_url"),
-                "role": "user"
-            })
-            action = "created"
+        # Delegate sync logic to service
+        action = await auth_service.sync_profile(
+            user_id=current_user["user_id"],
+            email=current_user["email"],
+            user_metadata=current_user.get("user_metadata", {})
+        )
 
         return ProfileSyncResponse(message=f"User profile {action} successfully")
 

@@ -16,11 +16,8 @@ Features:
 
 from typing import Optional
 
-from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from backend.core.settings.resources import get_resource_settings, ResourceSettings
-from backend.models import CrawlJob
+from backend.repositories import CrawlJobRepository
 from utility.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -34,16 +31,16 @@ class ResourceMonitor:
     """
     Monitor resources and check capacity for chunk orchestration.
     
-    Uses configuration-based limits and database queries instead of
-    runtime metrics like psutil. This approach works consistently
+    Uses configuration-based limits and repository pattern instead of
+    direct database access. This approach works consistently
     across all environments (local, Azure, AWS).
     
     Attributes:
         settings: Resource settings instance
-        session: Database session for queries
+        crawl_job_repo: CrawlJob repository for data access
     
     Example:
-        >>> monitor = ResourceMonitor(session)
+        >>> monitor = ResourceMonitor(crawl_job_repo)
         >>> can_start = await monitor.can_start_chunk()
         >>> if can_start:
         ...     # Start new chunk
@@ -51,17 +48,17 @@ class ResourceMonitor:
     
     def __init__(
         self,
-        session: AsyncSession,
+        crawl_job_repo: CrawlJobRepository,
         settings: Optional[ResourceSettings] = None
     ):
         """
         Initialize resource monitor.
         
         Args:
-            session: Database session
+            crawl_job_repo: CrawlJob repository instance
             settings: Optional resource settings (uses default if None)
         """
-        self.session = session
+        self.crawl_job_repo = crawl_job_repo
         self.settings = settings or get_resource_settings()
         
         logger.info(
@@ -74,7 +71,7 @@ class ResourceMonitor:
         """
         Get count of currently active processing chunks across all jobs.
         
-        Queries database for sum of active_chunks across all jobs.
+        Uses repository to query sum of active_chunks across all jobs.
         
         Returns:
             Total number of active chunks
@@ -84,11 +81,8 @@ class ResourceMonitor:
             >>> print(f"Active chunks: {count}")
         """
         try:
-            # Sum active_chunks across all jobs
-            result = await self.session.execute(
-                select(func.sum(CrawlJob.active_chunks))
-            )
-            total = result.scalar() or 0
+            # Get total active chunks from repository
+            total = await self.crawl_job_repo.get_total_active_chunks()
             
             logger.debug(f"Active chunks: {total}")
             return int(total)
@@ -109,11 +103,10 @@ class ResourceMonitor:
             Number of active chunks for the job
         """
         try:
-            result = await self.session.execute(
-                select(CrawlJob.active_chunks).where(CrawlJob.id == job_id)
-            )
-            count = result.scalar() or 0
-            return int(count)
+            job = await self.crawl_job_repo.get_by_id(job_id)
+            if not job:
+                return 0
+            return int(job.active_chunks or 0)
             
         except Exception as e:
             logger.error(f"Failed to get job active chunks: {e}")

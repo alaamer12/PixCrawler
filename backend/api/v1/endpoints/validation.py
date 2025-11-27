@@ -137,7 +137,7 @@ async def create_batch_validation(
         request: Batch validation request with dataset ID and options
         background_tasks: FastAPI background tasks
         current_user: Current authenticated user
-        service: Validation service
+        service: Validation service (injected)
 
     Returns:
         Created validation job information
@@ -146,8 +146,7 @@ async def create_batch_validation(
         HTTPException: If dataset not found or job creation fails
     """
     try:
-        service = ValidationService(session)
-
+        # Use injected service instead of creating new instance
         job = await service.create_batch_validation_job(
             dataset_id=request.dataset_id,
             validation_level=request.validation_level,

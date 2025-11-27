@@ -183,6 +183,57 @@ class SupabaseAuthService(BaseService):
             self.logger.error(f"Failed to update user profile: {str(e)}")
             raise
 
+    async def sync_profile(
+        self,
+        user_id: str,
+        email: str,
+        user_metadata: Dict[str, Any]
+    ) -> str:
+        """
+        Sync user profile from Supabase Auth to profiles table.
+
+        Creates a new profile if one doesn't exist, or updates the existing profile
+        with the latest information from Supabase Auth.
+
+        Args:
+            user_id: Supabase user ID
+            email: User email address
+            user_metadata: User metadata from Supabase Auth
+
+        Returns:
+            Action performed: "created" or "updated"
+
+        Raises:
+            Exception: If sync operation fails
+        """
+        try:
+            # Check if profile exists
+            await self.get_user_profile(user_id)
+            
+            # Profile exists, update it
+            await self.update_user_profile(user_id, {
+                "email": email,
+                "full_name": user_metadata.get("full_name"),
+                "avatar_url": user_metadata.get("avatar_url"),
+                "updated_at": "now()"
+            })
+            
+            self.log_operation("sync_profile", user_id=user_id, action="updated")
+            return "updated"
+
+        except NotFoundError:
+            # Profile doesn't exist, create it
+            await self.create_user_profile({
+                "id": user_id,
+                "email": email,
+                "full_name": user_metadata.get("full_name"),
+                "avatar_url": user_metadata.get("avatar_url"),
+                "role": "user"
+            })
+            
+            self.log_operation("sync_profile", user_id=user_id, action="created")
+            return "created"
+
 
 def get_user_from_token(token: str) -> Optional[Dict[str, Any]]:
     """

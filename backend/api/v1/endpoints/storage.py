@@ -227,11 +227,8 @@ async def get_presigned_url(
         HTTPException: If URL generation fails or file doesn't exist (404)
     """
     try:
-        url = service.storage.generate_presigned_url(path, expires_in=expires_in)
-        return {
-            "url": url,
-            "expires_at": datetime.utcnow() + datetime.timedelta(seconds=expires_in)
-        }
+        # Service handles URL generation and expiration calculation
+        return await service.generate_presigned_url_with_expiration(path, expires_in)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
