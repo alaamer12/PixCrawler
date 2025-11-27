@@ -17,8 +17,10 @@ __all__ = [
     'UsageMetricCreate',
     'UsageMetricUpdate',
     'UsageMetricResponse',
+    'UsageMetricListResponse',
     'UsageSummary',
     'UsageTrend',
+    'UsageTrendListResponse',
 ]
 
 
@@ -196,6 +198,36 @@ class UsageSummary(BaseModel):
     days_count: int = Field(gt=0, description="Number of days in period")
 
 
+class UsageMetricListResponse(BaseModel):
+    """Schema for usage metric list response."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    data: list[UsageMetricResponse] = Field(
+        description="List of usage metrics",
+        examples=[[{
+            "id": "123e4567-e89b-12d3-a456-426614174000",
+            "user_id": "123e4567-e89b-12d3-a456-426614174000",
+            "metric_date": "2024-01-27",
+            "images_processed": 500,
+            "images_limit": 10000,
+            "storage_used_gb": 5.50,
+            "storage_limit_gb": 100.00,
+            "api_calls": 1000,
+            "api_calls_limit": 50000,
+            "bandwidth_used_gb": 10.50,
+            "bandwidth_limit_gb": 500.00,
+            "created_at": "2024-01-27T00:00:00Z"
+        }]]
+    )
+    
+    meta: dict = Field(
+        default_factory=lambda: {"total": 0, "skip": 0, "limit": 50},
+        description="Pagination metadata",
+        examples=[{"total": 30, "skip": 0, "limit": 50}]
+    )
+
+
 class UsageTrend(BaseModel):
     """Schema for usage trend data."""
     
@@ -206,3 +238,26 @@ class UsageTrend(BaseModel):
     storage_used_gb: Decimal = Field(ge=Decimal("0.00"), description="Storage used")
     api_calls: int = Field(ge=0, description="API calls")
     bandwidth_used_gb: Decimal = Field(ge=Decimal("0.00"), description="Bandwidth used")
+
+
+class UsageTrendListResponse(BaseModel):
+    """Schema for usage trend list response."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    data: list[UsageTrend] = Field(
+        description="List of usage trends",
+        examples=[[{
+            "date": "2024-01-27",
+            "images_processed": 500,
+            "storage_used_gb": 5.50,
+            "api_calls": 1000,
+            "bandwidth_used_gb": 10.50
+        }]]
+    )
+    
+    meta: dict = Field(
+        default_factory=lambda: {"total": 0, "period_start": "2024-01-01", "period_end": "2024-01-31"},
+        description="Metadata with period information",
+        examples=[{"total": 30, "period_start": "2024-01-01", "period_end": "2024-01-31"}]
+    )

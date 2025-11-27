@@ -33,6 +33,7 @@ __all__ = [
     'UserCreate',
     'UserUpdate',
     'UserResponse',
+    'UserListResponse',
     'UserLogin',
     'TokenResponse',
     'TokenRefresh',
@@ -176,6 +177,36 @@ class UserResponse(UserBase, TimestampMixin):
         ..., 
         description="User ID (UUID from Supabase auth)",
         examples=["123e4567-e89b-12d3-a456-426614174000"]
+    )
+
+
+class UserListResponse(BaseSchema):
+    """
+    Schema for user list response.
+
+    Provides a paginated list of users with metadata.
+
+    Attributes:
+        data: List of user responses
+        meta: Pagination metadata
+    """
+
+    data: list[UserResponse] = Field(
+        ...,
+        description="List of users",
+        examples=[[{
+            "id": "123e4567-e89b-12d3-a456-426614174000",
+            "email": "user@example.com",
+            "full_name": "John Doe",
+            "is_active": True,
+            "created_at": "2024-01-20T10:00:00Z",
+            "updated_at": "2024-01-27T10:00:00Z"
+        }]]
+    )
+    meta: dict = Field(
+        default_factory=lambda: {"total": 0, "skip": 0, "limit": 50},
+        description="Pagination metadata",
+        examples=[{"total": 100, "skip": 0, "limit": 50}]
     )
 
 

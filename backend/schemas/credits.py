@@ -23,6 +23,7 @@ __all__ = [
     'CreditTransactionBase',
     'CreditTransactionCreate',
     'CreditTransactionResponse',
+    'CreditTransactionListResponse',
     'AutoRefillSettings',
 ]
 
@@ -256,3 +257,31 @@ class CreditTransactionResponse(CreditTransactionBase):
     def is_debit(self) -> bool:
         """Check if transaction removes credits."""
         return self.amount < 0
+
+
+class CreditTransactionListResponse(BaseModel):
+    """Schema for credit transaction list response."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    data: list[CreditTransactionResponse] = Field(
+        description="List of credit transactions",
+        examples=[[{
+            "id": "123e4567-e89b-12d3-a456-426614174000",
+            "account_id": "123e4567-e89b-12d3-a456-426614174000",
+            "user_id": "123e4567-e89b-12d3-a456-426614174000",
+            "type": "purchase",
+            "description": "Credit purchase via Stripe",
+            "amount": 500,
+            "balance_after": 1500,
+            "status": "completed",
+            "metadata": {"stripe_payment_id": "pi_123"},
+            "created_at": "2024-01-27T10:00:00Z"
+        }]]
+    )
+    
+    meta: dict = Field(
+        default_factory=lambda: {"total": 0, "skip": 0, "limit": 50},
+        description="Pagination metadata",
+        examples=[{"total": 100, "skip": 0, "limit": 50}]
+    )

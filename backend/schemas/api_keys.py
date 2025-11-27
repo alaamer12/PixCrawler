@@ -19,7 +19,9 @@ __all__ = [
     'APIKeyCreate',
     'APIKeyUpdate',
     'APIKeyResponse',
+    'APIKeyListResponse',
     'APIKeyRegenerateRequest',
+    'APIKeyCreateResponse',
 ]
 
 
@@ -171,6 +173,37 @@ class APIKeyRegenerateRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     key_id: UUID = Field(description="Key ID to regenerate")
+
+
+class APIKeyListResponse(BaseModel):
+    """Schema for API key list response."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    data: list[APIKeyResponse] = Field(
+        description="List of API keys",
+        examples=[[{
+            "id": "123e4567-e89b-12d3-a456-426614174000",
+            "user_id": "123e4567-e89b-12d3-a456-426614174000",
+            "name": "Production API Key",
+            "key_prefix": "pk_live_",
+            "permissions": ["read", "write"],
+            "rate_limit": 1000,
+            "status": "active",
+            "usage_count": 150,
+            "last_used_at": "2024-01-27T10:00:00Z",
+            "last_used_ip": "192.168.1.1",
+            "expires_at": None,
+            "created_at": "2024-01-20T10:00:00Z",
+            "updated_at": "2024-01-27T10:00:00Z"
+        }]]
+    )
+    
+    meta: dict = Field(
+        default_factory=lambda: {"total": 0, "skip": 0, "limit": 50},
+        description="Pagination metadata",
+        examples=[{"total": 5, "skip": 0, "limit": 50}]
+    )
 
 
 class APIKeyCreateResponse(APIKeyResponse):
