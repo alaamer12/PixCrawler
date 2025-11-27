@@ -212,8 +212,6 @@
 - [-] 3. Audit all services for repository pattern violations
 
 
-
-
   - List all files in `backend/services/` directory
   - For each service, check if it has direct `AsyncSession` parameter in `__init__`
   - Check if service performs raw SQL queries using `session.execute()`
@@ -233,7 +231,12 @@
   - _Requirements: 4.3, 4.4_
 
 
-- [ ] 3.2 Audit all API endpoints for pattern violations
+- [x] 3.2 Audit all API endpoints for pattern violations
+
+
+
+
+
   - List all files in `backend/api/v1/endpoints/` directory
   - For each endpoint, check if it contains business logic
   - Check if endpoint directly accesses database session
@@ -254,16 +257,30 @@
   - Create remediation plan for each violation
   - _Requirements: 4.9_
 
-- [ ] 3.4 Fix service layer violations
+
+
+
+
+- [x] 3.4 Fix service layer violations
+
+
+
+
+
+
   - For each service with direct `AsyncSession`, refactor to use repository
   - Move raw SQL queries from services to repository methods
   - Ensure services only orchestrate business logic
   - Update service `__init__` to accept repository instances, not sessions
+
+
+
   - Maintain existing service method signatures for backward compatibility
   - Add deprecation warnings if any public APIs change
   - _Requirements: 4.1, 4.2, 4.8, 5.4_
 
-- [ ] 3.5 Fix repository layer violations
+
+- [x] 3.5 Fix repository layer violations
   - Move business logic from repositories to services
   - Ensure repositories only perform CRUD operations
   - Verify all repositories extend `BaseRepository`
@@ -271,7 +288,12 @@
   - Add new repository methods as needed for service requirements
   - _Requirements: 4.3, 4.4_
 
-- [ ] 3.6 Fix API endpoint violations
+
+
+
+- [x] 3.6 Fix API endpoint violations
+
+
   - Remove business logic from endpoints and move to services
   - Remove direct database queries from endpoints
   - Ensure endpoints only handle HTTP concerns (validation, serialization, errors)
@@ -279,13 +301,16 @@
   - Maintain existing API contracts for backward compatibility
   - _Requirements: 4.5, 4.6, 5.3_
 
+
 - [ ] 3.7 Update dependency injection patterns
+
   - Review all `get_*_service` dependency functions
   - Ensure pattern: `get_service(session) -> Service` where service receives repository
   - Update service factory functions to create repository and inject into service
   - Ensure consistent pattern across all endpoints
   - Verify type hints are correct using types from `backend/api/types.py`
   - _Requirements: 4.7, 4.8, 6.5_
+
 
 - [ ] 3.8 Create architecture tests
   - Create `backend/tests/test_architecture.py` file

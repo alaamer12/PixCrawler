@@ -39,6 +39,7 @@ from backend.services.dataset import DatasetService
 from backend.services.validation import ValidationService
 from backend.services.user import UserService
 from backend.services.storage import StorageService
+from backend.services.resource_monitor import ResourceMonitor
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """
@@ -80,6 +81,8 @@ __all__ = [
     'get_user_service',
     'get_storage_service',
     'get_auth_service',
+    'get_resource_monitor',
+    'get_metrics_service',
 ]
 
 # HTTP Bearer token scheme
@@ -252,19 +255,34 @@ async def get_crawl_job_service(session: DBSession) -> CrawlJobService:
     )
 
 
-def get_dataset_service() -> DatasetService:
+async def get_dataset_service(session: DBSession) -> DatasetService:
     """
     Dependency injection for DatasetService.
+
+    Creates service with all required repositories.
+
+    Args:
+        session: Database session
 
     Returns:
         DatasetService instance
     """
-    return DatasetService()
+    from backend.repositories import DatasetRepository
+    
+    dataset_repo = DatasetRepository(session)
+    crawl_job_repo = CrawlJobRepository(session)
+
+    return DatasetService(
+        dataset_repository=dataset_repo,
+        crawl_job_repository=crawl_job_repo
+    )
 
 
-def get_validation_service(session: DBSession) -> ValidationService:
+async def get_validation_service(session: DBSession) -> ValidationService:
     """
     Dependency injection for ValidationService.
+
+    Creates service with all required repositories.
 
     Args:
         session: Database session
@@ -272,17 +290,32 @@ def get_validation_service(session: DBSession) -> ValidationService:
     Returns:
         ValidationService instance
     """
-    return ValidationService(session)
+    from backend.repositories import DatasetRepository
+    
+    image_repo = ImageRepository(session)
+    dataset_repo = DatasetRepository(session)
+
+    return ValidationService(
+        image_repo=image_repo,
+        dataset_repo=dataset_repo
+    )
 
 
-def get_user_service() -> UserService:
+async def get_user_service(session: DBSession) -> UserService:
     """
     Dependency injection for UserService.
+
+    Creates service with all required repositories.
+
+    Args:
+        session: Database session
 
     Returns:
         UserService instance
     """
-    return UserService()
+    user_repo = UserRepository(session)
+
+    return UserService(user_repository=user_repo)
 
 
 def get_storage_service(storage: StorageProvider = Depends(get_storage)) -> StorageService:
@@ -306,3 +339,50 @@ def get_auth_service() -> SupabaseAuthService:
         SupabaseAuthService instance
     """
     return SupabaseAuthService()
+
+
+async def get_resource_monitor(session: DBSession) -> ResourceMonitor:
+    """
+    Dependency injection for ResourceMonitor.
+
+    Creates resource monitor with required repository.
+
+    Args:
+        session: Database session
+
+    Returns:
+        ResourceMonitor instance
+    """
+    crawl_job_repo = CrawlJobRepository(session)
+
+    return ResourceMonitor(crawl_job_repo=crawl_job_repo)
+
+
+async def get_metrics_service(session: DBSession):
+    """
+    Dependency injection for MetricsService.
+
+    Creates service with all required repositories.
+
+    Args:
+        session: Database session
+
+    Returns:
+        MetricsService instance
+    """
+    from backend.repositories import (
+        ProcessingMetricRepository,
+        ResourceMetricRepository,
+        QueueMetricRepository,
+    )
+    from backend.services.metrics import MetricsService
+    
+    processing_repo = ProcessingMetricRepository(session)
+    resource_repo = ResourceMetricRepository(session)
+    queue_repo = QueueMetricRepository(session)
+    
+    return MetricsService(
+        processing_repo=processing_repo,
+        resource_repo=resource_repo,
+        queue_repo=queue_repo
+    )

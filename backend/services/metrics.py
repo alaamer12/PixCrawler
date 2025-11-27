@@ -11,8 +11,6 @@ from decimal import Decimal
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from backend.models import ProcessingMetric, ResourceMetric, QueueMetric
 from backend.repositories import (
     ProcessingMetricRepository,
@@ -55,8 +53,7 @@ class MetricsService(BaseService):
         self,
         processing_repo: ProcessingMetricRepository,
         resource_repo: ResourceMetricRepository,
-        queue_repo: QueueMetricRepository,
-        session: Optional[AsyncSession] = None
+        queue_repo: QueueMetricRepository
     ) -> None:
         """
         Initialize metrics service with repositories.
@@ -65,13 +62,11 @@ class MetricsService(BaseService):
             processing_repo: ProcessingMetric repository
             resource_repo: ResourceMetric repository
             queue_repo: QueueMetric repository
-            session: Optional database session
         """
         super().__init__()
         self.processing_repo = processing_repo
         self.resource_repo = resource_repo
         self.queue_repo = queue_repo
-        self.session = session
     
     # ========================================================================
     # PROCESSING METRICS

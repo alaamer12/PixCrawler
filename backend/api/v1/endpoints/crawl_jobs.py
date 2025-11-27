@@ -5,19 +5,16 @@ This module provides API endpoints for managing image crawling jobs,
 including creation, status monitoring, and execution control.
 """
 
-import uuid
-from typing import Any, Dict, List
+from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 from fastapi_limiter.depends import RateLimiter
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import paginate
-from sqlalchemy import select
 
-from backend.api.types import CurrentUser, DBSession, JobID, CrawlJobServiceDep
+from backend.api.types import CurrentUser, JobID, CrawlJobServiceDep
 from backend.api.v1.response_models import get_common_responses
 from backend.core.exceptions import ValidationError, NotFoundError
-from backend.models import ActivityLog, Project
+from backend.models import CrawlJob
 from backend.schemas.crawl_jobs import (
     CrawlJobCreate,
     CrawlJobProgress,
@@ -59,7 +56,7 @@ router = APIRouter(
 )
 async def list_crawl_jobs(
     current_user: CurrentUser,
-    session: DBSession,
+    service: CrawlJobServiceDep,
 ) -> Page[CrawlJobResponse]:
     """
     List crawl jobs for the current user with pagination.
@@ -74,22 +71,14 @@ async def list_crawl_jobs(
 
     Args:
         current_user: Current authenticated user
-        session: Database session
+        service: CrawlJob service (injected)
 
     Returns:
         Paginated list of crawl jobs
     """
     try:
-        # Build query for user's crawl jobs
-        query = (
-            select(CrawlJob)
-            .join(Project, Project.id == CrawlJob.project_id)
-            .where(Project.user_id == uuid.UUID(current_user["user_id"]))
-            .order_by(CrawlJob.created_at.desc())
-        )
-
-        # Use fastapi-pagination's paginate function
-        return await paginate(session, query)
+        # Delegate to service layer
+        return await service.list_jobs(user_id=current_user["user_id"])
 
     except Exception as e:
         raise HTTPException(
@@ -165,24 +154,8 @@ async def create_crawl_job(
         # Start job execution in background
         background_tasks.add_task(execute_crawl_job, job.id)
 
-        return CrawlJobResponse(
-            id=job.id,
-            project_id=job.project_id,
-            name=job.name,
-            keywords=job.keywords,
-            max_images=job.max_images,
-            search_engine="duckduckgo",  # Default, not stored in DB
-            status=job.status,
-            progress=job.progress,
-            total_images=job.total_images,
-            downloaded_images=job.downloaded_images,
-            valid_images=job.valid_images,
-            config={},  # Default empty config
-            created_at=job.created_at.isoformat(),
-            updated_at=job.updated_at.isoformat(),
-            started_at=job.started_at.isoformat() if job.started_at else None,
-            completed_at=job.completed_at.isoformat() if job.completed_at else None,
-        )
+        # Use service method to convert to response
+        return service.to_response(job)
 
     except Exception as e:
         raise HTTPException(
@@ -221,7 +194,6 @@ async def create_crawl_job(
 async def get_crawl_job(
     job_id: JobID,
     current_user: CurrentUser,
-    session: DBSession,
     service: CrawlJobServiceDep,
 ) -> CrawlJobResponse:
     """
@@ -235,7 +207,6 @@ async def get_crawl_job(
     Args:
         job_id: Crawl job ID
         current_user: Current authenticated user
-        session: Database session (for ownership check)
         service: CrawlJob service (injected)
 
     Returns:
@@ -245,7 +216,11 @@ async def get_crawl_job(
         HTTPException: If job not found or access denied
     """
     try:
-        job = await service.get_job(job_id)
+        # Service handles ownership verification
+        job = await service.get_job_with_ownership_check(
+            job_id=job_id,
+            user_id=current_user["user_id"]
+        )
 
         if not job:
             raise HTTPException(
@@ -253,37 +228,8 @@ async def get_crawl_job(
                 detail="Crawl job not found"
             )
 
-        # Ensure the job belongs to the current user via its project
-        owner_query = (
-            select(Project.user_id)
-            .where(Project.id == job.project_id)
-        )
-        owner_result = await session.execute(owner_query)
-        owner_id = owner_result.scalar_one_or_none()
-        if str(owner_id) != str(current_user["user_id"]):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Crawl job not found"
-            )
-
-        return CrawlJobResponse(
-            id=job.id,
-            project_id=job.project_id,
-            name=job.name,
-            keywords=job.keywords,
-            max_images=job.max_images,
-            search_engine="duckduckgo",  # Default, not stored in DB
-            status=job.status,
-            progress=job.progress,
-            total_images=job.total_images,
-            downloaded_images=job.downloaded_images,
-            valid_images=job.valid_images,
-            config={},  # Default empty config
-            created_at=job.created_at.isoformat(),
-            updated_at=job.updated_at.isoformat(),
-            started_at=job.started_at.isoformat() if job.started_at else None,
-            completed_at=job.completed_at.isoformat() if job.completed_at else None,
-        )
+        # Use service method to convert to response
+        return service.to_response(job)
 
     except HTTPException:
         raise
@@ -411,7 +357,6 @@ async def retry_crawl_job(
     job_id: JobID,
     background_tasks: BackgroundTasks,
     current_user: CurrentUser,
-    session: DBSession,
     service: CrawlJobServiceDep,
 ) -> CrawlJobResponse:
     """
@@ -428,7 +373,6 @@ async def retry_crawl_job(
         job_id: Crawl job ID
         background_tasks: FastAPI background tasks
         current_user: Current authenticated user
-        session: Database session (for ownership check)
         service: CrawlJob service (injected)
 
     Returns:
@@ -438,67 +382,28 @@ async def retry_crawl_job(
         HTTPException: If job not found, wrong status, or retry fails
     """
     try:
-        job = await service.get_job(job_id)
-
-        if not job:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Crawl job not found"
-            )
-
-        # Ensure ownership
-        owner_query = (
-            select(Project.user_id)
-            .where(Project.id == job.project_id)
+        # Service handles ownership check, status validation, and reset
+        job = await service.retry_job(
+            job_id=job_id,
+            user_id=current_user["user_id"]
         )
-        owner_result = await session.execute(owner_query)
-        owner_id = owner_result.scalar_one_or_none()
-        if str(owner_id) != str(current_user["user_id"]):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Crawl job not found"
-            )
-
-        if job.status not in ["failed", "cancelled"]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Only failed or cancelled jobs can be retried (current: {job.status})"
-            )
-
-        # Reset job state
-        job.status = "pending"
-        job.progress = 0
-        job.total_images = 0
-        job.downloaded_images = 0
-        job.valid_images = 0
-        job.started_at = None
-        job.completed_at = None
-
-        await session.commit()
-        await session.refresh(job)
 
         # Requeue execution
         background_tasks.add_task(execute_crawl_job, job.id)
 
-        return CrawlJobResponse(
-            id=job.id,
-            project_id=job.project_id,
-            name=job.name,
-            keywords=job.keywords,
-            max_images=job.max_images,
-            search_engine="duckduckgo",  # Default, not stored in DB
-            status=job.status,
-            progress=job.progress,
-            total_images=job.total_images,
-            downloaded_images=job.downloaded_images,
-            valid_images=job.valid_images,
-            config={},  # Default empty config
-            created_at=job.created_at.isoformat(),
-            updated_at=job.updated_at.isoformat(),
-            started_at=job.started_at.isoformat() if job.started_at else None,
-            completed_at=job.completed_at.isoformat() if job.completed_at else None,
-        )
+        # Use service method to convert to response
+        return service.to_response(job)
 
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except NotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Crawl job not found"
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -541,7 +446,6 @@ async def retry_crawl_job(
 async def get_crawl_job_logs(
     job_id: JobID,
     current_user: CurrentUser,
-    session: DBSession,
     service: CrawlJobServiceDep,
 ) -> List[JobLogEntry]:
     """
@@ -555,7 +459,6 @@ async def get_crawl_job_logs(
     Args:
         job_id: Crawl job ID
         current_user: Current authenticated user
-        session: Database session (for log queries)
         service: CrawlJob service (injected)
 
     Returns:
@@ -565,44 +468,19 @@ async def get_crawl_job_logs(
         HTTPException: If job not found or access denied
     """
     try:
-        # Verify job exists and ownership
-        job = await service.get_job(job_id)
-        if not job:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Crawl job not found"
-            )
-
-        owner_query = select(Project.user_id).where(Project.id == job.project_id)
-        owner_result = await session.execute(owner_query)
-        owner_id = owner_result.scalar_one_or_none()
-        if str(owner_id) != str(current_user["user_id"]):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Crawl job not found"
-            )
-
-        # Query activity logs for this job
-        logs_query = (
-            select(ActivityLog)
-            .where(
-                ActivityLog.resource_type == "crawl_job",
-                ActivityLog.resource_id == str(job_id),
-            )
-            .order_by(ActivityLog.timestamp.desc())
+        # Service handles ownership verification and log retrieval
+        logs = await service.get_job_logs(
+            job_id=job_id,
+            user_id=current_user["user_id"]
         )
-        logs_result = await session.execute(logs_query)
-        logs: List[ActivityLog] = list(logs_result.scalars().all())
 
-        return [
-            JobLogEntry(
-                action=log.action,
-                timestamp=log.timestamp.isoformat(),
-                metadata=log.metadata_,
-            )
-            for log in logs
-        ]
+        return logs
 
+    except NotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Crawl job not found"
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -642,7 +520,6 @@ async def get_crawl_job_logs(
 async def get_crawl_job_progress(
     job_id: JobID,
     current_user: CurrentUser,
-    session: DBSession,
     service: CrawlJobServiceDep,
 ) -> CrawlJobProgress:
     """
@@ -656,7 +533,6 @@ async def get_crawl_job_progress(
     Args:
         job_id: Crawl job ID
         current_user: Current authenticated user
-        session: Database session (for ownership check)
         service: CrawlJob service (injected)
 
     Returns:
@@ -666,18 +542,13 @@ async def get_crawl_job_progress(
         HTTPException: If job not found or access denied
     """
     try:
-        job = await service.get_job(job_id)
-        if not job:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Crawl job not found"
-            )
+        # Service handles ownership verification
+        job = await service.get_job_with_ownership_check(
+            job_id=job_id,
+            user_id=current_user["user_id"]
+        )
 
-        # Ensure ownership
-        owner_query = select(Project.user_id).where(Project.id == job.project_id)
-        owner_result = await session.execute(owner_query)
-        owner_id = owner_result.scalar_one_or_none()
-        if str(owner_id) != str(current_user["user_id"]):
+        if not job:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Crawl job not found"

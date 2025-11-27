@@ -5,7 +5,6 @@ Dataset service for dataset management and processing operations.
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.schemas.dataset import (
     DatasetCreate, DatasetResponse, DatasetStats, DatasetUpdate, DatasetStatus
@@ -21,8 +20,7 @@ class DatasetService(BaseService):
     def __init__(
         self,
         dataset_repository: DatasetRepository,
-        crawl_job_repository: CrawlJobRepository,
-        session: Optional[AsyncSession] = None
+        crawl_job_repository: CrawlJobRepository
     ) -> None:
         """
         Initialize dataset service with required repositories.
@@ -30,12 +28,10 @@ class DatasetService(BaseService):
         Args:
             dataset_repository: Dataset repository instance
             crawl_job_repository: CrawlJob repository instance
-            session: Optional database session (for backward compatibility)
         """
         super().__init__()
         self._dataset_repo = dataset_repository
         self._crawl_job_repo = crawl_job_repository
-        self._session = session
         
     @property
     def dataset_repo(self) -> DatasetRepository:

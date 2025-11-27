@@ -27,6 +27,7 @@ from .base import Base, TimestampMixin
 from .api_keys import APIKey
 from .chunks import JobChunk
 from .credits import CreditAccount, CreditTransaction
+from .dataset import Dataset
 from .notifications import Notification, NotificationPreference
 from .usage import UsageMetric
 from .metrics import ProcessingMetric, ResourceMetric, QueueMetric
@@ -104,6 +105,7 @@ __all__ = [
     'CrawlJob',
     'Image',
     'ActivityLog',
+    'Dataset',
     # Chunk models
     'JobChunk',
     # Credit models

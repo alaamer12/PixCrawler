@@ -17,9 +17,10 @@ This audit examines the PixCrawler backend codebase for adherence to the reposit
 - **Services Audited:** 10
 - **Repositories Audited:** 8
 - **API Endpoints Audited:** 11 files
-- **Critical Violations:** 15
-- **Moderate Violations:** 8
-- **Minor Violations:** 3
+- **Critical Violations:** 16
+- **Moderate Violations:** 15
+- **Minor Violations:** 4
+- **Total Violations:** 35
 
 ---
 
@@ -334,6 +335,73 @@ async def retry_crawl_job(
 
 ---
 
+#### `backend/api/v1/endpoints/metrics.py` (Lines 50-80, 100-130, 160-190)
+
+**Issue:** Endpoint creates repositories directly instead of using service
+```python
+async def get_metrics_service(
+    session: AsyncSession = Depends(get_db_session)
+) -> MetricsService:
+    """Get metrics service instance with repositories."""
+    processing_repo = ProcessingMetricRepository(session)  # ❌ VIOLATION
+    resource_repo = ResourceMetricRepository(session)  # ❌ VIOLATION
+    queue_repo = QueueMetricRepository(session)  # ❌ VIOLATION
+    
+    return MetricsService(
+        processing_repo=processing_repo,
+        resource_repo=resource_repo,
+        queue_repo=queue_repo,
+        session=session  # ❌ VIOLATION: Passing session to service
+    )
+```
+
+**Impact:** CRITICAL - Repository creation in endpoint dependency  
+**Remediation:** Move repository creation to service factory in `backend/api/dependencies.py`
+
+---
+
+#### `backend/api/v1/endpoints/auth.py` (Lines 200-230)
+
+**Issue:** Endpoint contains business logic for profile synchronization
+```python
+async def sync_user_profile(
+    current_user: CurrentUser,
+    auth_service: SupabaseAuthServiceDep,
+) -> ProfileSyncResponse:
+    try:
+        user_id = current_user["user_id"]
+        email = current_user["email"]
+        user_metadata = current_user.get("user_metadata", {})
+
+        # Check if profile exists
+        try:
+            await auth_service.get_user_profile(user_id)
+            # Profile exists, update it
+            await auth_service.update_user_profile(user_id, {  # ❌ Business logic
+                "email": email,
+                "full_name": user_metadata.get("full_name"),
+                "avatar_url": user_metadata.get("avatar_url"),
+                "updated_at": "now()"
+            })
+            action = "updated"
+
+        except Exception:
+            # Profile doesn't exist, create it
+            await auth_service.create_user_profile({  # ❌ Business logic
+                "id": user_id,
+                "email": email,
+                "full_name": user_metadata.get("full_name"),
+                "avatar_url": user_metadata.get("avatar_url"),
+                "role": "user"
+            })
+            action = "created"
+```
+
+**Impact:** MODERATE - Business logic (create vs update decision) in endpoint  
+**Remediation:** Move sync logic to `auth_service.sync_profile()` method
+
+---
+
 ### 3.2 MODERATE: Endpoints with Business Logic
 
 #### `backend/api/v1/endpoints/crawl_jobs.py` (Lines 120-160)
@@ -363,17 +431,105 @@ return CrawlJobResponse(
 **Impact:** MODERATE - Transformation logic repeated across endpoints  
 **Remediation:** Create service method `to_response()` or use Pydantic `from_orm()`
 
+**Occurrences:**
+- `create_crawl_job()` - Lines 120-160
+- `get_crawl_job()` - Lines 200-220
+- `retry_crawl_job()` - Lines 380-400
+
 ---
 
-### 3.3 POSITIVE: Well-Structured Endpoints
+#### `backend/api/v1/endpoints/exports.py` (Lines 50-80, 120-150, 180-220)
+
+**Issue:** Endpoint contains data transformation and file generation logic
+```python
+async def generate_json_stream(data: list[Dict[str, Any]]) -> AsyncIterator[bytes]:
+    """Generate JSON data as a stream."""  # ❌ Business logic in endpoint file
+    yield b'[\n'
+    for i, item in enumerate(data):
+        json_str = json.dumps(item, indent=2)
+        if i > 0:
+            yield b',\n'
+        yield json_str.encode('utf-8')
+    yield b'\n]'
+```
+
+**Impact:** MODERATE - Data transformation logic in endpoint file  
+**Remediation:** Move stream generation to service layer or utility module
+
+---
+
+#### `backend/api/v1/endpoints/storage.py` (Lines 150-180)
+
+**Issue:** Endpoint contains datetime calculation logic
+```python
+async def get_presigned_url(
+    service: StorageServiceDep,
+    path: str = Query(...),
+    expires_in: int = Query(3600, ge=60, le=86400),
+) -> Dict[str, Union[str, datetime]]:
+    try:
+        url = service.storage.generate_presigned_url(path, expires_in=expires_in)
+        return {
+            "url": url,
+            "expires_at": datetime.utcnow() + datetime.timedelta(seconds=expires_in)  # ❌ Calculation
+        }
+```
+
+**Impact:** LOW - Minor calculation logic in endpoint  
+**Remediation:** Move to service method that returns both URL and expiration
+
+---
+
+### 3.3 MINOR: Endpoints with Improper Service Usage
+
+#### `backend/api/v1/endpoints/validation.py` (Lines 100-130)
+
+**Issue:** Endpoint creates service instance instead of using dependency injection
+```python
+async def create_batch_validation(
+    request: ValidationBatchRequest,
+    background_tasks: BackgroundTasks,
+    current_user: CurrentUser,
+    service: ValidationServiceDep,  # ✅ Has dependency
+) -> ValidationJobResponse:
+    try:
+        service = ValidationService(session)  # ❌ VIOLATION: Creates new instance
+
+        job = await service.create_batch_validation_job(...)
+```
+
+**Impact:** MODERATE - Bypasses dependency injection  
+**Remediation:** Remove local service creation, use injected service
+
+---
+
+### 3.4 POSITIVE: Well-Structured Endpoints
 
 The following endpoints follow the pattern correctly:
 
 ✅ `backend/api/v1/endpoints/notifications.py` - Uses service layer exclusively  
 ✅ `backend/api/v1/endpoints/projects.py` - Clean HTTP handling only  
-✅ `backend/api/v1/endpoints/auth.py` - Proper service delegation  
 ✅ `backend/api/v1/endpoints/health.py` - Simple status endpoint  
-✅ `backend/api/v1/endpoints/storage.py` - Service-based operations
+✅ `backend/api/v1/endpoints/datasets.py` - Proper service delegation (mostly)  
+✅ `backend/api/v1/endpoints/users.py` - Clean structure (not implemented yet)
+
+### 3.5 ENDPOINTS REQUIRING ATTENTION
+
+#### Summary of Endpoint Violations by File
+
+| File | Critical | Moderate | Minor | Status |
+|------|----------|----------|-------|--------|
+| `crawl_jobs.py` | 5 | 3 | 0 | ❌ Needs major refactoring |
+| `metrics.py` | 1 | 0 | 0 | ❌ Fix dependency injection |
+| `auth.py` | 0 | 1 | 0 | ⚠️ Move sync logic to service |
+| `exports.py` | 0 | 3 | 0 | ⚠️ Move transformations to service |
+| `storage.py` | 0 | 0 | 1 | ✅ Minor fix needed |
+| `validation.py` | 0 | 1 | 0 | ⚠️ Fix service instantiation |
+| `datasets.py` | 0 | 0 | 0 | ✅ Good structure |
+| `notifications.py` | 0 | 0 | 0 | ✅ Perfect example |
+| `projects.py` | 0 | 0 | 0 | ✅ Perfect example |
+| `health.py` | 0 | 0 | 0 | ✅ Perfect example |
+| `users.py` | 0 | 0 | 0 | ✅ Good structure (not implemented) |
 
 ---
 
@@ -410,7 +566,7 @@ ResourceMonitorServiceDep = Annotated[ResourceMonitor, Depends(get_resource_moni
 
 ## 5. Violation Summary by Severity
 
-### Critical Violations (15)
+### Critical Violations (16)
 
 | File | Line | Issue | Priority |
 |------|------|-------|----------|
@@ -423,8 +579,9 @@ ResourceMonitorServiceDep = Annotated[ResourceMonitor, Depends(get_resource_moni
 | `endpoints/crawl_jobs.py` | 350-380 | Direct model manipulation | P0 |
 | `endpoints/crawl_jobs.py` | 450-470 | Database queries in endpoint | P0 |
 | `endpoints/crawl_jobs.py` | 520-530 | Database queries in endpoint | P0 |
+| `endpoints/metrics.py` | 50-80 | Repository creation in endpoint | P0 |
 
-### Moderate Violations (8)
+### Moderate Violations (15)
 
 | File | Line | Issue | Priority |
 |------|------|-------|----------|
@@ -434,15 +591,23 @@ ResourceMonitorServiceDep = Annotated[ResourceMonitor, Depends(get_resource_moni
 | `services/user.py` | 40-75 | Session management in service | P1 |
 | `repositories/crawl_job_repository.py` | 115 | Business logic in repository | P1 |
 | `repositories/crawl_job_repository.py` | 155 | Calculation logic in repository | P1 |
-| `endpoints/crawl_jobs.py` | 120-160 | Response transformation logic | P2 |
+| `endpoints/crawl_jobs.py` | 120-160 | Response transformation logic | P1 |
+| `endpoints/crawl_jobs.py` | 200-220 | Response transformation logic | P1 |
+| `endpoints/crawl_jobs.py` | 380-400 | Response transformation logic | P1 |
+| `endpoints/auth.py` | 200-230 | Business logic in endpoint | P1 |
+| `endpoints/exports.py` | 50-80 | Data transformation in endpoint | P1 |
+| `endpoints/exports.py` | 120-150 | Data transformation in endpoint | P1 |
+| `endpoints/exports.py` | 180-220 | Data transformation in endpoint | P1 |
+| `endpoints/validation.py` | 100-130 | Service instantiation in endpoint | P1 |
 
-### Minor Violations (3)
+### Minor Violations (4)
 
 | File | Line | Issue | Priority |
 |------|------|-------|----------|
 | `repositories/dataset_repository.py` | 15 | Uses `Any` instead of model type | P2 |
 | `api/dependencies.py` | N/A | Missing service factories | P2 |
 | `api/types.py` | N/A | Incomplete type aliases | P3 |
+| `endpoints/storage.py` | 150-180 | Minor calculation in endpoint | P3 |
 
 ---
 
@@ -551,7 +716,13 @@ NotificationServiceDep = Annotated[
    - Remove direct session usage
    - Estimated effort: 6 hours
 
-**Total Phase 1 Effort:** 17 hours (2-3 days)
+5. **Fix Metrics Endpoint Dependency Injection**
+   - Move `get_metrics_service()` to `backend/api/dependencies.py`
+   - Remove repository creation from endpoint
+   - Update MetricsService to not require session parameter
+   - Estimated effort: 2 hours
+
+**Total Phase 1 Effort:** 19 hours (2-3 days)
 
 ---
 
@@ -579,10 +750,26 @@ NotificationServiceDep = Annotated[
 
 4. **Create Service Response Transformers**
    - Add `CrawlJobService.to_response()` method
-   - Reduce duplication in endpoints
+   - Reduce duplication in endpoints (3 occurrences)
    - Estimated effort: 2 hours
 
-**Total Phase 2 Effort:** 9 hours (1-2 days)
+5. **Fix Auth Endpoint Business Logic**
+   - Move profile sync logic to `SupabaseAuthService.sync_profile()` method
+   - Endpoint should only call service method
+   - Estimated effort: 1.5 hours
+
+6. **Refactor Exports Endpoint**
+   - Move stream generation functions to service layer or utility module
+   - Create `ExportService` with methods for JSON, CSV, ZIP generation
+   - Update endpoints to use service methods
+   - Estimated effort: 4 hours
+
+7. **Fix Validation Endpoint Service Instantiation**
+   - Remove local `ValidationService(session)` creation
+   - Use injected service dependency
+   - Estimated effort: 0.5 hours
+
+**Total Phase 2 Effort:** 15 hours (2 days)
 
 ---
 
@@ -600,26 +787,31 @@ NotificationServiceDep = Annotated[
    - Update type aliases
    - Estimated effort: 1 hour
 
-3. **Standardize Response Transformation**
+3. **Fix Storage Endpoint Minor Calculation**
+   - Move expiration calculation to service method
+   - Return both URL and expiration from service
+   - Estimated effort: 0.5 hours
+
+4. **Standardize Response Transformation**
    - Review all endpoints for transformation logic
    - Move to service layer where appropriate
-   - Estimated effort: 3 hours
+   - Estimated effort: 2 hours
 
-4. **Documentation Updates**
+5. **Documentation Updates**
    - Update architecture documentation
    - Add pattern examples to README
    - Estimated effort: 2 hours
 
-**Total Phase 3 Effort:** 6.5 hours (1 day)
+**Total Phase 3 Effort:** 6 hours (1 day)
 
 ---
 
 ### Total Remediation Effort
 
-- **Phase 1 (Critical):** 17 hours
-- **Phase 2 (Moderate):** 9 hours
-- **Phase 3 (Minor):** 6.5 hours
-- **Total:** 32.5 hours (4-5 days)
+- **Phase 1 (Critical):** 19 hours
+- **Phase 2 (Moderate):** 15 hours
+- **Phase 3 (Minor):** 6 hours
+- **Total:** 40 hours (5 days)
 
 ---
 
@@ -727,27 +919,72 @@ def __init__(
 
 The PixCrawler backend has a solid foundation with the repository pattern partially implemented. The main issues are:
 
-1. **Critical:** Some services bypass repositories and query directly
-2. **Critical:** Some endpoints contain business logic and database queries
-3. **Moderate:** Inconsistent session parameter usage
-4. **Minor:** Some repositories contain business logic
+1. **Critical:** Some services bypass repositories and query directly (5 services)
+2. **Critical:** Some endpoints contain business logic and database queries (5 endpoints)
+3. **Moderate:** Inconsistent session parameter usage (3 services)
+4. **Moderate:** Business logic in endpoints (7 endpoints)
+5. **Minor:** Some repositories contain business logic (2 repositories)
 
-The remediation plan addresses these issues in a phased approach, prioritizing critical violations first. The estimated effort is 4-5 days of focused work.
+The remediation plan addresses these issues in a phased approach, prioritizing critical violations first. The estimated effort is 5 days of focused work.
+
+### Key Findings from Endpoint Audit
+
+**Well-Structured Endpoints (5):**
+- `notifications.py` - Perfect example of service layer usage
+- `projects.py` - Clean HTTP handling only
+- `health.py` - Simple status endpoint
+- `datasets.py` - Proper service delegation
+- `users.py` - Good structure (not implemented yet)
+
+**Endpoints Requiring Major Refactoring (2):**
+- `crawl_jobs.py` - 5 critical + 3 moderate violations
+- `metrics.py` - 1 critical violation (dependency injection)
+
+**Endpoints Requiring Moderate Refactoring (4):**
+- `auth.py` - Business logic in sync endpoint
+- `exports.py` - Data transformation logic
+- `validation.py` - Service instantiation issue
+- `storage.py` - Minor calculation logic
 
 ### Recommendations
 
-1. **Immediate Action:** Fix critical violations in Phase 1
-2. **Short Term:** Complete Phase 2 moderate fixes
+1. **Immediate Action:** Fix critical violations in Phase 1 (19 hours)
+   - Focus on `crawl_jobs.py` and `metrics.py` endpoints
+   - Refactor services to use repositories exclusively
+   
+2. **Short Term:** Complete Phase 2 moderate fixes (15 hours)
+   - Move business logic from endpoints to services
+   - Create export service for data transformations
+   - Standardize response transformations
+   
 3. **Long Term:** Implement architecture tests to prevent regressions
+   - Add tests to verify endpoints don't query database
+   - Add tests to verify services don't use AsyncSession directly
+   - Add tests to verify repositories only perform data access
+   
 4. **Ongoing:** Code review checklist for new code
+   - Endpoints: Only HTTP concerns (validation, serialization, errors)
+   - Services: Only business logic (orchestration, transformations)
+   - Repositories: Only data access (CRUD, queries)
 
 ### Risk Assessment
 
 - **Low Risk:** Refactoring is internal, no API changes
 - **Medium Risk:** Extensive testing required to prevent regressions
+- **High Risk:** `crawl_jobs.py` has 8 violations - needs careful refactoring
 - **Mitigation:** Comprehensive test suite and phased rollout
+
+### Success Metrics
+
+After remediation, the codebase should achieve:
+- ✅ 0 critical violations
+- ✅ 0 moderate violations
+- ✅ 0 minor violations
+- ✅ 100% architecture test coverage
+- ✅ Consistent patterns across all endpoints
 
 ---
 
 **Report Generated:** 2024-01-27  
+**Report Updated:** 2024-01-27 (Added endpoint audit findings)  
 **Next Review:** After Phase 1 completion
