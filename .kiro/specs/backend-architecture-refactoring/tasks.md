@@ -62,6 +62,8 @@
   - Add test for error recovery and retry logic
   - Add test for memory usage under load
   - Add test for archive creation and extraction
+
+  - Note if the current implementation does not satisfy this test requirments, so ensure to add these requirments to source code and document it
   - _Requirements: 2.3, 2.5_
 
 - [x] 1.6 Update utility package documentation
@@ -87,7 +89,10 @@
 
 ## Phase 2: API Endpoint Standardization
 
-- [ ] 2. Audit all backend API endpoints
+- [-] 2. Audit all backend API endpoints
+
+
+
   - List all files in `backend/api/v1/endpoints/` directory
   - For each endpoint file, check route path patterns (empty `""` vs `"/"`)
   - Check for response model usage in route decorators
@@ -97,7 +102,10 @@
   - Document all violations in audit report
   - _Requirements: 3.9_
 
-- [ ] 2.1 Create endpoint style guide documentation
+- [x] 2.1 Create endpoint style guide documentation
+
+
+
   - Create `backend/api/v1/ENDPOINT_STYLE_GUIDE.md` file
   - Document route path conventions (use "/" or "/resource-name", not "")
   - Document response model requirements with examples
@@ -108,7 +116,13 @@
   - Include checklist for endpoint compliance
   - _Requirements: 3.10, 6.2_
 
-- [ ] 2.2 Fix notifications endpoint
+- [x] 2.2 Fix notifications endpoint
+
+
+
+
+
+- read the files backend/api/v1/ENDPOINT_STYLE_GUIDE.md backend/api/v1/ENDPOINT_AUDIT_REPORT.md for context understanding
   - Change route path from `""` to `"/notifications"` for list endpoint
   - Add `response_model=NotificationListResponse` to list endpoint
   - Create `NotificationListResponse` schema in `backend/schemas/notifications.py`
@@ -120,7 +134,11 @@
   - Apply same fixes to `mark_as_read` and `mark_all_read` endpoints
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.6, 3.7_
 
+
+
 - [ ] 2.3 Audit and fix remaining endpoints
+
+- read the files backend/api/v1/ENDPOINT_STYLE_GUIDE.md backend/api/v1/ENDPOINT_AUDIT_REPORT.md for context understanding
   - Review `backend/api/v1/endpoints/auth.py` for compliance
   - Review `backend/api/v1/endpoints/crawl_jobs.py` for compliance
   - Review `backend/api/v1/endpoints/datasets.py` for compliance
@@ -132,6 +150,7 @@
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
 
 - [ ] 2.4 Create or update response models
+- read the files backend/api/v1/ENDPOINT_STYLE_GUIDE.md backend/api/v1/ENDPOINT_AUDIT_REPORT.md for context understanding
   - Review all schemas in `backend/schemas/` directory
   - Create missing list response models (e.g., `NotificationListResponse`)
   - Ensure all response models follow `{data: [], meta: {}}` structure
@@ -141,6 +160,7 @@
   - _Requirements: 3.2, 3.7, 6.6_
 
 - [ ]* 2.5 Update endpoint tests
+- read the files backend/api/v1/ENDPOINT_STYLE_GUIDE.md backend/api/v1/ENDPOINT_AUDIT_REPORT.md for context understanding
   - Review all tests in `backend/tests/api/` directory
   - Ensure all refactored endpoints have corresponding tests
   - Add tests for response model validation
@@ -150,6 +170,7 @@
   - _Requirements: 3.11, 7.3_
 
 - [ ] 2.6 Verify OpenAPI schema generation
+- read the files backend/api/v1/ENDPOINT_STYLE_GUIDE.md backend/api/v1/ENDPOINT_AUDIT_REPORT.md for context understanding
   - Start FastAPI application
   - Access `/docs` endpoint and verify Swagger UI loads correctly
   - Verify all endpoints appear with correct operation IDs

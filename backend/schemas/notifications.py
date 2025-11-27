@@ -20,6 +20,9 @@ __all__ = [
     'NotificationCreate',
     'NotificationUpdate',
     'NotificationResponse',
+    'NotificationListResponse',
+    'NotificationMarkReadResponse',
+    'NotificationMarkAllReadResponse',
     'NotificationPreferenceBase',
     'NotificationPreferenceUpdate',
     'NotificationPreferenceResponse',
@@ -145,6 +148,60 @@ class NotificationResponse(NotificationBase):
     is_read: bool = Field(description="Read status")
     read_at: Optional[datetime] = Field(default=None, description="Read timestamp")
     created_at: datetime = Field(description="Creation timestamp")
+
+
+class NotificationListResponse(BaseModel):
+    """Schema for notification list responses."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    data: list[NotificationResponse] = Field(
+        description="List of notifications",
+        examples=[[{
+            "id": 1,
+            "user_id": "123e4567-e89b-12d3-a456-426614174000",
+            "title": "Crawl Job Completed",
+            "message": "Your crawl job 'Animals Dataset' has completed successfully.",
+            "type": "success",
+            "category": "crawl_job",
+            "icon": "check-circle",
+            "color": "#10b981",
+            "action_url": "/dashboard/projects/123",
+            "action_label": "View Project",
+            "is_read": False,
+            "read_at": None,
+            "created_at": "2024-01-27T10:00:00Z",
+            "metadata": {}
+        }]]
+    )
+    
+    meta: dict = Field(
+        default_factory=lambda: {"total": 0, "skip": 0, "limit": 50},
+        description="Pagination metadata",
+        examples=[{"total": 10, "skip": 0, "limit": 50}]
+    )
+
+
+class NotificationMarkReadResponse(BaseModel):
+    """Schema for mark as read response."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    data: dict = Field(
+        description="Updated notification status",
+        examples=[{"id": 1, "is_read": True}]
+    )
+
+
+class NotificationMarkAllReadResponse(BaseModel):
+    """Schema for mark all as read response."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    data: dict = Field(
+        description="Bulk update result",
+        examples=[{"success": True, "count": 5}]
+    )
 
 
 class BulkNotificationAction(BaseModel):

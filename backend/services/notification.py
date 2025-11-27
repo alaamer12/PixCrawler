@@ -66,6 +66,23 @@ class NotificationService:
         """
         return await self.repository.get_unread_count(user_id)
     
+    async def count_notifications(
+        self, 
+        user_id: UUID,
+        unread_only: bool = False
+    ) -> int:
+        """
+        Get total count of notifications for a user.
+        
+        Args:
+            user_id: User UUID
+            unread_only: Filter by unread status
+            
+        Returns:
+            Total count of notifications
+        """
+        return await self.repository.count_by_user(user_id, unread_only)
+    
     async def create_notification(self, notification_in: NotificationCreate) -> Notification:
         """
         Create a new notification.

@@ -82,6 +82,29 @@ class NotificationRepository(BaseRepository[Notification]):
         )
         result = await self.session.execute(query)
         return result.scalar_one()
+    
+    async def count_by_user(self, user_id: UUID, unread_only: bool = False) -> int:
+        """
+        Get total count of notifications for a user.
+        
+        Args:
+            user_id: User UUID
+            unread_only: Filter by unread status
+            
+        Returns:
+            Total count of notifications
+        """
+        from sqlalchemy import func
+        
+        query = select(func.count()).select_from(Notification).where(
+            Notification.user_id == user_id
+        )
+        
+        if unread_only:
+            query = query.where(Notification.is_read == False)
+        
+        result = await self.session.execute(query)
+        return result.scalar_one()
 
     async def mark_as_read(self, notification_id: int, user_id: UUID) -> bool:
         """
