@@ -20,6 +20,64 @@ from backend.schemas.metrics import (
 )
 
 
+def create_processing_metric(**overrides):
+    """Helper to create ProcessingMetric with all required fields."""
+    defaults = {
+        "id": uuid4(),
+        "job_id": 1,
+        "user_id": uuid4(),
+        "operation_type": "download",
+        "started_at": datetime.utcnow(),
+        "completed_at": None,
+        "duration_ms": None,
+        "status": "running",
+        "images_processed": 0,
+        "images_succeeded": 0,
+        "images_failed": 0,
+        "error_details": None,
+        "metadata_": {},
+        "created_at": datetime.utcnow(),
+    }
+    defaults.update(overrides)
+    return ProcessingMetric(**defaults)
+
+
+def create_resource_metric(**overrides):
+    """Helper to create ResourceMetric with all required fields."""
+    defaults = {
+        "id": uuid4(),
+        "job_id": None,
+        "metric_type": "cpu",
+        "timestamp": datetime.utcnow(),
+        "value": Decimal("50.0"),
+        "unit": "percent",
+        "hostname": "worker-1",
+        "metadata_": {},
+        "created_at": datetime.utcnow(),
+    }
+    defaults.update(overrides)
+    return ResourceMetric(**defaults)
+
+
+def create_queue_metric(**overrides):
+    """Helper to create QueueMetric with all required fields."""
+    defaults = {
+        "id": uuid4(),
+        "queue_name": "default",
+        "timestamp": datetime.utcnow(),
+        "pending_tasks": 0,
+        "active_tasks": 0,
+        "reserved_tasks": 0,
+        "failed_tasks": 0,
+        "worker_count": 1,
+        "avg_wait_time_ms": None,
+        "metadata_": {},
+        "created_at": datetime.utcnow(),
+    }
+    defaults.update(overrides)
+    return QueueMetric(**defaults)
+
+
 @pytest.fixture
 def mock_processing_repo():
     """Create mock processing metric repository."""
@@ -59,13 +117,11 @@ async def test_start_processing_metric(metrics_service, mock_processing_repo):
     job_id = 1
     user_id = uuid4()
     
-    mock_metric = ProcessingMetric(
+    mock_metric = create_processing_metric(
         id=metric_id,
         job_id=job_id,
         user_id=user_id,
-        operation_type="download",
-        started_at=datetime.utcnow(),
-        metadata_={}
+        operation_type="download"
     )
     mock_processing_repo.create.return_value = mock_metric
     
@@ -89,16 +145,14 @@ async def test_complete_processing_metric_success(
     metric_id = uuid4()
     started_at = datetime.utcnow() - timedelta(seconds=10)
     
-    mock_metric = ProcessingMetric(
+    mock_metric = create_processing_metric(
         id=metric_id,
-        operation_type="download",
         started_at=started_at,
         status="running"
     )
     
-    updated_metric = ProcessingMetric(
+    updated_metric = create_processing_metric(
         id=metric_id,
-        operation_type="download",
         started_at=started_at,
         completed_at=datetime.utcnow(),
         duration_ms=10000,
@@ -150,12 +204,7 @@ async def test_get_processing_metrics_by_job(
     """Test retrieving processing metrics by job ID."""
     job_id = 1
     mock_metrics = [
-        ProcessingMetric(
-            id=uuid4(),
-            job_id=job_id,
-            operation_type="download",
-            started_at=datetime.utcnow()
-        )
+        create_processing_metric(job_id=job_id, operation_type="download")
     ]
     mock_processing_repo.get_by_job_id.return_value = mock_metrics
     
@@ -175,11 +224,7 @@ async def test_get_processing_metrics_by_time_range(
     end_time = datetime.utcnow()
     
     mock_metrics = [
-        ProcessingMetric(
-            id=uuid4(),
-            operation_type="validate",
-            started_at=datetime.utcnow()
-        )
+        create_processing_metric(operation_type="validate")
     ]
     mock_processing_repo.get_by_time_range.return_value = mock_metrics
     
@@ -237,10 +282,10 @@ async def test_collect_resource_metrics(
     
     # Mock repository responses
     mock_resource_repo.create.side_effect = [
-        ResourceMetric(id=uuid4(), metric_type="cpu", value=Decimal("45.5")),
-        ResourceMetric(id=uuid4(), metric_type="memory", value=Decimal("4096")),
-        ResourceMetric(id=uuid4(), metric_type="disk", value=Decimal("100")),
-        ResourceMetric(id=uuid4(), metric_type="network", value=Decimal("3072")),
+        create_resource_metric(metric_type="cpu", value=Decimal("45.5"), unit="percent"),
+        create_resource_metric(metric_type="memory", value=Decimal("4096"), unit="mb"),
+        create_resource_metric(metric_type="disk", value=Decimal("100"), unit="gb"),
+        create_resource_metric(metric_type="network", value=Decimal("3072"), unit="mbps"),
     ]
     
     result = await metrics_service.collect_resource_metrics()
@@ -261,13 +306,7 @@ async def test_get_resource_metrics_by_job(
     """Test retrieving resource metrics by job ID."""
     job_id = 1
     mock_metrics = [
-        ResourceMetric(
-            id=uuid4(),
-            job_id=job_id,
-            metric_type="cpu",
-            value=Decimal("50.0"),
-            timestamp=datetime.utcnow()
-        )
+        create_resource_metric(job_id=job_id, metric_type="cpu", value=Decimal("50.0"))
     ]
     mock_resource_repo.get_by_job_id.return_value = mock_metrics
     
@@ -284,10 +323,8 @@ async def test_get_resource_metrics_by_job(
 @pytest.mark.asyncio
 async def test_collect_queue_metrics(metrics_service, mock_queue_repo):
     """Test collecting queue metrics."""
-    mock_metric = QueueMetric(
-        id=uuid4(),
+    mock_metric = create_queue_metric(
         queue_name="default",
-        timestamp=datetime.utcnow(),
         pending_tasks=10,
         active_tasks=5,
         reserved_tasks=2,
@@ -316,10 +353,8 @@ async def test_get_queue_metrics_by_name(metrics_service, mock_queue_repo):
     """Test retrieving queue metrics by queue name."""
     queue_name = "default"
     mock_metrics = [
-        QueueMetric(
-            id=uuid4(),
+        create_queue_metric(
             queue_name=queue_name,
-            timestamp=datetime.utcnow(),
             pending_tasks=5,
             active_tasks=2
         )
@@ -336,10 +371,8 @@ async def test_get_queue_metrics_by_name(metrics_service, mock_queue_repo):
 async def test_get_latest_queue_status(metrics_service, mock_queue_repo):
     """Test retrieving latest queue status."""
     queue_name = "default"
-    mock_metric = QueueMetric(
-        id=uuid4(),
+    mock_metric = create_queue_metric(
         queue_name=queue_name,
-        timestamp=datetime.utcnow(),
         pending_tasks=3,
         active_tasks=1
     )
@@ -380,13 +413,17 @@ async def test_get_metrics_summary(
     start_time = datetime.utcnow() - timedelta(hours=24)
     end_time = datetime.utcnow()
     
-    # Mock processing stats
+    # Mock processing stats - must include all required PerformanceStats fields
     mock_processing_repo.get_aggregated_stats.return_value = {
         'total_operations': 100,
         'successful_operations': 95,
         'failed_operations': 5,
-        'avg_duration_ms': 5000,
-        'total_images_processed': 10000
+        'avg_duration_ms': 5000.0,
+        'min_duration_ms': 1000,
+        'max_duration_ms': 10000,
+        'total_images_processed': 10000,
+        'total_images_succeeded': 9500,
+        'total_images_failed': 500
     }
     
     # Mock resource averages

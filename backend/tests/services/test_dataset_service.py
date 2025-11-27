@@ -404,9 +404,10 @@ async def test_get_dataset_stats_success(
     mock_crawl_job_repo
 ):
     """Test successful statistics retrieval."""
+    # Mock returns dict with keys that service maps to DatasetStats fields
     mock_dataset_repo.get_stats.return_value = {
         "total": 10,
-        "active": 2,
+        "active": 2,  # Maps to processing_datasets
         "completed": 7,
         "failed": 1
     }
@@ -418,7 +419,7 @@ async def test_get_dataset_stats_success(
     result = await dataset_service.get_dataset_stats()
     
     assert result.total_datasets == 10
-    assert result.processing_datasets == 2
+    assert result.processing_datasets == 2  # Mapped from "active"
     assert result.completed_datasets == 7
     assert result.failed_datasets == 1
     assert result.total_images == 1000
@@ -449,7 +450,7 @@ async def test_get_dataset_stats_with_user_filter(
     
     mock_dataset_repo.get_stats.return_value = {
         "total": 5,
-        "active": 1,
+        "active": 1,  # Maps to processing_datasets
         "completed": 4,
         "failed": 0
     }
@@ -461,6 +462,7 @@ async def test_get_dataset_stats_with_user_filter(
     result = await dataset_service.get_dataset_stats(user_id)
     
     assert result.total_datasets == 5
+    assert result.processing_datasets == 1  # Mapped from "active"
     mock_dataset_repo.get_stats.assert_called_once_with(user_id)
     mock_dataset_repo.list.assert_called_once_with(user_id=user_id)
 
