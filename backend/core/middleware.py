@@ -12,6 +12,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from utility.logging_config import get_logger
 from backend.core.config import get_settings
+from backend.core.metrics_middleware import MetricsMiddleware
 
 logger = get_logger(__name__)
 
@@ -96,5 +97,6 @@ def setup_middleware(app: FastAPI) -> None:
         app.add_middleware(HTTPSRedirectMiddleware)
 
     # Custom middleware
+    app.add_middleware(MetricsMiddleware)
     app.middleware("http")(request_logging_middleware)
     app.middleware("http")(security_headers_middleware)

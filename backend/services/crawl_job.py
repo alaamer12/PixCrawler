@@ -27,6 +27,7 @@ Features:
 import uuid
 import json
 import asyncio
+import time
 from datetime import datetime
 from typing import Dict, Any, List, Optional, AsyncGenerator
 from fastapi import HTTPException
@@ -47,10 +48,15 @@ from backend.repositories import (
     CrawlJobRepository,
     ProjectRepository,
     ImageRepository,
-    ActivityLogRepository
+    ActivityLogRepository,
+    ProcessingMetricRepository,
+    ResourceMetricRepository,
+    QueueMetricRepository,
 )
+from backend.services.metrics import MetricsService
 from .base import BaseService
 from backend.core.supabase import get_supabase_client
+from backend.core.logging import logger
 
 __all__ = [
     'CrawlJobService',
@@ -729,6 +735,207 @@ class CrawlJobService(BaseService):
             }
         )
 
+async def cancel_job(
+    self,
+    job_id: int,
+    user_id: Optional[str] = None,
+    session: Optional[AsyncSession] = None
+) -> CrawlJob:
+    """
+    Cancel a running or pending crawl job.
+
+    This method performs a complete cancellation workflow:
+    1. Validates job exists and can be cancelled
+    2. Revokes all associated Celery tasks
+    3. Cleans up temporary storage
+    4. Updates job status to 'cancelled'
+    5. Logs cancellation activity
+    6. Broadcasts cancellation via real-time updates
+
+    Args:
+        job_id: Crawl job ID to cancel
+        user_id: Optional user ID for activity logging
+        session: Optional database session
+
+    Returns:
+        Updated crawl job with 'cancelled' status
+
+    Raises:
+        NotFoundError: If job doesn't exist
+        ValidationError: If job status doesn't allow cancellation
+    """
+    from backend.core.exceptions import ValidationError
+
+    # Get the job
+    job = await self.get_job(job_id)
+    if not job:
+        raise NotFoundError(f"Crawl job not found: {job_id}")
+
+    # Validate job status - only pending or running jobs can be cancelled
+    if job.status not in ['pending', 'running', 'in_progress']:
+        raise ValidationError(
+            f"Cannot cancel job with status '{job.status}'. "
+            f"Only pending or running jobs can be cancelled."
+        )
+
+    logger.info(f"Cancelling job {job_id} with status '{job.status}'")
+
+    # Step 1: Revoke Celery tasks
+    if job.task_ids and isinstance(job.task_ids, list) and len(job.task_ids) > 0:
+        await self._revoke_celery_tasks(job.task_ids, terminate=True)
+        logger.info(f"Revoked {len(job.task_ids)} Celery tasks for job {job_id}")
+    else:
+        logger.info(f"No Celery tasks to revoke for job {job_id}")
+
+    # Step 2: Clean up temporary storage
+    try:
+        await self._cleanup_job_storage(job_id)
+        logger.info(f"Cleaned up storage for job {job_id}")
+    except Exception as e:
+        # Log but don't fail cancellation if storage cleanup fails
+        logger.error(f"Failed to cleanup storage for job {job_id}: {str(e)}")
+
+    # Step 3: Update job status to cancelled
+    updated_job = await self.update_job_status(
+        job_id=job_id,
+        status='cancelled',
+        completed_at=datetime.utcnow(),
+        session=session
+    )
+
+    # Step 4: Log cancellation activity
+    if user_id:
+        await self.activity_log_repo.create(
+            user_id=uuid.UUID(user_id),
+            action="CANCEL_CRAWL_JOB",
+            resource_type="crawl_job",
+            resource_id=str(job_id),
+            metadata={
+                "job_name": job.name,
+                "previous_status": job.status,
+                "downloaded_images": job.downloaded_images or 0,
+                "valid_images": job.valid_images or 0,
+                "progress": job.progress or 0
+            }
+        )
+
+    # Step 5: Broadcast cancellation via Supabase real-time
+    supabase = get_supabase_client()
+    if supabase:
+        channel = supabase.channel(f'crawl_job_{job_id}')
+        await channel.send({
+            'type': 'broadcast',
+            'event': 'job_cancelled',
+            'payload': {
+                'job_id': job_id,
+                'status': 'cancelled',
+                'timestamp': datetime.utcnow().isoformat(),
+                'message': 'Job has been cancelled by user'
+            }
+        })
+
+    self.log_operation("cancel_crawl_job", job_id=job_id, status='cancelled')
+    logger.info(f"Successfully cancelled job {job_id}")
+
+    return updated_job
+
+
+async def _revoke_celery_tasks(
+    self,
+    task_ids: List[str],
+    terminate: bool = True
+) -> None:
+    """
+    Revoke Celery tasks gracefully or forcefully.
+
+    This method revokes all tasks in the provided list. With terminate=True,
+    tasks are forcefully terminated. With terminate=False, tasks are allowed
+    to finish their current work before stopping.
+
+    Args:
+        task_ids: List of Celery task IDs to revoke
+        terminate: If True, forcefully terminate tasks. If False, allow
+                  graceful shutdown (tasks finish current work)
+
+    Note:
+        - terminate=True: Sends SIGTERM to worker process (forceful)
+        - terminate=False: Task won't accept new work but finishes current work
+    """
+    if not task_ids:
+        return
+
+    for task_id in task_ids:
+        try:
+            # Revoke the task
+            # terminate=True: Forcefully kill the task (SIGTERM)
+            # terminate=False: Graceful - task won't start if not started,
+            #                  or will finish current work if already running
+            celery_app.control.revoke(
+                task_id,
+                terminate=terminate,
+                signal='SIGTERM' if terminate else None
+            )
+            logger.debug(
+                f"Revoked Celery task {task_id} "
+                f"({'forceful' if terminate else 'graceful'})"
+            )
+        except Exception as e:
+            # Log error but continue revoking other tasks
+            logger.error(f"Failed to revoke Celery task {task_id}: {str(e)}")
+
+
+async def _cleanup_job_storage(self, job_id: int) -> None:
+    """
+    Clean up temporary storage files for a cancelled job.
+
+    This method removes all files associated with the job from temporary
+    storage. Files are identified by the path prefix pattern: job_{job_id}/
+
+    Args:
+        job_id: Job ID whose storage should be cleaned up
+
+    Note:
+        This method uses LocalStorageProvider to list and delete files.
+        If storage cleanup fails, the error is logged but not raised to
+        avoid blocking the cancellation process.
+    """
+    try:
+        from backend.storage.factory import get_storage_provider
+
+        # Get storage provider (defaults to local storage)
+        storage = get_storage_provider()
+
+        # List all files for this job using the prefix pattern
+        prefix = f"job_{job_id}/"
+        files = storage.list_files(prefix=prefix)
+
+        if not files:
+            logger.info(f"No storage files found for job {job_id}")
+            return
+
+        # Delete each file
+        deleted_count = 0
+        failed_count = 0
+
+        for file_path in files:
+            try:
+                storage.delete(file_path)
+                deleted_count += 1
+            except Exception as e:
+                failed_count += 1
+                logger.error(f"Failed to delete file {file_path}: {str(e)}")
+
+        logger.info(
+            f"Storage cleanup for job {job_id}: "
+            f"{deleted_count} files deleted, {failed_count} failed"
+        )
+
+    except Exception as e:
+        # Log error but don't raise - storage cleanup is best-effort
+        logger.error(f"Error during storage cleanup for job {job_id}: {str(e)}")
+
+
+
 
 async def execute_crawl_job(
     job_id: int,
@@ -767,6 +974,12 @@ async def execute_crawl_job(
     from backend.database.connection import AsyncSessionLocal
     from builder import Builder
     from backend.core.async_helpers import run_sync, run_in_threadpool
+    from backend.services.metrics import MetricsService
+    from backend.repositories import (
+        ProcessingMetricRepository,
+        ResourceMetricRepository,
+        QueueMetricRepository
+    )
 
     MAX_RETRIES = 3
     RETRY_DELAY = 5  # seconds
@@ -788,6 +1001,14 @@ async def execute_crawl_job(
             session=session
         )
 
+    # Initialize Metrics Service
+    metrics_service = MetricsService(
+        processing_repo=ProcessingMetricRepository(session),
+        resource_repo=ResourceMetricRepository(session),
+        queue_repo=QueueMetricRepository(session),
+        session=session
+    )
+
     try:
         async with session.begin():
             job = await job_service.get_job(job_id, session=session)
@@ -800,6 +1021,13 @@ async def execute_crawl_job(
                 started_at=datetime.utcnow(),
                 session=session
             )
+
+        # Start job metric
+        job_metric = await metrics_service.start_processing_metric(
+            operation_type="full_job",
+            job_id=job_id,
+            user_id=uuid.UUID(user_id) if user_id else None
+        )
 
         # Initialize builder with async support
         builder_config = {
@@ -825,32 +1053,62 @@ async def execute_crawl_job(
             if not batch:
                 return
 
-            processed_count += len(batch)
-            valid_batch = [img for img in batch if img.get("is_valid", True)]
-            valid_count += len(valid_batch)
-            current_chunk = min(current_chunk + 1, total_chunks)
-
-            # Calculate overall progress (0-100)
-            if job.max_images > 0:
-                progress = min(
-                    int((processed_count / job.max_images) * 100), 100)
-            else:
-                progress = 0
-
-            # Calculate chunk progress (0-100)
-            chunk_progress = min(
-                int((current_chunk / total_chunks) * 100), 100) if total_chunks > 0 else 0
-
-            await job_service.update_job_progress(
+            # Track batch metric
+            batch_metric = await metrics_service.start_processing_metric(
+                operation_type="batch_processing",
                 job_id=job_id,
-                progress=progress,
-                downloaded_images=processed_count,
-                valid_images=valid_count,
-                session=session
+                user_id=uuid.UUID(user_id) if user_id else None
             )
 
-            if valid_batch:
-                await job_service.store_bulk_images(job_id, valid_batch, session=session)
+            try:
+                processed_count += len(batch)
+                valid_batch = [img for img in batch if img.get("is_valid", True)]
+                valid_count += len(valid_batch)
+                current_chunk = min(current_chunk + 1, total_chunks)
+
+                # Calculate overall progress (0-100)
+                if job.max_images > 0:
+                    progress = min(
+                        int((processed_count / job.max_images) * 100), 100)
+                else:
+                    progress = 0
+
+                # Calculate chunk progress (0-100)
+                chunk_progress = min(
+                    int((current_chunk / total_chunks) * 100), 100) if total_chunks > 0 else 0
+
+                await job_service.update_job_progress(
+                    job_id=job_id,
+                    progress=progress,
+                    downloaded_images=processed_count,
+                    valid_images=valid_count,
+                    session=session
+                )
+
+                if valid_batch:
+                    await job_service.store_bulk_images(job_id, valid_batch, session=session)
+
+                # Complete batch metric
+                await metrics_service.complete_processing_metric(
+                    metric_id=batch_metric.id,
+                    status="completed",
+                    images_processed=len(batch),
+                    images_succeeded=len(valid_batch),
+                    images_failed=len(batch) - len(valid_batch)
+                )
+
+                # Collect resource metrics periodically (every 5 chunks)
+                if current_chunk % 5 == 0:
+                    await metrics_service.collect_resource_metrics(job_id=job_id)
+
+            except Exception as e:
+                # Fail batch metric
+                await metrics_service.complete_processing_metric(
+                    metric_id=batch_metric.id,
+                    status="failed",
+                    error_message=str(e)
+                )
+                raise
 
         # Process results as they come using async generator
         try:
@@ -921,6 +1179,15 @@ async def execute_crawl_job(
                 valid_images=valid_count,
                 session=session
             )
+        
+        # Complete job metric
+        await metrics_service.complete_processing_metric(
+            metric_id=job_metric.id,
+            status="completed",
+            images_processed=processed_count,
+            images_succeeded=valid_count,
+            images_failed=processed_count - valid_count
+        )
 
     except Exception as e:
         if 'session' in locals() and session.in_transaction():
@@ -937,6 +1204,14 @@ async def execute_crawl_job(
                     valid_images=valid_count if 'valid_count' in locals() else 0,
                     session=session
                 )
+        
+        if 'job_metric' in locals():
+             await metrics_service.complete_processing_metric(
+                metric_id=job_metric.id,
+                status="failed",
+                error_message=str(e)
+            )
+            
         raise ExternalServiceError(f"Job execution failed: {str(e)}") from e
     finally:
         if should_close_session and 'session' in locals():

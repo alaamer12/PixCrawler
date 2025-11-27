@@ -11,6 +11,9 @@ Exports:
     - ImageRepository: Image data access
     - UserRepository: User/Profile data access
     - ActivityLogRepository: ActivityLog data access
+    - ProcessingMetricRepository: ProcessingMetric data access
+    - ResourceMetricRepository: ResourceMetric data access
+    - QueueMetricRepository: QueueMetric data access
 """
 
 from .base import BaseRepository
@@ -20,6 +23,11 @@ from .image_repository import ImageRepository
 from .user_repository import UserRepository
 from .activity_log_repository import ActivityLogRepository
 from .dataset_repository import DatasetRepository
+from .metrics_repository import (
+    ProcessingMetricRepository,
+    ResourceMetricRepository,
+    QueueMetricRepository,
+)
 
 __all__ = [
     "BaseRepository",
@@ -28,4 +36,7 @@ __all__ = [
     "ImageRepository",
     "UserRepository",
     "ActivityLogRepository",
+    "ProcessingMetricRepository",
+    "ResourceMetricRepository",
+    "QueueMetricRepository",
 ]
