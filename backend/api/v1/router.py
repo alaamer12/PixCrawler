@@ -9,7 +9,7 @@ from fastapi import APIRouter
 from starlette.responses import JSONResponse
 
 from backend.api.v1.response_models import get_common_responses
-from .endpoints import auth, crawl_jobs, datasets, exports, health, storage, users, validation
+from .endpoints import auth, crawl_jobs, datasets, exports, health, storage, users, validation, metrics
 
 __all__ = ['api_router']
 
@@ -75,5 +75,12 @@ api_router.include_router(
 api_router.include_router(
     validation.router,
     prefix="/validation",
+    include_in_schema=True,
+)
+
+# Metrics - Operational metrics and monitoring
+api_router.include_router(
+    metrics.router,
+    prefix="/metrics",
     include_in_schema=True,
 )
