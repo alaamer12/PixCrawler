@@ -40,6 +40,7 @@ from backend.services.validation import ValidationService
 from backend.services.user import UserService
 from backend.services.storage import StorageService
 from backend.services.resource_monitor import ResourceMonitor
+from backend.services.metrics import MetricsService
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """
@@ -229,24 +230,35 @@ def get_activity_log_repository(session: DBSession) -> ActivityLogRepository:
     return ActivityLogRepository(session)
 
 
-# Service Dependencies
-async def get_crawl_job_service(session: DBSession) -> CrawlJobService:
+# ============================================================================
+# Service Factory Functions
+# ============================================================================
+# Pattern: get_service(session: DBSession) -> Service
+# - Create repository instances from session
+# - Inject repositories into service constructor
+# - Service receives repositories, NOT session
+# ============================================================================
+
+def get_crawl_job_service(session: DBSession) -> CrawlJobService:
     """
     Dependency injection for CrawlJobService.
 
-    Creates service with all required repositories.
+    Creates service with all required repositories following the pattern:
+    get_service(session) -> Service where service receives repositories.
 
     Args:
-        session: Database session
+        session: Database session (injected by FastAPI)
 
     Returns:
-        CrawlJobService instance
+        CrawlJobService instance with injected repositories
     """
+    # Create repository instances
     crawl_job_repo = CrawlJobRepository(session)
     project_repo = ProjectRepository(session)
     image_repo = ImageRepository(session)
     activity_log_repo = ActivityLogRepository(session)
 
+    # Inject repositories into service
     return CrawlJobService(
         crawl_job_repo=crawl_job_repo,
         project_repo=project_repo,
@@ -255,66 +267,75 @@ async def get_crawl_job_service(session: DBSession) -> CrawlJobService:
     )
 
 
-async def get_dataset_service(session: DBSession) -> DatasetService:
+def get_dataset_service(session: DBSession) -> DatasetService:
     """
     Dependency injection for DatasetService.
 
-    Creates service with all required repositories.
+    Creates service with all required repositories following the pattern:
+    get_service(session) -> Service where service receives repositories.
 
     Args:
-        session: Database session
+        session: Database session (injected by FastAPI)
 
     Returns:
-        DatasetService instance
+        DatasetService instance with injected repositories
     """
     from backend.repositories import DatasetRepository
     
+    # Create repository instances
     dataset_repo = DatasetRepository(session)
     crawl_job_repo = CrawlJobRepository(session)
 
+    # Inject repositories into service
     return DatasetService(
         dataset_repository=dataset_repo,
         crawl_job_repository=crawl_job_repo
     )
 
 
-async def get_validation_service(session: DBSession) -> ValidationService:
+def get_validation_service(session: DBSession) -> ValidationService:
     """
     Dependency injection for ValidationService.
 
-    Creates service with all required repositories.
+    Creates service with all required repositories following the pattern:
+    get_service(session) -> Service where service receives repositories.
 
     Args:
-        session: Database session
+        session: Database session (injected by FastAPI)
 
     Returns:
-        ValidationService instance
+        ValidationService instance with injected repositories
     """
     from backend.repositories import DatasetRepository
     
+    # Create repository instances
     image_repo = ImageRepository(session)
     dataset_repo = DatasetRepository(session)
 
+    # Inject repositories into service
     return ValidationService(
         image_repo=image_repo,
         dataset_repo=dataset_repo
     )
 
 
-async def get_user_service(session: DBSession) -> UserService:
+def get_user_service(session: DBSession) -> UserService:
     """
     Dependency injection for UserService.
 
-    Creates service with all required repositories.
+    Creates service with all required repositories following the pattern:
+    get_service(session) -> Service where service receives repositories.
 
     Args:
-        session: Database session
+        session: Database session (injected by FastAPI)
 
     Returns:
-        UserService instance
+        UserService instance with injected repositories
     """
+    # Create repository instance
     user_repo = UserRepository(session)
 
+    # Inject repository into service
     return UserService(user_repository=user_repo)
 
 
@@ -322,12 +343,16 @@ def get_storage_service(storage: StorageProvider = Depends(get_storage)) -> Stor
     """
     Dependency injection for StorageService.
 
+    Creates service with storage provider following the pattern:
+    get_service(storage) -> Service where service receives storage provider.
+
     Args:
-        storage: Storage provider instance
+        storage: Storage provider instance (injected by FastAPI)
 
     Returns:
-        StorageService instance
+        StorageService instance with injected storage provider
     """
+    # Inject storage provider into service
     return StorageService(storage)
 
 
@@ -335,52 +360,60 @@ def get_auth_service() -> SupabaseAuthService:
     """
     Dependency injection for SupabaseAuthService.
 
+    Creates service instance. This service doesn't require repositories
+    as it interacts directly with Supabase API.
+
     Returns:
         SupabaseAuthService instance
     """
     return SupabaseAuthService()
 
 
-async def get_resource_monitor(session: DBSession) -> ResourceMonitor:
+def get_resource_monitor(session: DBSession) -> ResourceMonitor:
     """
     Dependency injection for ResourceMonitor.
 
-    Creates resource monitor with required repository.
+    Creates resource monitor with required repository following the pattern:
+    get_monitor(session) -> Monitor where monitor receives repositories.
 
     Args:
-        session: Database session
+        session: Database session (injected by FastAPI)
 
     Returns:
-        ResourceMonitor instance
+        ResourceMonitor instance with injected repositories
     """
+    # Create repository instance
     crawl_job_repo = CrawlJobRepository(session)
 
+    # Inject repository into monitor
     return ResourceMonitor(crawl_job_repo=crawl_job_repo)
 
 
-async def get_metrics_service(session: DBSession):
+def get_metrics_service(session: DBSession) -> MetricsService:
     """
     Dependency injection for MetricsService.
 
-    Creates service with all required repositories.
+    Creates service with all required repositories following the pattern:
+    get_service(session) -> Service where service receives repositories.
 
     Args:
-        session: Database session
+        session: Database session (injected by FastAPI)
 
     Returns:
-        MetricsService instance
+        MetricsService instance with injected repositories
     """
     from backend.repositories import (
         ProcessingMetricRepository,
         ResourceMetricRepository,
         QueueMetricRepository,
     )
-    from backend.services.metrics import MetricsService
     
+    # Create repository instances
     processing_repo = ProcessingMetricRepository(session)
     resource_repo = ResourceMetricRepository(session)
     queue_repo = QueueMetricRepository(session)
     
+    # Inject repositories into service
     return MetricsService(
         processing_repo=processing_repo,
         resource_repo=resource_repo,

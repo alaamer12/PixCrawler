@@ -29,9 +29,23 @@ router = APIRouter(
 )
 
 
-async def get_project_service(session = Depends(get_session)) -> ProjectService:
-    """Dependency to get ProjectService instance."""
+def get_project_service(session: AsyncSession = Depends(get_session)) -> ProjectService:
+    """
+    Dependency injection for ProjectService.
+
+    Creates service with required repository following the pattern:
+    get_service(session) -> Service where service receives repository.
+
+    Args:
+        session: Database session (injected by FastAPI)
+
+    Returns:
+        ProjectService instance with injected repository
+    """
+    # Create repository instance
     repository = ProjectRepository(session)
+    
+    # Inject repository into service
     return ProjectService(repository)
 
 

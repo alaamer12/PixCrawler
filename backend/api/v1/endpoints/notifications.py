@@ -30,9 +30,23 @@ router = APIRouter(
 )
 
 
-async def get_notification_service(session = Depends(get_session)) -> NotificationService:
-    """Dependency to get NotificationService instance."""
+def get_notification_service(session: AsyncSession = Depends(get_session)) -> NotificationService:
+    """
+    Dependency injection for NotificationService.
+
+    Creates service with required repository following the pattern:
+    get_service(session) -> Service where service receives repository.
+
+    Args:
+        session: Database session (injected by FastAPI)
+
+    Returns:
+        NotificationService instance with injected repository
+    """
+    # Create repository instance
     repository = NotificationRepository(session)
+    
+    # Inject repository into service
     return NotificationService(repository)
 
 

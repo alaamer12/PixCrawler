@@ -302,7 +302,10 @@
   - _Requirements: 4.5, 4.6, 5.3_
 
 
-- [ ] 3.7 Update dependency injection patterns
+- [x] 3.7 Update dependency injection patterns
+
+
+
 
   - Review all `get_*_service` dependency functions
   - Ensure pattern: `get_service(session) -> Service` where service receives repository
@@ -312,7 +315,11 @@
   - _Requirements: 4.7, 4.8, 6.5_
 
 
-- [ ] 3.8 Create architecture tests
+
+- [x] 3.8 Create architecture tests
+
+
+
   - Create `backend/tests/test_architecture.py` file
   - Write test to verify services don't import `AsyncSession` directly
   - Write test to verify repositories extend `BaseRepository`
@@ -322,7 +329,11 @@
   - Write test to verify no business logic in endpoints
   - _Requirements: 4.10, 7.4_
 
-- [ ]* 3.9 Update service and repository tests
+
+
+- [ ] 3.9 Update service and repository tests
+
+
   - Review all tests in `backend/tests/services/` directory
   - Update tests to work with refactored services
   - Add tests for new repository methods
@@ -332,6 +343,7 @@
   - _Requirements: 7.4, 7.5_
 
 - [ ] 3.10 Verify architecture compliance
+
   - Run all architecture tests
   - Verify no violations remain
   - Run full test suite to ensure no regressions
