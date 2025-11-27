@@ -53,9 +53,12 @@ class TestCompressionSettings:
         settings = CompressionSettings(quality=90)
         assert settings.quality == 90
 
-        # Invalid quality should raise error
-        with pytest.raises(ValueError, match="quality must be between 0 and 100"):
+        # Invalid quality should raise error (Pydantic V2 ValidationError)
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError) as exc_info:
             CompressionSettings(quality=150)
+        assert "quality" in str(exc_info.value).lower()
+        assert "less than or equal to 100" in str(exc_info.value).lower()
 
     def test_resolved_workers(self) -> None:
         """Test worker count resolution."""
@@ -95,9 +98,12 @@ class TestArchiveSettings:
         settings = ArchiveSettings(level=15)
         assert settings.level == 15
 
-        # Invalid level should raise error
-        with pytest.raises(ValueError, match="archive.level must be between 1 and 19"):
+        # Invalid level should raise error (Pydantic V2 ValidationError)
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError) as exc_info:
             ArchiveSettings(level=25)
+        assert "level" in str(exc_info.value).lower()
+        assert "less than or equal to 19" in str(exc_info.value).lower()
 
 
 class TestImageCompressor:

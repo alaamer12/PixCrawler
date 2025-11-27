@@ -223,8 +223,22 @@ class CompressionSettings(BaseSettings):
 def get_compression_settings() -> CompressionSettings:
     """
     Get cached compression settings instance.
+    
+    This function now checks for unified configuration first and falls back
+    to standalone compression settings for backward compatibility.
 
     Returns:
         Cached CompressionSettings instance
+        
+    Note:
+        This function is maintained for backward compatibility. New code should
+        use the unified configuration system via utility.config.get_utility_settings()
     """
-    return CompressionSettings()
+    # Try to use unified config first
+    try:
+        from utility.config import get_utility_settings
+        unified_settings = get_utility_settings()
+        return unified_settings.compression
+    except (ImportError, Exception):
+        # Fall back to standalone compression settings
+        return CompressionSettings()

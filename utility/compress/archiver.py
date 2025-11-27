@@ -67,7 +67,8 @@ class Archiver:
             level: Compression level (1-19)
         """
         # Configure zstd compression parameters with multi-threading
-        cparams = zstd.ZstdCompressionParameters.from_level(level=level, threads=-1)
+        # Note: from_level() takes level as positional argument, not keyword
+        cparams = zstd.ZstdCompressionParameters.from_level(level, threads=-1)
         compressor = zstd.ZstdCompressor(compression_params=cparams)
 
         # Stream compress from source to destination
@@ -113,5 +114,8 @@ class Archiver:
                 self._compress_zstd(tar_path, out, level)
                 return out
 
-            # Return uncompressed tar
-            return tar_path
+            # For uncompressed tar, copy to output location
+            out = output if output.suffix == ".tar" else output.with_suffix(".tar")
+            import shutil
+            shutil.copy2(tar_path, out)
+            return out

@@ -375,8 +375,22 @@ def get_config_info() -> Dict[str, Any]:
 def get_logging_settings() -> LoggingSettings:
     """
     Get cached logging settings instance.
+    
+    This function now checks for unified configuration first and falls back
+    to standalone logging settings for backward compatibility.
 
     Returns:
         Cached LoggingSettings instance
+        
+    Note:
+        This function is maintained for backward compatibility. New code should
+        use the unified configuration system via utility.config.get_utility_settings()
     """
-    return LoggingSettings()
+    # Try to use unified config first
+    try:
+        from utility.config import get_utility_settings
+        unified_settings = get_utility_settings()
+        return unified_settings.logging
+    except (ImportError, Exception):
+        # Fall back to standalone logging settings
+        return LoggingSettings()
