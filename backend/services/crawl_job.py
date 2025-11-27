@@ -55,7 +55,9 @@ from backend.repositories import (
 from backend.services.metrics import MetricsService
 from .base import BaseService
 from backend.core.supabase import get_supabase_client
-from backend.core.logging import logger
+from utility.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 __all__ = [
     'CrawlJobService',
@@ -791,41 +793,41 @@ class CrawlJobService(BaseService):
             completed_at=datetime.utcnow()
         )
 
-    # Step 4: Log cancellation activity
-    if user_id:
-        await self.activity_log_repo.create(
-            user_id=uuid.UUID(user_id),
-            action="CANCEL_CRAWL_JOB",
-            resource_type="crawl_job",
-            resource_id=str(job_id),
-            metadata={
-                "job_name": job.name,
-                "previous_status": job.status,
-                "downloaded_images": job.downloaded_images or 0,
-                "valid_images": job.valid_images or 0,
-                "progress": job.progress or 0
-            }
-        )
+        # Step 4: Log cancellation activity
+        if user_id:
+            await self.activity_log_repo.create(
+                user_id=uuid.UUID(user_id),
+                action="CANCEL_CRAWL_JOB",
+                resource_type="crawl_job",
+                resource_id=str(job_id),
+                metadata={
+                    "job_name": job.name,
+                    "previous_status": job.status,
+                    "downloaded_images": job.downloaded_images or 0,
+                    "valid_images": job.valid_images or 0,
+                    "progress": job.progress or 0
+                }
+            )
 
-    # Step 5: Broadcast cancellation via Supabase real-time
-    supabase = get_supabase_client()
-    if supabase:
-        channel = supabase.channel(f'crawl_job_{job_id}')
-        await channel.send({
-            'type': 'broadcast',
-            'event': 'job_cancelled',
-            'payload': {
-                'job_id': job_id,
-                'status': 'cancelled',
-                'timestamp': datetime.utcnow().isoformat(),
-                'message': 'Job has been cancelled by user'
-            }
-        })
+        # Step 5: Broadcast cancellation via Supabase real-time
+        supabase = get_supabase_client()
+        if supabase:
+            channel = supabase.channel(f'crawl_job_{job_id}')
+            await channel.send({
+                'type': 'broadcast',
+                'event': 'job_cancelled',
+                'payload': {
+                    'job_id': job_id,
+                    'status': 'cancelled',
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'message': 'Job has been cancelled by user'
+                }
+            })
 
-    self.log_operation("cancel_crawl_job", job_id=job_id, status='cancelled')
-    logger.info(f"Successfully cancelled job {job_id}")
+        self.log_operation("cancel_crawl_job", job_id=job_id, status='cancelled')
+        logger.info(f"Successfully cancelled job {job_id}")
 
-    return updated_job
+        return updated_job
 
     async def list_jobs(self, user_id: str):
         """

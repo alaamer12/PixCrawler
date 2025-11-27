@@ -331,12 +331,18 @@
 
 
 
+
+
 - [ ] 3.9 Update service and repository tests
 
 
   - Review all tests in `backend/tests/services/` directory
   - Update tests to work with refactored services
   - Add tests for new repository methods
+
+
+
+
   - Ensure all business logic is tested at service level
   - Ensure all data access is tested at repository level
   - Verify all tests pass
