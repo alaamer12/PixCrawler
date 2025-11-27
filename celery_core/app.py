@@ -151,5 +151,15 @@ def revoke_task(task_id: str, terminate: bool = True, signal: str = 'SIGTERM') -
 # Create the main Celery app instance
 app = get_celery_app()
 
+# Auto-discover tasks from other packages
+app.autodiscover_tasks(['builder', 'validator', 'backend'])
+
+# Manually import core tasks to ensure registration
+# This must be done after app creation to avoid circular imports
+try:
+    import celery_core.tasks
+except ImportError:
+    logger.warning("Could not import celery_core.tasks")
+
 # Export for use by other packages
 celery_app = app
