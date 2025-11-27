@@ -27,6 +27,7 @@ Features:
 import uuid
 import json
 import asyncio
+import time
 from datetime import datetime
 from typing import Dict, Any, List, Optional, AsyncGenerator
 from fastapi import HTTPException
@@ -38,10 +39,15 @@ from backend.repositories import (
     CrawlJobRepository,
     ProjectRepository,
     ImageRepository,
-    ActivityLogRepository
+    ActivityLogRepository,
+    ProcessingMetricRepository,
+    ResourceMetricRepository,
+    QueueMetricRepository,
 )
+from backend.services.metrics import MetricsService
 from .base import BaseService
 from backend.core.supabase import get_supabase_client
+from backend.core.logging import logger
 
 __all__ = [
     'CrawlJobService',
@@ -758,6 +764,12 @@ async def execute_crawl_job(
     from backend.database.connection import AsyncSessionLocal
     from builder import Builder
     from backend.core.async_helpers import run_sync, run_in_threadpool
+    from backend.services.metrics import MetricsService
+    from backend.repositories import (
+        ProcessingMetricRepository,
+        ResourceMetricRepository,
+        QueueMetricRepository
+    )
 
     MAX_RETRIES = 3
     RETRY_DELAY = 5  # seconds
@@ -779,6 +791,14 @@ async def execute_crawl_job(
             session=session
         )
 
+    # Initialize Metrics Service
+    metrics_service = MetricsService(
+        processing_repo=ProcessingMetricRepository(session),
+        resource_repo=ResourceMetricRepository(session),
+        queue_repo=QueueMetricRepository(session),
+        session=session
+    )
+
     try:
         async with session.begin():
             job = await job_service.get_job(job_id, session=session)
@@ -791,6 +811,13 @@ async def execute_crawl_job(
                 started_at=datetime.utcnow(),
                 session=session
             )
+
+        # Start job metric
+        job_metric = await metrics_service.start_processing_metric(
+            operation_type="full_job",
+            job_id=job_id,
+            user_id=uuid.UUID(user_id) if user_id else None
+        )
 
         # Initialize builder with async support
         builder_config = {
@@ -816,32 +843,62 @@ async def execute_crawl_job(
             if not batch:
                 return
 
-            processed_count += len(batch)
-            valid_batch = [img for img in batch if img.get("is_valid", True)]
-            valid_count += len(valid_batch)
-            current_chunk = min(current_chunk + 1, total_chunks)
-
-            # Calculate overall progress (0-100)
-            if job.max_images > 0:
-                progress = min(
-                    int((processed_count / job.max_images) * 100), 100)
-            else:
-                progress = 0
-
-            # Calculate chunk progress (0-100)
-            chunk_progress = min(
-                int((current_chunk / total_chunks) * 100), 100) if total_chunks > 0 else 0
-
-            await job_service.update_job_progress(
+            # Track batch metric
+            batch_metric = await metrics_service.start_processing_metric(
+                operation_type="batch_processing",
                 job_id=job_id,
-                progress=progress,
-                downloaded_images=processed_count,
-                valid_images=valid_count,
-                session=session
+                user_id=uuid.UUID(user_id) if user_id else None
             )
 
-            if valid_batch:
-                await job_service.store_bulk_images(job_id, valid_batch, session=session)
+            try:
+                processed_count += len(batch)
+                valid_batch = [img for img in batch if img.get("is_valid", True)]
+                valid_count += len(valid_batch)
+                current_chunk = min(current_chunk + 1, total_chunks)
+
+                # Calculate overall progress (0-100)
+                if job.max_images > 0:
+                    progress = min(
+                        int((processed_count / job.max_images) * 100), 100)
+                else:
+                    progress = 0
+
+                # Calculate chunk progress (0-100)
+                chunk_progress = min(
+                    int((current_chunk / total_chunks) * 100), 100) if total_chunks > 0 else 0
+
+                await job_service.update_job_progress(
+                    job_id=job_id,
+                    progress=progress,
+                    downloaded_images=processed_count,
+                    valid_images=valid_count,
+                    session=session
+                )
+
+                if valid_batch:
+                    await job_service.store_bulk_images(job_id, valid_batch, session=session)
+
+                # Complete batch metric
+                await metrics_service.complete_processing_metric(
+                    metric_id=batch_metric.id,
+                    status="completed",
+                    images_processed=len(batch),
+                    images_succeeded=len(valid_batch),
+                    images_failed=len(batch) - len(valid_batch)
+                )
+
+                # Collect resource metrics periodically (every 5 chunks)
+                if current_chunk % 5 == 0:
+                    await metrics_service.collect_resource_metrics(job_id=job_id)
+
+            except Exception as e:
+                # Fail batch metric
+                await metrics_service.complete_processing_metric(
+                    metric_id=batch_metric.id,
+                    status="failed",
+                    error_message=str(e)
+                )
+                raise
 
         # Process results as they come using async generator
         try:
@@ -912,6 +969,15 @@ async def execute_crawl_job(
                 valid_images=valid_count,
                 session=session
             )
+        
+        # Complete job metric
+        await metrics_service.complete_processing_metric(
+            metric_id=job_metric.id,
+            status="completed",
+            images_processed=processed_count,
+            images_succeeded=valid_count,
+            images_failed=processed_count - valid_count
+        )
 
     except Exception as e:
         if 'session' in locals() and session.in_transaction():
@@ -928,6 +994,14 @@ async def execute_crawl_job(
                     valid_images=valid_count if 'valid_count' in locals() else 0,
                     session=session
                 )
+        
+        if 'job_metric' in locals():
+             await metrics_service.complete_processing_metric(
+                metric_id=job_metric.id,
+                status="failed",
+                error_message=str(e)
+            )
+            
         raise ExternalServiceError(f"Job execution failed: {str(e)}") from e
     finally:
         if should_close_session and 'session' in locals():

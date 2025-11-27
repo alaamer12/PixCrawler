@@ -29,6 +29,7 @@ from .chunks import JobChunk
 from .credits import CreditAccount, CreditTransaction
 from .notifications import Notification, NotificationPreference
 from .usage import UsageMetric
+from .metrics import ProcessingMetric, ResourceMetric, QueueMetric
 
 # Import core models
 from datetime import datetime
@@ -115,6 +116,10 @@ __all__ = [
     'APIKey',
     # Usage models
     'UsageMetric',
+    # Metrics models
+    'ProcessingMetric',
+    'ResourceMetric',
+    'QueueMetric',
 ]
 
 
