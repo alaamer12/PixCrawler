@@ -136,7 +136,9 @@
 
 
 
-- [ ] 2.3 Audit and fix remaining endpoints
+- [x] 2.3 Audit and fix remaining endpoints
+
+
 
 - read the files backend/api/v1/ENDPOINT_STYLE_GUIDE.md backend/api/v1/ENDPOINT_AUDIT_REPORT.md for context understanding
   - Review `backend/api/v1/endpoints/auth.py` for compliance
@@ -149,7 +151,10 @@
   - Fix any non-compliant endpoints following the same pattern as notifications
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
 
-- [ ] 2.4 Create or update response models
+- [-] 2.4 Create or update response models
+
+
+
 - read the files backend/api/v1/ENDPOINT_STYLE_GUIDE.md backend/api/v1/ENDPOINT_AUDIT_REPORT.md for context understanding
   - Review all schemas in `backend/schemas/` directory
   - Create missing list response models (e.g., `NotificationListResponse`)
@@ -163,6 +168,7 @@
 - read the files backend/api/v1/ENDPOINT_STYLE_GUIDE.md backend/api/v1/ENDPOINT_AUDIT_REPORT.md for context understanding
   - Review all tests in `backend/tests/api/` directory
   - Ensure all refactored endpoints have corresponding tests
+  - Ensure each endpoint has its own tests suite in a independent file
   - Add tests for response model validation
   - Add tests for OpenAPI schema generation
   - Add integration tests for complete request/response flows

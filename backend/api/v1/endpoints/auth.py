@@ -22,7 +22,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from backend.api.types import CurrentUser, SupabaseAuthServiceDep
 from backend.api.v1.response_models import get_common_responses
-from backend.schemas.user import UserResponse
+from backend.schemas.user import UserResponse, TokenVerificationResponse, ProfileSyncResponse
 
 __all__ = ['router']
 
@@ -101,6 +101,7 @@ async def get_current_user_profile(
 
 @router.post(
     "/verify-token",
+    response_model=TokenVerificationResponse,
     summary="Verify JWT Token",
     description="Validate a Supabase JWT token and return user information if valid.",
     response_description="Token validation result with user details",
@@ -129,7 +130,7 @@ async def get_current_user_profile(
 )
 async def verify_token(
     current_user: CurrentUser
-) -> dict[str, Union[bool, dict[str, str]]]:
+) -> TokenVerificationResponse:
     """
     Verify Supabase JWT token and return user information.
 
@@ -147,18 +148,19 @@ async def verify_token(
     Returns:
         Token verification result with user information
     """
-    return {
-        "valid": True,
-        "user": {
+    return TokenVerificationResponse(
+        valid=True,
+        user={
             "id": current_user["user_id"],
             "email": current_user["email"],
             "profile": current_user["profile"]
         }
-    }
+    )
 
 
 @router.post(
     "/sync-profile",
+    response_model=ProfileSyncResponse,
     summary="Sync User Profile",
     description="Synchronize user profile data from Supabase Auth to the profiles table.",
     response_description="Profile synchronization result",
@@ -187,7 +189,7 @@ async def verify_token(
 async def sync_user_profile(
     current_user: CurrentUser,
     auth_service: SupabaseAuthServiceDep,
-) -> dict[str, str]:
+) -> ProfileSyncResponse:
     """
     Sync user profile from Supabase Auth to profiles table.
 
@@ -235,7 +237,7 @@ async def sync_user_profile(
             })
             action = "created"
 
-        return {"message": f"User profile {action} successfully"}
+        return ProfileSyncResponse(message=f"User profile {action} successfully")
 
     except Exception as e:
         raise HTTPException(

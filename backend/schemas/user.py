@@ -35,7 +35,9 @@ __all__ = [
     'UserResponse',
     'UserLogin',
     'TokenResponse',
-    'TokenRefresh'
+    'TokenRefresh',
+    'TokenVerificationResponse',
+    'ProfileSyncResponse'
 ]
 
 
@@ -255,4 +257,54 @@ class TokenRefresh(BaseSchema):
         min_length=10,
         description="Valid refresh token",
         examples=["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."]
+    )
+
+
+class TokenVerificationResponse(BaseSchema):
+    """
+    Schema for token verification response.
+
+    Contains validation result and user information if token is valid.
+
+    Attributes:
+        valid: Whether the token is valid
+        user: User information if token is valid
+    """
+
+    valid: bool = Field(
+        ...,
+        description="Whether the token is valid",
+        examples=[True, False]
+    )
+    user: dict = Field(
+        ...,
+        description="User information if token is valid",
+        examples=[{
+            "id": "123e4567-e89b-12d3-a456-426614174000",
+            "email": "user@example.com",
+            "profile": {
+                "full_name": "John Doe",
+                "avatar_url": "https://example.com/avatar.jpg"
+            }
+        }]
+    )
+
+
+class ProfileSyncResponse(BaseSchema):
+    """
+    Schema for profile synchronization response.
+
+    Contains the result of profile sync operation.
+
+    Attributes:
+        message: Success message indicating whether profile was created or updated
+    """
+
+    message: str = Field(
+        ...,
+        description="Success message",
+        examples=[
+            "User profile created successfully",
+            "User profile updated successfully"
+        ]
     )
