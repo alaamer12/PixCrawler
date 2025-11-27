@@ -6,6 +6,7 @@ from typing import Optional, List, Dict, Any
 from uuid import UUID
 from datetime import datetime
 
+from backend.core.exceptions import NotFoundError, ValidationError, ExternalServiceError
 from backend.schemas.dataset import (
     DatasetCreate, DatasetResponse, DatasetStats, DatasetUpdate, DatasetStatus
 )
@@ -313,14 +314,13 @@ class DatasetService(BaseService):
             avg_images = 0
             if stats["total"] > 0 and "total_images" in image_stats:
                 avg_images = image_stats["total_images"] / stats["total"]
-            
+            # Take care of silent Zeros, this could lead to a bug where you wonder why it is zero
             return DatasetStats(
                 total_datasets=stats.get("total", 0),
-                active_datasets=stats.get("active", 0),
+                processing_datasets=stats.get("active", 0),
                 completed_datasets=stats.get("completed", 0),
                 failed_datasets=stats.get("failed", 0),
-                total_images=image_stats.get("total_images", 0),
-                average_images_per_dataset=avg_images
+                total_images=image_stats.get("total_images", 0)
             )
             
         except SQLAlchemyError as e:

@@ -9,10 +9,27 @@ import pytest
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 from datetime import datetime
+from sqlalchemy.orm import make_transient
 
 from backend.core.exceptions import NotFoundError, ValidationError
 from backend.models import CrawlJob, Project, Image
 from backend.services.crawl_job import CrawlJobService, RateLimiter, RateLimitExceeded
+
+
+def copy_model(model, **updates):
+    """Helper to create a copy of a SQLAlchemy model with updates."""
+    # Get all mapped columns
+    mapper = model.__class__.__mapper__
+    data = {}
+    for column in mapper.columns:
+        if hasattr(model, column.key):
+            data[column.key] = getattr(model, column.key)
+    
+    # Apply updates
+    data.update(updates)
+    
+    # Create new instance
+    return model.__class__(**data)
 
 
 @pytest.fixture
@@ -278,7 +295,7 @@ async def test_update_job_progress(
     sample_crawl_job
 ):
     """Test updating job progress."""
-    updated_job = CrawlJob(**{**sample_crawl_job.__dict__, "progress": 50})
+    updated_job = copy_model(sample_crawl_job, progress=50)
     mock_crawl_job_repo.update.return_value = updated_job
     
     result = await crawl_job_service.update_job_progress(
@@ -299,7 +316,7 @@ async def test_update_job_progress_bounds(
     sample_crawl_job
 ):
     """Test progress is clamped to 0-100 range."""
-    updated_job = CrawlJob(**{**sample_crawl_job.__dict__, "progress": 100})
+    updated_job = copy_model(sample_crawl_job, progress=100)
     mock_crawl_job_repo.update.return_value = updated_job
     
     # Test upper bound
@@ -325,7 +342,7 @@ async def test_update_job_status_success(
     sample_crawl_job
 ):
     """Test successful status update."""
-    updated_job = CrawlJob(**{**sample_crawl_job.__dict__, "status": "completed"})
+    updated_job = copy_model(sample_crawl_job, status="completed")
     mock_crawl_job_repo.update.return_value = updated_job
     
     result = await crawl_job_service.update_job_status(

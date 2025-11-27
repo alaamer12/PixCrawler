@@ -30,14 +30,15 @@ def user_service(mock_user_repo):
 @pytest.fixture
 def sample_user():
     """Create sample user for testing."""
-    return Profile(
+    user = Profile(
         id=uuid4(),
         email="test@example.com",
         full_name="Test User",
-        role="user",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        role="user"
     )
+    user.created_at = datetime.utcnow()
+    user.updated_at = datetime.utcnow()
+    return user
 
 
 # ============================================================================
@@ -138,10 +139,17 @@ async def test_get_user_by_email_not_found(user_service, mock_user_repo):
 @pytest.mark.asyncio
 async def test_list_users(user_service, mock_user_repo):
     """Test listing users with pagination."""
-    mock_users = [
-        Profile(id=uuid4(), email=f"user{i}@example.com", full_name=f"User {i}")
-        for i in range(5)
-    ]
+    mock_users = []
+    for i in range(5):
+        user = Profile(
+            id=uuid4(),
+            email=f"user{i}@example.com",
+            full_name=f"User {i}",
+            role="user"
+        )
+        user.created_at = datetime.utcnow()
+        mock_users.append(user)
+    
     mock_user_repo.list_users.return_value = mock_users
     
     result = await user_service.list_users(skip=0, limit=10)
@@ -158,7 +166,14 @@ async def test_list_users(user_service, mock_user_repo):
 @pytest.mark.asyncio
 async def test_update_user_success(user_service, mock_user_repo, sample_user):
     """Test successful user update."""
-    updated_user = Profile(**{**sample_user.__dict__, "full_name": "Updated Name"})
+    updated_user = Profile(
+        id=sample_user.id,
+        email=sample_user.email,
+        full_name="Updated Name",
+        role=sample_user.role
+    )
+    updated_user.created_at = sample_user.created_at
+    updated_user.updated_at = datetime.utcnow()
     
     mock_user_repo.get_by_uuid.return_value = sample_user
     mock_user_repo.get_by_email.return_value = None
@@ -188,7 +203,12 @@ async def test_update_user_not_found(user_service, mock_user_repo):
 @pytest.mark.asyncio
 async def test_update_user_duplicate_email(user_service, mock_user_repo, sample_user):
     """Test update with email that's already in use."""
-    other_user = Profile(id=uuid4(), email="other@example.com", full_name="Other User")
+    other_user = Profile(
+        id=uuid4(),
+        email="other@example.com",
+        full_name="Other User",
+        role="user"
+    )
     
     mock_user_repo.get_by_uuid.return_value = sample_user
     mock_user_repo.get_by_email.return_value = other_user
@@ -205,7 +225,14 @@ async def test_update_user_duplicate_email(user_service, mock_user_repo, sample_
 @pytest.mark.asyncio
 async def test_update_user_same_email(user_service, mock_user_repo, sample_user):
     """Test update with same email (should succeed)."""
-    updated_user = Profile(**{**sample_user.__dict__, "full_name": "Updated Name"})
+    updated_user = Profile(
+        id=sample_user.id,
+        email=sample_user.email,
+        full_name="Updated Name",
+        role=sample_user.role
+    )
+    updated_user.created_at = sample_user.created_at
+    updated_user.updated_at = datetime.utcnow()
     
     mock_user_repo.get_by_uuid.return_value = sample_user
     mock_user_repo.update.return_value = updated_user
