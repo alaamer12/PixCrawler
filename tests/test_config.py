@@ -9,7 +9,7 @@ import time
 
 from PIL import Image
 
-from level import (
+from validator.level import (
     ValidationLevel,
     ValidationConfig,
     ValidationResult,

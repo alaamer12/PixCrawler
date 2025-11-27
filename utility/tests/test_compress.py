@@ -54,7 +54,7 @@ class TestCompressionSettings:
         assert settings.quality == 90
 
         # Invalid quality should raise error
-        with pytest.raises(ValueError, match="quality must be between 0 and 100"):
+        with pytest.raises(ValueError, match="Input should be less than or equal to 100"):
             CompressionSettings(quality=150)
 
     def test_resolved_workers(self) -> None:
@@ -96,7 +96,7 @@ class TestArchiveSettings:
         assert settings.level == 15
 
         # Invalid level should raise error
-        with pytest.raises(ValueError, match="archive.level must be between 1 and 19"):
+        with pytest.raises(ValueError, match="Input should be less than or equal to 19"):
             ArchiveSettings(level=25)
 
 
