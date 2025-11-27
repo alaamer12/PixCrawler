@@ -16,6 +16,7 @@ from sqlalchemy import select
 
 from backend.api.types import CurrentUser, DBSession, JobID, CrawlJobServiceDep
 from backend.api.v1.response_models import get_common_responses
+from backend.core.exceptions import ValidationError, NotFoundError
 from backend.models import ActivityLog, Project
 from backend.schemas.crawl_jobs import (
     CrawlJobCreate,
@@ -344,25 +345,25 @@ async def cancel_crawl_job(
         HTTPException: If job not found, wrong status, or cancellation fails
     """
     try:
-        job = await service.get_job(job_id)
-
-        if not job:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Crawl job not found"
-            )
-
-        if job.status not in ["pending", "running"]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot cancel job with status: {job.status}"
-            )
-
-        # TODO: Implement cancel logic in service
-        # await service.cancel_job(job_id)
+        # Call the service cancel_job method
+        await service.cancel_job(
+            job_id=job_id,
+            user_id=current_user["user_id"]
+        )
 
         return {"message": "Crawl job cancelled successfully"}
 
+    except ValidationError as e:
+        # Job status doesn't allow cancellation
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except NotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Crawl job not found"
+        )
     except HTTPException:
         raise
     except Exception as e:
