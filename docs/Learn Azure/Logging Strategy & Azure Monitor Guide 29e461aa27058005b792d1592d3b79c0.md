@@ -26,7 +26,8 @@ from logging_config import get_logger
 from celery import Task
 @celery_app.task(bind=True)
 def process_chunk(self: Task, chunk_id: str):
-    # Bind task-specific context    logger = get_logger().bind(
+    # Bind task-specific context    logger = get_logger().
+    bind(
         task_id=self.request.id,
         task_name=self.name,
         chunk_id=chunk_id,
