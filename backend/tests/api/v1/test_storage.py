@@ -10,13 +10,13 @@ Tests cover:
 - OpenAPI schema generation
 """
 
-import pytest
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
+import pytest
 from fastapi import status
 
+from api.dependencies import get_storage_service
 from backend.services.storage import StorageService
 
 
@@ -40,7 +40,6 @@ def mock_user():
 @pytest.fixture
 def override_dependencies(app, mock_storage_service, mock_user):
     """Override FastAPI dependencies for testing."""
-    from backend.api.v1.endpoints.storage import get_storage_service
     from backend.api.dependencies import get_current_user
 
     app.dependency_overrides[get_storage_service] = lambda: mock_storage_service
@@ -57,7 +56,7 @@ class TestGetStorageUsage:
     def test_get_storage_usage_success(self, client, override_dependencies):
         """Test successful storage usage retrieval."""
         mock_service, mock_user = override_dependencies
-        
+
         mock_usage = {
             "total_size_bytes": 1073741824,
             "total_files": 1500,
@@ -77,14 +76,14 @@ class TestGetStorageUsage:
         assert data["total_files"] == 1500
         assert data["used_percentage"] == 45.5
         assert "breakdown" in data
-        
+
         # Verify service was called
         mock_service.get_storage_stats.assert_called_once()
 
     def test_get_storage_usage_response_model(self, client, override_dependencies):
         """Test response model structure matches StorageUsageResponse schema."""
         mock_service, mock_user = override_dependencies
-        
+
         mock_usage = {
             "total_size_bytes": 1000000,
             "total_files": 100,
@@ -97,7 +96,7 @@ class TestGetStorageUsage:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Verify required fields
         required_fields = ["total_size_bytes", "total_files", "used_percentage", "breakdown"]
         for field in required_fields:
@@ -116,7 +115,7 @@ class TestListStorageFiles:
     def test_list_storage_files_success(self, client, override_dependencies):
         """Test successful file listing."""
         mock_service, mock_user = override_dependencies
-        
+
         mock_files = [
             {
                 "path": "images/dataset-1/img001.jpg",
@@ -141,14 +140,14 @@ class TestListStorageFiles:
         assert len(data) == 2
         assert data[0]["path"] == "images/dataset-1/img001.jpg"
         assert data[0]["size_bytes"] == 524288
-        
+
         # Verify service was called
         mock_service.list_files.assert_called_once_with(None)
 
     def test_list_storage_files_with_prefix(self, client, override_dependencies):
         """Test file listing with prefix filter."""
         mock_service, mock_user = override_dependencies
-        
+
         mock_files = [
             {
                 "path": "images/dataset-1/img001.jpg",
@@ -164,7 +163,7 @@ class TestListStorageFiles:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert len(data) == 1
-        
+
         # Verify service was called with prefix
         mock_service.list_files.assert_called_once_with("images/dataset-1/")
 
@@ -183,7 +182,7 @@ class TestListStorageFiles:
     def test_list_storage_files_response_model(self, client, override_dependencies):
         """Test response model structure matches List[FileInfo] schema."""
         mock_service, mock_user = override_dependencies
-        
+
         mock_files = [
             {
                 "path": "test.jpg",
@@ -198,7 +197,7 @@ class TestListStorageFiles:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Verify structure
         assert isinstance(data, list)
         if len(data) > 0:
@@ -213,7 +212,7 @@ class TestCleanupOldFiles:
     def test_cleanup_old_files_success(self, client, override_dependencies):
         """Test successful file cleanup."""
         mock_service, mock_user = override_dependencies
-        
+
         mock_cleanup_result = {
             "deleted_count": 150,
             "freed_bytes": 157286400,
@@ -233,7 +232,7 @@ class TestCleanupOldFiles:
         assert data["deleted_count"] == 150
         assert data["freed_bytes"] == 157286400
         assert data["duration_seconds"] == 2.5
-        
+
         # Verify service was called
         mock_service.cleanup_files.assert_called_once_with(
             age_hours=24,
@@ -250,7 +249,7 @@ class TestCleanupOldFiles:
     def test_cleanup_old_files_response_model(self, client, override_dependencies):
         """Test response model structure matches CleanupResponse schema."""
         mock_service, mock_user = override_dependencies
-        
+
         mock_cleanup_result = {
             "deleted_count": 10,
             "freed_bytes": 1048576,
@@ -264,7 +263,7 @@ class TestCleanupOldFiles:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Verify required fields
         required_fields = ["deleted_count", "freed_bytes", "duration_seconds"]
         for field in required_fields:
@@ -277,7 +276,7 @@ class TestGetPresignedUrl:
     def test_get_presigned_url_success(self, client, override_dependencies):
         """Test successful presigned URL generation."""
         mock_service, mock_user = override_dependencies
-        
+
         mock_url = "https://storage.example.com/file.jpg?token=abc123&expires=1234567890"
         mock_service.storage.generate_presigned_url.return_value = mock_url
 
@@ -288,14 +287,14 @@ class TestGetPresignedUrl:
         assert "url" in data
         assert "expires_at" in data
         assert data["url"] == mock_url
-        
+
         # Verify service was called
         mock_service.storage.generate_presigned_url.assert_called_once()
 
     def test_get_presigned_url_with_custom_expiry(self, client, override_dependencies):
         """Test presigned URL with custom expiration."""
         mock_service, mock_user = override_dependencies
-        
+
         mock_url = "https://storage.example.com/file.jpg?token=xyz789"
         mock_service.storage.generate_presigned_url.return_value = mock_url
 
@@ -307,7 +306,7 @@ class TestGetPresignedUrl:
         data = response.json()
         assert "url" in data
         assert "expires_at" in data
-        
+
         # Verify service was called with custom expiry
         call_args = mock_service.storage.generate_presigned_url.call_args
         assert call_args[1]["expires_in"] == 7200
@@ -335,7 +334,7 @@ class TestGetPresignedUrl:
     def test_get_presigned_url_response_structure(self, client, override_dependencies):
         """Test response structure."""
         mock_service, mock_user = override_dependencies
-        
+
         mock_url = "https://storage.example.com/file.jpg"
         mock_service.storage.generate_presigned_url.return_value = mock_url
 
@@ -343,7 +342,7 @@ class TestGetPresignedUrl:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Verify structure
         assert "url" in data
         assert "expires_at" in data
@@ -357,11 +356,11 @@ class TestOpenAPISchema:
     def test_storage_endpoints_in_openapi(self, client):
         """Test that all storage endpoints are documented."""
         response = client.get("/openapi.json")
-        
+
         assert response.status_code == status.HTTP_200_OK
         openapi_schema = response.json()
         paths = openapi_schema.get("paths", {})
-        
+
         # Check endpoints exist
         assert "/api/v1/storage/usage/" in paths
         assert "/api/v1/storage/files/" in paths
@@ -373,7 +372,7 @@ class TestOpenAPISchema:
         response = client.get("/openapi.json")
         openapi_schema = response.json()
         paths = openapi_schema.get("paths", {})
-        
+
         # Check operation IDs
         assert paths["/api/v1/storage/usage/"]["get"]["operationId"] == "getStorageUsage"
         assert paths["/api/v1/storage/files/"]["get"]["operationId"] == "listStorageFiles"
@@ -385,7 +384,7 @@ class TestOpenAPISchema:
         response = client.get("/openapi.json")
         openapi_schema = response.json()
         paths = openapi_schema.get("paths", {})
-        
+
         # Check response models exist
         assert "200" in paths["/api/v1/storage/usage/"]["get"]["responses"]
         assert "200" in paths["/api/v1/storage/files/"]["get"]["responses"]
@@ -397,7 +396,7 @@ class TestOpenAPISchema:
         response = client.get("/openapi.json")
         openapi_schema = response.json()
         paths = openapi_schema.get("paths", {})
-        
+
         # Check examples exist
         usage_response = paths["/api/v1/storage/usage/"]["get"]["responses"]["200"]
         assert "content" in usage_response
@@ -411,7 +410,7 @@ class TestIntegrationFlow:
     def test_complete_storage_workflow(self, client, override_dependencies):
         """Test complete storage workflow: usage -> list -> cleanup."""
         mock_service, mock_user = override_dependencies
-        
+
         # Mock responses
         mock_service.get_storage_stats.return_value = {
             "total_size_bytes": 1000000,

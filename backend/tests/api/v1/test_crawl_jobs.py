@@ -13,15 +13,15 @@ Tests cover:
 - OpenAPI schema generation
 """
 
-import pytest
 import uuid
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import pytest
 from fastapi import status
 
-from backend.models import CrawlJob, Project, ActivityLog
+from backend.models import CrawlJob, ActivityLog
 from backend.services.crawl_job import CrawlJobService
 
 
@@ -51,7 +51,6 @@ def sample_crawl_job(mock_user):
         id=1,
         project_id=project_id,
         name="Test Crawl Job",
-        keywords=["cats", "dogs"],
         max_images=1000,
         status="running",
         progress=50,
@@ -68,12 +67,11 @@ def sample_crawl_job(mock_user):
 @pytest.fixture
 def override_dependencies(app, mock_crawl_job_service, mock_user):
     """Override FastAPI dependencies for testing."""
-    from backend.api.v1.endpoints.crawl_jobs import get_crawl_job_service
-    from backend.api.dependencies import get_current_user, get_session
+    from backend.api.dependencies import get_current_user, get_session, get_crawl_job_service
 
     # Mock database session
     mock_session = AsyncMock()
-    
+
     app.dependency_overrides[get_crawl_job_service] = lambda: mock_crawl_job_service
     app.dependency_overrides[get_current_user] = lambda: mock_user
     app.dependency_overrides[get_session] = lambda: mock_session
@@ -89,7 +87,7 @@ class TestListCrawlJobs:
     def test_list_crawl_jobs_success(self, client, override_dependencies, sample_crawl_job):
         """Test successful crawl jobs listing."""
         mock_service, mock_user, mock_session = override_dependencies
-        
+
         # Mock paginate function
         with patch('backend.api.v1.endpoints.crawl_jobs.paginate') as mock_paginate:
             mock_paginate.return_value = {
@@ -98,7 +96,7 @@ class TestListCrawlJobs:
                 "page": 1,
                 "size": 50
             }
-            
+
             response = client.get("/api/v1/crawl-jobs/")
 
             assert response.status_code == status.HTTP_200_OK
@@ -111,7 +109,7 @@ class TestListCrawlJobs:
         """Test pagination parameters."""
         with patch('backend.api.v1.endpoints.crawl_jobs.paginate') as mock_paginate:
             mock_paginate.return_value = {"items": [], "total": 0, "page": 2, "size": 25}
-            
+
             response = client.get("/api/v1/crawl-jobs/?page=2&size=25")
 
             assert response.status_code == status.HTTP_200_OK
@@ -123,12 +121,12 @@ class TestListCrawlJobs:
         """Test response model structure."""
         with patch('backend.api.v1.endpoints.crawl_jobs.paginate') as mock_paginate:
             mock_paginate.return_value = {"items": [sample_crawl_job], "total": 1}
-            
+
             response = client.get("/api/v1/crawl-jobs/")
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
-            
+
             # Verify pagination structure
             assert "items" in data
             assert "total" in data
@@ -156,7 +154,7 @@ class TestCreateCrawlJob:
         assert data["name"] == "Test Crawl Job"
         assert data["status"] == "running"
         assert "id" in data
-        
+
         # Verify service was called
         mock_service.create_job.assert_called_once()
 
@@ -183,7 +181,7 @@ class TestCreateCrawlJob:
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
-        
+
         # Verify required fields
         required_fields = ["id", "project_id", "name", "keywords", "status", "progress"]
         for field in required_fields:
@@ -197,7 +195,7 @@ class TestGetCrawlJob:
         """Test successful crawl job retrieval."""
         mock_service, user, mock_session = override_dependencies
         mock_service.get_job.return_value = sample_crawl_job
-        
+
         # Mock ownership check
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = uuid.UUID(mock_user["user_id"])
@@ -224,7 +222,7 @@ class TestGetCrawlJob:
         """Test unauthorized access to another user's job."""
         mock_service, mock_user, mock_session = override_dependencies
         mock_service.get_job.return_value = sample_crawl_job
-        
+
         # Mock ownership check - different user
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = uuid4()  # Different user
@@ -281,7 +279,7 @@ class TestRetryCrawlJob:
         mock_service, user, mock_session = override_dependencies
         sample_crawl_job.status = "failed"
         mock_service.get_job.return_value = sample_crawl_job
-        
+
         # Mock ownership check
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = uuid.UUID(mock_user["user_id"])
@@ -299,7 +297,7 @@ class TestRetryCrawlJob:
         mock_service, user, mock_session = override_dependencies
         sample_crawl_job.status = "running"
         mock_service.get_job.return_value = sample_crawl_job
-        
+
         # Mock ownership check
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = uuid.UUID(mock_user["user_id"])
@@ -317,11 +315,11 @@ class TestGetCrawlJobLogs:
         """Test successful log retrieval."""
         mock_service, user, mock_session = override_dependencies
         mock_service.get_job.return_value = sample_crawl_job
-        
+
         # Mock ownership check
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = uuid.UUID(mock_user["user_id"])
-        
+
         # Mock logs query
         mock_logs = [
             ActivityLog(
@@ -336,7 +334,7 @@ class TestGetCrawlJobLogs:
         ]
         mock_logs_result = MagicMock()
         mock_logs_result.scalars.return_value.all.return_value = mock_logs
-        
+
         mock_session.execute.side_effect = [mock_result, mock_logs_result]
 
         response = client.get("/api/v1/crawl-jobs/1/logs")
@@ -355,7 +353,7 @@ class TestGetCrawlJobProgress:
         """Test successful progress retrieval."""
         mock_service, user, mock_session = override_dependencies
         mock_service.get_job.return_value = sample_crawl_job
-        
+
         # Mock ownership check
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = uuid.UUID(mock_user["user_id"])
@@ -378,11 +376,11 @@ class TestOpenAPISchema:
     def test_crawl_jobs_endpoints_in_openapi(self, client):
         """Test that all crawl job endpoints are documented."""
         response = client.get("/openapi.json")
-        
+
         assert response.status_code == status.HTTP_200_OK
         openapi_schema = response.json()
         paths = openapi_schema.get("paths", {})
-        
+
         # Check endpoints exist
         assert "/api/v1/crawl-jobs/" in paths
         assert "/api/v1/crawl-jobs/{job_id}" in paths
@@ -396,7 +394,7 @@ class TestOpenAPISchema:
         response = client.get("/openapi.json")
         openapi_schema = response.json()
         paths = openapi_schema.get("paths", {})
-        
+
         # Check operation IDs
         assert paths["/api/v1/crawl-jobs/"]["get"]["operationId"] == "listCrawlJobs"
         assert paths["/api/v1/crawl-jobs/"]["post"]["operationId"] == "createCrawlJob"
