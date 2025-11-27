@@ -11,6 +11,7 @@ Exports:
     - ImageRepository: Image data access
     - UserRepository: User/Profile data access
     - ActivityLogRepository: ActivityLog data access
+    - JobChunkRepository: JobChunk data access
 """
 
 from .base import BaseRepository
@@ -19,6 +20,7 @@ from .project_repository import ProjectRepository
 from .image_repository import ImageRepository
 from .user_repository import UserRepository
 from .activity_log_repository import ActivityLogRepository
+from .job_chunk_repository import JobChunkRepository
 
 __all__ = [
     "BaseRepository",
@@ -27,4 +29,5 @@ __all__ = [
     "ImageRepository",
     "UserRepository",
     "ActivityLogRepository",
+    "JobChunkRepository",
 ]
