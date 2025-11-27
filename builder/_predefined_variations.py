@@ -367,7 +367,7 @@ def get_background_variations() -> List[str]:
 
 
 def get_size_format_variations() -> List[str]:
-    """Size and format variations"""
+    """Size and format_ variations"""
     return [
         "{keyword} small",
         "{keyword} large",

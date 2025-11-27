@@ -150,12 +150,12 @@ const ConfigItem = memo(({
       case 'select':
         return (
           <Select value={value} onValueChange={onChange}>
-            <SelectTrigger className="bg-background/50">
+            <SelectTrigger className="bg-gradient-to-br from-background/60 to-background/30 border border-border/60 hover:border-primary/40 hover:from-background/70 rounded-xl shadow-sm px-3 py-2">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-xl border-border/50 bg-background/90 backdrop-blur-md shadow-lg">
               {option.options?.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>
+                <SelectItem key={opt.value} value={opt.value} className="gap-2 py-2">
                   <div className="flex flex-col">
                     <span>{opt.label}</span>
                     {opt.description && (

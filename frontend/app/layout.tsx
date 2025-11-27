@@ -1,20 +1,21 @@
 import './globals.css';
-import type {Metadata, Viewport} from 'next';
-import {Manrope} from 'next/font/google';
-import {Toaster} from 'sonner';
+import type { Metadata, Viewport } from 'next';
+import { Manrope } from 'next/font/google';
+import { Toaster } from 'sonner';
 
-import {ThemeProvider} from '@/components/theme-provider';
-import {Navigation} from '@/components/LandingPage/Navigation';
-import {Footer} from '@/components/LandingPage/Footer';
-import {HeroBackground} from '@/components/LandingPage/HeroBackground';
-import {TopLoadingBar} from '@/components/TopLoadingBar';
-import {ErrorBoundaryProvider} from '@/components/providers/error-boundary-provider';
+import { ThemeProvider } from '@/components/theme-provider';
+import { Navigation } from '@/components/LandingPage/Navigation';
+import { Footer } from '@/components/LandingPage/Footer';
+import { HeroBackground } from '@/components/LandingPage/HeroBackground';
+import { TopLoadingBar } from '@/components/TopLoadingBar';
+import { ErrorBoundaryProvider } from '@/components/providers/error-boundary-provider';
+import { AuthProvider } from '@/components/providers/auth-provider';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'PixCrawler - AI-Powered Image Dataset Builder for ML & Research',
   description: 'Build production-ready image datasets in minutes with AI-powered crawling, validation, and organization. Multi-source scraping from Google, Bing, and more. Perfect for ML researchers and developers.',
   keywords: ['image dataset', 'machine learning', 'AI dataset builder', 'image scraping', 'ML training data', 'computer vision', 'dataset generation'],
-  authors: [{name: 'PixCrawler'}],
+  authors: [{ name: 'PixCrawler' }],
   creator: 'PixCrawler',
   publisher: 'PixCrawler',
   robots: {
@@ -58,8 +59,8 @@ const manrope = Manrope({
 });
 
 export default function RootLayout({
-                                     children
-                                   }: {
+  children
+}: {
   children: React.ReactNode;
 }) {
   return (
@@ -68,32 +69,34 @@ export default function RootLayout({
       className={manrope.variable}
       suppressHydrationWarning
     >
-    <head>
-      <link rel="preconnect" href="https://fonts.googleapis.com"/>
-      <link rel="dns-prefetch" href="https://fonts.googleapis.com"/>
-    </head>
-    <body className="min-h-screen bg-background text-foreground antialiased">
-    <ErrorBoundaryProvider>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-      >
-        <TopLoadingBar>
-          <div className="relative min-h-screen overflow-hidden">
-            <HeroBackground/>
-            <div className="relative z-10 flex flex-col min-h-screen">
-              <Navigation/>
-              <main className="flex-1">{children}</main>
-              <Footer/>
-            </div>
-          </div>
-        </TopLoadingBar>
-        <Toaster richColors position="top-right"/>
-      </ThemeProvider>
-    </ErrorBoundaryProvider>
-    </body>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+      </head>
+      <body className="min-h-screen bg-background text-foreground antialiased" suppressHydrationWarning>
+        <ErrorBoundaryProvider>
+          <AuthProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <TopLoadingBar>
+                <div className="relative min-h-screen overflow-hidden">
+                  <HeroBackground />
+                  <div className="relative z-10 flex flex-col min-h-screen">
+                    <Navigation />
+                    <main className="flex-1">{children}</main>
+                    <Footer />
+                  </div>
+                </div>
+              </TopLoadingBar>
+              <Toaster richColors position="top-right" />
+            </ThemeProvider>
+          </AuthProvider>
+        </ErrorBoundaryProvider>
+      </body>
     </html>
   );
 }

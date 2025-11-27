@@ -396,7 +396,7 @@ def validate_image_fast_task(
 
     Fast validation checks:
     - File exists and is readable
-    - Valid image format
+    - Valid image format_
     - Basic file size checks
 
     Args:

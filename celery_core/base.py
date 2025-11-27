@@ -6,7 +6,7 @@ consistent task implementations across all PixCrawler packages.
 
 Classes:
     BaseTask: Abstract base class for all PixCrawler tasks
-    TaskResult: Standardized task result format
+    TaskResult: Standardized task result format_
     TaskContext: Task execution context information
 
 Functions:
@@ -56,7 +56,7 @@ class TaskStatus(Enum):
 
 class TaskResult(BaseModel):
     """
-    Enhanced standardized task result format with Pydantic V2 validation.
+    Enhanced standardized task result format_ with Pydantic V2 validation.
 
     This class provides a consistent structure for task results across
     all PixCrawler packages, making it easier to handle and process
@@ -238,7 +238,7 @@ class TaskContext(BaseModel):
     kwargs: Dict[str, Any] = Field(
         default_factory=dict,
         description="Task keyword arguments",
-        examples=[{}, {"param1": "value1"}, {"max_images": 100, "format": "jpg"}]
+        examples=[{}, {"param1": "value1"}, {"max_images": 100, "format_": "jpg"}]
     )
     retries: int = Field(
         default=0,

@@ -37,9 +37,9 @@ __all__ = [
 class CreditAccount(Base, TimestampMixin):
     """
     Credit account model for user billing.
-    
+
     Tracks user credit balance, usage, and auto-refill settings.
-    
+
     Attributes:
         id: UUID primary key
         user_id: Reference to profiles.id
@@ -51,16 +51,16 @@ class CreditAccount(Base, TimestampMixin):
         refill_amount: Amount to add when refilling
         monthly_limit: Maximum credits per month
     """
-    
+
     __tablename__ = "credit_accounts"
-    
+
     # Primary key
     id: Mapped[UUID] = mapped_column(
         SQLAlchemyUUID(as_uuid=True),
         primary_key=True,
         server_default=func.gen_random_uuid(),
     )
-    
+
     # Foreign key
     user_id: Mapped[UUID] = mapped_column(
         SQLAlchemyUUID(as_uuid=True),
@@ -69,7 +69,7 @@ class CreditAccount(Base, TimestampMixin):
         unique=True,
         index=True,
     )
-    
+
     # Balance tracking
     current_balance: Mapped[int] = mapped_column(
         Integer,
@@ -77,21 +77,21 @@ class CreditAccount(Base, TimestampMixin):
         default=0,
         server_default="0",
     )
-    
+
     monthly_usage: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         default=0,
         server_default="0",
     )
-    
+
     average_daily_usage: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
         nullable=False,
         default=Decimal("0.00"),
         server_default="0.00",
     )
-    
+
     # Auto-refill settings
     auto_refill_enabled: Mapped[bool] = mapped_column(
         Boolean,
@@ -99,28 +99,28 @@ class CreditAccount(Base, TimestampMixin):
         default=False,
         server_default="false",
     )
-    
+
     refill_threshold: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         default=100,
         server_default="100",
     )
-    
+
     refill_amount: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         default=500,
         server_default="500",
     )
-    
+
     monthly_limit: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         default=2000,
         server_default="2000",
     )
-    
+
     # Relationships
     user: Mapped["Profile"] = relationship(
         "Profile",
@@ -133,7 +133,7 @@ class CreditAccount(Base, TimestampMixin):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
-    
+
     # Constraints
     __table_args__ = (
         CheckConstraint("current_balance >= 0", name="ck_credit_accounts_balance_positive"),
@@ -148,10 +148,10 @@ class CreditAccount(Base, TimestampMixin):
 class CreditTransaction(Base):
     """
     Credit transaction model for billing history.
-    
+
     Records all credit-related transactions including purchases,
     usage, refunds, and bonuses.
-    
+
     Attributes:
         id: UUID primary key
         account_id: Reference to credit_accounts.id
@@ -164,16 +164,16 @@ class CreditTransaction(Base):
         metadata_: Additional transaction data (JSON)
         created_at: Transaction timestamp
     """
-    
+
     __tablename__ = "credit_transactions"
-    
+
     # Primary key
     id: Mapped[UUID] = mapped_column(
         SQLAlchemyUUID(as_uuid=True),
         primary_key=True,
         server_default=func.gen_random_uuid(),
     )
-    
+
     # Foreign keys
     account_id: Mapped[UUID] = mapped_column(
         SQLAlchemyUUID(as_uuid=True),
@@ -181,36 +181,36 @@ class CreditTransaction(Base):
         nullable=False,
         index=True,
     )
-    
+
     user_id: Mapped[UUID] = mapped_column(
         SQLAlchemyUUID(as_uuid=True),
         ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    
+
     # Transaction details
     type: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
         index=True,
     )
-    
+
     description: Mapped[str] = mapped_column(
         Text,
         nullable=False,
     )
-    
+
     amount: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
     )
-    
+
     balance_after: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
     )
-    
+
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
@@ -218,13 +218,13 @@ class CreditTransaction(Base):
         server_default="completed",
         index=True,
     )
-    
+
     metadata_: Mapped[Optional[dict]] = mapped_column(
         "metadata",
         JSONB,
         nullable=True,
     )
-    
+
     # Timestamp
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -232,14 +232,14 @@ class CreditTransaction(Base):
         server_default=func.now(),
         index=True,
     )
-    
+
     # Relationships
     account: Mapped["CreditAccount"] = relationship(
         "CreditAccount",
         back_populates="transactions",
         lazy="joined",
     )
-    
+
     # Constraints
     __table_args__ = (
         CheckConstraint(

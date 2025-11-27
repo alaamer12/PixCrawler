@@ -199,7 +199,7 @@ def process_keywords(base_keywords: List[str], config: JobConfig) -> List[str]:
 
 ```python
 def discover_urls(keywords: List[str], engines: List[str]) -> List[ImageURL]:
-    """    1. Query multiple search engines in parallel    2. Aggregate and deduplicate URLs    3. Apply initial filtering (format, size)    4. Prioritize URLs by source reliability    5. Return ranked URL list    """    pass
+    """    1. Query multiple search engines in parallel    2. Aggregate and deduplicate URLs    3. Apply initial filtering (format_, size)    4. Prioritize URLs by source reliability    5. Return ranked URL list    """    pass
 ```
 
 ### Phase 3: Image Download

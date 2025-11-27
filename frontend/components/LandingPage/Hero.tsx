@@ -24,7 +24,7 @@ export const Hero = memo(() => {
           </Button>
           <Button asChild variant="outline" size="lg">
             <Link href="/#features">
-              View Demo
+              Learn More
             </Link>
           </Button>
         </div>

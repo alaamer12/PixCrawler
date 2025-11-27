@@ -15,8 +15,10 @@ __all__ = [
     'StorageTier',
     'StorageUsageResponse',
     'FileInfo',
+    'FileListResponse',
     'CleanupRequest',
     'CleanupResponse',
+    'PresignedUrlResponse',
 ]
 
 
@@ -148,6 +150,30 @@ class CleanupRequest(BaseModel):
         return v
 
 
+class FileListResponse(BaseModel):
+    """Response model for file list."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    data: list[FileInfo] = Field(
+        description="List of files",
+        examples=[[{
+            "file_id": "abc123",
+            "filename": "image_001.jpg",
+            "size_bytes": 1048576,
+            "storage_tier": "hot",
+            "created_at": "2024-01-27T10:00:00Z",
+            "last_accessed": "2024-01-27T12:00:00Z"
+        }]]
+    )
+    
+    meta: dict = Field(
+        default_factory=lambda: {"total": 0, "skip": 0, "limit": 50},
+        description="Pagination metadata",
+        examples=[{"total": 100, "skip": 0, "limit": 50}]
+    )
+
+
 class CleanupResponse(BaseModel):
     """Response model for cleanup operation."""
     
@@ -179,4 +205,27 @@ class CleanupResponse(BaseModel):
     message: str = Field(
         description="Result message",
         examples=["Cleanup completed successfully", "Dry run completed - no files deleted"],
+    )
+
+
+class PresignedUrlResponse(BaseModel):
+    """Response model for presigned URL generation."""
+    
+    model_config = ConfigDict(
+        from_attributes=True,
+        str_strip_whitespace=True,
+    )
+    
+    url: str = Field(
+        min_length=1,
+        description="Presigned URL for temporary file access",
+        examples=[
+            "https://storage.example.com/file.jpg?token=abc123&expires=1234567890",
+            "https://pixcrawler.blob.core.windows.net/datasets/file.zip?sig=xyz789"
+        ]
+    )
+    
+    expires_at: datetime = Field(
+        description="URL expiration timestamp",
+        examples=["2024-01-27T13:00:00Z", "2024-01-28T10:00:00Z"]
     )

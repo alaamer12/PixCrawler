@@ -86,7 +86,7 @@ export function validateDatasetForm(data: DatasetFormData): ValidationResult {
     errors.keywords = 'At least one keyword is required'
   } else {
     const keywordList = data.keywords.split(',').map(k => k.trim()).filter(k => k.length > 0)
-    
+
     if (keywordList.length === 0) {
       errors.keywords = 'At least one valid keyword is required'
     } else if (keywordList.length > 50) {
@@ -130,7 +130,7 @@ export function validateDatasetForm(data: DatasetFormData): ValidationResult {
   if (data.imageCount && data.sources && data.keywords) {
     const keywordCount = data.keywords.split(',').filter(k => k.trim()).length
     const estimatedTotal = data.imageCount * keywordCount * data.sources.length
-    
+
     if (estimatedTotal > 10000) {
       warnings.general = `This configuration will download ~${estimatedTotal.toLocaleString()} images. Consider reducing image count or keywords.`
     }
@@ -159,7 +159,7 @@ export function validateConfigValue(
         errors[id] = 'Value must be a number'
       }
       break
-    
+
     case 'input':
       if (typeof value !== 'string') {
         errors[id] = 'Value must be a string'
@@ -167,7 +167,7 @@ export function validateConfigValue(
         errors[id] = 'Value cannot be empty'
       }
       break
-    
+
     case 'multi-select':
       if (!Array.isArray(value)) {
         errors[id] = 'Value must be an array'
@@ -203,7 +203,7 @@ export function formatKeywords(keywords: string): string[] {
 }
 
 /**
- * Validate email format
+ * Validate email format_
  */
 export function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -211,7 +211,7 @@ export function isValidEmail(email: string): boolean {
 }
 
 /**
- * Validate URL format
+ * Validate URL format_
  */
 export function isValidUrl(url: string): boolean {
   try {
@@ -237,7 +237,7 @@ export function debounce<T extends (...args: any[]) => any>(
   wait: number
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout | null = null
-  
+
   return (...args: Parameters<T>) => {
     if (timeout) clearTimeout(timeout)
     timeout = setTimeout(() => func(...args), wait)

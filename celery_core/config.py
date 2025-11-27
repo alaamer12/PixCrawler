@@ -34,12 +34,12 @@ __all__ = [
 class CelerySettings(BaseSettings):
     """
     Enhanced Pydantic Settings for Celery configuration.
-    
+
     This class manages environment-based configuration for Celery across
     all PixCrawler packages. Uses PIXCRAWLER_CELERY_ prefix for environment variables.
     Enhanced with comprehensive validation and professional Pydantic V2 features.
     """
-    
+
     model_config = SettingsConfigDict(
         env_prefix="PIXCRAWLER_CELERY_",
         env_file=".env",
@@ -50,7 +50,7 @@ class CelerySettings(BaseSettings):
         str_strip_whitespace=True,
         use_enum_values=True
     )
-    
+
     # Broker and Result Backend
     broker_url: str = Field(
         default="redis://localhost:6379/0",
@@ -64,7 +64,7 @@ class CelerySettings(BaseSettings):
         description="Celery result backend URL",
         examples=["redis://localhost:6379/1", "db+postgresql://user:pass@localhost/celery"]
     )
-    
+
     # Basic Settings
     timezone: str = Field(
         default="UTC",
@@ -80,12 +80,12 @@ class CelerySettings(BaseSettings):
     )
     task_serializer: str = Field(
         default="json",
-        description="Task serialization format",
+        description="Task serialization format_",
         examples=["json", "pickle", "yaml", "msgpack"]
     )
     result_serializer: str = Field(
         default="json",
-        description="Result serialization format",
+        description="Result serialization format_",
         examples=["json", "pickle", "yaml", "msgpack"]
     )
     accept_content: List[str] = Field(
@@ -95,7 +95,7 @@ class CelerySettings(BaseSettings):
         description="Accepted content types",
         examples=[["json"], ["json", "pickle"], ["json", "yaml", "msgpack"]]
     )
-    
+
     # Task Settings
     task_track_started: bool = Field(
         default=True,
@@ -126,7 +126,7 @@ class CelerySettings(BaseSettings):
         description="Reject tasks when worker is lost",
         examples=[True, False]
     )
-    
+
     # Worker Settings
     worker_concurrency: int = Field(
         default=35,
@@ -175,7 +175,7 @@ class CelerySettings(BaseSettings):
         description="Maximum concurrency when autoscale is enabled",
         examples=[35, 20, 50]
     )
-    
+
     # Retry Settings
     task_default_retry_delay: int = Field(
         default=60,
@@ -191,7 +191,7 @@ class CelerySettings(BaseSettings):
         description="Maximum number of task retries",
         examples=[0, 1, 3, 5, 10]
     )
-    
+
     # Result Settings
     result_expires: int = Field(
         default=3600,  # 1 hour
@@ -205,7 +205,7 @@ class CelerySettings(BaseSettings):
         description="Persist results in backend",
         examples=[True, False]
     )
-    
+
     # Monitoring
     enable_monitoring: bool = Field(
         default=True,
@@ -229,7 +229,7 @@ class CelerySettings(BaseSettings):
         description="Send task sent events",
         examples=[True, False]
     )
-    
+
     # Security
     worker_hijack_root_logger: bool = Field(
         default=False,
@@ -241,7 +241,7 @@ class CelerySettings(BaseSettings):
         description="Enable colored logging in workers",
         examples=[True, False]
     )
-    
+
     # Performance (Production)
     task_compression: Optional[str] = Field(
         default=None,
@@ -253,7 +253,7 @@ class CelerySettings(BaseSettings):
         description="Result compression algorithm (gzip, bzip2, lzma)",
         examples=[None, "gzip", "bzip2", "lzma"]
     )
-    
+
     # Queue Configuration
     default_queue: str = Field(
         default="default",
@@ -292,17 +292,17 @@ class CelerySettings(BaseSettings):
         description="Enable Celery Beat scheduler",
         examples=[True, False]
     )
-    
+
     @field_validator('task_serializer', 'result_serializer')
     @classmethod
     def validate_serializer(cls, v: str) -> str:
-        """Validate serializer format."""
+        """Validate serializer format_."""
         valid_serializers = ['json', 'pickle', 'yaml', 'msgpack']
         v = v.strip().lower()
         if v not in valid_serializers:
             raise ValueError(f'Serializer must be one of {valid_serializers}')
         return v
-    
+
     @field_validator('task_compression', 'result_compression')
     @classmethod
     def validate_compression(cls, v: Optional[str]) -> Optional[str]:
@@ -314,7 +314,7 @@ class CelerySettings(BaseSettings):
         if v not in valid_compression:
             raise ValueError(f'Compression must be one of {valid_compression}')
         return v
-    
+
     @field_validator('broker_url', 'result_backend')
     @classmethod
     def validate_urls(cls, v: str) -> str:
@@ -322,12 +322,12 @@ class CelerySettings(BaseSettings):
         v = v.strip()
         if not v:
             raise ValueError("URL cannot be empty")
-        
+
         # Basic URL validation
         valid_schemes = ['redis', 'amqp', 'sqs', 'db+postgresql', 'db+mysql', 'mongodb']
         if not any(v.startswith(f"{scheme}://") for scheme in valid_schemes):
             raise ValueError(f"URL must start with one of: {', '.join(scheme + '://' for scheme in valid_schemes)}")
-        
+
         return v
 
     @field_validator('timezone')
@@ -337,13 +337,13 @@ class CelerySettings(BaseSettings):
         v = v.strip()
         if not v:
             raise ValueError("Timezone cannot be empty")
-        
+
         # Basic timezone validation
         common_timezones = ['UTC', 'GMT', 'EST', 'PST', 'CET']
         if v not in common_timezones and '/' not in v:
             # Allow common formats like America/New_York
-            raise ValueError(f"Invalid timezone format. Use UTC, GMT, or continent/city format")
-        
+            raise ValueError(f"Invalid timezone format_. Use UTC, GMT, or continent/city format_")
+
         return v
 
     @field_validator('task_soft_time_limit')
@@ -366,7 +366,7 @@ class CelerySettings(BaseSettings):
                 raise ValueError(f'Content type {content} must be one of {valid_content}')
             if content not in cleaned:
                 cleaned.append(content)
-        
+
         if not cleaned:
             raise ValueError("At least one content type must be specified")
         return cleaned
@@ -377,36 +377,36 @@ class CelerySettings(BaseSettings):
         # Validate time limits relationship
         if self.task_soft_time_limit >= self.task_time_limit:
             raise ValueError("task_soft_time_limit must be less than task_time_limit")
-        
+
         # Validate retry settings
         if self.task_default_retry_delay > self.task_time_limit:
             raise ValueError("task_default_retry_delay should not exceed task_time_limit")
-        
+
         # Validate result expiration
         if self.result_expires < 60:
             raise ValueError("result_expires should be at least 60 seconds")
-        
+
         # Validate worker settings
         if self.worker_max_memory_per_child < 50000:  # 50MB
             raise ValueError("worker_max_memory_per_child should be at least 50MB (50000 KB)")
         if self.worker_autoscale_enabled and self.worker_autoscale_min > self.worker_autoscale_max:
             raise ValueError("worker_autoscale_min cannot be greater than worker_autoscale_max")
-        
+
         # Validate monitoring settings
         if self.enable_monitoring and not (1024 <= self.flower_port <= 65535):
             raise ValueError("flower_port must be between 1024 and 65535 when monitoring is enabled")
-        
+
         # Validate queue names consistency
         if self.default_queue != self.task_default_queue:
             # Log warning but don't fail
             pass
-        
+
         return self
-    
+
     def get_celery_config(self) -> Dict[str, Any]:
         """
         Generate Celery configuration dictionary.
-        
+
         Returns:
             Dict containing Celery configuration
         """
@@ -414,16 +414,16 @@ class CelerySettings(BaseSettings):
             # Broker and backend
             'broker_url': self.broker_url,
             'result_backend': self.result_backend,
-            
+
             # Serialization
             'task_serializer': self.task_serializer,
             'result_serializer': self.result_serializer,
             'accept_content': self.accept_content,
-            
+
             # Timezone
             'timezone': self.timezone,
             'enable_utc': self.enable_utc,
-            
+
             # Task settings
             'task_track_started': self.task_track_started,
             'task_time_limit': self.task_time_limit,
@@ -432,40 +432,40 @@ class CelerySettings(BaseSettings):
             'task_reject_on_worker_lost': self.task_reject_on_worker_lost,
             'task_default_retry_delay': self.task_default_retry_delay,
             'task_max_retries': self.task_max_retries,
-            
+
             # Worker settings
             'worker_prefetch_multiplier': self.worker_prefetch_multiplier,
             'worker_max_tasks_per_child': self.worker_max_tasks_per_child,
             'worker_max_memory_per_child': self.worker_max_memory_per_child,
             'worker_hijack_root_logger': self.worker_hijack_root_logger,
             'worker_log_color': self.worker_log_color,
-            
+
             # Result settings
             'result_expires': self.result_expires,
             'result_persistent': self.result_persistent,
-            
+
             # Monitoring
             'worker_send_task_events': self.worker_send_task_events,
             'task_send_sent_event': self.task_send_sent_event,
-            
+
             # Queue settings
             'task_default_queue': self.task_default_queue,
             'task_queue_max_priority': self.task_queue_max_priority,
             'task_default_priority': self.task_default_priority,
         }
-        
+
         # Add compression if enabled
         if self.task_compression:
             config['task_compression'] = self.task_compression
         if self.result_compression:
             config['result_compression'] = self.result_compression
-        
+
         return config
-    
+
     def get_worker_config(self) -> Dict[str, Any]:
         """
         Generate worker-specific configuration.
-        
+
         Returns:
             Dict containing worker configuration
         """
@@ -478,11 +478,11 @@ class CelerySettings(BaseSettings):
             'soft_time_limit': self.task_soft_time_limit,
             'autoscale': (self.worker_autoscale_max, self.worker_autoscale_min) if self.worker_autoscale_enabled else None,
         }
-    
+
     def get_monitoring_config(self) -> Dict[str, Any]:
         """
         Generate monitoring configuration.
-        
+
         Returns:
             Dict containing monitoring configuration
         """
@@ -498,7 +498,7 @@ class CelerySettings(BaseSettings):
 def get_celery_settings() -> CelerySettings:
     """
     Get cached Celery settings instance.
-    
+
     Returns:
         CelerySettings: Configured settings instance
     """

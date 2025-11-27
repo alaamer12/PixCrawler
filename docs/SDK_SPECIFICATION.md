@@ -666,7 +666,7 @@ pixcrawler download <job_id> --api-key <key> [options]
 pixcrawler download job_123 --api-key mykey
 
 # Download as image files
-pixcrawler download job_123 --api-key mykey --format images --output-dir ./my_dataset
+pixcrawler download job_123 --api-key mykey --format_ images --output-dir ./my_dataset
 
 # Fast parallel download
 pixcrawler download job_123 --api-key mykey --max-workers 8

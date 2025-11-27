@@ -67,9 +67,10 @@ class Archiver:
             level: Compression level (1-19)
         """
         # Configure zstd compression parameters with multi-threading
-        cparams = zstd.ZstdCompressionParameters.from_level(level=level, threads=-1)
+        # Note: from_level() takes level as positional argument, not keyword
+        cparams = zstd.ZstdCompressionParameters.from_level(level, threads=-1)
         compressor = zstd.ZstdCompressor(compression_params=cparams)
-        
+
         # Stream compress from source to destination
         with open(src, "rb") as f_in, open(dst, "wb") as f_out:
             compressor.copy_stream(f_in, f_out)
@@ -80,7 +81,7 @@ class Archiver:
 
         Args:
             output: Output file path
-            use_tar: Whether to use tar format before compression
+            use_tar: Whether to use tar format_ before compression
             kind: Archive type ("zstd", "zip", "none")
             level: Compression level
 
@@ -89,7 +90,7 @@ class Archiver:
         """
         # Ensure output directory exists
         output.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Create ZIP archive (no tar needed)
         if kind == "zip" or not use_tar:
             with zipfile.ZipFile(output.with_suffix(".zip"), "w", compression=zipfile.ZIP_DEFLATED) as zf:
@@ -100,18 +101,21 @@ class Archiver:
                         # Add file with relative path as archive name
                         zf.write(p, arcname=str(p.relative_to(self.root)))
             return output.with_suffix(".zip")
-        
+
         # Create tar+zstd archive
         with tempfile.TemporaryDirectory() as td:
             # First create tar archive in temp directory
             tar_path = Path(td) / "data.tar"
             self._tar_dir(tar_path)
-            
+
             # Then compress with zstd if requested
             if kind == "zstd":
                 out = output if output.suffix else output.with_suffix(".zst")
                 self._compress_zstd(tar_path, out, level)
                 return out
-            
-            # Return uncompressed tar
-            return tar_path
+
+            # For uncompressed tar, copy to output location
+            out = output if output.suffix == ".tar" else output.with_suffix(".tar")
+            import shutil
+            shutil.copy2(tar_path, out)
+            return out

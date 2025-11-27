@@ -33,9 +33,12 @@ __all__ = [
     'UserCreate',
     'UserUpdate',
     'UserResponse',
+    'UserListResponse',
     'UserLogin',
     'TokenResponse',
-    'TokenRefresh'
+    'TokenRefresh',
+    'TokenVerificationResponse',
+    'ProfileSyncResponse'
 ]
 
 
@@ -177,6 +180,36 @@ class UserResponse(UserBase, TimestampMixin):
     )
 
 
+class UserListResponse(BaseSchema):
+    """
+    Schema for user list response.
+
+    Provides a paginated list of users with metadata.
+
+    Attributes:
+        data: List of user responses
+        meta: Pagination metadata
+    """
+
+    data: list[UserResponse] = Field(
+        ...,
+        description="List of users",
+        examples=[[{
+            "id": "123e4567-e89b-12d3-a456-426614174000",
+            "email": "user@example.com",
+            "full_name": "John Doe",
+            "is_active": True,
+            "created_at": "2024-01-20T10:00:00Z",
+            "updated_at": "2024-01-27T10:00:00Z"
+        }]]
+    )
+    meta: dict = Field(
+        default_factory=lambda: {"total": 0, "skip": 0, "limit": 50},
+        description="Pagination metadata",
+        examples=[{"total": 100, "skip": 0, "limit": 50}]
+    )
+
+
 class UserLogin(BaseSchema):
     """
     Schema for user authentication.
@@ -255,4 +288,54 @@ class TokenRefresh(BaseSchema):
         min_length=10,
         description="Valid refresh token",
         examples=["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."]
+    )
+
+
+class TokenVerificationResponse(BaseSchema):
+    """
+    Schema for token verification response.
+
+    Contains validation result and user information if token is valid.
+
+    Attributes:
+        valid: Whether the token is valid
+        user: User information if token is valid
+    """
+
+    valid: bool = Field(
+        ...,
+        description="Whether the token is valid",
+        examples=[True, False]
+    )
+    user: dict = Field(
+        ...,
+        description="User information if token is valid",
+        examples=[{
+            "id": "123e4567-e89b-12d3-a456-426614174000",
+            "email": "user@example.com",
+            "profile": {
+                "full_name": "John Doe",
+                "avatar_url": "https://example.com/avatar.jpg"
+            }
+        }]
+    )
+
+
+class ProfileSyncResponse(BaseSchema):
+    """
+    Schema for profile synchronization response.
+
+    Contains the result of profile sync operation.
+
+    Attributes:
+        message: Success message indicating whether profile was created or updated
+    """
+
+    message: str = Field(
+        ...,
+        description="Success message",
+        examples=[
+            "User profile created successfully",
+            "User profile updated successfully"
+        ]
     )

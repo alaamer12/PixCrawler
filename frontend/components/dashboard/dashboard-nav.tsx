@@ -5,6 +5,7 @@ import {Activity, Database, FolderOpen, Home, Settings} from 'lucide-react'
 import Link from 'next/link'
 import {usePathname} from 'next/navigation'
 import {cn} from '@/lib/utils'
+import {Logo} from '@/components/shared/Logo'
 
 const navigation = [
   {name: 'Dashboard', href: '/dashboard', icon: Home},
@@ -21,12 +22,8 @@ export function DashboardNav() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center space-x-8">
-            <Link href="/dashboard" className="flex items-center gap-2 font-medium text-foreground">
-              <div
-                className="bg-gradient-to-br from-primary to-secondary text-primary-foreground flex size-8 items-center justify-center rounded-lg shadow-lg">
-                <Database className="size-5"/>
-              </div>
-              <span className="text-xl font-bold">PixCrawler</span>
+            <Link href="/dashboard" className="flex items-center gap-2 font-medium text-foreground" aria-label="Dashboard Home">
+              <Logo showIcon showText size="md"/>
             </Link>
 
             <div className="hidden md:flex items-center space-x-1">

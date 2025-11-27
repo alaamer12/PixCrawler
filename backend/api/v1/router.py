@@ -9,7 +9,7 @@ from fastapi import APIRouter
 from starlette.responses import JSONResponse
 
 from backend.api.v1.response_models import get_common_responses
-from .endpoints import auth, crawl_jobs, datasets, exports, health, storage, users, validation, metrics
+from .endpoints import auth, crawl_jobs, datasets, exports, health, storage, users, validation, projects, notifications, metrics
 
 __all__ = ['api_router']
 
@@ -43,6 +43,13 @@ api_router.include_router(
     include_in_schema=True,
 )
 
+# Projects - Project management
+api_router.include_router(
+    projects.router,
+    prefix="/projects",
+    include_in_schema=True,
+)
+
 # Datasets - Dataset creation and management
 api_router.include_router(
     datasets.router,
@@ -54,6 +61,13 @@ api_router.include_router(
 api_router.include_router(
     crawl_jobs.router,
     prefix="/jobs",
+    include_in_schema=True,
+)
+
+# Notifications - User notifications
+api_router.include_router(
+    notifications.router,
+    prefix="/notifications",
     include_in_schema=True,
 )
 

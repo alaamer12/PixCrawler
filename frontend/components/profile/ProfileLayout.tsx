@@ -1,34 +1,18 @@
 'use client'
 
-import React, {useState} from 'react'
-import {useRouter} from 'next/navigation'
-import {cn} from '@/lib/utils'
-import {Button} from '@/components/ui/button'
-import {ScrollArea} from '@/components/ui/scroll-area'
-import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   User,
   Bell,
   Settings,
   CreditCard,
   BarChart3,
-  RefreshCw,
-  Calendar,
-  History,
-  Cloud,
   Key,
-  Sparkles,
-  Rocket,
-  Share2,
-  Gift,
   LogOut,
   ChevronRight,
   Menu,
@@ -39,7 +23,16 @@ import {
   FolderOpen,
   Database,
 } from 'lucide-react'
-import {useAuth} from '@/lib/auth/hooks'
+import { useAuth } from '@/lib/auth/hooks'
+import { AuthUser } from '@supabase/supabase-js'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 export interface ProfileSection {
   id: string
@@ -49,6 +42,7 @@ export interface ProfileSection {
   badge?: string | number
   showArrow?: boolean
   group?: string
+  keywords?: string[]
 }
 
 const profileSections: ProfileSection[] = [
@@ -59,6 +53,7 @@ const profileSections: ProfileSection[] = [
     icon: User,
     description: 'Personal information',
     group: 'Personal',
+    keywords: ['name', 'email', 'phone', 'avatar', 'picture', 'bio', 'last name', 'first name'],
   },
   {
     id: 'notifications',
@@ -67,6 +62,7 @@ const profileSections: ProfileSection[] = [
     description: 'Notification preferences',
     badge: 3,
     group: 'Personal',
+    keywords: ['email notifications', 'push', 'alerts', 'messages'],
   },
   {
     id: 'settings',
@@ -74,6 +70,7 @@ const profileSections: ProfileSection[] = [
     icon: Settings,
     description: 'Application preferences',
     group: 'Personal',
+    keywords: ['theme', 'dark mode', 'language', 'region'],
   },
 
   // Billing & Usage
@@ -84,6 +81,7 @@ const profileSections: ProfileSection[] = [
     description: 'Manage your plan',
     showArrow: true,
     group: 'Billing',
+    keywords: ['plan', 'payment', 'credit card', 'invoice', 'billing'],
   },
   {
     id: 'usage',
@@ -91,6 +89,7 @@ const profileSections: ProfileSection[] = [
     icon: BarChart3,
     description: 'Resource consumption',
     group: 'Billing',
+    keywords: ['credits', 'api calls', 'storage', 'limits'],
   },
 
   // Developer
@@ -101,39 +100,8 @@ const profileSections: ProfileSection[] = [
     description: 'Access tokens',
     badge: 2,
     group: 'Developer',
+    keywords: ['token', 'secret', 'authentication', 'oauth'],
   },
-
-  // Commented out for future use
-  // {
-  //   id: 'auto-refills',
-  //   label: 'Automatic Credit Refills',
-  //   icon: RefreshCw,
-  //   description: 'Set up automatic credit purchases',
-  //   group: 'Billing',
-  // },
-  // {
-  //   id: 'manage-plan',
-  //   label: 'Manage Plan',
-  //   icon: Calendar,
-  //   description: 'Change or upgrade your plan',
-  //   showArrow: true,
-  //   group: 'Billing',
-  // },
-  // {
-  //   id: 'credit-history',
-  //   label: 'Credit History',
-  //   icon: History,
-  //   description: 'View transaction history',
-  //   group: 'Billing',
-  // },
-  // {
-  //   id: 'referrals',
-  //   label: 'Referrals',
-  //   icon: Gift,
-  //   description: 'Invite friends and earn rewards',
-  //   badge: '$50',
-  //   group: 'Rewards',
-  // },
 ]
 
 interface ProfileLayoutProps {
@@ -142,9 +110,43 @@ interface ProfileLayoutProps {
   onSectionChange: (section: string) => void
 }
 
-export function ProfileLayout({children, activeSection, onSectionChange}: ProfileLayoutProps) {
+
+function UserLogo({ user }: { user: any }) {
+  return (
+    <div className="flex items-center gap-3">
+      <Avatar className="h-9 w-9">
+        <AvatarImage src={user?.profile?.avatarUrl || ''} alt={user?.profile?.fullName || ''} />
+        <AvatarFallback>
+          {user?.profile?.fullName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex flex-col">
+        <p className="text-sm font-medium leading-none">{user?.profile?.fullName || user?.email?.split('@')[0] || 'User'}</p>
+        <p className="text-xs text-muted-foreground">{user?.email}</p>
+      </div>
+    </div>
+  )
+}
+
+const HighlightText = ({ text, query }: { text: string; query: string }) => {
+  if (!query) return <>{text}</>
+  const parts = text.split(new RegExp(`(${query})`, 'gi'))
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === query.toLowerCase() ? (
+          <span key={i} className="bg-yellow-500/30 text-foreground rounded-sm px-0.5">{part}</span>
+        ) : (
+          part
+        )
+      )}
+    </>
+  )
+}
+
+export function ProfileLayout({ children, activeSection, onSectionChange }: ProfileLayoutProps) {
   const router = useRouter()
-  const {user, signOut} = useAuth()
+  const { user, signOut } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -155,11 +157,13 @@ export function ProfileLayout({children, activeSection, onSectionChange}: Profil
 
   const filteredSections = profileSections.filter(section =>
     section.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    section.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    section.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    section.keywords?.some(k => k.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black md:bg-background">
+
       {/* Top Navbar */}
       <header
         className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -171,34 +175,30 @@ export function ProfileLayout({children, activeSection, onSectionChange}: Profil
               className="lg:hidden p-2 hover:bg-accent rounded-lg transition-colors"
               aria-label="Toggle menu"
             >
-              {mobileMenuOpen ? <X className="h-5 w-5"/> : <Menu className="h-5 w-5"/>}
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
 
-            <a href="/dashboard" className="flex items-center gap-2 font-semibold">
-              <div
-                className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-                <span className="text-primary-foreground text-sm font-bold">P</span>
-              </div>
-              <span className="hidden sm:inline-block">PixCrawler</span>
-            </a>
+            {/* User Logo */}
+            <UserLogo user={user} />
+
           </div>
 
           {/* Center Navigation */}
           <nav className="hidden lg:flex items-center gap-6 mx-auto">
             <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard')}>
-              <Home className="h-4 w-4 mr-2"/>
+              <Home className="h-4 w-4 mr-2" />
               Dashboard
             </Button>
             <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/projects')}>
-              <FolderOpen className="h-4 w-4 mr-2"/>
+              <FolderOpen className="h-4 w-4 mr-2" />
               Projects
             </Button>
             <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/datasets')}>
-              <Database className="h-4 w-4 mr-2"/>
+              <Database className="h-4 w-4 mr-2" />
               Datasets
             </Button>
             <Button variant="ghost" size="sm" onClick={() => router.push('/docs')}>
-              <HelpCircle className="h-4 w-4 mr-2"/>
+              <HelpCircle className="h-4 w-4 mr-2" />
               Help
             </Button>
           </nav>
@@ -208,7 +208,7 @@ export function ProfileLayout({children, activeSection, onSectionChange}: Profil
             {/* Search */}
             <div className="hidden md:flex items-center">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Search..."
@@ -220,61 +220,73 @@ export function ProfileLayout({children, activeSection, onSectionChange}: Profil
             </div>
 
             {/* Notifications */}
-            <Button variant="ghost" size="icon" className="h-9 w-9 relative">
-              <Bell className="h-4 w-4"/>
-              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive"/>
-            </Button>
-
-            {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={user?.profile?.avatarUrl || ''} alt={user?.profile?.fullName || ''}/>
-                    <AvatarFallback>
-                      {user?.profile?.fullName?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
+                <Button variant="ghost" size="icon" className="h-9 w-9 relative">
+                  <Bell className="h-4 w-4" />
+                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user?.profile?.fullName || 'User'}</p>
-                    <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator/>
-                <DropdownMenuItem onClick={() => onSectionChange('account')}>
-                  <User className="mr-2 h-4 w-4"/>
-                  <span>Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onSectionChange('subscription')}>
-                  <CreditCard className="mr-2 h-4 w-4"/>
-                  <span>Billing</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onSectionChange('settings')}>
-                  <Settings className="mr-2 h-4 w-4"/>
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator/>
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                  <LogOut className="mr-2 h-4 w-4"/>
-                  <span>Log out</span>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="max-h-[300px] overflow-y-auto">
+                  {[
+                    {
+                      id: 1,
+                      title: 'New Feature Available',
+                      description: 'Try out our new Image Validation tool',
+                      time: '2 hours ago',
+                      unread: true,
+                    },
+                    {
+                      id: 2,
+                      title: 'Crawl Job Completed',
+                      description: 'Job #1234 finished with 500 images',
+                      time: '5 hours ago',
+                      unread: true,
+                    },
+                    {
+                      id: 3,
+                      title: 'Payment Successful',
+                      description: 'Your monthly subscription has been renewed',
+                      time: '1 day ago',
+                      unread: false,
+                    },
+                  ].map((notification) => (
+                    <DropdownMenuItem key={notification.id} className="flex flex-col items-start gap-1 p-3 cursor-pointer">
+                      <div className="flex items-center justify-between w-full">
+                        <span className="font-medium text-sm">{notification.title}</span>
+                        <span className="text-xs text-muted-foreground">{notification.time}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {notification.description}
+                      </p>
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="w-full text-center block p-2 font-medium text-primary cursor-pointer"
+                  onClick={() => router.push('/dashboard/notifications')}
+                >
+                  View all notifications
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+
           </div>
         </div>
       </header>
 
-      <div className="flex h-[calc(100vh-4rem)]">
+      <div className="flex min-h-[calc(100vh-4rem)]">
         {/* Left Sidebar */}
         <aside
           className={cn(
             "w-64 border-r bg-card/50 backdrop-blur-sm transition-all duration-300",
-            "lg:relative lg:translate-x-0",
-            mobileMenuOpen ? "fixed inset-y-16 left-0 z-40 translate-x-0" : "fixed -translate-x-full"
+            "lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)]",
+            mobileMenuOpen ? "fixed inset-y-16 left-0 z-40 translate-x-0" : "fixed -translate-x-full lg:translate-x-0"
           )}
         >
           <div className="h-full flex flex-col">
@@ -320,17 +332,17 @@ export function ProfileLayout({children, activeSection, onSectionChange}: Profil
                               <Icon className={cn(
                                 "h-4 w-4 flex-shrink-0",
                                 isActive ? "text-primary" : "text-muted-foreground"
-                              )}/>
+                              )} />
                               <div className="text-left min-w-0 flex-1">
                                 <div className={cn(
                                   "text-sm truncate",
                                   isActive ? "font-semibold" : "font-medium"
                                 )}>
-                                  {section.label}
+                                  <HighlightText text={section.label} query={searchQuery} />
                                 </div>
                                 {section.description && (
                                   <div className="text-xs text-muted-foreground mt-0.5 truncate hidden xl:block">
-                                    {section.description}
+                                    <HighlightText text={section.description} query={searchQuery} />
                                   </div>
                                 )}
                               </div>
@@ -350,7 +362,7 @@ export function ProfileLayout({children, activeSection, onSectionChange}: Profil
                                 </span>
                               )}
                               {section.showArrow && (
-                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground"/>
+                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                               )}
                             </div>
                           </button>
@@ -368,7 +380,7 @@ export function ProfileLayout({children, activeSection, onSectionChange}: Profil
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-all duration-200 font-medium"
               >
-                <LogOut className="h-4 w-4"/>
+                <LogOut className="h-4 w-4" />
                 <span>Log out</span>
               </button>
             </div>
@@ -384,7 +396,7 @@ export function ProfileLayout({children, activeSection, onSectionChange}: Profil
         )}
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1">
           <div className="container max-w-6xl mx-auto p-6">
             {children}
           </div>

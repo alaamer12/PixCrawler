@@ -15,7 +15,7 @@ Functions:
     get_compression_settings: Get cached compression settings
 
 Features:
-    - Multi-format support (WebP, AVIF, PNG, JXL)
+    - Multi-format_ support (WebP, AVIF, PNG, JXL)
     - Multi-threaded compression
     - Zstandard and ZIP archiving
     - Environment-based configuration
@@ -32,7 +32,7 @@ Example:
     archive_path = compress(
         "./raw_images",
         "./compressed",
-        format="webp",
+        format_="webp",
         quality=90,
         archive=True
     )

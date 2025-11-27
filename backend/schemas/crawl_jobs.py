@@ -17,8 +17,10 @@ __all__ = [
     'CrawlJobCreate',
     'CrawlJobUpdate',
     'CrawlJobResponse',
+    'CrawlJobListResponse',
     'CrawlJobProgress',
     'JobLogEntry',
+    'JobLogListResponse',
 ]
 
 
@@ -184,6 +186,38 @@ class JobLogEntry(BaseModel):
     metadata: Optional[dict[str, Any]] = Field(default=None, description="Additional data")
 
 
+class CrawlJobListResponse(BaseModel):
+    """Schema for crawl job list response."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    data: list[CrawlJobResponse] = Field(
+        description="List of crawl jobs",
+        examples=[[{
+            "id": 1,
+            "project_id": 1,
+            "name": "Animal Photos Job",
+            "keywords": {"categories": ["cat", "dog"]},
+            "max_images": 1000,
+            "status": "completed",
+            "progress": 100,
+            "total_images": 1000,
+            "downloaded_images": 950,
+            "valid_images": 920,
+            "started_at": "2024-01-27T10:00:00Z",
+            "completed_at": "2024-01-27T11:30:00Z",
+            "created_at": "2024-01-27T09:55:00Z",
+            "updated_at": "2024-01-27T11:30:00Z"
+        }]]
+    )
+    
+    meta: dict = Field(
+        default_factory=lambda: {"total": 0, "skip": 0, "limit": 50},
+        description="Pagination metadata",
+        examples=[{"total": 25, "skip": 0, "limit": 50}]
+    )
+
+
 class CrawlJobProgress(BaseModel):
     """Schema for crawl job progress response."""
     
@@ -202,3 +236,24 @@ class CrawlJobProgress(BaseModel):
     def remaining_images(self) -> int:
         """Calculate remaining images to download."""
         return max(0, self.total_images - self.downloaded_images)
+
+
+class JobLogListResponse(BaseModel):
+    """Schema for job log list response."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    data: list[JobLogEntry] = Field(
+        description="List of job log entries",
+        examples=[[{
+            "action": "Job started",
+            "timestamp": "2024-01-27T10:00:00Z",
+            "metadata": {"images_target": 1000}
+        }]]
+    )
+    
+    meta: dict = Field(
+        default_factory=lambda: {"total": 0},
+        description="Metadata",
+        examples=[{"total": 15}]
+    )

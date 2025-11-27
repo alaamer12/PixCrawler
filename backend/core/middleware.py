@@ -72,6 +72,7 @@ async def security_headers_middleware(request: Request,
     return response
 
 
+# noinspection PyTypeChecker
 def setup_middleware(app: FastAPI) -> None:
     """Setup middleware for the FastAPI application."""
     settings = get_settings()

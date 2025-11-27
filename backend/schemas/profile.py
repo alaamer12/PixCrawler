@@ -18,6 +18,7 @@ __all__ = [
     'ProfileCreate',
     'ProfileUpdate',
     'ProfileResponse',
+    'ProfileListResponse',
     'ProfileSettings',
 ]
 
@@ -161,6 +162,39 @@ class ProfileResponse(ProfileBase):
     role: UserRole = Field(description="User role")
     created_at: datetime = Field(description="Profile creation timestamp")
     updated_at: datetime = Field(description="Last update timestamp")
+
+
+class ProfileListResponse(BaseModel):
+    """Schema for profile list response."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    data: list[ProfileResponse] = Field(
+        description="List of user profiles",
+        examples=[[{
+            "id": "123e4567-e89b-12d3-a456-426614174000",
+            "email": "user@example.com",
+            "full_name": "John Doe",
+            "avatar_url": "https://example.com/avatar.jpg",
+            "role": "user",
+            "bio": "ML Engineer",
+            "company": "Acme Corp",
+            "job_title": "Senior ML Engineer",
+            "location": "San Francisco, CA",
+            "website": "https://johndoe.com",
+            "linkedin_username": "johndoe",
+            "github_username": "johndoe",
+            "twitter_username": "johndoe",
+            "created_at": "2024-01-20T10:00:00Z",
+            "updated_at": "2024-01-27T10:00:00Z"
+        }]]
+    )
+    
+    meta: dict = Field(
+        default_factory=lambda: {"total": 0, "skip": 0, "limit": 50},
+        description="Pagination metadata",
+        examples=[{"total": 100, "skip": 0, "limit": 50}]
+    )
 
 
 class ProfileSettings(BaseModel):

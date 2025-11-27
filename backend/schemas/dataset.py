@@ -35,6 +35,7 @@ __all__ = [
     'DatasetCreate',
     'DatasetUpdate',
     'DatasetResponse',
+    'DatasetListResponse',
     'DatasetStats'
 ]
 
@@ -290,6 +291,44 @@ class DatasetResponse(DatasetBase, TimestampMixin):
             raise ValueError("Download URL should only be available for completed datasets")
             
         return self
+
+
+class DatasetListResponse(BaseSchema):
+    """
+    Schema for dataset list response.
+
+    Provides a paginated list of datasets with metadata.
+
+    Attributes:
+        data: List of dataset responses
+        meta: Pagination metadata
+    """
+
+    data: List['DatasetResponse'] = Field(
+        ...,
+        description="List of datasets",
+        examples=[[{
+            "id": 1,
+            "user_id": 1,
+            "name": "Animal Photos",
+            "description": "Collection of animal images",
+            "keywords": ["cat", "dog", "bird"],
+            "max_images": 1000,
+            "search_engines": ["google", "bing"],
+            "status": "completed",
+            "progress": 100.0,
+            "images_collected": 950,
+            "download_url": "https://storage.example.com/datasets/1/download",
+            "error_message": None,
+            "created_at": "2024-01-27T10:00:00Z",
+            "updated_at": "2024-01-27T11:30:00Z"
+        }]]
+    )
+    meta: dict = Field(
+        default_factory=lambda: {"total": 0, "skip": 0, "limit": 50},
+        description="Pagination metadata",
+        examples=[{"total": 25, "skip": 0, "limit": 50}]
+    )
 
 
 class DatasetStats(BaseSchema):

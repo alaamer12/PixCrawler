@@ -237,8 +237,3 @@ async def get_presigned_url(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate presigned URL: {str(e)}"
         )
-
-
-# Create a test file "test_{name}"
-# Test function [case] def test_{name}()
-# Put at least one assert statment

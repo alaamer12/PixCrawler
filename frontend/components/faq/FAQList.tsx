@@ -30,7 +30,7 @@ const FAQ_ITEMS: FAQItem[] = [
   {
     id: '3',
     question: 'What image formats are supported?',
-    answer: 'PixCrawler supports all major image formats including JPEG, PNG, WebP, GIF, and SVG. Images are automatically validated and can be converted to your preferred format during download.',
+    answer: 'PixCrawler supports all major image formats including JPEG, PNG, WebP, GIF, and SVG. Images are automatically validated and can be converted to your preferred format_ during download.',
     category: 'getting-started',
     tags: ['formats', 'jpeg', 'png', 'webp']
   },

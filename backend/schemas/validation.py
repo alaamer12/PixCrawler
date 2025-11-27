@@ -19,6 +19,7 @@ __all__ = [
     'ValidationLevelUpdateRequest',
     'ValidationAnalyzeResponse',
     'ValidationJobResponse',
+    'ValidationJobListResponse',
     'ValidationResultItem',
     'ValidationResultsResponse',
     'ValidationStatsResponse',
@@ -145,6 +146,33 @@ class ValidationJobResponse(BaseModel):
     validation_level: ValidationLevel = Field(description="Validation level")
     started_at: datetime = Field(description="Start timestamp")
     completed_at: Optional[datetime] = Field(default=None, description="Completion timestamp")
+
+
+class ValidationJobListResponse(BaseModel):
+    """Schema for validation job list response."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    data: list[ValidationJobResponse] = Field(
+        description="List of validation jobs",
+        examples=[[{
+            "job_id": "job_123abc",
+            "status": "completed",
+            "total_images": 1000,
+            "processed_images": 1000,
+            "valid_images": 950,
+            "invalid_images": 50,
+            "validation_level": "standard",
+            "started_at": "2024-01-27T10:00:00Z",
+            "completed_at": "2024-01-27T10:30:00Z"
+        }]]
+    )
+    
+    meta: dict = Field(
+        default_factory=lambda: {"total": 0, "skip": 0, "limit": 50},
+        description="Pagination metadata",
+        examples=[{"total": 10, "skip": 0, "limit": 50}]
+    )
 
 
 class ValidationResultItem(BaseModel):

@@ -14,8 +14,13 @@ Features:
     - Graceful fallback to standard provider
 """
 
+from typing import Union
+
 from backend.storage.config import StorageSettings
 from utility.logging_config import get_logger
+from backend.storage.local import LocalStorageProvider
+from backend.storage.azure_blob import AzureBlobStorageProvider
+from backend.storage.azure_blob_archive import AzureBlobArchiveProvider, AccessTier
 
 __all__ = ['create_storage_provider', 'create_archive_enabled_provider']
 
@@ -45,8 +50,6 @@ def create_archive_enabled_provider(settings: StorageSettings):
         provider = create_archive_enabled_provider(settings)
     """
     try:
-        from backend.storage.azure_blob_archive import AzureBlobArchiveProvider, AccessTier
-
         # Get tier enum from settings
         default_tier = settings.get_tier_enum()
 
@@ -72,6 +75,52 @@ def create_archive_enabled_provider(settings: StorageSettings):
         raise
 
 
+def _handle_local() -> LocalStorageProvider:
+    # Create local storage provider
+    try:
+
+        storage_path = settings.local_storage_path
+        provider = LocalStorageProvider(base_directory=storage_path)
+
+        logger.info(
+            f"Created local storage provider at: {storage_path or 'default location'}")
+        return provider
+
+    except ImportError as e:
+        logger.error(f"Failed to import local storage provider: {e}")
+        raise ValueError(f"Local storage provider not available: {e}")
+
+def _handle_azure() -> Union[AzureBlobStorageProvider, AzureBlobArchiveProvider]:
+    # Create Azure storage provider with archive support
+    if not settings.azure_connection_string:
+        raise ValueError("Azure connection string is required for Azure provider")
+
+    try:
+        # Try to create archive-enabled provider
+        if settings.azure_enable_archive_tier:
+            try:
+                return create_archive_enabled_provider(settings)
+            except ImportError:
+                logger.warning(
+                    "Archive tier support not available, falling back to standard Azure provider"
+                )
+
+        # Fallback to standard Azure provider
+        provider = AzureBlobStorageProvider(
+            connection_string=settings.azure_connection_string,
+            container_name=settings.azure_container_name,
+            max_retries=settings.azure_max_retries
+        )
+
+        logger.info("Created standard Azure Blob Storage provider")
+        return provider
+
+    except ImportError as e:
+        logger.error(f"Failed to import Azure storage provider: {e}")
+        raise ValueError(f"Azure storage provider not available: {e}")
+
+
+# noinspection D
 def create_storage_provider(settings: StorageSettings):
     """Create storage provider based on configuration.
 
@@ -104,50 +153,10 @@ def create_storage_provider(settings: StorageSettings):
     provider_type = settings.storage_provider.lower()
 
     if provider_type == "local":
-        # Create local storage provider
-        try:
-            from backend.storage.local import LocalStorageProvider
-
-            storage_path = settings.local_storage_path
-            provider = LocalStorageProvider(base_directory=storage_path)
-
-            logger.info(f"Created local storage provider at: {storage_path or 'default location'}")
-            return provider
-
-        except ImportError as e:
-            logger.error(f"Failed to import local storage provider: {e}")
-            raise ValueError(f"Local storage provider not available: {e}")
+        _handle_local()
 
     elif provider_type == "azure":
-        # Create Azure storage provider with archive support
-        if not settings.azure_connection_string:
-            raise ValueError("Azure connection string is required for Azure provider")
-
-        try:
-            # Try to create archive-enabled provider
-            if settings.azure_enable_archive_tier:
-                try:
-                    return create_archive_enabled_provider(settings)
-                except ImportError:
-                    logger.warning(
-                        "Archive tier support not available, falling back to standard Azure provider"
-                    )
-
-            # Fallback to standard Azure provider
-            from backend.storage.azure_blob import AzureBlobStorageProvider
-
-            provider = AzureBlobStorageProvider(
-                connection_string=settings.azure_connection_string,
-                container_name=settings.azure_container_name,
-                max_retries=settings.azure_max_retries
-            )
-
-            logger.info("Created standard Azure Blob Storage provider")
-            return provider
-
-        except ImportError as e:
-            logger.error(f"Failed to import Azure storage provider: {e}")
-            raise ValueError(f"Azure storage provider not available: {e}")
+        _handle_azure()
 
     else:
         raise ValueError(

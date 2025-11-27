@@ -44,10 +44,10 @@ from sqlalchemy.orm import Mapped, mapped_column, declared_attr, relationship
 class ChunkTrackingMixin:
     """
     Mixin for hybrid chunk tracking in processing jobs.
-    
+
     Provides fields and methods for tracking Celery task chunks
     without needing a separate chunk table.
-    
+
     Attributes:
         total_chunks: Total number of processing chunks
         active_chunks: Currently processing chunks
@@ -55,39 +55,39 @@ class ChunkTrackingMixin:
         failed_chunks: Failed chunks
         task_ids: List of Celery task IDs for status queries
     """
-    
+
     @declared_attr
     def total_chunks(cls) -> Mapped[int]:
         return mapped_column(Integer, nullable=False, default=0)
-    
+
     @declared_attr
     def active_chunks(cls) -> Mapped[int]:
         return mapped_column(Integer, nullable=False, default=0)
-    
+
     @declared_attr
     def completed_chunks(cls) -> Mapped[int]:
         return mapped_column(Integer, nullable=False, default=0)
-    
+
     @declared_attr
     def failed_chunks(cls) -> Mapped[int]:
         return mapped_column(Integer, nullable=False, default=0)
-    
+
     @declared_attr
     def task_ids(cls) -> Mapped[list]:
         return mapped_column(JSONB, nullable=False, default=list)
-    
+
     @property
     def chunk_progress(self) -> float:
         """Calculate chunk completion progress (0-100)."""
         if self.total_chunks == 0:
             return 0.0
         return (self.completed_chunks / self.total_chunks) * 100
-    
+
     @property
     def is_processing(self) -> bool:
         """Check if job has active chunks."""
         return self.active_chunks > 0
-    
+
     @property
     def all_chunks_completed(self) -> bool:
         """Check if all chunks are completed."""
@@ -137,7 +137,7 @@ class Profile(Base, TimestampMixin):
         avatar_url: URL to user's avatar image
         role: User role (default: 'user')
         user_tier: Subscription tier (FREE, PRO, ENTERPRISE)
-        
+
     Relationships:
         projects: User's projects (one-to-many)
         activity_logs: User's activity logs (one-to-many)
@@ -159,7 +159,7 @@ class Profile(Base, TimestampMixin):
         server_default="FREE",
         index=True,
     )
-    
+
     # Relationships
     projects: Mapped[list["Project"]] = relationship(
         "Project",
@@ -200,7 +200,7 @@ class Project(Base, TimestampMixin):
         description: Optional project description
         user_id: UUID reference to profiles.id (FK)
         status: Project status (default: 'active')
-        
+
     Relationships:
         user: Profile owner (many-to-one)
         crawl_jobs: Associated crawl jobs (one-to-many)
@@ -218,7 +218,7 @@ class Project(Base, TimestampMixin):
         index=True,
     )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
-    
+
     # Relationships
     user: Mapped["Profile"] = relationship(
         "Profile",
@@ -231,7 +231,7 @@ class Project(Base, TimestampMixin):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
-    
+
     # Indexes
     __table_args__ = (
         Index("ix_projects_user_id", "user_id"),
@@ -256,7 +256,7 @@ class CrawlJob(Base, TimestampMixin, ChunkTrackingMixin):
         valid_images: Number of valid images
         started_at: Job start timestamp
         completed_at: Job completion timestamp
-        
+
     Inherited from ChunkTrackingMixin:
         total_chunks: Total processing chunks
         active_chunks: Currently processing chunks
@@ -266,7 +266,7 @@ class CrawlJob(Base, TimestampMixin, ChunkTrackingMixin):
         chunk_progress: Property for progress calculation
         is_processing: Property to check if processing
         all_chunks_completed: Property to check completion
-        
+
     Relationships:
         project: Parent project (many-to-one)
         images: Associated images (one-to-many)
@@ -297,7 +297,7 @@ class CrawlJob(Base, TimestampMixin, ChunkTrackingMixin):
     valid_images: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    
+
     # Relationships
     project: Mapped["Project"] = relationship(
         "Project",
@@ -316,7 +316,7 @@ class CrawlJob(Base, TimestampMixin, ChunkTrackingMixin):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
-    
+
     # Indexes
     __table_args__ = (
         Index("ix_crawl_jobs_project_id", "project_id"),
@@ -324,12 +324,12 @@ class CrawlJob(Base, TimestampMixin, ChunkTrackingMixin):
         Index("ix_crawl_jobs_project_status", "project_id", "status"),
         Index("ix_crawl_jobs_created_at", "created_at"),
     )
-    
+
     @property
     def is_processing(self) -> bool:
         """Check if job has active chunks."""
         return self.active_chunks > 0
-    
+
     @property
     def all_chunks_completed(self) -> bool:
         """Check if all chunks are completed."""
@@ -351,8 +351,8 @@ class Image(Base, TimestampMixin):
         width: Image width in pixels
         height: Image height in pixels
         file_size: File size in bytes
-        format: Image format (jpg, png, etc.)
-        
+        format: Image format_ (jpg, png, etc.)
+
     Relationships:
         crawl_job: Parent crawl job (many-to-one)
     """
@@ -373,14 +373,14 @@ class Image(Base, TimestampMixin):
     height: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     file_size: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     format: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
-    
+
     # Relationships
     crawl_job: Mapped["CrawlJob"] = relationship(
         "CrawlJob",
         back_populates="images",
         lazy="joined",
     )
-    
+
     # Indexes
     __table_args__ = (
         Index("ix_images_crawl_job_id", "crawl_job_id"),
@@ -402,7 +402,7 @@ class ActivityLog(Base):
         resource_id: ID of resource affected
         metadata_: Additional event metadata (JSON)
         timestamp: Event timestamp
-        
+
     Relationships:
         user: User who performed the action (many-to-one)
     """
@@ -426,14 +426,14 @@ class ActivityLog(Base):
         nullable=False,
         index=True,
     )
-    
+
     # Relationships
     user: Mapped[Optional["Profile"]] = relationship(
         "Profile",
         back_populates="activity_logs",
         lazy="joined",
     )
-    
+
     # Indexes
     __table_args__ = (
         Index("ix_activity_logs_user_id", "user_id"),

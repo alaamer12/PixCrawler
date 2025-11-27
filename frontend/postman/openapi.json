@@ -1,0 +1,481 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "PixCrawler Frontend Mock",
+        "version": "1.0.0",
+        "description": "Mock API for PixCrawler Frontend development"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:4010/api/v1"
+        }
+    ],
+    "paths": {
+        "/auth/me": {
+            "get": {
+                "summary": "Get Current User",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": {
+                                        "id": "user_123",
+                                        "email": "demo@pixcrawler.io",
+                                        "full_name": "Demo User",
+                                        "avatar_url": "https://ui-avatars.com/api/?name=Demo+User",
+                                        "created_at": "2024-01-01T00:00:00Z",
+                                        "updated_at": "2024-01-01T00:00:00Z"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/verify-token": {
+            "post": {
+                "summary": "Verify Token",
+                "responses": {
+                    "200": {
+                        "description": "Valid Token",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": {
+                                        "valid": true,
+                                        "user": {
+                                            "id": "user_123",
+                                            "email": "demo@pixcrawler.io",
+                                            "profile": {
+                                                "full_name": "Demo User"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/sync-profile": {
+            "post": {
+                "summary": "Sync Profile",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": {
+                                        "message": "User profile updated successfully"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/projects": {
+            "get": {
+                "summary": "List Projects",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": [
+                                        {
+                                            "id": "proj_1",
+                                            "name": "Animal Classification",
+                                            "description": "Dataset for classifying different animal species",
+                                            "created_at": "2024-03-10T10:00:00Z",
+                                            "updated_at": "2024-03-12T15:30:00Z",
+                                            "dataset_count": 3,
+                                            "image_count": 1500
+                                        },
+                                        {
+                                            "id": "proj_2",
+                                            "name": "Vehicle Detection",
+                                            "description": "Cars and trucks dataset for object detection",
+                                            "created_at": "2024-03-15T09:00:00Z",
+                                            "updated_at": "2024-03-15T09:00:00Z",
+                                            "dataset_count": 1,
+                                            "image_count": 500
+                                        }
+                                    ],
+                                    "meta": {
+                                        "total": 2,
+                                        "page": 1,
+                                        "limit": 50
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create Project",
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": {
+                                        "id": "proj_new",
+                                        "name": "New Project",
+                                        "description": "Project description",
+                                        "created_at": "2024-03-20T12:00:00Z",
+                                        "updated_at": "2024-03-20T12:00:00Z"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/projects/{id}": {
+            "get": {
+                "summary": "Get Project",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": {
+                                        "id": "proj_1",
+                                        "name": "Animal Classification",
+                                        "description": "Dataset for classifying different animal species",
+                                        "created_at": "2024-03-10T10:00:00Z",
+                                        "updated_at": "2024-03-12T15:30:00Z"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "summary": "Update Project",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": {
+                                        "id": "proj_1",
+                                        "name": "Updated Name",
+                                        "description": "Dataset for classifying different animal species",
+                                        "created_at": "2024-03-10T10:00:00Z",
+                                        "updated_at": "2024-03-20T12:05:00Z"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete Project",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": null
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/projects/{projectId}/datasets": {
+            "get": {
+                "summary": "List Datasets (By Project)",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": [
+                                        {
+                                            "id": "ds_1",
+                                            "project_id": "proj_1",
+                                            "name": "Cats vs Dogs",
+                                            "status": "completed",
+                                            "total_images": 1000,
+                                            "created_at": "2024-03-10T10:00:00Z"
+                                        },
+                                        {
+                                            "id": "ds_2",
+                                            "project_id": "proj_1",
+                                            "name": "Wild Animals",
+                                            "status": "building",
+                                            "total_images": 500,
+                                            "created_at": "2024-03-12T14:00:00Z"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create Dataset",
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": {
+                                        "id": "ds_new",
+                                        "project_id": "proj_1",
+                                        "name": "New Dataset",
+                                        "status": "pending",
+                                        "total_images": 0,
+                                        "created_at": "2024-03-20T12:00:00Z"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/projects/{projectId}/datasets/{datasetId}": {
+            "get": {
+                "summary": "Get Dataset",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": {
+                                        "id": "ds_1",
+                                        "project_id": "proj_1",
+                                        "name": "Cats vs Dogs",
+                                        "status": "completed",
+                                        "total_images": 1000,
+                                        "config": {
+                                            "keywords": [
+                                                "cat",
+                                                "dog"
+                                            ],
+                                            "max_images": 500
+                                        },
+                                        "created_at": "2024-03-10T10:00:00Z",
+                                        "updated_at": "2024-03-10T12:00:00Z"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/datasets/stats": {
+            "get": {
+                "summary": "Dataset Stats",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": {
+                                        "total_datasets": 12,
+                                        "total_images": 15420,
+                                        "active_builds": 2,
+                                        "storage_used_mb": 450.5
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/datasets/{id}/build": {
+            "post": {
+                "summary": "Start Build",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": {
+                                        "id": "ds_1",
+                                        "status": "building",
+                                        "job_id": "job_123"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/datasets/{id}/status": {
+            "get": {
+                "summary": "Get Build Status",
+                "responses": {
+                    "200": {
+                        "description": "Building",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": {
+                                        "id": "ds_1",
+                                        "status": "building",
+                                        "progress": 45,
+                                        "total_images": 450,
+                                        "current_step": "downloading"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/jobs": {
+            "get": {
+                "summary": "List Jobs",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": [
+                                        {
+                                            "id": "job_1",
+                                            "dataset_id": "ds_1",
+                                            "status": "running",
+                                            "progress": 65,
+                                            "created_at": "2024-03-20T10:00:00Z"
+                                        }
+                                    ],
+                                    "meta": {
+                                        "total": 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/jobs/{id}/logs": {
+            "get": {
+                "summary": "Get Job Logs",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": [
+                                        {
+                                            "timestamp": "2024-03-20T10:05:00Z",
+                                            "level": "info",
+                                            "message": "Downloaded 50 images"
+                                        },
+                                        {
+                                            "timestamp": "2024-03-20T10:00:00Z",
+                                            "level": "info",
+                                            "message": "Job started"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications": {
+            "get": {
+                "summary": "List Notifications",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": [
+                                        {
+                                            "id": 1,
+                                            "title": "Dataset Ready",
+                                            "message": "Your dataset 'Cats vs Dogs' is ready for download.",
+                                            "type": "success",
+                                            "is_read": false,
+                                            "created_at": "2024-03-20T12:00:00Z"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications/{id}": {
+            "patch": {
+                "summary": "Mark As Read",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": {
+                                        "id": 1,
+                                        "is_read": true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications/mark-all-read": {
+            "post": {
+                "summary": "Mark All Read",
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "data": {
+                                        "success": true,
+                                        "count": 5
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

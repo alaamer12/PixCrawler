@@ -1,0 +1,703 @@
+{
+    "info": {
+        "_postman_id": "pixcrawler-frontend-mock",
+        "name": "PixCrawler Frontend Mock",
+        "description": "Mock API for PixCrawler Frontend development. Includes all required endpoints for Projects, Datasets, Jobs, Notifications, and Auth.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Get Current User",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/me",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "me"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "originalRequest": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{baseUrl}}/auth/me",
+                                    "host": [
+                                        "{{baseUrl}}"
+                                    ],
+                                    "path": [
+                                        "auth",
+                                        "me"
+                                    ]
+                                }
+                            },
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": {\n    \"id\": \"user_123\",\n    \"email\": \"demo@pixcrawler.io\",\n    \"full_name\": \"Demo User\",\n    \"avatar_url\": \"https://ui-avatars.com/api/?name=Demo+User\",\n    \"created_at\": \"2024-01-01T00:00:00Z\",\n    \"updated_at\": \"2024-01-01T00:00:00Z\"\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Verify Token",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/verify-token",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "verify-token"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Valid Token",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": {\n    \"valid\": true,\n    \"user\": {\n      \"id\": \"user_123\",\n      \"email\": \"demo@pixcrawler.io\",\n      \"profile\": {\n        \"full_name\": \"Demo User\"\n      }\n    }\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Sync Profile",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/sync-profile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "sync-profile"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": {\n    \"message\": \"User profile updated successfully\"\n  }\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Projects",
+            "item": [
+                {
+                    "name": "List Projects",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/projects",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "projects"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": [\n    {\n      \"id\": \"proj_1\",\n      \"name\": \"Animal Classification\",\n      \"description\": \"Dataset for classifying different animal species\",\n      \"created_at\": \"2024-03-10T10:00:00Z\",\n      \"updated_at\": \"2024-03-12T15:30:00Z\",\n      \"dataset_count\": 3,\n      \"image_count\": 1500\n    },\n    {\n      \"id\": \"proj_2\",\n      \"name\": \"Vehicle Detection\",\n      \"description\": \"Cars and trucks dataset for object detection\",\n      \"created_at\": \"2024-03-15T09:00:00Z\",\n      \"updated_at\": \"2024-03-15T09:00:00Z\",\n      \"dataset_count\": 1,\n      \"image_count\": 500\n    }\n  ],\n  \"meta\": {\n    \"total\": 2,\n    \"page\": 1,\n    \"limit\": 50\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Project",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/projects/proj_1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "projects",
+                                "proj_1"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": {\n    \"id\": \"proj_1\",\n    \"name\": \"Animal Classification\",\n    \"description\": \"Dataset for classifying different animal species\",\n    \"created_at\": \"2024-03-10T10:00:00Z\",\n    \"updated_at\": \"2024-03-12T15:30:00Z\"\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Project",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"New Project\",\n  \"description\": \"Project description\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/projects",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "projects"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Created",
+                            "status": "Created",
+                            "code": 201,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": {\n    \"id\": \"proj_new\",\n    \"name\": \"New Project\",\n    \"description\": \"Project description\",\n    \"created_at\": \"2024-03-20T12:00:00Z\",\n    \"updated_at\": \"2024-03-20T12:00:00Z\"\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Update Project",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Updated Name\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/projects/proj_1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "projects",
+                                "proj_1"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": {\n    \"id\": \"proj_1\",\n    \"name\": \"Updated Name\",\n    \"description\": \"Dataset for classifying different animal species\",\n    \"created_at\": \"2024-03-10T10:00:00Z\",\n    \"updated_at\": \"2024-03-20T12:05:00Z\"\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Delete Project",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/projects/proj_1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "projects",
+                                "proj_1"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": null\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Datasets",
+            "item": [
+                {
+                    "name": "List Datasets (By Project)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/projects/proj_1/datasets",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "projects",
+                                "proj_1",
+                                "datasets"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": [\n    {\n      \"id\": \"ds_1\",\n      \"project_id\": \"proj_1\",\n      \"name\": \"Cats vs Dogs\",\n      \"status\": \"completed\",\n      \"total_images\": 1000,\n      \"created_at\": \"2024-03-10T10:00:00Z\"\n    },\n    {\n      \"id\": \"ds_2\",\n      \"project_id\": \"proj_1\",\n      \"name\": \"Wild Animals\",\n      \"status\": \"building\",\n      \"total_images\": 500,\n      \"created_at\": \"2024-03-12T14:00:00Z\"\n    }\n  ]\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Dataset",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/projects/proj_1/datasets/ds_1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "projects",
+                                "proj_1",
+                                "datasets",
+                                "ds_1"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": {\n    \"id\": \"ds_1\",\n    \"project_id\": \"proj_1\",\n    \"name\": \"Cats vs Dogs\",\n    \"status\": \"completed\",\n    \"total_images\": 1000,\n    \"config\": {\n      \"keywords\": [\"cat\", \"dog\"],\n      \"max_images\": 500\n    },\n    \"created_at\": \"2024-03-10T10:00:00Z\",\n    \"updated_at\": \"2024-03-10T12:00:00Z\"\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Dataset",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"New Dataset\",\n  \"config\": {\n    \"keywords\": [\"bird\"],\n    \"max_images\": 100\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/projects/proj_1/datasets",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "projects",
+                                "proj_1",
+                                "datasets"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Created",
+                            "status": "Created",
+                            "code": 201,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": {\n    \"id\": \"ds_new\",\n    \"project_id\": \"proj_1\",\n    \"name\": \"New Dataset\",\n    \"status\": \"pending\",\n    \"total_images\": 0,\n    \"created_at\": \"2024-03-20T12:00:00Z\"\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Dataset Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/datasets/stats",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "datasets",
+                                "stats"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": {\n    \"total_datasets\": 12,\n    \"total_images\": 15420,\n    \"active_builds\": 2,\n    \"storage_used_mb\": 450.5\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Start Build",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/datasets/ds_1/build",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "datasets",
+                                "ds_1",
+                                "build"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": {\n    \"id\": \"ds_1\",\n    \"status\": \"building\",\n    \"job_id\": \"job_123\"\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Build Status",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/datasets/ds_1/status",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "datasets",
+                                "ds_1",
+                                "status"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Building",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": {\n    \"id\": \"ds_1\",\n    \"status\": \"building\",\n    \"progress\": 45,\n    \"total_images\": 450,\n    \"current_step\": \"downloading\"\n  }\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Jobs",
+            "item": [
+                {
+                    "name": "List Jobs",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/jobs",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "jobs"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": [\n    {\n      \"id\": \"job_1\",\n      \"dataset_id\": \"ds_1\",\n      \"status\": \"running\",\n      \"progress\": 65,\n      \"created_at\": \"2024-03-20T10:00:00Z\"\n    }\n  ],\n  \"meta\": {\n    \"total\": 1\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Job Logs",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/jobs/job_1/logs",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "jobs",
+                                "job_1",
+                                "logs"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": [\n    {\n      \"timestamp\": \"2024-03-20T10:05:00Z\",\n      \"level\": \"info\",\n      \"message\": \"Downloaded 50 images\"\n    },\n    {\n      \"timestamp\": \"2024-03-20T10:00:00Z\",\n      \"level\": \"info\",\n      \"message\": \"Job started\"\n    }\n  ]\n}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Notifications",
+            "item": [
+                {
+                    "name": "List Notifications",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/notifications",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "notifications"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": [\n    {\n      \"id\": 1,\n      \"title\": \"Dataset Ready\",\n      \"message\": \"Your dataset 'Cats vs Dogs' is ready for download.\",\n      \"type\": \"success\",\n      \"is_read\": false,\n      \"created_at\": \"2024-03-20T12:00:00Z\"\n    }\n  ]\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Mark As Read",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"is_read\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/notifications/1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "notifications",
+                                "1"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": {\n    \"id\": 1,\n    \"is_read\": true\n  }\n}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Mark All Read",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/notifications/mark-all-read",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "notifications",
+                                "mark-all-read"
+                            ]
+                        }
+                    },
+                    "response": [
+                        {
+                            "name": "Success",
+                            "status": "OK",
+                            "code": 200,
+                            "_postman_previewlanguage": "json",
+                            "header": [
+                                {
+                                    "key": "Content-Type",
+                                    "value": "application/json"
+                                }
+                            ],
+                            "body": "{\n  \"data\": {\n    \"success\": true,\n    \"count\": 5\n  }\n}"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000/api/v1",
+            "type": "string"
+        }
+    ]
+}

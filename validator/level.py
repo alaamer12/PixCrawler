@@ -69,14 +69,14 @@ class ValidationResult(BaseModel):
     issues_found: List[str] = Field(
         default_factory=list,
         description="List of validation issues encountered",
-        examples=[["File not found", "Invalid format"], []],
+        examples=[["File not found", "Invalid format_"], []],
         max_length=100
     )
 
     metadata: Dict[str, Any] = Field(
         default_factory=dict,
         description="Additional information collected during validation",
-        examples=[{"width": 1920, "height": 1080, "format": "JPEG", "size_bytes": 245760}]
+        examples=[{"width": 1920, "height": 1080, "format_": "JPEG", "size_bytes": 245760}]
     )
 
     processing_time: float = Field(
@@ -271,7 +271,7 @@ class FastValidation(ImageValidationStrategy):
     """Fast validation strategy.
 
     Validates that the file exists and can be opened as an image.
-    Extracts basic metadata (format and size) with minimal processing time.
+    Extracts basic metadata (format_ and size) with minimal processing time.
     Uses existing validation logic from the integrity module.
     """
 
@@ -313,7 +313,7 @@ class FastValidation(ImageValidationStrategy):
                             metadata.update({
                                 "width": width,
                                 "height": height,
-                                "format": format_name,
+                                "format_": format_name,
                                 "mode": mode,
                                 "size_bytes": file_size,
                                 "aspect_ratio": round(width / height, 2) if height > 0 else 0
@@ -344,7 +344,7 @@ class FastValidation(ImageValidationStrategy):
                                 is_valid = False
 
                 except Image.UnidentifiedImageError as e:
-                    issues.append(f"Cannot identify image format: {str(e)}")
+                    issues.append(f"Cannot identify image format_: {str(e)}")
                     is_valid = False
                 except IOError as e:
                     issues.append(f"Cannot open image file: {str(e)}")

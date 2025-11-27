@@ -25,7 +25,7 @@ import time
 from functools import lru_cache
 from typing import Dict, List, Any, Optional
 
-from celery import group, chain
+from celery import group, chain, Celery
 from celery.result import AsyncResult
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
@@ -409,14 +409,16 @@ class TaskMonitor:
             logger.error(f"Failed to get worker stats: {e}")
             return {'error': str(e)}
 
-    def get_queue_info(self) -> Dict[str, Any]:
-        """
-        Get information about task queues.
+    def get_queue_info(self):
+        i = self.app.control.inspect(timeout=5.0)
+        if not i:
+            return {"error": "no worker response"}
 
-        Returns:
-            Dict containing queue information
-        """
-        return self.app.get_queue_info()
+        return {
+            "active": i.active(),
+            "reserved": i.reserved(),
+            "scheduled": i.scheduled()
+        }
 
     def health_check(self) -> Dict[str, Any]:
         """
@@ -454,11 +456,25 @@ class TaskMonitor:
 
             # Check queue configuration
             queue_info = self.get_queue_info()
+
+            # Because inspect doesn't return `queues`, we count workers instead or queue names inside reserved/active
+            queues = set()
+            for worker_tasks in [
+                *(queue_info.get("reserved") or {}).values(),
+                *(queue_info.get("active") or {}).values(),
+                *(queue_info.get("scheduled") or {}).values(),
+            ]:
+                if worker_tasks:
+                    for task in worker_tasks:
+                        queues.add(task.get("delivery_info", {}).get("routing_key"))
+
+            queues.discard(None)
+
             health_info['checks']['queues'] = {
                 'status': 'ok',
-                'configured_queues': len(queue_info.get('queues', [])),
+                'configured_queues': len(queues),
+                'detected_queue_names': list(queues),
             }
-
             # Overall status
             failed_checks = [
                 check for check in health_info['checks'].values()

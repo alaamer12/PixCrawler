@@ -219,12 +219,20 @@ const PAGES: PageInfo[] = [
     icon: <User className="size-4"/>
   },
   {
-    path: '/notifications',
+    path: '/dashboard/notifications',
     name: 'Notifications',
     description: 'Notification center with filters and actions',
     category: 'Dashboard',
     requiresAuth: true,
     icon: <Database className="size-4"/>
+  },
+  {
+    path: '/dashboard/projects/1/settings',
+    name: 'Project Settings',
+    description: 'Manage project-level settings and configuration',
+    category: 'Dashboard',
+    requiresAuth: true,
+    icon: <Settings className="size-4"/>
   },
 ]
 
@@ -342,6 +350,12 @@ export default function DevPage() {
               <Link href="/dashboard">
                 <Home className="size-5"/>
                 <span className="text-sm">Dashboard</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
+              <Link href="/dashboard/projects?dev_bypass=true">
+                <Database className="size-5"/>
+                <span className="text-sm">Projects</span>
               </Link>
             </Button>
           </div>

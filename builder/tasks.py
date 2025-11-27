@@ -96,7 +96,7 @@ def task_download_google_impl(
         # Get variations
         if not variations:
             # get_search_variations() returns template strings like "{keyword} photo"
-            # We need to format them with the actual keyword
+            # We need to format_ them with the actual keyword
             variation_templates = get_search_variations()
             variations = [template.format(keyword=keyword) for template in
                           variation_templates[:5]]
@@ -205,7 +205,7 @@ def task_download_bing_impl(
 
         if not variations:
             # get_search_variations() returns template strings like "{keyword} photo"
-            # We need to format them with the actual keyword
+            # We need to format_ them with the actual keyword
             variation_templates = get_search_variations()
             variations = [template.format(keyword=keyword) for template in
                           variation_templates[:5]]
@@ -312,7 +312,7 @@ def task_download_baidu_impl(
 
         if not variations:
             # get_search_variations() returns template strings like "{keyword} photo"
-            # We need to format them with the actual keyword
+            # We need to format_ them with the actual keyword
             variation_templates = get_search_variations()
             variations = [template.format(keyword=keyword) for template in
                           variation_templates[:5]]
@@ -563,16 +563,16 @@ def task_generate_keywords(
 # ) -> Dict[str, Any]:
 #     """Implementation for AI-enhanced keyword generation (FUTURE)."""
 #     logger.info(f"Starting AI keyword generation for: {base_keywords}")
-#     
+#
 #     try:
 #         # TODO: Use AI to select best predefined categories
 #         # TODO: Generate additional AI variations
 #         # TODO: Combine intelligently
-#         
+#
 #         keyword_manager = KeywordManagement(ai_model=ai_model)
 #         generated_keywords = []
 #         errors = []
-#         
+#
 #         for base_keyword in base_keywords:
 #             try:
 #                 new_keywords = keyword_manager.generate_keywords(base_keyword)
@@ -581,10 +581,10 @@ def task_generate_keywords(
 #                 error_msg = f"Failed to generate keywords for '{base_keyword}': {str(e)}"
 #                 logger.error(error_msg)
 #                 errors.append(error_msg)
-#         
+#
 #         generated_keywords = list(set(generated_keywords))
 #         logger.info(f"AI keyword generation completed: {len(generated_keywords)} keywords")
-#         
+#
 #         return {
 #             'success': len(generated_keywords) > 0,
 #             'base_keywords': base_keywords,

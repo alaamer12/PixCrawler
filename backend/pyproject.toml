@@ -25,7 +25,9 @@ dependencies = [
   "fastapi-pagination", # Use Latest
   "fastapi-limiter", # Use Latest
   "asyncpg",
-  "platformdirs"
+  "platformdirs",
+  "sse_starlette",
+  "azure-storage-blob",
 ]
 
 [project.optional-dependencies]

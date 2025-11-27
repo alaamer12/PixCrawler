@@ -11,13 +11,13 @@ __all__ = ["SecuritySettings"]
 class SecuritySettings(BaseSettings):
     """
     Security, CORS, and host configuration.
-    
+
     Environment variables:
         SECURITY_ALLOWED_ORIGINS: Comma-separated CORS origins
         SECURITY_ALLOWED_HOSTS: Comma-separated allowed hosts
         SECURITY_FORCE_HTTPS: Force HTTPS redirect
     """
-    
+
     model_config = SettingsConfigDict(
         env_prefix="SECURITY_",
         env_file=".env",
@@ -25,7 +25,7 @@ class SecuritySettings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
-    
+
     allowed_origins: List[str] = Field(
         default=["http://localhost:3000"],
         min_length=1,
@@ -43,7 +43,7 @@ class SecuritySettings(BaseSettings):
         description="Force HTTPS redirect in production",
         examples=[True, False]
     )
-    
+
     @field_validator('allowed_origins', mode="before")
     @classmethod
     def parse_cors_origins(cls, v: Any) -> List[str]:
@@ -51,11 +51,11 @@ class SecuritySettings(BaseSettings):
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
         return v
-    
+
     @field_validator('allowed_origins')
     @classmethod
     def validate_origins(cls, v: List[str]) -> List[str]:
-        """Validate CORS origins format."""
+        """Validate CORS origins format_."""
         validated = []
         for origin in v:
             origin = origin.strip()
@@ -64,7 +64,7 @@ class SecuritySettings(BaseSettings):
             if not (origin.startswith('http://') or origin.startswith('https://')):
                 raise ValueError(f"Origin '{origin}' must start with http:// or https://")
             validated.append(origin)
-        
+
         if not validated:
             raise ValueError("At least one valid origin is required")
         return validated

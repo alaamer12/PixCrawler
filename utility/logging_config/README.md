@@ -45,7 +45,7 @@ from utility.logging_config import setup_logging
 # Development environment (colored console, debug level)
 setup_logging(environment='development')
 
-# Production environment (JSON format, file logging)
+# Production environment (JSON format_, file logging)
 setup_logging(environment='production')
 
 # Testing environment (minimal output)

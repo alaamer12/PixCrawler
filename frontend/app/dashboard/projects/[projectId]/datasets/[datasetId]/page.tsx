@@ -10,18 +10,12 @@ import {
   ArrowLeft,
   Download,
   Settings,
-  Trash2,
-  Play,
-  Pause,
-  RotateCw,
   Image as ImageIcon,
   Activity,
   Calendar,
   Database,
   FileText,
-  CheckCircle2,
-  XCircle,
-  AlertCircle
+  CheckCircle2
 } from 'lucide-react'
 import Link from 'next/link'
 import { StatusBadge } from '@/components/dashboard/data-table'
@@ -249,28 +243,32 @@ export default function DatasetViewPage() {
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <QuickStatsCard
-          title="Images Collected"
+          title="Images Found"
           value={dataset.imagesCollected.toLocaleString()}
           icon={ImageIcon}
           description={`of ${dataset.totalImages.toLocaleString()} target`}
+          accent="blue"
         />
         <QuickStatsCard
           title="Completion"
           value={`${completionRate}%`}
           icon={Activity}
           description={dataset.status === 'processing' ? 'In progress' : 'Complete'}
+          accent="yellow"
         />
         <QuickStatsCard
-          title="Keywords"
+          title="Corrupted Images"
           value={dataset.keywords.length}
           icon={FileText}
           description="Search terms"
+          accent="red"
         />
         <QuickStatsCard
-          title="Sources"
+          title="Validated Images"
           value={dataset.sources.length}
           icon={Database}
           description="Image sources"
+          accent="green"
         />
       </div>
 
@@ -278,9 +276,6 @@ export default function DatasetViewPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="job">Job Status</TabsTrigger>
-          <TabsTrigger value="logs">Logs</TabsTrigger>
-          <TabsTrigger value="config">Configuration</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -331,157 +326,7 @@ export default function DatasetViewPage() {
             </Card>
           </div>
 
-          {/* Sources Card */}
-          <Card className="bg-card/80 backdrop-blur-md">
-            <CardHeader>
-              <CardTitle>Image Sources</CardTitle>
-              <CardDescription>Platforms used for image collection</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-3">
-                {dataset.sources.map((source) => (
-                  <div key={source} className="flex items-center gap-2 px-4 py-2 rounded-lg border bg-muted/30">
-                    <Database className="w-4 h-4 text-primary" />
-                    <span className="font-medium capitalize">{source}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="job" className="space-y-4">
-          <Card className="bg-card/80 backdrop-blur-md">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Job Status</CardTitle>
-                <CardDescription>Real-time processing information</CardDescription>
-              </div>
-              {job && job.status === 'running' && (
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" leftIcon={<Pause className="w-4 h-4" />}>
-                    Pause
-                  </Button>
-                  <Button variant="outline" size="sm" leftIcon={<RotateCw className="w-4 h-4" />}>
-                    Restart
-                  </Button>
-                </div>
-              )}
-            </CardHeader>
-            <CardContent>
-              {job ? (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Job ID</p>
-                      <code className="text-sm font-mono">{job.id}</code>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Status</p>
-                      <StatusBadge status={job.status} />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Started</p>
-                      <p className="text-sm">{job.startedAt ? new Date(job.startedAt).toLocaleString() : '-'}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Completed</p>
-                      <p className="text-sm">{job.completedAt ? new Date(job.completedAt).toLocaleString() : '-'}</p>
-                    </div>
-                  </div>
-
-                  <JobProgress
-                    status={job.status}
-                    progress={job.progress}
-                    totalItems={job.totalItems}
-                    processedItems={job.processedItems}
-                  />
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Activity className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-                  <p className="text-muted-foreground">No job information available</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="logs" className="space-y-4">
-          <Card className="bg-card/80 backdrop-blur-md">
-            <CardHeader>
-              <CardTitle>Processing Logs</CardTitle>
-              <CardDescription>Real-time logs from the crawling job</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {job && job.logs.length > 0 ? (
-                <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                  {job.logs.map((log) => (
-                    <div key={log.id} className="flex gap-3 p-3 rounded-lg border bg-muted/20">
-                      <div className="flex-shrink-0 mt-0.5">
-                        {log.level === 'success' && <CheckCircle2 className="w-4 h-4 text-green-500" />}
-                        {log.level === 'error' && <XCircle className="w-4 h-4 text-destructive" />}
-                        {log.level === 'warning' && <AlertCircle className="w-4 h-4 text-yellow-500" />}
-                        {log.level === 'info' && <Activity className="w-4 h-4 text-blue-500" />}
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm">{log.message}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(log.timestamp).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <FileText className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-                  <p className="text-muted-foreground">No logs available</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="config" className="space-y-4">
-          <Card className="bg-card/80 backdrop-blur-md">
-            <CardHeader>
-              <CardTitle>Dataset Configuration</CardTitle>
-              <CardDescription>Settings used for this dataset</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-sm text-muted-foreground">AI Keyword Expansion</span>
-                    <Badge variant={dataset.config.aiExpansion ? 'default' : 'outline'}>
-                      {dataset.config.aiExpansion ? 'Enabled' : 'Disabled'}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-sm text-muted-foreground">Deduplication Level</span>
-                    <Badge variant="outline" className="capitalize">{dataset.config.deduplicationLevel}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-sm text-muted-foreground">Min Image Size</span>
-                    <span className="text-sm font-medium">{dataset.config.minImageSize}px</span>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-sm text-muted-foreground">Image Format</span>
-                    <Badge variant="outline" className="uppercase">{dataset.config.imageFormat}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-sm text-muted-foreground">Safe Search</span>
-                    <Badge variant={dataset.config.safeSearch ? 'default' : 'outline'}>
-                      {dataset.config.safeSearch ? 'Enabled' : 'Disabled'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          
         </TabsContent>
       </Tabs>
     </div>

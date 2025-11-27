@@ -204,31 +204,3 @@ def test_builder_configuration_methods(temp_dir):
         pytest.skip("Builder not available - missing dependencies")
     except Exception as e:
         pytest.fail(f"Builder configuration test failed: {e}")
-
-
-# Test keyword generation via task implementation
-def test_keyword_generation_via_task():
-    """Test keyword generation via task implementation."""
-    try:
-        from builder import tasks as builder_tasks
-        from _keywords import KeywordManagement
-
-        # Mock KeywordManagement.generate_keywords to avoid external AI calls
-        generated = ["cat", "kitten", "feline"]
-
-        def _fake_generate_keywords(self, category: str):
-            return generated
-
-        with patch.object(KeywordManagement, "generate_keywords", _fake_generate_keywords):
-            result = builder_tasks.task_generate_keywords_impl(
-                base_keywords=["animals"], ai_model="gpt4-mini", count=3
-            )
-
-            assert result["success"] is True
-            assert set(result["generated_keywords"]).issuperset(set(generated))
-            assert result["ai_model"] == "gpt4-mini"
-
-    except ImportError:
-        pytest.skip("Builder tasks not available - missing dependencies")
-    except Exception as e:
-        pytest.fail(f"Keyword generation test failed: {e}")

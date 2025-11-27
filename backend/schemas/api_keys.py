@@ -19,7 +19,9 @@ __all__ = [
     'APIKeyCreate',
     'APIKeyUpdate',
     'APIKeyResponse',
+    'APIKeyListResponse',
     'APIKeyRegenerateRequest',
+    'APIKeyCreateResponse',
 ]
 
 
@@ -45,26 +47,26 @@ class APIKeyPermission(str, Enum):
 
 class APIKeyBase(BaseModel):
     """Base schema for API keys."""
-    
+
     model_config = ConfigDict(
         from_attributes=True,
         str_strip_whitespace=True,
         use_enum_values=True,
     )
-    
+
     name: str = Field(
         min_length=1,
         max_length=200,
         description="User-friendly key name",
         examples=["Production API Key", "Development Key"],
     )
-    
+
     permissions: list[APIKeyPermission] = Field(
         default_factory=list,
         description="List of permissions",
         examples=[["read", "write"], ["crawl_jobs:create", "crawl_jobs:read"]],
     )
-    
+
     rate_limit: int = Field(
         default=1000,
         gt=0,
@@ -72,12 +74,12 @@ class APIKeyBase(BaseModel):
         description="Requests per hour limit",
         examples=[1000, 5000, 10000],
     )
-    
+
     expires_at: Optional[datetime] = Field(
         default=None,
         description="Optional expiration timestamp",
     )
-    
+
     @field_validator('permissions')
     @classmethod
     def validate_permissions(cls, v: list[str]) -> list[str]:
@@ -89,37 +91,37 @@ class APIKeyBase(BaseModel):
 
 class APIKeyCreate(APIKeyBase):
     """Schema for creating API keys."""
-    
+
     user_id: UUID = Field(description="User ID")
 
 
 class APIKeyUpdate(BaseModel):
     """Schema for updating API keys."""
-    
+
     model_config = ConfigDict(
         str_strip_whitespace=True,
         use_enum_values=True,
     )
-    
+
     name: Optional[str] = Field(
         default=None,
         min_length=1,
         max_length=200,
         description="User-friendly key name",
     )
-    
+
     permissions: Optional[list[APIKeyPermission]] = Field(
         default=None,
         description="List of permissions",
     )
-    
+
     rate_limit: Optional[int] = Field(
         default=None,
         gt=0,
         le=100000,
         description="Requests per hour limit",
     )
-    
+
     status: Optional[APIKeyStatus] = Field(
         default=None,
         description="Key status",
@@ -128,7 +130,7 @@ class APIKeyUpdate(BaseModel):
 
 class APIKeyResponse(APIKeyBase):
     """Schema for API key responses."""
-    
+
     id: UUID = Field(description="Key ID")
     user_id: UUID = Field(description="User ID")
     key_prefix: str = Field(description="Key prefix for identification")
@@ -138,15 +140,14 @@ class APIKeyResponse(APIKeyBase):
     last_used_ip: Optional[str] = Field(default=None, description="Last IP address")
     created_at: datetime = Field(description="Creation timestamp")
     updated_at: datetime = Field(description="Last update timestamp")
-    
+
     # Never expose the actual key hash
     model_config = ConfigDict(
         from_attributes=True,
         str_strip_whitespace=True,
         use_enum_values=True,
-        exclude={'key_hash'},
     )
-    
+
     @computed_field
     @property
     def is_active(self) -> bool:
@@ -156,7 +157,7 @@ class APIKeyResponse(APIKeyBase):
         if self.expires_at and self.expires_at < datetime.utcnow():
             return False
         return True
-    
+
     @computed_field
     @property
     def is_expired(self) -> bool:
@@ -168,15 +169,46 @@ class APIKeyResponse(APIKeyBase):
 
 class APIKeyRegenerateRequest(BaseModel):
     """Schema for regenerating API keys."""
-    
+
     model_config = ConfigDict(str_strip_whitespace=True)
-    
+
     key_id: UUID = Field(description="Key ID to regenerate")
+
+
+class APIKeyListResponse(BaseModel):
+    """Schema for API key list response."""
+    
+    model_config = ConfigDict(from_attributes=True)
+    
+    data: list[APIKeyResponse] = Field(
+        description="List of API keys",
+        examples=[[{
+            "id": "123e4567-e89b-12d3-a456-426614174000",
+            "user_id": "123e4567-e89b-12d3-a456-426614174000",
+            "name": "Production API Key",
+            "key_prefix": "pk_live_",
+            "permissions": ["read", "write"],
+            "rate_limit": 1000,
+            "status": "active",
+            "usage_count": 150,
+            "last_used_at": "2024-01-27T10:00:00Z",
+            "last_used_ip": "192.168.1.1",
+            "expires_at": None,
+            "created_at": "2024-01-20T10:00:00Z",
+            "updated_at": "2024-01-27T10:00:00Z"
+        }]]
+    )
+    
+    meta: dict = Field(
+        default_factory=lambda: {"total": 0, "skip": 0, "limit": 50},
+        description="Pagination metadata",
+        examples=[{"total": 5, "skip": 0, "limit": 50}]
+    )
 
 
 class APIKeyCreateResponse(APIKeyResponse):
     """Schema for API key creation response (includes full key once)."""
-    
+
     key: str = Field(
         description="Full API key (only shown once)",
         examples=["pk_live_1234567890abcdef"],

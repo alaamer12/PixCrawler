@@ -588,18 +588,18 @@ class LabelGenerator:
 
     def __init__(self, format_type: str = "txt"):
         """
-        Initializes the LabelGenerator with a specified output format for label files.
+        Initializes the LabelGenerator with a specified output format_ for label files.
 
         Args:
-            format_type (str): The desired format for label files ('txt', 'json', 'csv', 'yaml').
-                                If an unsupported format is provided, it defaults to 'txt'.
+            format_type (str): The desired format_ for label files ('txt', 'json', 'csv', 'yaml').
+                                If an unsupported format_ is provided, it defaults to 'txt'.
         """
         self.format_type = format_type.lower()
         self.supported_formats = {"txt", "json", "csv", "yaml"}
 
         if self.format_type not in self.supported_formats:
             logger.warning(
-                f"Unsupported label format: {format_type}. Defaulting to 'txt'.")
+                f"Unsupported label format_: {format_type}. Defaulting to 'txt'.")
             self.format_type = "txt"
 
     def generate_dataset_labels(self, dataset_dir: str) -> List[str]:
@@ -683,7 +683,7 @@ class LabelGenerator:
             "label_format": self.format_type
         }
 
-        # Write to appropriate format
+        # Write to appropriate format_
         if self.format_type == "json":
             with open(labels_dir / "dataset_metadata.json", "w", encoding="utf-8") as f:
                 json.dump(metadata, f, indent=2)
@@ -697,7 +697,7 @@ class LabelGenerator:
                 logger.warning(
                     "PyYAML not installed, skipping YAML metadata generation")
         else:
-            # For txt and csv, use simple format
+            # For txt and csv, use simple format_
             with open(labels_dir / "dataset_metadata.txt", "w", encoding="utf-8") as f:
                 for key, value in metadata.items():
                     f.write(f"{key}: {value}\n")
@@ -713,7 +713,7 @@ class LabelGenerator:
         # Create category to ID mapping
         category_map = {name: idx for idx, name in enumerate(sorted(categories))}
 
-        # Write to appropriate format
+        # Write to appropriate format_
         if self.format_type == "json":
             with open(labels_dir / "category_index.json", "w", encoding="utf-8") as f:
                 json.dump(category_map, f, indent=2)
@@ -733,7 +733,7 @@ class LabelGenerator:
                 for name, idx in category_map.items():
                     f.write(f"{name},{idx}\n")
         else:
-            # For txt format
+            # For txt format_
             with open(labels_dir / "category_index.txt", "w", encoding="utf-8") as f:
                 for name, idx in category_map.items():
                     f.write(f"{name}: {idx}\n")
@@ -816,7 +816,7 @@ class LabelGenerator:
     def _generate_label_file(self, image_file: Path, label_dir: Path, category: str,
                              keyword: str) -> Optional[Path]:
         """
-        Generates a label file for a single image based on the configured format.
+        Generates a label file for a single image based on the configured format_.
         It extracts image metadata and writes the label content to the specified directory.
 
         Args:
@@ -837,7 +837,7 @@ class LabelGenerator:
             # Try to get image metadata if possible
             image_metadata = self._extract_image_metadata(image_file)
 
-            # Generate label content based on format
+            # Generate label content based on format_
             if self.format_type == "txt":
                 self._write_txt_label(label_file_path, category, keyword, image_file,
                                       image_metadata)
@@ -867,7 +867,7 @@ class LabelGenerator:
     @staticmethod
     def _extract_image_metadata(image_path: Path) -> Dict[str, Any]:
         """
-        Extracts metadata (e.g., dimensions, size, format) from an image file.
+        Extracts metadata (e.g., dimensions, size, format_) from an image file.
 
         Args:
             image_path (Path): The path to the image file.
@@ -888,7 +888,7 @@ class LabelGenerator:
             with Image.open(image_path) as img:
                 metadata["width"] = img.width
                 metadata["height"] = img.height
-                metadata["format"] = img.format
+                metadata["format_"] = img.format
                 metadata["mode"] = img.mode
         except Exception:
             # If we can't open the image, just continue without dimensions
@@ -900,7 +900,7 @@ class LabelGenerator:
     def _write_txt_label(label_path: Path, category: str, keyword: str,
                          image_path: Path, metadata: Dict[str, Any]) -> None:
         """
-        Writes a label file in plain text (TXT) format.
+        Writes a label file in plain text (TXT) format_.
 
         Args:
             label_path (Path): The path to write the label file.
@@ -925,8 +925,8 @@ class LabelGenerator:
                     f.write(f"width: {metadata['width']}\n")
                     f.write(f"height: {metadata['height']}\n")
 
-                if "format" in metadata:
-                    f.write(f"format: {metadata['format']}\n")
+                if "format_" in metadata:
+                    f.write(f"format_: {metadata['format_']}\n")
 
             logger.debug(f"Created TXT label: {label_path}")
         except Exception as e:
@@ -937,7 +937,7 @@ class LabelGenerator:
     def _write_json_label(label_path: Path, category: str, keyword: str,
                           image_path: Path, metadata: Dict[str, Any]) -> None:
         """
-        Writes a label file in JSON format.
+        Writes a label file in JSON format_.
 
         Args:
             label_path (Path): The path to write the label file.
@@ -969,7 +969,7 @@ class LabelGenerator:
     def _write_csv_label(label_path: Path, category: str, keyword: str,
                          image_path: Path, metadata: Dict[str, Any]) -> None:
         """
-        Writes a label file in CSV format.
+        Writes a label file in CSV format_.
 
         Args:
             label_path (Path): The path to write the label file.
@@ -983,7 +983,7 @@ class LabelGenerator:
         """
         try:
             headers = ["category", "keyword", "image_path", "timestamp", "filename",
-                       "width", "height", "format",
+                       "width", "height", "format_",
                        "size"]
             values = [
                 category,
@@ -993,7 +993,7 @@ class LabelGenerator:
                 metadata.get("filename", ""),
                 metadata.get("width", ""),
                 metadata.get("height", ""),
-                metadata.get("format", ""),
+                metadata.get("format_", ""),
                 metadata.get("size", "")
             ]
 
@@ -1009,7 +1009,7 @@ class LabelGenerator:
     def _write_yaml_label(self, label_path: Path, category: str, keyword: str,
                           image_path: Path, metadata: Dict[str, Any]) -> None:
         """
-        Writes a label file in YAML format.
+        Writes a label file in YAML format_.
 
         Args:
             label_path (Path): The path to write the label file.
@@ -1035,7 +1035,7 @@ class LabelGenerator:
                 yaml.dump(label_data, f, default_flow_style=False)
             logger.debug(f"Created YAML label: {label_path}")
         except ImportError:
-            logger.warning("PyYAML not installed, falling back to TXT format")
+            logger.warning("PyYAML not installed, falling back to TXT format_")
             self._write_txt_label(label_path, category, keyword, image_path, metadata)
         except Exception as e:
             logger.warning(f"Failed to write YAML label {label_path}: {e}")

@@ -111,9 +111,9 @@ uv run pytest
 # Run tests with coverage
 uv run pytest --cov=backend --cov-report=html
 
-# Lint and format
+# Lint and format_
 uv run ruff check .
-uv run ruff format .
+uv run ruff format_ .
 
 # Type checking
 uv run mypy .

@@ -37,6 +37,11 @@ try:
     AZURE_AVAILABLE = True
 except ImportError:
     AZURE_AVAILABLE = False
+    # Create a dummy StandardBlobTier for type hints when Azure is not available
+    class StandardBlobTier:  # type: ignore
+        Hot = "Hot"
+        Cool = "Cool"
+        Archive = "Archive"
     logger.warning("azure-storage-blob not installed. Azure storage provider unavailable.")
 
 
@@ -129,7 +134,8 @@ class AzureBlobArchiveProvider:
             logger.error(f"Failed to initialize Azure storage: {e}")
             raise
 
-    def _tier_to_standard_blob_tier(self, tier: AccessTier) -> StandardBlobTier:
+    @staticmethod
+    def _tier_to_standard_blob_tier(tier: AccessTier) -> StandardBlobTier:
         """Convert AccessTier enum to StandardBlobTier."""
         tier_mapping = {
             AccessTier.HOT: StandardBlobTier.HOT,
