@@ -31,7 +31,15 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional, AsyncGenerator
 from fastapi import HTTPException
 from celery import current_app as celery_app
-from sse_starlette.sse import EventSourceResponse
+
+# Optional SSE support
+try:
+    from sse_starlette.sse import EventSourceResponse
+    SSE_AVAILABLE = True
+except ImportError:
+    SSE_AVAILABLE = False
+    EventSourceResponse = None  # type: ignore
+
 from backend.core.exceptions import NotFoundError, ValidationError
 from backend.models import CrawlJob, Image
 from backend.repositories import (

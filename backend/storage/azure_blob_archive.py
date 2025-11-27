@@ -37,6 +37,11 @@ try:
     AZURE_AVAILABLE = True
 except ImportError:
     AZURE_AVAILABLE = False
+    # Create a dummy StandardBlobTier for type hints when Azure is not available
+    class StandardBlobTier:  # type: ignore
+        Hot = "Hot"
+        Cool = "Cool"
+        Archive = "Archive"
     logger.warning("azure-storage-blob not installed. Azure storage provider unavailable.")
 
 

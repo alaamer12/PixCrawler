@@ -25,7 +25,8 @@ dependencies = [
   "fastapi-pagination", # Use Latest
   "fastapi-limiter", # Use Latest
   "asyncpg",
-  "platformdirs"
+  "platformdirs",
+  "sse_starlette",
 ]
 
 [project.optional-dependencies]
