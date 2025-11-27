@@ -80,11 +80,11 @@ async def get_notification_service(session = Depends(get_session)) -> Notificati
     }
 )
 async def list_notifications(
+    current_user: CurrentUser,
+    service: NotificationService = Depends(get_notification_service),
     skip: int = Query(0, ge=0, description="Number of items to skip for pagination"),
     limit: int = Query(50, ge=1, le=100, description="Maximum items to return (max: 100)"),
     unread_only: bool = Query(False, description="Filter to unread notifications only"),
-    current_user: CurrentUser = Depends(get_current_user),
-    service: NotificationService = Depends(get_notification_service),
 ) -> NotificationListResponse:
     """
     List all notifications for the current user with pagination.
@@ -172,7 +172,7 @@ async def list_notifications(
 async def mark_as_read(
     notification_id: int,
     notification_in: NotificationUpdate,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser,
     service: NotificationService = Depends(get_notification_service),
 ) -> NotificationMarkReadResponse:
     """
@@ -239,7 +239,7 @@ async def mark_as_read(
     }
 )
 async def mark_all_read(
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser,
     service: NotificationService = Depends(get_notification_service),
 ) -> NotificationMarkAllReadResponse:
     """

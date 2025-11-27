@@ -27,6 +27,7 @@ dependencies = [
   "asyncpg",
   "platformdirs",
   "sse_starlette",
+  "azure-storage-blob",
 ]
 
 [project.optional-dependencies]

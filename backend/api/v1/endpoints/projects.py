@@ -66,7 +66,7 @@ async def get_project_service(session = Depends(get_session)) -> ProjectService:
     }
 )
 async def list_projects(
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser,
     service: ProjectService = Depends(get_project_service),
 ) -> ProjectListResponse:
     """
@@ -127,7 +127,7 @@ async def list_projects(
 )
 async def create_project(
     project_in: ProjectCreate,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser,
     service: ProjectService = Depends(get_project_service),
 ) -> ProjectResponse:
     """
@@ -183,7 +183,7 @@ async def create_project(
 )
 async def get_project(
     project_id: int,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser,
     service: ProjectService = Depends(get_project_service),
 ) -> ProjectResponse:
     """
@@ -239,7 +239,7 @@ async def get_project(
 async def update_project(
     project_id: int,
     project_in: ProjectUpdate,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser,
     service: ProjectService = Depends(get_project_service),
 ) -> ProjectResponse:
     """
@@ -290,7 +290,7 @@ async def update_project(
 )
 async def delete_project(
     project_id: int,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser,
     service: ProjectService = Depends(get_project_service),
 ) -> dict:
     """
