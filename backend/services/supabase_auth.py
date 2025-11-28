@@ -19,13 +19,14 @@ Features:
     - Row Level Security (RLS) support
 """
 
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
+from datetime import datetime, timedelta
 
 import jwt
 from supabase import create_client, Client
 
 from backend.core.config import get_settings
-from backend.core.exceptions import AuthenticationError, NotFoundError
+from backend.core.exceptions import AuthenticationError, NotFoundError, RateLimitExceeded
 from .base import BaseService
 
 __all__ = [
@@ -55,6 +56,46 @@ class SupabaseAuthService(BaseService):
             self.settings.supabase_url,
             self.settings.supabase_service_role_key
         )
+        
+    def _get_tier_limits(self, tier: str) -> Dict[str, Any]:
+        """
+        Get the limits for a specific user tier.
+
+        Args:
+            tier: User tier (FREE, PRO, ENTERPRISE)
+
+        Returns:
+            Dictionary containing the limits for the tier
+        """
+        tier = tier.upper()
+        
+        # Define limits for each tier
+        limits = {
+            'FREE': {
+                'max_concurrent_jobs': 1,
+                'max_images_per_job': 100,
+                'max_jobs_per_day': 3,
+                'max_projects': 3,
+                'max_team_members': 1
+            },
+            'PRO': {
+                'max_concurrent_jobs': 3,
+                'max_images_per_job': 1000,
+                'max_jobs_per_day': 20,
+                'max_projects': 10,
+                'max_team_members': 5
+            },
+            'ENTERPRISE': {
+                'max_concurrent_jobs': 10,
+                'max_images_per_job': 10000,
+                'max_jobs_per_day': 1000,
+                'max_projects': 100,
+                'max_team_members': 50
+            }
+        }
+        
+        # Default to FREE tier if tier is not found
+        return limits.get(tier, limits['FREE'])
 
     async def verify_token(self, token: str) -> Dict[str, Any]:
         """
@@ -183,56 +224,310 @@ class SupabaseAuthService(BaseService):
             self.logger.error(f"Failed to update user profile: {str(e)}")
             raise
 
-    async def sync_profile(
-        self,
-        user_id: str,
-        email: str,
-        user_metadata: Dict[str, Any]
-    ) -> str:
+    async def get_user_tier(self, user_id: str) -> str:
         """
-        Sync user profile from Supabase Auth to profiles table.
+        Get user's subscription tier from the profiles table.
 
-        Creates a new profile if one doesn't exist, or updates the existing profile
-        with the latest information from Supabase Auth.
+        Args:
+            user_id: User ID to get tier for
+
+        Returns:
+            User's tier (FREE, PRO, ENTERPRISE)
+
+        Raises:
+            NotFoundError: If user profile is not found
+        """
+        try:
+            response = self.supabase.table("profiles").select("user_tier").eq("id", user_id).execute()
+            
+            if not response.data:
+                raise NotFoundError(f"User profile not found for ID: {user_id}")
+                
+            return response.data[0].get("user_tier", "FREE").upper()
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get user tier: {str(e)}")
+            raise
+
+    async def get_user_usage_metrics(self, user_id: str) -> Dict[str, int]:
+        """
+        Get current usage metrics for the user.
 
         Args:
             user_id: Supabase user ID
-            email: User email address
-            user_metadata: User metadata from Supabase Auth
 
         Returns:
-            Action performed: "created" or "updated"
-
-        Raises:
-            Exception: If sync operation fails
+            Dictionary containing current usage metrics
         """
         try:
-            # Check if profile exists
-            await self.get_user_profile(user_id)
+            # Get current date in UTC
+            today = datetime.utcnow().date()
             
-            # Profile exists, update it
-            await self.update_user_profile(user_id, {
-                "email": email,
-                "full_name": user_metadata.get("full_name"),
-                "avatar_url": user_metadata.get("avatar_url"),
-                "updated_at": "now()"
-            })
+            # Get concurrent jobs
+            concurrent_jobs = (
+                self.supabase.table("crawl_jobs")
+                .select("id", count="exact")
+                .eq("user_id", user_id)
+                .in_("status", ["pending", "in_progress"])
+                .execute()
+            ).count or 0
             
-            self.log_operation("sync_profile", user_id=user_id, action="updated")
-            return "updated"
+            # Get today's jobs
+            today_jobs = (
+                self.supabase.table("crawl_jobs")
+                .select("id", count="exact")
+                .eq("user_id", user_id)
+                .gte("created_at", f"{today.isoformat()}T00:00:00")
+                .execute()
+            ).count or 0
+            
+            # Get total projects
+            total_projects = (
+                self.supabase.table("projects")
+                .select("id", count="exact")
+                .eq("owner_id", user_id)
+                .execute()
+            ).count or 0
+            
+            # Get team members (if applicable)
+            total_team_members = 0
+            team_response = (
+                self.supabase.table("teams")
+                .select("id")
+                .eq("owner_id", user_id)
+                .execute()
+            )
+            
+            if team_response.data:
+                team_id = team_response.data[0].get("id")
+                if team_id:
+                    total_team_members = (
+                        self.supabase.table("team_members")
+                        .select("id", count="exact")
+                        .eq("team_id", team_id)
+                        .execute()
+                    ).count or 0
+            
+            return {
+                "concurrent_jobs": concurrent_jobs,
+                "jobs_today": today_jobs,
+                "total_projects": total_projects,
+                "team_members": total_team_members
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get user metrics: {str(e)}")
+            return {}
 
-        except NotFoundError:
-            # Profile doesn't exist, create it
-            await self.create_user_profile({
-                "id": user_id,
-                "email": email,
-                "full_name": user_metadata.get("full_name"),
-                "avatar_url": user_metadata.get("avatar_url"),
-                "role": "user"
-            })
+    async def is_new_user(self, user_id: str) -> bool:
+        """
+        Check if user is new by verifying they have no job history.
+
+        Args:
+            user_id: Supabase user ID
+
+        Returns:
+            True if user has no completed jobs, False otherwise
+        """
+        try:
+            response = (
+                self.supabase.table("crawl_jobs")
+                .select("id", count="exact")
+                .eq("user_id", user_id)
+                .eq("status", "completed")
+                .execute()
+            )
+            return response.count == 0
             
-            self.log_operation("sync_profile", user_id=user_id, action="created")
-            return "created"
+        except Exception as e:
+            self.logger.error(f"Failed to check if user is new: {str(e)}")
+            return True
+
+    async def get_user_tier_info(self, user_id: str) -> Tuple[str, Dict[str, Any], Dict[str, int]]:
+        """
+        Get user's tier information including limits and current usage.
+
+        Args:
+            user_id: Supabase user ID
+
+        Returns:
+            Tuple of (tier_name, tier_limits, current_usage)
+        """
+        tier = await self.get_user_tier(user_id)
+        limits = self._get_tier_limits(tier)
+        usage = await self.get_user_usage_metrics(user_id)
+        return tier, limits, usage
+
+    async def detect_user_tier(self, user_id: str) -> str:
+        """
+        Detect and return user's tier based on their profile and job history.
+
+        Args:
+            user_id: Supabase user ID
+
+        Returns:
+            str: User's tier (FREE, PRO, ENTERPRISE)
+        """
+        try:
+            # Get user profile to check for existing tier
+            profile = await self.get_user_profile(user_id)
+            
+            # If user has a tier set, return it
+            if profile and profile.get('user_tier'):
+                return profile['user_tier'].upper()
+                
+            # Check if this is a new user (no completed jobs)
+            is_new_user = await self.is_new_user(user_id)
+            
+            # Default to FREE tier for new users
+            if is_new_user:
+                # Update profile with default tier
+                await self.update_user_profile(user_id, {"user_tier": "FREE"})
+                return "FREE"
+                
+            # For existing users without a tier, default to FREE
+            await self.update_user_profile(user_id, {"user_tier": "FREE"})
+            return "FREE"
+            
+        except Exception as e:
+            self.logger.error(f"Failed to detect user tier: {str(e)}")
+            return "FREE"
+            
+    async def get_user_limits(self, user_id: str) -> Dict[str, Any]:
+        """
+        Get user's tier limits based on their current tier.
+
+        Args:
+            user_id: Supabase user ID
+
+        Returns:
+            Dict containing the user's tier limits
+        """
+        tier = await self.detect_user_tier(user_id)
+        return self._get_tier_limits(tier)
+        
+    async def check_limit(self, user_id: str, limit_type: str, value: int = 1) -> bool:
+        """
+        Check if a specific limit would be exceeded for the user.
+
+        Args:
+            user_id: Supabase user ID
+            limit_type: One of ['concurrent_jobs', 'jobs_today', 'total_projects', 'team_members']
+            value: Value to check against the limit (default: 1)
+
+        Returns:
+            bool: True if within limit, False otherwise
+        """
+        try:
+            # Get current usage and tier limits
+            usage = await self.get_user_usage_metrics(user_id)
+            limits = await self.get_user_limits(user_id)
+
+            # Map usage keys to their corresponding limit keys in the limits dict
+            limit_key_map = {
+                "concurrent_jobs": "max_concurrent_jobs",
+                "jobs_today": "max_jobs_per_day",
+                "total_projects": "max_projects",
+                "team_members": "max_team_members"
+            }
+
+            if limit_type not in limit_key_map:
+                self.logger.warning(f"Invalid limit type: {limit_type}")
+                return False
+
+            limit_key = limit_key_map[limit_type]
+
+            # Current usage value (fall back to 0)
+            current_usage = usage.get(limit_type, 0)
+
+            # Compare (current + value) to the limit
+            limit_value = limits.get(limit_key)
+            if limit_value is None:
+                self.logger.warning(f"Limit key {limit_key} not found for user {user_id}")
+                return False
+
+            return (current_usage + value) <= limit_value
+
+        except Exception as e:
+            self.logger.error(f"Failed to check limit: {str(e)}")
+            return False
+
+
+    async def validate_request(self, user_id: str, request_type: str, **kwargs) -> bool:
+        """
+        Validate if user's request is allowed based on their tier.
+
+        Args:
+            user_id: Supabase user ID
+            request_type: Type of request to validate ('crawl_job', 'create_project', 'add_team_member')
+            **kwargs: Additional parameters for specific validations
+
+        Returns:
+            bool: True if request is allowed, False otherwise
+
+        Raises:
+            RateLimitExceeded: If user has exceeded their tier limits
+        """
+        try:
+            # Get user tier, limits, and current usage
+            tier = await self.detect_user_tier(user_id)
+            limits = await self.get_user_limits(user_id)
+            usage = await self.get_user_usage_metrics(user_id)
+            
+            if request_type == 'crawl_job':
+                # Check concurrent jobs limit
+                if not await self.check_limit(user_id, 'concurrent_jobs'):
+                    raise RateLimitExceeded(
+                        tier=tier,
+                        current_usage=usage['concurrent_jobs'],
+                        limit=limits['max_concurrent_jobs'],
+                        message=f"Maximum concurrent jobs limit ({limits['max_concurrent_jobs']}) reached for {tier} tier"
+                    )
+                
+                # Check daily job limit
+                if not await self.check_limit(user_id, 'jobs_today'):
+                    raise RateLimitExceeded(
+                        tier=tier,
+                        current_usage=usage['jobs_today'],
+                        limit=limits['max_jobs_per_day'],
+                        message=f"Daily job limit ({limits['max_jobs_per_day']}) reached for {tier} tier"
+                    )
+                
+                # Check images per job limit if provided
+                if 'image_count' in kwargs and kwargs['image_count'] > limits['max_images_per_job']:
+                    raise RateLimitExceeded(
+                        tier=tier,
+                        current_usage=kwargs['image_count'],
+                        limit=limits['max_images_per_job'],
+                        message=f"Maximum images per job ({limits['max_images_per_job']}) exceeded for {tier} tier"
+                    )
+            
+            elif request_type == 'create_project':
+                if usage['total_projects'] >= limits['max_projects']:
+                    raise RateLimitExceeded(
+                        tier=tier,
+                        current_usage=usage['total_projects'],
+                        limit=limits['max_projects'],
+                        message=f"Maximum projects limit ({limits['max_projects']}) reached for {tier} tier"
+                    )
+            
+            elif request_type == 'add_team_member':
+                if usage['team_members'] >= limits['max_team_members']:
+                    raise RateLimitExceeded(
+                        tier=tier,
+                        current_usage=usage['team_members'],
+                        limit=limits['max_team_members'],
+                        message=f"Maximum team members limit ({limits['max_team_members']}) reached for {tier} tier"
+                    )
+            
+            return True
+            
+        except RateLimitExceeded:
+            raise
+        except Exception as e:
+            self.logger.error(f"Request validation failed: {str(e)}")
+            # Default to allowing the request on error (fail-open for availability)
+            return True
 
 
 def get_user_from_token(token: str) -> Optional[Dict[str, Any]]:
