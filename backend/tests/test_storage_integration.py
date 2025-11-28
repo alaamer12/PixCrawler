@@ -62,7 +62,7 @@ class TestStorageFactory:
         provider = create_storage_provider(storage_settings)
 
         assert isinstance(provider, LocalStorageProvider)
-        assert provider.base_directory == Path(storage_settings.local_storage_path)
+        assert provider.base_directory == Path(storage_settings.local_storage_path).resolve()
 
     def test_create_provider_with_default_settings(self):
         """Test creating provider with default settings."""
@@ -102,7 +102,7 @@ class TestStorageFactory:
             provider = create_storage_provider(settings)
 
             assert isinstance(provider, LocalStorageProvider)
-            assert provider.base_directory == temp_storage_dir
+            assert provider.base_directory == temp_storage_dir.resolve()
 
 
 # ============================================================================

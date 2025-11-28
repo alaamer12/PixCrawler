@@ -167,36 +167,51 @@ def local_storage_provider(temp_storage_dir: Path):
 
 
 @pytest.fixture(scope="function")
-def sample_text_file(temp_storage_dir: Path) -> Path:
+def sample_files_dir() -> Generator[Path, None, None]:
+    """
+    Create a temporary directory for sample files.
+
+    Yields:
+        Path to temporary directory
+    """
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        yield Path(tmpdir)
+
+
+@pytest.fixture(scope="function")
+def sample_text_file(sample_files_dir: Path) -> Path:
     """
     Create a sample text file for testing.
 
     Args:
-        temp_storage_dir: Temporary directory fixture
+        sample_files_dir: Temporary directory fixture
 
     Returns:
         Path to sample text file
     """
 
-    file_path = temp_storage_dir / "sample_text.txt"
+    file_path = sample_files_dir / "sample_text.txt"
     file_path.write_text("Sample content for testing")
     return file_path
 
 
 @pytest.fixture(scope="function")
-def sample_json_file(temp_storage_dir: Path) -> Path:
+def sample_json_file(sample_files_dir: Path) -> Path:
     """
     Create a sample JSON file for testing.
 
     Args:
-        temp_storage_dir: Temporary directory fixture
+        sample_files_dir: Temporary directory fixture
 
     Returns:
         Path to sample JSON file
     """
     import json
 
-    file_path = temp_storage_dir / "sample_data.json"
+    file_path = sample_files_dir / "sample_data.json"
     data = {
         "name": "test_dataset",
         "version": "1.0",
@@ -208,12 +223,12 @@ def sample_json_file(temp_storage_dir: Path) -> Path:
 
 
 @pytest.fixture(scope="function")
-def sample_image_file(temp_storage_dir: Path) -> Path:
+def sample_image_file(sample_files_dir: Path) -> Path:
     """
     Create a sample PNG image file for testing.
 
     Args:
-        temp_storage_dir: Temporary directory fixture
+        sample_files_dir: Temporary directory fixture
 
     Returns:
         Path to sample PNG image file
@@ -225,6 +240,6 @@ def sample_image_file(temp_storage_dir: Path) -> Path:
         b'\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01'
         b'\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
     )
-    file_path = temp_storage_dir / "sample_image.png"
+    file_path = sample_files_dir / "sample_image.png"
     file_path.write_bytes(png_data)
     return file_path

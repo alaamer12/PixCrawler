@@ -50,7 +50,8 @@ class LocalStorageProvider:
         else:
             base_directory = Path(base_directory)
 
-        self.base_directory = base_directory
+        # Resolve to absolute path to ensure path validation works correctly
+        self.base_directory = base_directory.resolve()
         self.base_directory.mkdir(parents=True, exist_ok=True)
 
         logger.info(f"Local storage initialized at: {self.base_directory}")

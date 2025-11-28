@@ -43,9 +43,9 @@ import jsonschema
 from PIL import Image
 from jsonschema import validate
 
-from _keywords import KeywordManagement, keyword_stats, AlternativeKeyTermGenerator
-from _predefined_variations import get_search_variations
-from _search_engines import download_images_ddgs
+from ._keywords import KeywordManagement, keyword_stats, AlternativeKeyTermGenerator
+from ._predefined_variations import get_search_variations
+from ._search_engines import download_images_ddgs
 from builder._config import DatasetGenerationConfig, CONFIG_SCHEMA
 from builder._constants import DEFAULT_CACHE_FILE, ENGINES, \
     logger, IMAGE_EXTENSIONS
@@ -54,7 +54,7 @@ from builder._exceptions import ConfigurationError, DownloadError, \
     GenerationError
 from builder._helpers import DatasetTracker, ProgressManager, progress, \
     valid_image_ext
-from _helpers import rename_images_sequentially
+from ._helpers import rename_images_sequentially
 
 __all__ = [
     'retry_download',
@@ -65,7 +65,7 @@ __all__ = [
     'ConfigManager',
 ]
 
-from progress import ProgressCache
+from .progress import ProgressCache
 
 BACKOFF_DELAY: Final[float] = 0.5
 

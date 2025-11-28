@@ -393,7 +393,7 @@ def test_builder_configuration_methods(temp_dir):
         assert builder.config.max_images == 20
 
         builder.enable_label_generation(True)
-        assert builder.generate_labels is True
+        assert builder.config.generate_labels is True
 
     except ImportError:
         pytest.skip("Builder not available - missing dependencies")
