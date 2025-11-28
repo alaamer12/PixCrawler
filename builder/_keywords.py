@@ -3,9 +3,9 @@ import random
 import re
 from typing import List, Dict, Any
 
-from _constants import logger
-from _exceptions import GenerationError
-from _predefined_variations import get_basic_variations, get_quality_variations, \
+from ._constants import logger
+from ._exceptions import GenerationError
+from ._predefined_variations import get_basic_variations, get_quality_variations, \
     get_style_variations, get_time_period_variations, \
     get_emotional_aesthetic_variations, get_meme_culture_variations, \
     get_professional_variations, get_camera_technique_variations, \
@@ -480,7 +480,7 @@ class AlternativeKeyTermGenerator:
         For now, it's a placeholder that does nothing.
         """
         try:
-            from _ai_keyword_integration import AIKeywordEnhancer
+            from ._ai_keyword_integration import AIKeywordEnhancer
             self._ai_enhancer = AIKeywordEnhancer(self.ai_model)
             logger.info(f"AI components initialized with model: {self.ai_model}")
         except ImportError:

@@ -6,13 +6,13 @@ from pathlib import Path
 from typing import Tuple, Optional, List, Type, Any, Final
 
 import requests
-from ddgs import DDGS
+from duckduckgo_search import DDGS
 
 from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler
 
-from _base import ISearchEngineDownloader
-from _constants import logger
-from _exceptions import DownloadError
+from ._base import ISearchEngineDownloader
+from ._constants import logger
+from ._exceptions import DownloadError
 
 
 @dataclass

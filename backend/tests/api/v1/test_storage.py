@@ -16,7 +16,7 @@ from uuid import uuid4
 import pytest
 from fastapi import status
 
-from api.dependencies import get_storage_service
+from backend.api.dependencies import get_storage_service
 from backend.services.storage import StorageService
 
 

@@ -29,7 +29,7 @@ class TestLocalStorageProviderInit:
     def test_init_with_custom_directory(self, temp_storage_dir: Path):
         """Test initialization with custom directory."""
         provider = LocalStorageProvider(base_directory=temp_storage_dir)
-        assert provider.base_directory == temp_storage_dir
+        assert provider.base_directory == temp_storage_dir.resolve()
         assert provider.base_directory.exists()
         assert provider.base_directory.is_dir()
 
@@ -51,7 +51,7 @@ class TestLocalStorageProviderInit:
     def test_init_with_string_path(self, temp_storage_dir: Path):
         """Test initialization with string path."""
         provider = LocalStorageProvider(base_directory=str(temp_storage_dir))
-        assert provider.base_directory == temp_storage_dir
+        assert provider.base_directory == temp_storage_dir.resolve()
 
 
 class TestLocalStorageProviderUpload:

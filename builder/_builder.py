@@ -35,10 +35,10 @@ import os
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Set
 
-from _predefined_variations import get_search_variations
+from ._predefined_variations import get_search_variations
 from builder._config import DatasetGenerationConfig, get_engines
 from builder._constants import logger, KEYWORD_MODE, AI_MODELS
-from _search_engines import DDGSImageDownloader
+from ._search_engines import DDGSImageDownloader
 from builder._engine import EngineProcessor
 from builder._exceptions import (
     DownloadError,
