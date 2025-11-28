@@ -26,7 +26,8 @@ import jwt
 from supabase import create_client, Client
 
 from backend.core.config import get_settings
-from backend.core.exceptions import AuthenticationError, NotFoundError, RateLimitExceeded
+from backend.core.exceptions import AuthenticationError, NotFoundError
+from backend.services.crawl_job import RateLimitExceeded
 from .base import BaseService
 
 __all__ = [
@@ -53,8 +54,8 @@ class SupabaseAuthService(BaseService):
         super().__init__()
         self.settings = get_settings()
         self.supabase: Client = create_client(
-            self.settings.supabase_url,
-            self.settings.supabase_service_role_key
+            self.settings.supabase.url,
+            self.settings.supabase.service_role_key
         )
         
     def _get_tier_limits(self, tier: str) -> Dict[str, Any]:
@@ -479,45 +480,40 @@ class SupabaseAuthService(BaseService):
                 if not await self.check_limit(user_id, 'concurrent_jobs'):
                     raise RateLimitExceeded(
                         tier=tier,
-                        current_usage=usage['concurrent_jobs'],
-                        limit=limits['max_concurrent_jobs'],
-                        message=f"Maximum concurrent jobs limit ({limits['max_concurrent_jobs']}) reached for {tier} tier"
+                        active_jobs=usage['concurrent_jobs'],
+                        limit=limits['max_concurrent_jobs']
                     )
                 
                 # Check daily job limit
                 if not await self.check_limit(user_id, 'jobs_today'):
                     raise RateLimitExceeded(
                         tier=tier,
-                        current_usage=usage['jobs_today'],
-                        limit=limits['max_jobs_per_day'],
-                        message=f"Daily job limit ({limits['max_jobs_per_day']}) reached for {tier} tier"
+                        active_jobs=usage['jobs_today'],
+                        limit=limits['max_jobs_per_day']
                     )
                 
                 # Check images per job limit if provided
                 if 'image_count' in kwargs and kwargs['image_count'] > limits['max_images_per_job']:
                     raise RateLimitExceeded(
                         tier=tier,
-                        current_usage=kwargs['image_count'],
-                        limit=limits['max_images_per_job'],
-                        message=f"Maximum images per job ({limits['max_images_per_job']}) exceeded for {tier} tier"
+                        active_jobs=kwargs['image_count'],
+                        limit=limits['max_images_per_job']
                     )
             
             elif request_type == 'create_project':
                 if usage['total_projects'] >= limits['max_projects']:
                     raise RateLimitExceeded(
                         tier=tier,
-                        current_usage=usage['total_projects'],
-                        limit=limits['max_projects'],
-                        message=f"Maximum projects limit ({limits['max_projects']}) reached for {tier} tier"
+                        active_jobs=usage['total_projects'],
+                        limit=limits['max_projects']
                     )
             
             elif request_type == 'add_team_member':
                 if usage['team_members'] >= limits['max_team_members']:
                     raise RateLimitExceeded(
                         tier=tier,
-                        current_usage=usage['team_members'],
-                        limit=limits['max_team_members'],
-                        message=f"Maximum team members limit ({limits['max_team_members']}) reached for {tier} tier"
+                        active_jobs=usage['team_members'],
+                        limit=limits['max_team_members']
                     )
             
             return True

@@ -36,6 +36,7 @@ router = APIRouter(prefix="/metrics", tags=["metrics"])
     description="Retrieve processing metrics with optional filters for job, user, time range, and operation type"
 )
 async def get_processing_metrics(
+    service: MetricsServiceDep,
     job_id: Optional[int] = Query(None, description="Filter by job ID"),
     user_id: Optional[UUID] = Query(None, description="Filter by user ID"),
     start_time: Optional[datetime] = Query(None, description="Start of time range (ISO 8601)"),
@@ -52,8 +53,7 @@ async def get_processing_metrics(
     ),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records"),
     offset: int = Query(0, ge=0, description="Number of records to skip"),
-    current_user: dict = Depends(get_current_user),
-    service: MetricsServiceDep
+    current_user: dict = Depends(get_current_user)
 ) -> List[ProcessingMetricResponse]:
     """
     Get processing metrics with optional filters.
@@ -91,6 +91,7 @@ async def get_processing_metrics(
     description="Retrieve system resource usage metrics including CPU, memory, disk, and network"
 )
 async def get_resource_metrics(
+    service: MetricsServiceDep,
     job_id: Optional[int] = Query(None, description="Filter by job ID"),
     metric_type: Optional[str] = Query(
         None,
@@ -102,8 +103,7 @@ async def get_resource_metrics(
     hostname: Optional[str] = Query(None, description="Filter by hostname"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records"),
     offset: int = Query(0, ge=0, description="Number of records to skip"),
-    current_user: dict = Depends(get_current_user),
-    service: MetricsServiceDep
+    current_user: dict = Depends(get_current_user)
 ) -> List[ResourceMetricResponse]:
     """
     Get resource usage metrics.
@@ -137,10 +137,10 @@ async def get_resource_metrics(
     status_code=status.HTTP_201_CREATED
 )
 async def collect_resource_metrics(
+    service: MetricsServiceDep,
     job_id: Optional[int] = Query(None, description="Associate metrics with job ID"),
     hostname: Optional[str] = Query(None, description="Hostname for metrics"),
-    current_user: dict = Depends(get_current_user),
-    service: MetricsServiceDep
+    current_user: dict = Depends(get_current_user)
 ) -> List[ResourceMetricResponse]:
     """
     Collect current system resource metrics.
@@ -171,13 +171,13 @@ async def collect_resource_metrics(
     description="Retrieve task queue depth and status metrics"
 )
 async def get_queue_metrics(
+    service: MetricsServiceDep,
     queue_name: Optional[str] = Query(None, description="Filter by queue name"),
     start_time: Optional[datetime] = Query(None, description="Start of time range (ISO 8601)"),
     end_time: Optional[datetime] = Query(None, description="End of time range (ISO 8601)"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records"),
     offset: int = Query(0, ge=0, description="Number of records to skip"),
-    current_user: dict = Depends(get_current_user),
-    service: MetricsServiceDep
+    current_user: dict = Depends(get_current_user)
 ) -> List[QueueMetricResponse]:
     """
     Get queue depth and status metrics.
@@ -209,8 +209,8 @@ async def get_queue_metrics(
 )
 async def get_latest_queue_status(
     queue_name: str,
-    current_user: dict = Depends(get_current_user),
-    service: MetricsServiceDep
+    service: MetricsServiceDep,
+    current_user: dict = Depends(get_current_user)
 ) -> QueueMetricResponse:
     """
     Get the latest status for a specific queue.
@@ -246,6 +246,7 @@ async def get_latest_queue_status(
     description="Retrieve comprehensive metrics summary with aggregated statistics"
 )
 async def get_metrics_summary(
+    service: MetricsServiceDep,
     start_time: Optional[datetime] = Query(
         None,
         description="Start of time range (ISO 8601). Defaults to 24 hours ago"
@@ -254,8 +255,7 @@ async def get_metrics_summary(
         None,
         description="End of time range (ISO 8601). Defaults to now"
     ),
-    current_user: dict = Depends(get_current_user),
-    service: MetricsServiceDep
+    current_user: dict = Depends(get_current_user)
 ) -> MetricsSummary:
     """
     Get comprehensive metrics summary.

@@ -192,7 +192,7 @@ class TestCancelJobService:
     @pytest.mark.asyncio
     async def test_cleanup_job_storage(self, service):
         """Test storage cleanup."""
-        with patch('backend.services.crawl_job.get_storage_provider') as mock_get_storage:
+        with patch('backend.storage.factory.get_storage_provider') as mock_get_storage:
             mock_storage = Mock()
             mock_storage.list_files.return_value = [
                 "job_1/image1.jpg",
@@ -211,7 +211,7 @@ class TestCancelJobService:
     @pytest.mark.asyncio
     async def test_cleanup_job_storage_no_files(self, service):
         """Test storage cleanup when no files exist."""
-        with patch('backend.services.crawl_job.get_storage_provider') as mock_get_storage:
+        with patch('backend.storage.factory.get_storage_provider') as mock_get_storage:
             mock_storage = Mock()
             mock_storage.list_files.return_value = []
             mock_get_storage.return_value = mock_storage
