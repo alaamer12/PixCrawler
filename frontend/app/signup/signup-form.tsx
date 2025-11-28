@@ -1,11 +1,11 @@
 'use client'
 
-import {useState} from 'react'
-import {authService} from '@/lib/auth'
-import {useRouter} from 'next/navigation'
-import {Button} from '@/components/ui/button'
-import {OAuthButtons} from '@/components/auth/oauth-buttons'
-import {PasswordStrengthMeter} from '@/components/strength-meter'
+import { useState } from 'react'
+import { authService } from '@/lib/auth'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { OAuthButtons } from '@/components/auth/oauth-buttons'
+import { PasswordStrengthMeter } from '@/components/strength-meter'
 
 export function SignupForm() {
   const [email, setEmail] = useState('')
@@ -23,9 +23,22 @@ export function SignupForm() {
     setMessage('')
 
     try {
-      await authService.signUp(email, password, fullName)
-      setMessage('Check your email for the confirmation link!')
-      // Note: User will be redirected to /welcome after email confirmation
+      const result = await authService.signUp(email, password, fullName)
+
+      // Check if email confirmation is disabled (user is auto-confirmed)
+      const isAutoConfirmed = result.user && result.user.email_confirmed_at !== null
+
+      if (isAutoConfirmed) {
+        // User is auto-confirmed, redirect to welcome/dashboard
+        setMessage('Account created successfully! Redirecting...')
+        setTimeout(() => {
+          router.push('/welcome')
+          router.refresh()
+        }, 1000)
+      } else {
+        // Email confirmation required
+        setMessage('Check your email for the confirmation link!')
+      }
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred')
     } finally {
@@ -116,7 +129,7 @@ export function SignupForm() {
         </Button>
       </form>
 
-      <OAuthButtons mode="signup"/>
+      <OAuthButtons mode="signup" />
 
       <div className="text-center pt-3 border-t border-border">
         <p className="text-sm text-muted-foreground">
