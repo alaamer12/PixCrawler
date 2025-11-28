@@ -7,3 +7,4 @@
 export * from './useProjects'
 export * from './useNotifications'
 export * from './useProfile'
+export * from './useDashboard'
