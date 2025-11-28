@@ -4,8 +4,6 @@ User service for user management operations.
 from typing import Optional, List
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from backend.core.exceptions import NotFoundError, ValidationError, ExternalServiceError
 from backend.repositories import UserRepository
 from .base import BaseService
@@ -14,17 +12,15 @@ from .base import BaseService
 class UserService(BaseService):
     """Service for handling user operations."""
 
-    def __init__(self, user_repository: UserRepository, session: Optional[AsyncSession] = None) -> None:
+    def __init__(self, user_repository: UserRepository) -> None:
         """
         Initialize user service with required repositories.
 
         Args:
             user_repository: User repository instance
-            session: Optional database session (for backward compatibility)
         """
         super().__init__()
         self._repository = user_repository
-        self._session = session
         
     @property
     def repository(self) -> UserRepository:
@@ -52,34 +48,32 @@ class UserService(BaseService):
         if not email:
             raise ValidationError("Email is required")
 
-        async with self.repository.get_session() as session:
-            try:
-                async with session.begin():
-                    existing_user = await self.repository.get_by_email(email, session=session)
-                    if existing_user:
-                        raise ValidationError(f"Email already registered: {email}")
+        try:
+            # Check if user already exists
+            existing_user = await self.repository.get_by_email(email)
+            if existing_user:
+                raise ValidationError(f"Email already registered: {email}")
 
-                    user = await self.repository.create(
-                        email=email,
-                        full_name=full_name,
-                        role=role,
-                        session=session
-                    )
+            # Create user using repository
+            user = await self.repository.create(
+                email=email,
+                full_name=full_name,
+                role=role
+            )
+            
+            return {
+                "id": str(user.id),
+                "email": user.email,
+                "full_name": user.full_name,
+                "role": user.role,
+                "created_at": user.created_at.isoformat()
+            }
                     
-                    return {
-                        "id": str(user.id),
-                        "email": user.email,
-                        "full_name": user.full_name,
-                        "role": user.role,
-                        "created_at": user.created_at.isoformat()
-                    }
-                    
-            except ValidationError:
-                raise
-            except Exception as e:
-                await session.rollback()
-                self.logger.error(f"Failed to create user: {str(e)}")
-                raise ExternalServiceError("Failed to create user") from e
+        except ValidationError:
+            raise
+        except Exception as e:
+            self.logger.error(f"Failed to create user: {str(e)}")
+            raise ExternalServiceError("Failed to create user") from e
 
     async def get_user_by_id(self, user_id: UUID) -> dict:
         """
@@ -190,42 +184,41 @@ class UserService(BaseService):
         """
         self.log_operation("update_user", user_id=user_id, email=email, full_name=full_name, role=role)
 
-        async with self.repository.get_session() as session:
-            try:
-                async with session.begin():
-                    user = await self.repository.get_by_uuid(user_id, session=session)
-                    if not user:
-                        raise NotFoundError(f"User not found: {user_id}")
-                        
-                    if email and email != user.email:
-                        existing_user = await self.repository.get_by_email(email, session=session)
-                        if existing_user and existing_user.id != user_id:
-                            raise ValidationError(f"Email already in use: {email}")
+        try:
+            # Get existing user
+            user = await self.repository.get_by_uuid(user_id)
+            if not user:
+                raise NotFoundError(f"User not found: {user_id}")
+                
+            # Check email uniqueness if changing email
+            if email and email != user.email:
+                existing_user = await self.repository.get_by_email(email)
+                if existing_user and existing_user.id != user_id:
+                    raise ValidationError(f"Email already in use: {email}")
 
-                    updated_user = await self.repository.update(
-                        user_id=user_id,
-                        email=email,
-                        full_name=full_name,
-                        role=role,
-                        session=session
-                    )
+            # Update user using repository
+            updated_user = await self.repository.update(
+                user_id=user_id,
+                email=email,
+                full_name=full_name,
+                role=role
+            )
+            
+            return {
+                "id": str(updated_user.id),
+                "email": updated_user.email,
+                "full_name": updated_user.full_name,
+                "role": updated_user.role,
+                "created_at": updated_user.created_at.isoformat(),
+                "updated_at": updated_user.updated_at.isoformat()
+            }
                     
-                    return {
-                        "id": str(updated_user.id),
-                        "email": updated_user.email,
-                        "full_name": updated_user.full_name,
-                        "role": updated_user.role,
-                        "created_at": updated_user.created_at.isoformat(),
-                        "updated_at": updated_user.updated_at.isoformat()
-                    }
-                    
-            except (NotFoundError, ValidationError) as e:
-                self.logger.error(f"Validation error updating user {user_id}: {str(e)}")
-                raise
-            except Exception as e:
-                await session.rollback()
-                self.logger.error(f"Failed to update user {user_id}: {str(e)}")
-                raise ExternalServiceError("Failed to update user") from e
+        except (NotFoundError, ValidationError) as e:
+            self.logger.error(f"Validation error updating user {user_id}: {str(e)}")
+            raise
+        except Exception as e:
+            self.logger.error(f"Failed to update user {user_id}: {str(e)}")
+            raise ExternalServiceError("Failed to update user") from e
     
     async def delete_user(self, user_id: str) -> bool:
         """
@@ -244,31 +237,18 @@ class UserService(BaseService):
         self.log_operation("delete_user", user_id=user_id)
 
         try:
-            async with self.repository.get_session() as session:
-                try:
-                    async with session.begin():
-                        # Verify user exists
-                        user = await self.repository.get_by_uuid(user_id, session=session)
-                        if not user:
-                            self.logger.warning(f"User not found during deletion: {user_id}")
-                            raise NotFoundError(f"User not found: {user_id}")
-                        
-                        # Delete user
-                        try:
-                            await self.repository.delete(user, session=session)
-                            return True
-                        except Exception as e:
-                            self.logger.error(f"Repository error deleting user {user_id}: {str(e)}")
-                            raise ExternalServiceError("Failed to delete user due to a database error") from e
+            # Verify user exists
+            user = await self.repository.get_by_uuid(user_id)
+            if not user:
+                self.logger.warning(f"User not found during deletion: {user_id}")
+                raise NotFoundError(f"User not found: {user_id}")
+            
+            # Delete user using repository
+            await self.repository.delete(user)
+            return True
                             
-                except Exception as e:
-                    if not isinstance(e, (NotFoundError, ExternalServiceError)):
-                        self.logger.error(f"Unexpected error in user deletion transaction: {str(e)}")
-                        raise ExternalServiceError("Failed to complete user deletion") from e
-                    raise
-                    
-        except Exception as e:
-            if not isinstance(e, (NotFoundError, ExternalServiceError)):
-                self.logger.error(f"Failed to establish database session for user deletion: {str(e)}")
-                raise ExternalServiceError("Failed to process user deletion") from e
+        except NotFoundError:
             raise
+        except Exception as e:
+            self.logger.error(f"Failed to delete user {user_id}: {str(e)}")
+            raise ExternalServiceError("Failed to delete user") from e

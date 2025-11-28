@@ -186,3 +186,43 @@ class StorageService(BaseService):
                 status_code=500,
                 detail=f"Cleanup operation failed: {str(e)}"
             )
+
+    async def generate_presigned_url_with_expiration(
+        self,
+        path: str,
+        expires_in: int
+    ) -> dict:
+        """
+        Generate a presigned URL with expiration time.
+
+        Args:
+            path: Path to the file in storage
+            expires_in: URL expiration time in seconds
+
+        Returns:
+            Dictionary containing the presigned URL and expiration time
+
+        Raises:
+            HTTPException: If URL generation fails
+        """
+        from datetime import timedelta
+
+        try:
+            url = self.storage.generate_presigned_url(path, expires_in=expires_in)
+            
+            self.log_operation(
+                "generate_presigned_url",
+                path=path,
+                expires_in=expires_in
+            )
+            
+            return {
+                "url": url,
+                "expires_at": datetime.utcnow() + timedelta(seconds=expires_in)
+            }
+        except Exception as e:
+            self.logger.error(f"Failed to generate presigned URL: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to generate presigned URL: {str(e)}"
+            )

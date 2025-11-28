@@ -34,6 +34,8 @@ from backend.api.dependencies import (
     get_user_service,
     get_storage_service,
     get_auth_service,
+    get_resource_monitor,
+    get_metrics_service,
 )
 from backend.services.crawl_job import CrawlJobService
 from backend.services.dataset import DatasetService
@@ -41,6 +43,8 @@ from backend.services.storage import StorageService
 from backend.services.supabase_auth import SupabaseAuthService
 from backend.services.user import UserService
 from backend.services.validation import ValidationService
+from backend.services.resource_monitor import ResourceMonitor
+from backend.services.metrics import MetricsService
 
 __all__ = [
     # Auth & Session
@@ -53,6 +57,8 @@ __all__ = [
     'UserServiceDep',
     'StorageServiceDep',
     'SupabaseAuthServiceDep',
+    'ResourceMonitorDep',
+    'MetricsServiceDep',
     # Path Parameters
     'UserID',
     'DatasetID',
@@ -212,6 +218,40 @@ Usage:
         auth_service: SupabaseAuthServiceDep
     ):
         return await auth_service.sync_user_profile(...)
+"""
+
+ResourceMonitorDep = Annotated[
+    ResourceMonitor,
+    Depends(get_resource_monitor)
+]
+"""
+Resource Monitor dependency.
+
+Automatically injects ResourceMonitor for capacity checking operations.
+
+Usage:
+    @router.get("/capacity")
+    async def get_capacity(
+        monitor: ResourceMonitorDep
+    ):
+        return await monitor.get_capacity_info()
+"""
+
+MetricsServiceDep = Annotated[
+    MetricsService,
+    Depends(get_metrics_service)
+]
+"""
+Metrics service dependency.
+
+Automatically injects MetricsService for operational metrics operations.
+
+Usage:
+    @router.get("/metrics/processing")
+    async def get_processing_metrics(
+        service: MetricsServiceDep
+    ):
+        return await service.get_processing_metrics(...)
 """
 
 # ============================================================================

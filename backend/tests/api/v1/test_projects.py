@@ -11,12 +11,12 @@ Tests cover:
 - OpenAPI schema generation
 """
 
-import pytest
 import uuid
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
+import pytest
 from fastapi import status
 
 from backend.models import Project
@@ -83,7 +83,7 @@ class TestListProjects:
         assert "data" in data
         assert len(data["data"]) == 1
         assert data["data"][0]["name"] == "Test Project"
-        
+
         # Verify service was called
         mock_service.get_projects.assert_called_once()
 
@@ -107,7 +107,7 @@ class TestListProjects:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Verify structure
         assert "data" in data
         assert isinstance(data["data"], list)
@@ -141,7 +141,7 @@ class TestCreateProject:
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
         assert data["name"] == "Test Project"
-        
+
         # Verify service was called
         mock_service.create_project.assert_called_once()
 
@@ -163,7 +163,7 @@ class TestCreateProject:
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
-        
+
         # Verify required fields
         required_fields = ["id", "name", "status", "created_at", "updated_at"]
         for field in required_fields:
@@ -184,7 +184,7 @@ class TestGetProject:
         data = response.json()
         assert data["id"] == 1
         assert data["name"] == "Test Project"
-        
+
         # Verify service was called
         mock_service.get_project.assert_called_once()
 
@@ -206,7 +206,7 @@ class TestGetProject:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Verify required fields
         required_fields = ["id", "name", "status", "created_at", "updated_at"]
         for field in required_fields:
@@ -230,7 +230,7 @@ class TestUpdateProject:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["name"] == "Updated Name"
-        
+
         # Verify service was called
         mock_service.update_project.assert_called_once()
 
@@ -252,7 +252,7 @@ class TestUpdateProject:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Verify required fields
         required_fields = ["id", "name", "status", "updated_at"]
         for field in required_fields:
@@ -272,7 +272,7 @@ class TestDeleteProject:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "message" in data
-        
+
         # Verify service was called
         mock_service.delete_project.assert_called_once()
 
@@ -292,11 +292,11 @@ class TestOpenAPISchema:
     def test_projects_endpoints_in_openapi(self, client):
         """Test that all project endpoints are documented."""
         response = client.get("/openapi.json")
-        
+
         assert response.status_code == status.HTTP_200_OK
         openapi_schema = response.json()
         paths = openapi_schema.get("paths", {})
-        
+
         # Check endpoints exist
         assert "/api/v1/projects" in paths
         assert "/api/v1/projects/{project_id}" in paths
@@ -306,7 +306,7 @@ class TestOpenAPISchema:
         response = client.get("/openapi.json")
         openapi_schema = response.json()
         paths = openapi_schema.get("paths", {})
-        
+
         # Check operation IDs
         assert paths["/api/v1/projects"]["get"]["operationId"] == "listProjects"
         assert paths["/api/v1/projects"]["post"]["operationId"] == "createProject"
@@ -319,7 +319,7 @@ class TestOpenAPISchema:
         response = client.get("/openapi.json")
         openapi_schema = response.json()
         paths = openapi_schema.get("paths", {})
-        
+
         # Check response models exist
         assert "200" in paths["/api/v1/projects"]["get"]["responses"]
         assert "201" in paths["/api/v1/projects"]["post"]["responses"]
@@ -334,7 +334,7 @@ class TestIntegrationFlow:
     def test_complete_project_workflow(self, client, override_dependencies, sample_project):
         """Test complete project workflow: create -> get -> update -> delete."""
         mock_service, mock_user = override_dependencies
-        
+
         # Mock responses
         mock_service.create_project.return_value = sample_project
         mock_service.get_project.return_value = sample_project

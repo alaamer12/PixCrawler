@@ -21,16 +21,7 @@ from backend.storage.config import StorageSettings
 from backend.storage.local import LocalStorageProvider
 
 
-# ============================================================================
-# Fixtures (All fixtures are in conftest.py - use those instead)
-# Note: This file uses temp_storage_dir, local_storage_provider,
-#       sample_text_file, and sample_image_file from conftest.py
-# ============================================================================
 
-
-# ============================================================================
-# LocalStorageProvider Tests
-# ============================================================================
 
 class TestLocalStorageProviderInit:
     """Test LocalStorageProvider initialization."""

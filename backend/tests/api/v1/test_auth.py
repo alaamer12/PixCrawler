@@ -9,13 +9,11 @@ Tests cover:
 - OpenAPI schema generation
 """
 
-import pytest
-import uuid
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
-from fastapi import HTTPException, status
+import pytest
+from fastapi import status
 
 from backend.services.supabase_auth import SupabaseAuthService
 
@@ -51,8 +49,7 @@ def mock_user():
 @pytest.fixture
 def override_dependencies(app, mock_auth_service, mock_user):
     """Override FastAPI dependencies for testing."""
-    from backend.api.v1.endpoints.auth import get_supabase_auth_service
-    from backend.api.dependencies import get_current_user
+    from backend.api.dependencies import get_current_user, get_supabase_auth_service
 
     app.dependency_overrides[get_supabase_auth_service] = lambda: mock_auth_service
     app.dependency_overrides[get_current_user] = lambda: mock_user
@@ -86,7 +83,7 @@ class TestGetCurrentUserProfile:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Verify all required fields are present
         required_fields = ["id", "email", "full_name", "is_active", "created_at", "updated_at"]
         for field in required_fields:
@@ -124,7 +121,7 @@ class TestVerifyToken:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Verify structure
         assert "valid" in data
         assert isinstance(data["valid"], bool)
@@ -146,7 +143,7 @@ class TestSyncUserProfile:
     def test_sync_profile_create_new(self, client, override_dependencies):
         """Test profile creation when profile doesn't exist."""
         mock_service, mock_user = override_dependencies
-        
+
         # Mock get_user_profile to raise exception (profile doesn't exist)
         mock_service.get_user_profile.side_effect = Exception("Profile not found")
         mock_service.create_user_profile.return_value = None
@@ -157,14 +154,14 @@ class TestSyncUserProfile:
         data = response.json()
         assert "message" in data
         assert "created" in data["message"].lower()
-        
+
         # Verify create was called
         mock_service.create_user_profile.assert_called_once()
 
     def test_sync_profile_update_existing(self, client, override_dependencies):
         """Test profile update when profile exists."""
         mock_service, mock_user = override_dependencies
-        
+
         # Mock get_user_profile to return existing profile
         mock_service.get_user_profile.return_value = {"id": mock_user["user_id"]}
         mock_service.update_user_profile.return_value = None
@@ -175,7 +172,7 @@ class TestSyncUserProfile:
         data = response.json()
         assert "message" in data
         assert "updated" in data["message"].lower()
-        
+
         # Verify update was called
         mock_service.update_user_profile.assert_called_once()
 
@@ -188,7 +185,7 @@ class TestSyncUserProfile:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Verify structure
         assert "message" in data
         assert isinstance(data["message"], str)
@@ -206,10 +203,10 @@ class TestOpenAPISchema:
     def test_auth_endpoints_in_openapi(self, client):
         """Test that all auth endpoints are documented in OpenAPI schema."""
         response = client.get("/openapi.json")
-        
+
         assert response.status_code == status.HTTP_200_OK
         openapi_schema = response.json()
-        
+
         # Check that auth endpoints exist
         paths = openapi_schema.get("paths", {})
         assert "/api/v1/auth/me" in paths
@@ -221,7 +218,7 @@ class TestOpenAPISchema:
         response = client.get("/openapi.json")
         openapi_schema = response.json()
         paths = openapi_schema.get("paths", {})
-        
+
         # Check operation IDs
         assert paths["/api/v1/auth/me"]["get"]["operationId"] == "getCurrentUserProfile"
         assert paths["/api/v1/auth/verify-token"]["post"]["operationId"] == "verifyAuthToken"
@@ -232,7 +229,7 @@ class TestOpenAPISchema:
         response = client.get("/openapi.json")
         openapi_schema = response.json()
         paths = openapi_schema.get("paths", {})
-        
+
         # Check response models exist
         assert "200" in paths["/api/v1/auth/me"]["get"]["responses"]
         assert "200" in paths["/api/v1/auth/verify-token"]["post"]["responses"]
@@ -243,7 +240,7 @@ class TestOpenAPISchema:
         response = client.get("/openapi.json")
         openapi_schema = response.json()
         paths = openapi_schema.get("paths", {})
-        
+
         # Check examples exist
         me_response = paths["/api/v1/auth/me"]["get"]["responses"]["200"]
         assert "content" in me_response

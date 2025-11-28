@@ -5,8 +5,8 @@ Dataset service for dataset management and processing operations.
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.core.exceptions import NotFoundError, ValidationError, ExternalServiceError
 from backend.schemas.dataset import (
     DatasetCreate, DatasetResponse, DatasetStats, DatasetUpdate, DatasetStatus
 )
@@ -21,8 +21,7 @@ class DatasetService(BaseService):
     def __init__(
         self,
         dataset_repository: DatasetRepository,
-        crawl_job_repository: CrawlJobRepository,
-        session: Optional[AsyncSession] = None
+        crawl_job_repository: CrawlJobRepository
     ) -> None:
         """
         Initialize dataset service with required repositories.
@@ -30,12 +29,10 @@ class DatasetService(BaseService):
         Args:
             dataset_repository: Dataset repository instance
             crawl_job_repository: CrawlJob repository instance
-            session: Optional database session (for backward compatibility)
         """
         super().__init__()
         self._dataset_repo = dataset_repository
         self._crawl_job_repo = crawl_job_repository
-        self._session = session
         
     @property
     def dataset_repo(self) -> DatasetRepository:
@@ -75,14 +72,16 @@ class DatasetService(BaseService):
         }
         
         # Create crawl job for the dataset
-        crawl_job = await self.crawl_job_repo.create(
-            CrawlJobCreate(
-                name=f"{dataset_create.name} - Crawl Job",
-                keywords=dataset_create.keywords,
-                max_images=dataset_create.max_images,
-                sources=dataset_create.search_engines
-            )
-        )
+        # Note: CrawlJob model doesn't have sources field, only keywords
+        # Search engines are stored in the Dataset model
+        crawl_job_data = {
+            "project_id": 1,  # TODO: Get from context or create project
+            "name": f"{dataset_create.name} - Crawl Job",
+            "keywords": {"keywords": dataset_create.keywords},  # CrawlJob expects JSONB format
+            "max_images": dataset_create.max_images,
+            "status": "pending",
+        }
+        crawl_job = await self.crawl_job_repo.create(crawl_job_data)
         
         dataset_data["crawl_job_id"] = crawl_job.id
         dataset = await self.dataset_repo.create(dataset_data)
@@ -317,14 +316,13 @@ class DatasetService(BaseService):
             avg_images = 0
             if stats["total"] > 0 and "total_images" in image_stats:
                 avg_images = image_stats["total_images"] / stats["total"]
-            
+            # Take care of silent Zeros, this could lead to a bug where you wonder why it is zero
             return DatasetStats(
                 total_datasets=stats.get("total", 0),
-                active_datasets=stats.get("active", 0),
+                processing_datasets=stats.get("active", 0),
                 completed_datasets=stats.get("completed", 0),
                 failed_datasets=stats.get("failed", 0),
-                total_images=image_stats.get("total_images", 0),
-                average_images_per_dataset=avg_images
+                total_images=image_stats.get("total_images", 0)
             )
             
         except SQLAlchemyError as e:

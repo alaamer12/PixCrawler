@@ -24,10 +24,6 @@ from backend.storage.factory import create_storage_provider, get_storage_provide
 from backend.storage.local import LocalStorageProvider
 
 
-# ============================================================================
-# Fixtures (temp_storage_dir and storage_settings are in conftest.py)
-# ============================================================================
-
 @pytest.fixture
 def test_files_dir(temp_storage_dir: Path) -> Path:
     """Create directory with test files (outside storage directory).
@@ -49,10 +45,6 @@ def test_files_dir(temp_storage_dir: Path) -> Path:
 
     return test_dir
 
-
-# ============================================================================
-# Storage Factory Integration Tests
-# ============================================================================
 
 class TestStorageFactory:
     """Test storage factory integration."""
@@ -104,10 +96,6 @@ class TestStorageFactory:
             assert isinstance(provider, LocalStorageProvider)
             assert provider.base_directory == temp_storage_dir.resolve()
 
-
-# ============================================================================
-# End-to-End Workflow Tests
-# ============================================================================
 
 class TestEndToEndWorkflows:
     """Test complete end-to-end storage workflows."""
