@@ -1,6 +1,6 @@
 /**
  * Projects Hooks
- * 
+ *
  * Custom React hooks for project-related data operations.
  * Provides hooks for fetching, creating, updating, and deleting projects.
  */
@@ -72,7 +72,7 @@ export function useProjects(userId: string): UseProjectsResult {
     }, [userId])
 
     useEffect(() => {
-        fetchProjects()
+        fetchProjects().then(r => r)
     }, [fetchProjects])
 
     return {

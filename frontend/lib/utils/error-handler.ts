@@ -1,6 +1,6 @@
 /**
  * Error Handler Utility
- * 
+ *
  * Centralized error handling with user-friendly messages,
  * logging, and retry logic for transient errors.
  */
@@ -29,9 +29,6 @@ const ERROR_MESSAGES: Record<ErrorType, string> = {
     [ErrorType.UNKNOWN]: 'An unexpected error occurred. Please try again.',
 }
 
-// Transient error codes that should be retried
-const TRANSIENT_ERROR_CODES = [408, 429, 500, 502, 503, 504]
-
 export class ErrorHandler {
     /**
      * Classify error type based on error object
@@ -44,7 +41,7 @@ export class ErrorHandler {
             if (statusCode === 403) return ErrorType.AUTHORIZATION
             if (statusCode === 404) return ErrorType.NOT_FOUND
             if (statusCode === 422 || statusCode === 400) return ErrorType.VALIDATION
-            if (statusCode >= 500) return ErrorType.SERVER
+            if (<number>statusCode >= 500) return ErrorType.SERVER
         }
 
         if (error instanceof TypeError && error.message.includes('fetch')) {
@@ -62,22 +59,6 @@ export class ErrorHandler {
 
         const errorType = this.classifyError(error)
         return ERROR_MESSAGES[errorType]
-    }
-
-    /**
-     * Check if error is transient and should be retried
-     */
-    static isTransientError(error: unknown): boolean {
-        if (error instanceof ServiceError) {
-            return TRANSIENT_ERROR_CODES.includes(error.statusCode)
-        }
-
-        // Network errors are transient
-        if (error instanceof TypeError && error.message.includes('fetch')) {
-            return true
-        }
-
-        return false
     }
 
     /**
@@ -102,103 +83,4 @@ export class ErrorHandler {
             console.error('[ErrorHandler]', errorInfo)
         }
     }
-
-    /**
-     * Handle error with logging and user-friendly message
-     */
-    static handleError(
-        error: unknown,
-        options?: {
-            customMessage?: string
-            context?: Record<string, any>
-            silent?: boolean
-        }
-    ): {
-        message: string
-        type: ErrorType
-        shouldRetry: boolean
-    } {
-        const { customMessage, context, silent = false } = options || {}
-
-        // Log error
-        if (!silent) {
-            this.logError(error, context)
-        }
-
-        return {
-            message: this.getUserFriendlyMessage(error, customMessage),
-            type: this.classifyError(error),
-            shouldRetry: this.isTransientError(error),
-        }
-    }
-
-    /**
-     * Retry function with exponential backoff
-     */
-    static async retryWithBackoff<T>(
-        fn: () => Promise<T>,
-        options?: {
-            maxRetries?: number
-            initialDelay?: number
-            maxDelay?: number
-            onRetry?: (attempt: number, error: unknown) => void
-        }
-    ): Promise<T> {
-        const {
-            maxRetries = 3,
-            initialDelay = 1000,
-            maxDelay = 10000,
-            onRetry,
-        } = options || {}
-
-        let lastError: unknown
-
-        for (let attempt = 0; attempt <= maxRetries; attempt++) {
-            try {
-                return await fn()
-            } catch (error) {
-                lastError = error
-
-                // Don't retry if it's not a transient error
-                if (!this.isTransientError(error)) {
-                    throw error
-                }
-
-                // Don't retry if we've exhausted attempts
-                if (attempt === maxRetries) {
-                    throw error
-                }
-
-                // Calculate delay with exponential backoff
-                const delay = Math.min(initialDelay * Math.pow(2, attempt), maxDelay)
-
-                // Call retry callback
-                if (onRetry) {
-                    onRetry(attempt + 1, error)
-                }
-
-                // Wait before retrying
-                await new Promise(resolve => setTimeout(resolve, delay))
-            }
-        }
-
-        throw lastError
-    }
 }
-
-// Convenience functions
-export const getUserFriendlyError = (error: unknown, customMessage?: string) =>
-    ErrorHandler.getUserFriendlyMessage(error, customMessage)
-
-export const logError = (error: unknown, context?: Record<string, any>) =>
-    ErrorHandler.logError(error, context)
-
-export const handleError = (
-    error: unknown,
-    options?: Parameters<typeof ErrorHandler.handleError>[1]
-) => ErrorHandler.handleError(error, options)
-
-export const retryWithBackoff = <T>(
-    fn: () => Promise<T>,
-    options?: Parameters<typeof ErrorHandler.retryWithBackoff>[1]
-) => ErrorHandler.retryWithBackoff(fn, options)

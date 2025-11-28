@@ -12,9 +12,17 @@ import { useToast } from '@/components/ui/use-toast'
 
 interface UseNotificationsResult {
   notifications: Notification[]
+  paginatedNotifications: Notification[]
   loading: boolean
   error: Error | null
   refetch: () => Promise<void>
+  pagination: {
+    currentPage: number
+    totalPages: number
+    totalItems: number
+    setPage: (page: number) => void
+    pageSize: number
+  }
 }
 
 interface UseNotificationResult {
@@ -43,13 +51,21 @@ interface UseDeleteNotificationResult {
   error: Error | null
 }
 
+interface UseNotificationsOptions {
+  filter?: NotificationFilter
+  pageSize?: number
+  initialPage?: number
+}
+
 /**
- * Hook to fetch notifications with optional filtering
+ * Hook to fetch notifications with optional filtering and pagination
  */
-export function useNotifications(filter?: NotificationFilter): UseNotificationsResult {
+export function useNotifications(options: UseNotificationsOptions = {}): UseNotificationsResult {
+  const { filter, pageSize = 10, initialPage = 1 } = options
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const [currentPage, setCurrentPage] = useState(initialPage)
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true)
@@ -71,11 +87,35 @@ export function useNotifications(filter?: NotificationFilter): UseNotificationsR
     fetchNotifications()
   }, [fetchNotifications])
 
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filter])
+
+  // Pagination logic
+  const totalItems = notifications.length
+  const totalPages = Math.ceil(totalItems / pageSize)
+  const startIndex = (currentPage - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const paginatedNotifications = notifications.slice(startIndex, endIndex)
+
+  const setPage = useCallback((page: number) => {
+    setCurrentPage(page)
+  }, [])
+
   return {
     notifications,
+    paginatedNotifications,
     loading,
     error,
     refetch: fetchNotifications,
+    pagination: {
+      currentPage,
+      totalPages,
+      totalItems,
+      setPage,
+      pageSize
+    }
   }
 }
 

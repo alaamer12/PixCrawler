@@ -69,7 +69,7 @@ export class OnboardingService {
       await new Promise(resolve => setTimeout(resolve, 1000))
 
       // Generate a mock job ID
-      const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 
       return {jobId}
     } catch (error) {

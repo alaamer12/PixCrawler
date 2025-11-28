@@ -62,13 +62,13 @@ function createTimeoutPromise(timeout: number): Promise<never> {
  */
 function buildUrl(endpoint: string, params?: Record<string, string | number | boolean>): string {
   const url = new URL(endpoint, API_BASE_URL)
-  
+
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       url.searchParams.append(key, String(value))
     })
   }
-  
+
   return url.toString()
 }
 
@@ -77,7 +77,7 @@ function buildUrl(endpoint: string, params?: Record<string, string | number | bo
  */
 class ApiClient {
   private baseUrl: string
-  private defaultHeaders: HeadersInit
+  private readonly defaultHeaders: HeadersInit
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl
@@ -102,13 +102,13 @@ class ApiClient {
    */
   private async interceptRequest(options: RequestOptions): Promise<RequestOptions> {
     const token = await this.getAuthToken()
-    
+
     const headers = new Headers(options.headers || this.defaultHeaders)
-    
+
     if (token) {
       headers.set('Authorization', `Bearer ${token}`)
     }
-    
+
     return {
       ...options,
       headers,

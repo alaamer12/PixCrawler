@@ -1,6 +1,6 @@
 /**
  * Base Service Class
- * 
+ *
  * Provides common functionality for all service classes including:
  * - Error handling
  * - Request/response interceptors
@@ -26,7 +26,6 @@ export class ServiceError extends Error {
     constructor(
         message: string,
         public statusCode?: number,
-        public originalError?: unknown
     ) {
         super(message)
         this.name = 'ServiceError'

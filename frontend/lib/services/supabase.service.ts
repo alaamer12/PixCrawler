@@ -1,6 +1,6 @@
 /**
  * Supabase Service
- * 
+ *
  * Centralized service for all Supabase database operations.
  * Handles profiles, projects, and generic CRUD operations.
  */
@@ -33,7 +33,7 @@ export interface UpdateProjectInput {
 }
 
 export class SupabaseService extends BaseService {
-    private client: SupabaseClient
+    private readonly client: SupabaseClient
 
     constructor() {
         super()
