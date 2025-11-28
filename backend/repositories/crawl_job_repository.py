@@ -14,6 +14,7 @@ Features:
     - Status-based filtering
 """
 
+from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import select, func
@@ -113,6 +114,17 @@ class CrawlJobRepository(BaseRepository[CrawlJob]):
         )
         return result.scalar() or 0
     
+    async def get_total_active_chunks(self) -> int:
+        """
+        Get total active chunks across all jobs.
+        
+        Alias for count_active_chunks for consistency.
+        
+        Returns:
+            Total number of active chunks
+        """
+        return await self.count_active_chunks()
+    
     async def update_progress(
         self,
         job_id: int,
@@ -123,9 +135,13 @@ class CrawlJobRepository(BaseRepository[CrawlJob]):
         """
         Update job progress metrics.
         
+        This method only persists the provided values without any calculations
+        or business logic. The service layer is responsible for calculating
+        the correct values before calling this method.
+        
         Args:
             job_id: Job ID
-            progress: Progress percentage (0-100)
+            progress: Progress percentage (0-100) - calculated by service
             downloaded_images: Number of downloaded images
             valid_images: Number of valid images (optional)
         
@@ -136,30 +152,35 @@ class CrawlJobRepository(BaseRepository[CrawlJob]):
         if not job:
             return None
         
-        job.progress = progress
-        job.downloaded_images = downloaded_images
+        # Simple data persistence - no business logic
+        update_data = {
+            'progress': progress,
+            'downloaded_images': downloaded_images
+        }
         if valid_images is not None:
-            job.valid_images = valid_images
+            update_data['valid_images'] = valid_images
         
-        await self.session.commit()
-        await self.session.refresh(job)
-        return job
+        return await self.update(job, **update_data)
     
-    async def update_chunk_status(
+    async def update_chunk_counts(
         self,
         job_id: int,
-        active_delta: int = 0,
-        completed_delta: int = 0,
-        failed_delta: int = 0
+        active_chunks: int,
+        completed_chunks: int,
+        failed_chunks: int
     ) -> Optional[CrawlJob]:
         """
-        Update chunk tracking counters.
+        Update chunk tracking counters with absolute values.
+        
+        This method only persists the provided absolute values without any
+        calculations. The service layer is responsible for calculating the
+        correct chunk counts before calling this method.
         
         Args:
             job_id: Job ID
-            active_delta: Change in active chunks (can be negative)
-            completed_delta: Change in completed chunks
-            failed_delta: Change in failed chunks
+            active_chunks: Absolute count of active chunks
+            completed_chunks: Absolute count of completed chunks
+            failed_chunks: Absolute count of failed chunks
         
         Returns:
             Updated job or None if not found
@@ -168,20 +189,33 @@ class CrawlJobRepository(BaseRepository[CrawlJob]):
         if not job:
             return None
         
-        job.active_chunks = max(0, job.active_chunks + active_delta)
-        job.completed_chunks += completed_delta
-        job.failed_chunks += failed_delta
-        
-        await self.session.commit()
-        await self.session.refresh(job)
-        return job
+        # Simple data persistence - no calculations or business logic
+        return await self.update(
+            job,
+            active_chunks=active_chunks,
+            completed_chunks=completed_chunks,
+            failed_chunks=failed_chunks
+        )
     
-    async def mark_completed(self, job_id: int) -> Optional[CrawlJob]:
+    async def update_status(
+        self,
+        job_id: int,
+        status: str,
+        completed_at: Optional[datetime] = None,
+        progress: Optional[int] = None
+    ) -> Optional[CrawlJob]:
         """
-        Mark job as completed.
+        Update job status and related fields.
+        
+        This method only persists the provided values. The service layer
+        is responsible for determining the correct status, timestamp, and
+        progress values based on business rules.
         
         Args:
             job_id: Job ID
+            status: Job status (pending, running, completed, failed, etc.)
+            completed_at: Completion timestamp (optional)
+            progress: Progress percentage (optional)
         
         Returns:
             Updated job or None if not found
@@ -190,34 +224,11 @@ class CrawlJobRepository(BaseRepository[CrawlJob]):
         if not job:
             return None
         
-        from datetime import datetime
-        job.status = "completed"
-        job.completed_at = datetime.utcnow()
-        job.progress = 100
+        # Simple data persistence - no business logic
+        update_data = {'status': status}
+        if completed_at is not None:
+            update_data['completed_at'] = completed_at
+        if progress is not None:
+            update_data['progress'] = progress
         
-        await self.session.commit()
-        await self.session.refresh(job)
-        return job
-    
-    async def mark_failed(self, job_id: int, error: Optional[str] = None) -> Optional[CrawlJob]:
-        """
-        Mark job as failed.
-        
-        Args:
-            job_id: Job ID
-            error: Error message (optional)
-        
-        Returns:
-            Updated job or None if not found
-        """
-        job = await self.get_by_id(job_id)
-        if not job:
-            return None
-        
-        from datetime import datetime
-        job.status = "failed"
-        job.completed_at = datetime.utcnow()
-        
-        await self.session.commit()
-        await self.session.refresh(job)
-        return job
+        return await self.update(job, **update_data)

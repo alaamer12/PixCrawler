@@ -32,7 +32,6 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional, AsyncGenerator
 from fastapi import HTTPException
 from celery import current_app as celery_app
-from sqlalchemy.ext.asyncio import AsyncSession
 
 # Optional SSE support
 try:
@@ -56,7 +55,9 @@ from backend.repositories import (
 from backend.services.metrics import MetricsService
 from .base import BaseService
 from backend.core.supabase import get_supabase_client
-from backend.core.logging import logger
+from utility.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 __all__ = [
     'CrawlJobService',
@@ -275,8 +276,7 @@ class CrawlJobService(BaseService):
         crawl_job_repo: CrawlJobRepository,
         project_repo: ProjectRepository,
         image_repo: ImageRepository,
-        activity_log_repo: ActivityLogRepository,
-        session: Optional[AsyncSession] = None
+        activity_log_repo: ActivityLogRepository
     ) -> None:
         """
         Initialize crawl job service with repositories.
@@ -286,14 +286,12 @@ class CrawlJobService(BaseService):
             project_repo: Project repository
             image_repo: Image repository
             activity_log_repo: ActivityLog repository
-            session: Optional database session (for backward compatibility)
         """
         super().__init__()
         self.crawl_job_repo = crawl_job_repo
         self.project_repo = project_repo
         self.image_repo = image_repo
         self.activity_log_repo = activity_log_repo
-        self._session = session
 
     async def create_job(
         self,
@@ -377,8 +375,7 @@ class CrawlJobService(BaseService):
         job_id: int,
         progress: int,
         downloaded_images: int,
-        valid_images: Optional[int] = None,
-        session: Optional[AsyncSession] = None
+        valid_images: Optional[int] = None
     ) -> Optional[CrawlJob]:
         """
         Update crawl job progress and broadcast via SSE.
@@ -388,7 +385,6 @@ class CrawlJobService(BaseService):
             progress: Progress percentage (0-100)
             downloaded_images: Number of images downloaded
             valid_images: Number of valid images
-            session: Optional database session
 
         Returns:
             Updated job or None if not found
@@ -406,7 +402,7 @@ class CrawlJobService(BaseService):
         if valid_images is not None:
             updates['valid_images'] = valid_images
 
-        job = await self.crawl_job_repo.update(job_id, **updates, session=session)
+        job = await self.crawl_job_repo.update(job_id, **updates)
 
         if job:
             # Broadcast progress update via Supabase
@@ -433,8 +429,7 @@ class CrawlJobService(BaseService):
                 if progress >= 100:
                     await self.update_job_status(
                         job_id=job_id,
-                        status='completed',
-                        session=session
+                        status='completed'
                     )
 
         return job
@@ -512,7 +507,6 @@ class CrawlJobService(BaseService):
         job_id: int,
         status: str,
         error: Optional[str] = None,
-        session: Optional[AsyncSession] = None,
         **updates: Any
     ) -> Optional[CrawlJob]:
         """
@@ -522,7 +516,6 @@ class CrawlJobService(BaseService):
             job_id: Crawl job ID
             status: New status
             error: Optional error message
-            session: Optional database session
             **updates: Additional fields to update
 
         Returns:
@@ -536,7 +529,7 @@ class CrawlJobService(BaseService):
             updates['completed_at'] = datetime.utcnow()
             updates['progress'] = 100
 
-        job = await self.crawl_job_repo.update(job_id, **updates, session=session)
+        job = await self.crawl_job_repo.update(job_id, **updates)
 
         if job:
             # Log activity
@@ -735,109 +728,287 @@ class CrawlJobService(BaseService):
             }
         )
 
-async def cancel_job(
-    self,
-    job_id: int,
-    user_id: Optional[str] = None,
-    session: Optional[AsyncSession] = None
-) -> CrawlJob:
-    """
-    Cancel a running or pending crawl job.
+    async def cancel_job(
+        self,
+        job_id: int,
+        user_id: Optional[str] = None
+    ) -> CrawlJob:
+        """
+        Cancel a running or pending crawl job.
 
-    This method performs a complete cancellation workflow:
-    1. Validates job exists and can be cancelled
-    2. Revokes all associated Celery tasks
-    3. Cleans up temporary storage
-    4. Updates job status to 'cancelled'
-    5. Logs cancellation activity
-    6. Broadcasts cancellation via real-time updates
+        This method performs a complete cancellation workflow:
+        1. Validates job exists and can be cancelled
+        2. Revokes all associated Celery tasks
+        3. Cleans up temporary storage
+        4. Updates job status to 'cancelled'
+        5. Logs cancellation activity
+        6. Broadcasts cancellation via real-time updates
 
-    Args:
-        job_id: Crawl job ID to cancel
-        user_id: Optional user ID for activity logging
-        session: Optional database session
+        Args:
+            job_id: Crawl job ID to cancel
+            user_id: Optional user ID for activity logging
 
-    Returns:
-        Updated crawl job with 'cancelled' status
+        Returns:
+            Updated crawl job with 'cancelled' status
 
-    Raises:
-        NotFoundError: If job doesn't exist
-        ValidationError: If job status doesn't allow cancellation
-    """
-    from backend.core.exceptions import ValidationError
+        Raises:
+            NotFoundError: If job doesn't exist
+            ValidationError: If job status doesn't allow cancellation
+        """
+        from backend.core.exceptions import ValidationError
 
-    # Get the job
-    job = await self.get_job(job_id)
-    if not job:
-        raise NotFoundError(f"Crawl job not found: {job_id}")
+        # Get the job
+        job = await self.get_job(job_id)
+        if not job:
+            raise NotFoundError(f"Crawl job not found: {job_id}")
 
-    # Validate job status - only pending or running jobs can be cancelled
-    if job.status not in ['pending', 'running', 'in_progress']:
-        raise ValidationError(
-            f"Cannot cancel job with status '{job.status}'. "
-            f"Only pending or running jobs can be cancelled."
+        # Validate job status - only pending or running jobs can be cancelled
+        if job.status not in ['pending', 'running', 'in_progress']:
+            raise ValidationError(
+                f"Cannot cancel job with status '{job.status}'. "
+                f"Only pending or running jobs can be cancelled."
+            )
+
+        logger.info(f"Cancelling job {job_id} with status '{job.status}'")
+
+        # Step 1: Revoke Celery tasks
+        if job.task_ids and isinstance(job.task_ids, list) and len(job.task_ids) > 0:
+            await self._revoke_celery_tasks(job.task_ids, terminate=True)
+            logger.info(f"Revoked {len(job.task_ids)} Celery tasks for job {job_id}")
+        else:
+            logger.info(f"No Celery tasks to revoke for job {job_id}")
+
+        # Step 2: Clean up temporary storage
+        try:
+            await self._cleanup_job_storage(job_id)
+            logger.info(f"Cleaned up storage for job {job_id}")
+        except Exception as e:
+            # Log but don't fail cancellation if storage cleanup fails
+            logger.error(f"Failed to cleanup storage for job {job_id}: {str(e)}")
+
+        # Step 3: Update job status to cancelled
+        updated_job = await self.update_job_status(
+            job_id=job_id,
+            status='cancelled',
+            completed_at=datetime.utcnow()
         )
 
-    logger.info(f"Cancelling job {job_id} with status '{job.status}'")
+        # Step 4: Log cancellation activity
+        if user_id:
+            await self.activity_log_repo.create(
+                user_id=uuid.UUID(user_id),
+                action="CANCEL_CRAWL_JOB",
+                resource_type="crawl_job",
+                resource_id=str(job_id),
+                metadata={
+                    "job_name": job.name,
+                    "previous_status": job.status,
+                    "downloaded_images": job.downloaded_images or 0,
+                    "valid_images": job.valid_images or 0,
+                    "progress": job.progress or 0
+                }
+            )
 
-    # Step 1: Revoke Celery tasks
-    if job.task_ids and isinstance(job.task_ids, list) and len(job.task_ids) > 0:
-        await self._revoke_celery_tasks(job.task_ids, terminate=True)
-        logger.info(f"Revoked {len(job.task_ids)} Celery tasks for job {job_id}")
-    else:
-        logger.info(f"No Celery tasks to revoke for job {job_id}")
+        # Step 5: Broadcast cancellation via Supabase real-time
+        supabase = get_supabase_client()
+        if supabase:
+            channel = supabase.channel(f'crawl_job_{job_id}')
+            await channel.send({
+                'type': 'broadcast',
+                'event': 'job_cancelled',
+                'payload': {
+                    'job_id': job_id,
+                    'status': 'cancelled',
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'message': 'Job has been cancelled by user'
+                }
+            })
 
-    # Step 2: Clean up temporary storage
-    try:
-        await self._cleanup_job_storage(job_id)
-        logger.info(f"Cleaned up storage for job {job_id}")
-    except Exception as e:
-        # Log but don't fail cancellation if storage cleanup fails
-        logger.error(f"Failed to cleanup storage for job {job_id}: {str(e)}")
+        self.log_operation("cancel_crawl_job", job_id=job_id, status='cancelled')
+        logger.info(f"Successfully cancelled job {job_id}")
 
-    # Step 3: Update job status to cancelled
-    updated_job = await self.update_job_status(
-        job_id=job_id,
-        status='cancelled',
-        completed_at=datetime.utcnow(),
-        session=session
-    )
+        return updated_job
 
-    # Step 4: Log cancellation activity
-    if user_id:
-        await self.activity_log_repo.create(
-            user_id=uuid.UUID(user_id),
-            action="CANCEL_CRAWL_JOB",
-            resource_type="crawl_job",
-            resource_id=str(job_id),
-            metadata={
-                "job_name": job.name,
-                "previous_status": job.status,
-                "downloaded_images": job.downloaded_images or 0,
-                "valid_images": job.valid_images or 0,
-                "progress": job.progress or 0
-            }
+    async def list_jobs(self, user_id: str):
+        """
+        List all crawl jobs for a user with pagination.
+
+        Args:
+            user_id: User ID to filter jobs
+
+        Returns:
+            Paginated list of crawl jobs
+        """
+        from fastapi_pagination.ext.sqlalchemy import paginate
+        from sqlalchemy import select
+        from backend.models import Project
+
+        # Build query for user's crawl jobs
+        query = (
+            select(CrawlJob)
+            .join(Project, Project.id == CrawlJob.project_id)
+            .where(Project.user_id == uuid.UUID(user_id))
+            .order_by(CrawlJob.created_at.desc())
         )
 
-    # Step 5: Broadcast cancellation via Supabase real-time
-    supabase = get_supabase_client()
-    if supabase:
-        channel = supabase.channel(f'crawl_job_{job_id}')
-        await channel.send({
-            'type': 'broadcast',
-            'event': 'job_cancelled',
-            'payload': {
-                'job_id': job_id,
-                'status': 'cancelled',
-                'timestamp': datetime.utcnow().isoformat(),
-                'message': 'Job has been cancelled by user'
-            }
-        })
+        # Use fastapi-pagination's paginate function
+        return await paginate(self.crawl_job_repo.session, query)
 
-    self.log_operation("cancel_crawl_job", job_id=job_id, status='cancelled')
-    logger.info(f"Successfully cancelled job {job_id}")
+    def to_response(self, job: CrawlJob):
+        """
+        Convert CrawlJob model to CrawlJobResponse schema.
 
-    return updated_job
+        Args:
+            job: CrawlJob model instance
+
+        Returns:
+            CrawlJobResponse schema
+        """
+        from backend.schemas.crawl_jobs import CrawlJobResponse
+
+        return CrawlJobResponse(
+            id=job.id,
+            project_id=job.project_id,
+            name=job.name,
+            keywords=job.keywords,
+            max_images=job.max_images,
+            search_engine="duckduckgo",  # Default, not stored in DB
+            status=job.status,
+            progress=job.progress,
+            total_images=job.total_images,
+            downloaded_images=job.downloaded_images,
+            valid_images=job.valid_images,
+            config={},  # Default empty config
+            created_at=job.created_at.isoformat(),
+            updated_at=job.updated_at.isoformat(),
+            started_at=job.started_at.isoformat() if job.started_at else None,
+            completed_at=job.completed_at.isoformat() if job.completed_at else None,
+        )
+
+    async def get_job_with_ownership_check(
+        self,
+        job_id: int,
+        user_id: str
+    ) -> Optional[CrawlJob]:
+        """
+        Get crawl job by ID with ownership verification.
+
+        Args:
+            job_id: Crawl job ID
+            user_id: User ID to verify ownership
+
+        Returns:
+            CrawlJob if found and owned by user, None otherwise
+
+        Raises:
+            NotFoundError: If job not found or access denied
+        """
+        from sqlalchemy import select
+        from backend.models import Project
+
+        job = await self.get_job(job_id)
+        if not job:
+            return None
+
+        # Verify ownership via project
+        owner_query = select(Project.user_id).where(Project.id == job.project_id)
+        owner_result = await self.crawl_job_repo.session.execute(owner_query)
+        owner_id = owner_result.scalar_one_or_none()
+
+        if str(owner_id) != str(user_id):
+            return None
+
+        return job
+
+    async def retry_job(self, job_id: int, user_id: str) -> CrawlJob:
+        """
+        Retry a failed or cancelled crawl job.
+
+        Args:
+            job_id: Crawl job ID
+            user_id: User ID for ownership verification
+
+        Returns:
+            Updated crawl job with reset progress
+
+        Raises:
+            NotFoundError: If job not found or access denied
+            ValidationError: If job status doesn't allow retry
+        """
+        # Verify ownership
+        job = await self.get_job_with_ownership_check(job_id, user_id)
+        if not job:
+            raise NotFoundError(f"Crawl job {job_id} not found")
+
+        # Validate status
+        if job.status not in ["failed", "cancelled"]:
+            raise ValidationError(
+                f"Only failed or cancelled jobs can be retried (current: {job.status})"
+            )
+
+        # Reset job state
+        job.status = "pending"
+        job.progress = 0
+        job.total_images = 0
+        job.downloaded_images = 0
+        job.valid_images = 0
+        job.started_at = None
+        job.completed_at = None
+
+        await self.crawl_job_repo.session.commit()
+        await self.crawl_job_repo.session.refresh(job)
+
+        logger.info(f"Job {job_id} reset for retry by user {user_id}")
+
+        return job
+
+    async def get_job_logs(
+        self,
+        job_id: int,
+        user_id: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Get activity logs for a crawl job.
+
+        Args:
+            job_id: Crawl job ID
+            user_id: User ID for ownership verification
+
+        Returns:
+            List of job log entries
+
+        Raises:
+            NotFoundError: If job not found or access denied
+        """
+        from sqlalchemy import select
+        from backend.models import ActivityLog
+        from backend.schemas.crawl_jobs import JobLogEntry
+
+        # Verify ownership
+        job = await self.get_job_with_ownership_check(job_id, user_id)
+        if not job:
+            raise NotFoundError(f"Crawl job {job_id} not found")
+
+        # Query activity logs for this job
+        logs_query = (
+            select(ActivityLog)
+            .where(
+                ActivityLog.resource_type == "crawl_job",
+                ActivityLog.resource_id == str(job_id),
+            )
+            .order_by(ActivityLog.timestamp.desc())
+        )
+        logs_result = await self.crawl_job_repo.session.execute(logs_query)
+        logs = list(logs_result.scalars().all())
+
+        return [
+            JobLogEntry(
+                action=log.action,
+                timestamp=log.timestamp.isoformat(),
+                metadata=log.metadata_,
+            )
+            for log in logs
+        ]
 
 
 async def _revoke_celery_tasks(
@@ -941,8 +1112,7 @@ async def execute_crawl_job(
     job_id: int,
     user_id: Optional[str] = None,
     tier: Optional[str] = None,
-    job_service: Optional[CrawlJobService] = None,
-    session: Optional[AsyncSession] = None
+    job_service: Optional[CrawlJobService] = None
 ) -> None:
     """
     Execute a crawl job asynchronously with retry logic.
@@ -955,7 +1125,6 @@ async def execute_crawl_job(
         user_id: User ID (used for rate limiting tracking)
         tier: User's subscription tier (used for rate limiting tracking)
         job_service: Optional pre-configured CrawlJobService
-        session: Optional database session
 
     Raises:
         NotFoundError: If job not found
@@ -985,11 +1154,9 @@ async def execute_crawl_job(
     RETRY_DELAY = 5  # seconds
     BATCH_SIZE = 50
 
-    # Use provided session or create a new one
-    should_close_session = False
-    if session is None:
-        session = AsyncSessionLocal()
-        should_close_session = True
+    # Create a new session for this background task
+    session = AsyncSessionLocal()
+    should_close_session = True
 
     # Initialize service if not provided
     if job_service is None:
@@ -997,29 +1164,26 @@ async def execute_crawl_job(
             crawl_job_repo=CrawlJobRepository(session),
             project_repo=ProjectRepository(session),
             image_repo=ImageRepository(session),
-            activity_log_repo=ActivityLogRepository(session),
-            session=session
+            activity_log_repo=ActivityLogRepository(session)
         )
 
     # Initialize Metrics Service
     metrics_service = MetricsService(
         processing_repo=ProcessingMetricRepository(session),
         resource_repo=ResourceMetricRepository(session),
-        queue_repo=QueueMetricRepository(session),
-        session=session
+        queue_repo=QueueMetricRepository(session)
     )
 
     try:
         async with session.begin():
-            job = await job_service.get_job(job_id, session=session)
+            job = await job_service.get_job(job_id)
             if not job:
                 raise NotFoundError(f"Crawl job not found: {job_id}")
 
             await job_service.update_job(
                 job_id,
                 status="running",
-                started_at=datetime.utcnow(),
-                session=session
+                started_at=datetime.utcnow()
             )
 
         # Start job metric
@@ -1081,12 +1245,11 @@ async def execute_crawl_job(
                     job_id=job_id,
                     progress=progress,
                     downloaded_images=processed_count,
-                    valid_images=valid_count,
-                    session=session
+                    valid_images=valid_count
                 )
 
                 if valid_batch:
-                    await job_service.store_bulk_images(job_id, valid_batch, session=session)
+                    await job_service.store_bulk_images(job_id, valid_batch)
 
                 # Complete batch metric
                 await metrics_service.complete_processing_metric(
@@ -1133,8 +1296,7 @@ async def execute_crawl_job(
                         job_id=job_id,
                         progress=progress,
                         downloaded_images=processed_count,
-                        valid_images=valid_count,
-                        session=session
+                        valid_images=valid_count
                     )
 
                 except StopAsyncIteration:
@@ -1147,8 +1309,7 @@ async def execute_crawl_job(
                 job_id=job_id,
                 progress=progress,
                 downloaded_images=processed_count,
-                valid_images=valid_count,
-                session=session
+                valid_images=valid_count
             )
 
         except Exception as e:
@@ -1156,8 +1317,7 @@ async def execute_crawl_job(
             await job_service.update_job_status(
                 job_id=job_id,
                 status="failed",
-                error=str(e),
-                session=session
+                error=str(e)
             )
             raise ExternalServiceError(
                 f"Error during batch processing: {str(e)}") from e
@@ -1176,8 +1336,7 @@ async def execute_crawl_job(
                 progress=100,
                 completed_at=datetime.utcnow(),
                 downloaded_images=processed_count,
-                valid_images=valid_count,
-                session=session
+                valid_images=valid_count
             )
         
         # Complete job metric
@@ -1201,8 +1360,7 @@ async def execute_crawl_job(
                     error=str(e),
                     completed_at=datetime.utcnow(),
                     downloaded_images=processed_count if 'processed_count' in locals() else 0,
-                    valid_images=valid_count if 'valid_count' in locals() else 0,
-                    session=session
+                    valid_images=valid_count if 'valid_count' in locals() else 0
                 )
         
         if 'job_metric' in locals():

@@ -10,53 +10,19 @@ from typing import Optional, List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.dependencies import get_db_session, get_current_user
-from backend.repositories import (
-    ProcessingMetricRepository,
-    ResourceMetricRepository,
-    QueueMetricRepository,
-)
+from backend.api.dependencies import get_current_user, get_metrics_service
+from backend.api.types import MetricsServiceDep
 from backend.schemas.metrics import (
     ProcessingMetricResponse,
     ResourceMetricResponse,
     QueueMetricResponse,
     MetricsSummary,
 )
-from backend.services.metrics import MetricsService
 
 __all__ = ['router']
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
-
-
-# ============================================================================
-# DEPENDENCY INJECTION
-# ============================================================================
-
-async def get_metrics_service(
-    session: AsyncSession = Depends(get_db_session)
-) -> MetricsService:
-    """
-    Get metrics service instance with repositories.
-    
-    Args:
-        session: Database session
-        
-    Returns:
-        Configured metrics service
-    """
-    processing_repo = ProcessingMetricRepository(session)
-    resource_repo = ResourceMetricRepository(session)
-    queue_repo = QueueMetricRepository(session)
-    
-    return MetricsService(
-        processing_repo=processing_repo,
-        resource_repo=resource_repo,
-        queue_repo=queue_repo,
-        session=session
-    )
 
 
 # ============================================================================
@@ -87,7 +53,7 @@ async def get_processing_metrics(
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records"),
     offset: int = Query(0, ge=0, description="Number of records to skip"),
     current_user: dict = Depends(get_current_user),
-    service: MetricsService = Depends(get_metrics_service)
+    service: MetricsServiceDep
 ) -> List[ProcessingMetricResponse]:
     """
     Get processing metrics with optional filters.
@@ -137,7 +103,7 @@ async def get_resource_metrics(
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records"),
     offset: int = Query(0, ge=0, description="Number of records to skip"),
     current_user: dict = Depends(get_current_user),
-    service: MetricsService = Depends(get_metrics_service)
+    service: MetricsServiceDep
 ) -> List[ResourceMetricResponse]:
     """
     Get resource usage metrics.
@@ -174,7 +140,7 @@ async def collect_resource_metrics(
     job_id: Optional[int] = Query(None, description="Associate metrics with job ID"),
     hostname: Optional[str] = Query(None, description="Hostname for metrics"),
     current_user: dict = Depends(get_current_user),
-    service: MetricsService = Depends(get_metrics_service)
+    service: MetricsServiceDep
 ) -> List[ResourceMetricResponse]:
     """
     Collect current system resource metrics.
@@ -211,7 +177,7 @@ async def get_queue_metrics(
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records"),
     offset: int = Query(0, ge=0, description="Number of records to skip"),
     current_user: dict = Depends(get_current_user),
-    service: MetricsService = Depends(get_metrics_service)
+    service: MetricsServiceDep
 ) -> List[QueueMetricResponse]:
     """
     Get queue depth and status metrics.
@@ -244,7 +210,7 @@ async def get_queue_metrics(
 async def get_latest_queue_status(
     queue_name: str,
     current_user: dict = Depends(get_current_user),
-    service: MetricsService = Depends(get_metrics_service)
+    service: MetricsServiceDep
 ) -> QueueMetricResponse:
     """
     Get the latest status for a specific queue.
@@ -289,7 +255,7 @@ async def get_metrics_summary(
         description="End of time range (ISO 8601). Defaults to now"
     ),
     current_user: dict = Depends(get_current_user),
-    service: MetricsService = Depends(get_metrics_service)
+    service: MetricsServiceDep
 ) -> MetricsSummary:
     """
     Get comprehensive metrics summary.

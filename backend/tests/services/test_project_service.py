@@ -2,10 +2,10 @@
 Unit tests for ProjectService.
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
+import pytest
 from fastapi import HTTPException
 
 from backend.models import Project
@@ -56,7 +56,7 @@ async def test_get_project_not_found(project_service, mock_repo):
 
     with pytest.raises(HTTPException) as exc:
         await project_service.get_project(project_id, user_id)
-    
+
     assert exc.value.status_code == 404
 
 
@@ -70,7 +70,7 @@ async def test_get_project_forbidden(project_service, mock_repo):
 
     with pytest.raises(HTTPException) as exc:
         await project_service.get_project(project_id, user_id)
-    
+
     assert exc.value.status_code == 403
 
 
