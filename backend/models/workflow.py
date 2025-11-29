@@ -60,7 +60,7 @@ class WorkflowState(Base, TimestampMixin):
         current_step: Current step index
         total_steps: Total number of steps
         progress: Progress percentage (0-100)
-        metadata: Workflow-specific metadata (JSONB)
+        workflow_metadata: Workflow-specific metadata (JSONB)
         error_message: Error message if failed
         started_at: Workflow start timestamp
         completed_at: Workflow completion timestamp
@@ -90,7 +90,7 @@ class WorkflowState(Base, TimestampMixin):
     current_step: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     total_steps: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     progress: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    metadata: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    workflow_metadata: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -203,6 +203,7 @@ config.local.*
 .secrets
 .env.local
 .env.production
+.env.test
 
 # UV specific
 .uv/
