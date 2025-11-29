@@ -14,6 +14,7 @@ from backend.schemas.storage import (
     CleanupRequest,
     CleanupResponse,
     FileInfo,
+    FileListResponse,
     StorageUsageResponse,
 )
 
@@ -76,7 +77,7 @@ async def get_storage_usage(
 
 @router.get(
     "/files/",
-    response_model=List[FileInfo],
+    response_model=FileListResponse,
     summary="List Storage Files",
     description="List all files in storage with optional path prefix filtering.",
     response_description="List of files with metadata",
@@ -86,14 +87,19 @@ async def get_storage_usage(
             "description": "Successfully retrieved file list",
             "content": {
                 "application/json": {
-                    "example": [
-                        {
-                            "path": "images/dataset-1/img001.jpg",
-                            "size_bytes": 524288,
-                            "created_at": "2024-01-01T00:00:00Z",
-                            "content_type": "image/jpeg"
-                        }
-                    ]
+                    "example": {
+                        "data": [
+                            {
+                                "file_id": "file1",
+                                "filename": "img001.jpg",
+                                "size_bytes": 524288,
+                                "storage_tier": "hot",
+                                "created_at": "2024-01-01T00:00:00Z",
+                                "last_accessed": None
+                            }
+                        ],
+                        "meta": {"total": 1, "skip": 0, "limit": 50}
+                    }
                 }
             }
         },
@@ -103,7 +109,7 @@ async def get_storage_usage(
 async def list_storage_files(
     service: StorageServiceDep,
     prefix: Optional[str] = Query(None, description="Filter files by prefix (e.g., 'images/dataset-1/')"),
-) -> List[FileInfo]:
+) -> FileListResponse:
     """
     List files in storage with optional prefix filtering.
 
@@ -122,7 +128,11 @@ async def list_storage_files(
     Raises:
         HTTPException: If file listing fails
     """
-    return await service.list_files(prefix)
+    files = await service.list_files(prefix)
+    return FileListResponse(
+        data=files,
+        meta={"total": len(files), "skip": 0, "limit": len(files)}
+    )
 
 
 @router.post(
@@ -173,8 +183,9 @@ async def cleanup_old_files(
         HTTPException: If cleanup operation fails
     """
     return await service.cleanup_files(
-        age_hours=request.age_hours,
-        prefix=request.prefix
+        days_old=request.days_old,
+        storage_tier=request.storage_tier,
+        dry_run=request.dry_run
     )
 
 

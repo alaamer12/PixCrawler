@@ -68,10 +68,12 @@ class StorageService(BaseService):
             self.log_operation("get_storage_stats", file_count=len(files), total_size=total_size)
 
             return StorageUsageResponse(
-                total_storage_bytes=total_size,
-                total_storage_mb=round(total_size / (1024 * 1024), 2),
-                total_storage_gb=round(total_size / (1024 * 1024 * 1024), 2),
+                total_size_bytes=total_size,
+                total_size_gb=round(total_size / (1024 * 1024 * 1024), 4),
                 file_count=len(files),
+                hot_storage_bytes=total_size,  # Placeholder
+                warm_storage_bytes=0,  # Placeholder
+                cold_storage_bytes=0,  # Placeholder
                 last_updated=datetime.utcnow()
             )
         except Exception as e:
@@ -106,10 +108,12 @@ class StorageService(BaseService):
             # In a real app, we'd get actual file metadata
             return [
                 FileInfo(
-                    file_path=path,
+                    file_id=path,  # Use path as ID for now
+                    filename=path.split('/')[-1],
                     size_bytes=1024,  # Placeholder
-                    size_mb=0.001,    # Placeholder
-                    last_modified=datetime.utcnow()  # Placeholder
+                    storage_tier="hot",  # Placeholder
+                    created_at=datetime.utcnow(),
+                    last_accessed=None
                 )
                 for path in file_paths
             ]
@@ -122,8 +126,9 @@ class StorageService(BaseService):
 
     async def cleanup_files(
         self,
-        age_hours: int = 24,
-        prefix: Optional[str] = None
+        days_old: int = 30,
+        storage_tier: Optional[str] = None,
+        dry_run: bool = True
     ) -> CleanupResponse:
         """
         Clean up old files based on criteria.
@@ -141,8 +146,8 @@ class StorageService(BaseService):
         start_time = datetime.utcnow()
 
         try:
-            # Get files matching the prefix
-            files = await self.list_files(prefix)
+            # Get all files
+            files = await self.list_files()
 
             # Filter by age (simplified - in a real implementation, we'd check actual file timestamps)
             files_to_delete = files  # Placeholder: would filter by age
@@ -153,8 +158,9 @@ class StorageService(BaseService):
 
             for file_info in files_to_delete:
                 try:
-                    self.storage.delete(file_info.file_path)
-                    deleted_count += 1
+                    if not dry_run:
+                        self.storage.delete(file_info.filename)  # Assuming filename is path
+                        deleted_count += 1
                     space_freed += file_info.size_bytes
                 except Exception as e:
                     # Log the error but continue with other files
@@ -165,19 +171,20 @@ class StorageService(BaseService):
 
             self.log_operation(
                 "cleanup_files",
-                age_hours=age_hours,
-                prefix=prefix,
+                days_old=days_old,
+                storage_tier=storage_tier,
+                dry_run=dry_run,
                 deleted_count=deleted_count,
                 space_freed=space_freed
             )
 
             return CleanupResponse(
-                success=True,
                 files_deleted=deleted_count,
                 space_freed_bytes=space_freed,
-                space_freed_mb=round(space_freed / (1024 * 1024), 2),
-                cleanup_duration_seconds=duration,
-                timestamp=datetime.utcnow()
+                space_freed_gb=round(space_freed / (1024 * 1024 * 1024), 4),
+                dry_run=dry_run,
+                completed_at=datetime.utcnow(),
+                message=f"Cleanup completed. Deleted {deleted_count} files." if not dry_run else f"Dry run completed. Found {deleted_count} files to delete."
             )
 
         except Exception as e:

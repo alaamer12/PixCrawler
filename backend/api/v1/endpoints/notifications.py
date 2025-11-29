@@ -51,7 +51,7 @@ def get_notification_service(session: AsyncSession = Depends(get_session)) -> No
 
 
 @router.get(
-    "/notifications",
+    "/",
     response_model=NotificationListResponse,
     summary="List Notifications",
     description="Retrieve a paginated list of notifications for the authenticated user with optional filtering by read status.",
