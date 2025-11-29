@@ -61,7 +61,7 @@ class ChunkDownloader:
              # If completely failed, raise exception to trigger retry
              msg = f"Download failed for keyword: {keyword}. No images downloaded."
              self.logger.warning(msg)
-             raise Exception(msg)
+             raise ConnectionError(msg)
              
         self.logger.info(f"Download completed. Downloaded {count} images.")
         return count

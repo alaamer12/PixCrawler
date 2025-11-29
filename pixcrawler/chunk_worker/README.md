@@ -2,12 +2,22 @@
 
 The Chunk Worker is a specialized Celery worker designed to process image datasets in chunks. It handles the end-to-end pipeline of downloading, validating, compressing, and uploading images to Azure Blob Storage.
 
+
+## 🧪 Testing
+
+A test script is provided to verify the pipeline logic (using mocks):
+
+```bash
+# From the project root
+uv run pytest tests/test_process_chunk.py
+```
+
 ## 🏗️ Architecture
 
 ```ascii
 +-------------+      +-----------+      +-----------+      +------------+      +-------------+
 |  Celery     | ---> | Download  | ---> | Validate  | ---> | Compress   | ---> | Upload      |
-|  Task       |      | (Builder) |      | (Validator)|     | (Zip)      |      | (Azure Blob)|
+|  Task       |      | (Builder) |      | (Validator)|     | (Archiver) |      | (Azure Blob)|
 +-------------+      +-----------+      +-----------+      +------------+      +-------------+
        |                   |                  |                  |                   |
        v                   v                  v                  v                   v
@@ -35,7 +45,7 @@ The Chunk Worker is a specialized Celery worker designed to process image datase
     *   Removes corrupted files and duplicates.
     *   **Failure**: If no valid images remain, the task fails immediately (non-retriable).
 4.  **Compression Phase**:
-    *   Compresses valid images into a ZIP file (`chunk_{id}.zip`).
+    *   Compresses valid images into a ZIP file (`chunk_{id}.zip`) using `utility.compress.archiver`.
     *   **Retry Logic**: Retries once on filesystem errors.
 5.  **Upload Phase**:
     *   Uploads the ZIP file to Azure Blob Storage.
@@ -70,15 +80,6 @@ To start the Celery worker:
 celery -A pixcrawler.chunk_worker.src.celery_app worker --loglevel=info
 ```
 
-## 🧪 Testing
-
-A test script is provided to verify the pipeline logic (using mocks):
-
-```bash
-# From the project root
-uv run python pixcrawler/chunk_worker/tests/test_pipeline.py
-```
-
 ## 📁 Directory Structure
 
 ```
@@ -89,7 +90,6 @@ src/
 ├── services/
 │   ├── downloader.py      # Wraps builder package
 │   ├── validator.py       # Wraps validator package
-│   ├── compressor.py      # Zip compression
 │   ├── uploader.py        # Azure upload
 │   ├── cleanup.py         # Resource cleanup
 │   └── status_manager.py  # Chunk status updates
@@ -97,3 +97,27 @@ src/
     ├── logging.py         # Context-aware logging
     └── retry.py           # Tenacity retry strategies
 ```
+
+## 🤖 Changes Made by the AI
+
+The following improvements and fixes were applied to ensure strict adherence to the project architecture:
+
+1.  **Celery Integration**:
+    -   Modified `src/celery_app.py` to import the shared `celery_app` from `celery_core.app` instead of creating a new isolated instance.
+
+2.  **Compression Logic**:
+    -   Removed the redundant `src/services/compressor.py` service.
+    -   Refactored `process_chunk_task` to use `utility.compress.archiver.Archiver` directly.
+    -   Added a `compress_directory` helper with Tenacity retry logic to handle filesystem operations reliably.
+
+3.  **Task Signature**:
+    -   Updated `process_chunk_task` signature to `(self, chunk_id: int, *, metadata: Optional[dict]=None)` to match the required standard.
+    -   Added validation to ensure `keyword` is present in `metadata`.
+
+4.  **Error Handling**:
+    -   Updated `ChunkDownloader` to raise `ConnectionError` on failure, ensuring Tenacity retries are triggered correctly.
+    -   Verified that `ChunkValidator` raises `ValueError` for non-retriable validation failures.
+
+5.  **Testing**:
+    -   Updated `tests/test_process_chunk.py` to reflect the removal of `ChunkCompressor` and the new task signature.
+    -   Added `os.listdir` patching to ensure tests pass with the new compression logic.

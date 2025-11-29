@@ -13,34 +13,59 @@ from celery.exceptions import MaxRetriesExceededError
 from pixcrawler.chunk_worker.src.utils.logging import get_logger
 from pixcrawler.chunk_worker.src.services.downloader import ChunkDownloader
 from pixcrawler.chunk_worker.src.services.validator import ChunkValidator
-from pixcrawler.chunk_worker.src.services.compressor import ChunkCompressor
 from pixcrawler.chunk_worker.src.services.uploader import ChunkUploader
 from pixcrawler.chunk_worker.src.services.cleanup import ChunkCleanup
 from pixcrawler.chunk_worker.src.services.status_manager import StatusManager
+from pixcrawler.chunk_worker.src.utils.retry import get_retry_strategy
+from utility.compress.archiver import Archiver
+from pathlib import Path
+
+@get_retry_strategy(max_attempts=2)
+def compress_directory(source_dir: str, zip_path: str, logger) -> str:
+    """Helper to compress directory with retry logic."""
+    logger.info(f"Starting compression of {source_dir} to {zip_path}")
+    if not os.path.exists(source_dir) or not os.listdir(source_dir):
+        raise ValueError(f"Source directory {source_dir} is empty or does not exist")
+    
+    archiver = Archiver(Path(source_dir))
+    created_path = archiver.create(
+        output=Path(zip_path),
+        use_tar=False,
+        kind="zip",
+        level=6
+    )
+    logger.info(f"Compression completed: {created_path}")
+    return str(created_path)
 
 @shared_task(bind=True, acks_late=True, name='process_chunk_task')
-def process_chunk_task(self, chunk_id: str, keyword: str) -> str:
+def process_chunk_task(self, chunk_id: int, *, metadata: Optional[dict] = None) -> str:
     """
     Process a chunk of images.
 
     Pipeline:
     1. Download images using Builder package (with retries).
     2. Validate images using Validator package (remove corrupted/duplicates).
-    3. Compress valid images to ZIP.
+    3. Compress valid images to ZIP using utility.compress.
     4. Upload ZIP to Azure Blob Storage (with retries).
     5. Cleanup temporary files.
 
     Args:
         chunk_id: Unique ID of the chunk.
-        keyword: Search keyword for downloading images.
+        metadata: Dictionary containing task metadata, must include 'keyword'.
     
     Returns:
         str: The URL of the uploaded blob.
         
     Raises:
-        ValueError: If validation fails (non-retriable).
+        ValueError: If validation fails (non-retriable) or keyword is missing.
         Exception: If other errors occur (potentially retriable).
     """
+    # Extract keyword
+    if not metadata or 'keyword' not in metadata:
+        raise ValueError("Metadata must contain 'keyword'")
+    
+    keyword = metadata['keyword']
+
     # Initial logger
     logger = get_logger(self.request.id, chunk_id, "INIT")
     logger.info(f"Received task for chunk {chunk_id}, keyword: '{keyword}'")
@@ -74,8 +99,11 @@ def process_chunk_task(self, chunk_id: str, keyword: str) -> str:
         
         # 3. Compression Phase
         logger = get_logger(self.request.id, chunk_id, "COMPRESS")
-        compressor = ChunkCompressor(logger)
-        zip_path = compressor.compress_chunk(download_dir, chunk_id, output_dir)
+        zip_filename = f"chunk_{chunk_id}.zip"
+        zip_path = os.path.join(output_dir, zip_filename)
+        
+        # Use helper with retry
+        compress_directory(download_dir, zip_path, logger)
         
         # 4. Upload Phase
         logger = get_logger(self.request.id, chunk_id, "UPLOAD")
