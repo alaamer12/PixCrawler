@@ -28,6 +28,7 @@ from .metrics_repository import (
     ResourceMetricRepository,
     QueueMetricRepository,
 )
+from .workflow_repository import WorkflowStateRepository, WorkflowTaskRepository
 
 __all__ = [
     "BaseRepository",
@@ -39,4 +40,6 @@ __all__ = [
     "ProcessingMetricRepository",
     "ResourceMetricRepository",
     "QueueMetricRepository",
+    "WorkflowStateRepository",
+    "WorkflowTaskRepository",
 ]
