@@ -144,7 +144,7 @@ class JobOrchestrator(BaseService):
         self,
         job_id: int,
         workflow_def: WorkflowDefinition,
-        metadata: Optional[Dict[str, Any]] = None,
+        workflow_metadata: Optional[Dict[str, Any]] = None,
     ) -> WorkflowState:
         """
         Create a new workflow for a job.
@@ -152,7 +152,7 @@ class JobOrchestrator(BaseService):
         Args:
             job_id: Job ID
             workflow_def: Workflow definition
-            metadata: Optional workflow metadata
+            workflow_metadata: Optional workflow metadata
 
         Returns:
             Created WorkflowState
@@ -176,7 +176,7 @@ class JobOrchestrator(BaseService):
             "status": "pending",
             "current_step": 0,
             "progress": 0,
-            "metadata": metadata or {},
+            "workflow_metadata": workflow_metadata or {},
             "max_recovery_attempts": workflow_def.max_recovery_attempts,
         }
 

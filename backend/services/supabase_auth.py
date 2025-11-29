@@ -26,7 +26,7 @@ import jwt
 from supabase import create_client, Client
 
 from backend.core.config import get_settings
-from backend.core.exceptions import AuthenticationError, NotFoundError, RateLimitExceeded
+from backend.core.exceptions import AuthenticationError, NotFoundError, RateLimitError
 from .base import BaseService
 
 __all__ = [
