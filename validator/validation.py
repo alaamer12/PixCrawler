@@ -378,6 +378,9 @@ class CheckManager:
         result.corrupted_images = len(corrupted_files)
         result.corrupted_files = corrupted_files
 
+        if self.config.mode == CheckMode.STRICT and result.corrupted_images > 0:
+            raise ValueError(f"Found {result.corrupted_images} corrupted images in strict mode")
+
     def _check_size_violations(self, context: IntegrityCheckContext,
                                result: IntegrityResult) -> None:
         """

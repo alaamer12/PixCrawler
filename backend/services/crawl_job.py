@@ -795,18 +795,17 @@ class CrawlJobService(BaseService):
 
         # Step 4: Log cancellation activity
         if user_id:
-            await self.activity_log_repo.create(
-                user_id=uuid.UUID(user_id),
-                action="CANCEL_CRAWL_JOB",
-                resource_type="crawl_job",
-                resource_id=str(job_id),
-                metadata={
-                    "job_name": job.name,
-                    "previous_status": job.status,
-                    "downloaded_images": job.downloaded_images or 0,
-                    "valid_images": job.valid_images or 0,
-                    "progress": job.progress or 0
-                }
+            await self._log_activity(
+                job.project_id,
+                "CANCEL_CRAWL_JOB",
+                user_id=user_id,
+                job_id=str(job_id),
+                status="cancelled",
+                job_name=job.name,
+                previous_status=job.status,
+                downloaded_images=job.downloaded_images or 0,
+                valid_images=job.valid_images or 0,
+                progress=job.progress or 0
             )
 
         # Step 5: Broadcast cancellation via Supabase real-time
@@ -828,6 +827,39 @@ class CrawlJobService(BaseService):
         logger.info(f"Successfully cancelled job {job_id}")
 
         return updated_job
+
+    async def _log_activity(
+        self,
+        project_id: int,
+        action: str,
+        user_id: Optional[str] = None,
+        **metadata: Any
+    ) -> None:
+        """
+        Log activity for crawl job operations.
+
+        Args:
+            project_id: Project ID
+            action: Action description
+            user_id: Optional user ID
+            **metadata: Additional metadata
+        """
+        try:
+            # If user_id is not provided, try to get owner from project
+            if not user_id:
+                project = await self.project_repo.get_by_id(project_id)
+                if project:
+                    user_id = str(project.user_id)
+
+            if user_id:
+                await self.activity_log_repo.create(
+                    user_id=uuid.UUID(user_id),
+                    action=action,
+                    resource_type="crawl_job",
+                    metadata=metadata
+                )
+        except Exception as e:
+            logger.error(f"Failed to log activity: {str(e)}")
 
     async def list_jobs(self, user_id: str):
         """
@@ -1011,99 +1043,99 @@ class CrawlJobService(BaseService):
         ]
 
 
-async def _revoke_celery_tasks(
-    self,
-    task_ids: List[str],
-    terminate: bool = True
-) -> None:
-    """
-    Revoke Celery tasks gracefully or forcefully.
+    async def _revoke_celery_tasks(
+        self,
+        task_ids: List[str],
+        terminate: bool = True
+    ) -> None:
+        """
+        Revoke Celery tasks gracefully or forcefully.
 
-    This method revokes all tasks in the provided list. With terminate=True,
-    tasks are forcefully terminated. With terminate=False, tasks are allowed
-    to finish their current work before stopping.
+        This method revokes all tasks in the provided list. With terminate=True,
+        tasks are forcefully terminated. With terminate=False, tasks are allowed
+        to finish their current work before stopping.
 
-    Args:
-        task_ids: List of Celery task IDs to revoke
-        terminate: If True, forcefully terminate tasks. If False, allow
-                  graceful shutdown (tasks finish current work)
+        Args:
+            task_ids: List of Celery task IDs to revoke
+            terminate: If True, forcefully terminate tasks. If False, allow
+                      graceful shutdown (tasks finish current work)
 
-    Note:
-        - terminate=True: Sends SIGTERM to worker process (forceful)
-        - terminate=False: Task won't accept new work but finishes current work
-    """
-    if not task_ids:
-        return
-
-    for task_id in task_ids:
-        try:
-            # Revoke the task
-            # terminate=True: Forcefully kill the task (SIGTERM)
-            # terminate=False: Graceful - task won't start if not started,
-            #                  or will finish current work if already running
-            celery_app.control.revoke(
-                task_id,
-                terminate=terminate,
-                signal='SIGTERM' if terminate else None
-            )
-            logger.debug(
-                f"Revoked Celery task {task_id} "
-                f"({'forceful' if terminate else 'graceful'})"
-            )
-        except Exception as e:
-            # Log error but continue revoking other tasks
-            logger.error(f"Failed to revoke Celery task {task_id}: {str(e)}")
-
-
-async def _cleanup_job_storage(self, job_id: int) -> None:
-    """
-    Clean up temporary storage files for a cancelled job.
-
-    This method removes all files associated with the job from temporary
-    storage. Files are identified by the path prefix pattern: job_{job_id}/
-
-    Args:
-        job_id: Job ID whose storage should be cleaned up
-
-    Note:
-        This method uses LocalStorageProvider to list and delete files.
-        If storage cleanup fails, the error is logged but not raised to
-        avoid blocking the cancellation process.
-    """
-    try:
-        from backend.storage.factory import get_storage_provider
-
-        # Get storage provider (defaults to local storage)
-        storage = get_storage_provider()
-
-        # List all files for this job using the prefix pattern
-        prefix = f"job_{job_id}/"
-        files = storage.list_files(prefix=prefix)
-
-        if not files:
-            logger.info(f"No storage files found for job {job_id}")
+        Note:
+            - terminate=True: Sends SIGTERM to worker process (forceful)
+            - terminate=False: Task won't accept new work but finishes current work
+        """
+        if not task_ids:
             return
 
-        # Delete each file
-        deleted_count = 0
-        failed_count = 0
-
-        for file_path in files:
+        for task_id in task_ids:
             try:
-                storage.delete(file_path)
-                deleted_count += 1
+                # Revoke the task
+                # terminate=True: Forcefully kill the task (SIGTERM)
+                # terminate=False: Graceful - task won't start if not started,
+                #                  or will finish current work if already running
+                celery_app.control.revoke(
+                    task_id,
+                    terminate=terminate,
+                    signal='SIGTERM' if terminate else None
+                )
+                logger.debug(
+                    f"Revoked Celery task {task_id} "
+                    f"({'forceful' if terminate else 'graceful'})"
+                )
             except Exception as e:
-                failed_count += 1
-                logger.error(f"Failed to delete file {file_path}: {str(e)}")
+                # Log error but continue revoking other tasks
+                logger.error(f"Failed to revoke Celery task {task_id}: {str(e)}")
 
-        logger.info(
-            f"Storage cleanup for job {job_id}: "
-            f"{deleted_count} files deleted, {failed_count} failed"
-        )
 
-    except Exception as e:
-        # Log error but don't raise - storage cleanup is best-effort
-        logger.error(f"Error during storage cleanup for job {job_id}: {str(e)}")
+    async def _cleanup_job_storage(self, job_id: int) -> None:
+        """
+        Clean up temporary storage files for a cancelled job.
+
+        This method removes all files associated with the job from temporary
+        storage. Files are identified by the path prefix pattern: job_{job_id}/
+
+        Args:
+            job_id: Job ID whose storage should be cleaned up
+
+        Note:
+            This method uses LocalStorageProvider to list and delete files.
+            If storage cleanup fails, the error is logged but not raised to
+            avoid blocking the cancellation process.
+        """
+        try:
+            from backend.storage.factory import get_storage_provider
+
+            # Get storage provider (defaults to local storage)
+            storage = get_storage_provider()
+
+            # List all files for this job using the prefix pattern
+            prefix = f"job_{job_id}/"
+            files = storage.list_files(prefix=prefix)
+
+            if not files:
+                logger.info(f"No storage files found for job {job_id}")
+                return
+
+            # Delete each file
+            deleted_count = 0
+            failed_count = 0
+
+            for file_path in files:
+                try:
+                    storage.delete(file_path)
+                    deleted_count += 1
+                except Exception as e:
+                    failed_count += 1
+                    logger.error(f"Failed to delete file {file_path}: {str(e)}")
+
+            logger.info(
+                f"Storage cleanup for job {job_id}: "
+                f"{deleted_count} files deleted, {failed_count} failed"
+            )
+
+        except Exception as e:
+            # Log error but don't raise - storage cleanup is best-effort
+            logger.error(f"Error during storage cleanup for job {job_id}: {str(e)}")
 
 
 

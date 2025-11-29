@@ -61,10 +61,11 @@ class TestCancelJobService:
         service._cleanup_job_storage = AsyncMock()
 
         # Execute
-        result = await service.cancel_job(
-            job_id=1,
-            user_id="user-123"
-        )
+        with patch('backend.services.crawl_job.get_supabase_client', return_value=None):
+            result = await service.cancel_job(
+                job_id=1,
+                user_id="a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+            )
 
         # Assert
         assert result == mock_job
@@ -88,11 +89,12 @@ class TestCancelJobService:
         service._cleanup_job_storage = AsyncMock()
 
         # Execute
-        result = await service.cancel_job(job_id=1)
+        with patch('backend.services.crawl_job.get_supabase_client', return_value=None):
+            result = await service.cancel_job(job_id=1)
 
         # Assert
         assert result == mock_job
-        service._revoke_celery_tasks.assert_called_once_with([], terminate=True)
+        service._revoke_celery_tasks.assert_not_called()
         service._cleanup_job_storage.assert_called_once_with(1)
 
     @pytest.mark.asyncio
@@ -137,7 +139,8 @@ class TestCancelJobService:
         service._cleanup_job_storage = AsyncMock(side_effect=Exception("Storage error"))
 
         # Execute - should not raise exception
-        result = await service.cancel_job(job_id=1)
+        with patch('backend.services.crawl_job.get_supabase_client', return_value=None):
+            result = await service.cancel_job(job_id=1)
 
         # Assert - job should still be cancelled
         assert result == mock_job

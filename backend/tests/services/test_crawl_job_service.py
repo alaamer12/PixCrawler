@@ -298,12 +298,13 @@ async def test_update_job_progress(
     updated_job = copy_model(sample_crawl_job, progress=50)
     mock_crawl_job_repo.update.return_value = updated_job
     
-    result = await crawl_job_service.update_job_progress(
-        job_id=1,
-        progress=50,
-        downloaded_images=50,
-        valid_images=45
-    )
+    with patch('backend.services.crawl_job.get_supabase_client', return_value=None):
+        result = await crawl_job_service.update_job_progress(
+            job_id=1,
+            progress=50,
+            downloaded_images=50,
+            valid_images=45
+        )
     
     assert result.progress == 50
     mock_crawl_job_repo.update.assert_called_once()
@@ -320,11 +321,12 @@ async def test_update_job_progress_bounds(
     mock_crawl_job_repo.update.return_value = updated_job
     
     # Test upper bound
-    result = await crawl_job_service.update_job_progress(
-        job_id=1,
-        progress=150,  # Should be clamped to 100
-        downloaded_images=100
-    )
+    with patch('backend.services.crawl_job.get_supabase_client', return_value=None):
+        result = await crawl_job_service.update_job_progress(
+            job_id=1,
+            progress=150,  # Should be clamped to 100
+            downloaded_images=100
+        )
     
     # Verify the update was called with clamped value
     call_args = mock_crawl_job_repo.update.call_args
@@ -345,10 +347,11 @@ async def test_update_job_status_success(
     updated_job = copy_model(sample_crawl_job, status="completed")
     mock_crawl_job_repo.update.return_value = updated_job
     
-    result = await crawl_job_service.update_job_status(
-        job_id=1,
-        status="completed"
-    )
+    with patch('backend.services.crawl_job.get_supabase_client', return_value=None):
+        result = await crawl_job_service.update_job_status(
+            job_id=1,
+            status="completed"
+        )
     
     assert result.status == "completed"
     mock_crawl_job_repo.update.assert_called_once()
@@ -368,11 +371,12 @@ async def test_update_job_status_with_error(
     )
     mock_crawl_job_repo.update.return_value = updated_job
     
-    result = await crawl_job_service.update_job_status(
-        job_id=1,
-        status="failed",
-        error="Test error"
-    )
+    with patch('backend.services.crawl_job.get_supabase_client', return_value=None):
+        result = await crawl_job_service.update_job_status(
+            job_id=1,
+            status="failed",
+            error="Test error"
+        )
     
     assert result.status == "failed"
     # Verify error and completed_at were set
@@ -501,7 +505,8 @@ async def test_cancel_job_success(
     mock_crawl_job_repo.get_by_id.return_value = sample_crawl_job
     mock_crawl_job_repo.update.return_value = cancelled_job
     
-    result = await crawl_job_service.cancel_job(1, str(uuid4()))
+    with patch('backend.services.crawl_job.get_supabase_client', return_value=None):
+        result = await crawl_job_service.cancel_job(1, str(uuid4()))
     
     assert result.status == "cancelled"
     mock_activity_log_repo.create.assert_called_once()

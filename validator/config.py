@@ -104,6 +104,12 @@ class ValidatorConfig(BaseSettings):
         examples=[512, 1024, 2048]
     )
 
+    supported_extensions: Tuple[str, ...] = Field(
+        default=('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif'),
+        description="Supported image extensions",
+        examples=[('.jpg', '.png')]
+    )
+
     # Image dimension constraints
     min_image_width: PositiveInt = Field(
         default=1,

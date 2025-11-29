@@ -95,6 +95,5 @@ api_router.include_router(
 # Metrics - Operational metrics and monitoring
 api_router.include_router(
     metrics.router,
-    prefix="/metrics",
     include_in_schema=True,
 )

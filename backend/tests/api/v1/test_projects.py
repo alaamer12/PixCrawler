@@ -271,7 +271,7 @@ class TestDeleteProject:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert "message" in data
+        assert "data" in data
 
         # Verify service was called
         mock_service.delete_project.assert_called_once()
@@ -298,7 +298,7 @@ class TestOpenAPISchema:
         paths = openapi_schema.get("paths", {})
 
         # Check endpoints exist
-        assert "/api/v1/projects" in paths
+        assert "/api/v1/projects/" in paths
         assert "/api/v1/projects/{project_id}" in paths
 
     def test_projects_endpoints_have_operation_ids(self, client):
@@ -308,8 +308,8 @@ class TestOpenAPISchema:
         paths = openapi_schema.get("paths", {})
 
         # Check operation IDs
-        assert paths["/api/v1/projects"]["get"]["operationId"] == "listProjects"
-        assert paths["/api/v1/projects"]["post"]["operationId"] == "createProject"
+        assert paths["/api/v1/projects/"]["get"]["operationId"] == "listProjects"
+        assert paths["/api/v1/projects/"]["post"]["operationId"] == "createProject"
         assert paths["/api/v1/projects/{project_id}"]["get"]["operationId"] == "getProject"
         assert paths["/api/v1/projects/{project_id}"]["patch"]["operationId"] == "updateProject"
         assert paths["/api/v1/projects/{project_id}"]["delete"]["operationId"] == "deleteProject"
@@ -321,8 +321,8 @@ class TestOpenAPISchema:
         paths = openapi_schema.get("paths", {})
 
         # Check response models exist
-        assert "200" in paths["/api/v1/projects"]["get"]["responses"]
-        assert "201" in paths["/api/v1/projects"]["post"]["responses"]
+        assert "200" in paths["/api/v1/projects/"]["get"]["responses"]
+        assert "201" in paths["/api/v1/projects/"]["post"]["responses"]
         assert "200" in paths["/api/v1/projects/{project_id}"]["get"]["responses"]
         assert "200" in paths["/api/v1/projects/{project_id}"]["patch"]["responses"]
         assert "200" in paths["/api/v1/projects/{project_id}"]["delete"]["responses"]

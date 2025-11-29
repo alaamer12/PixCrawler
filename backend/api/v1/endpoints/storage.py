@@ -8,7 +8,8 @@ from typing import Dict, List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from backend.api.types import StorageServiceDep
+from backend.api.dependencies import get_current_user
+from backend.api.types import StorageServiceDep, CurrentUser
 from backend.api.v1.response_models import get_common_responses
 from backend.schemas.storage import (
     CleanupRequest,
@@ -54,6 +55,7 @@ router = APIRouter(
 )
 async def get_storage_usage(
     service: StorageServiceDep,
+    current_user: CurrentUser,
 ) -> StorageUsageResponse:
     """
     Get storage usage statistics.
@@ -65,6 +67,7 @@ async def get_storage_usage(
 
     Args:
         service: Storage service instance (injected)
+        current_user: Current authenticated user (injected)
 
     Returns:
         StorageUsageResponse with detailed storage usage information
@@ -108,6 +111,7 @@ async def get_storage_usage(
 )
 async def list_storage_files(
     service: StorageServiceDep,
+    current_user: CurrentUser,
     prefix: Optional[str] = Query(None, description="Filter files by prefix (e.g., 'images/dataset-1/')"),
 ) -> FileListResponse:
     """
@@ -120,6 +124,7 @@ async def list_storage_files(
 
     Args:
         service: Storage service instance (injected)
+        current_user: Current authenticated user (injected)
         prefix: Optional prefix to filter files by path
 
     Returns:
@@ -161,6 +166,7 @@ async def list_storage_files(
 async def cleanup_old_files(
     request: CleanupRequest,
     service: StorageServiceDep,
+    current_user: CurrentUser,
 ) -> CleanupResponse:
     """
     Clean up old files from storage.
@@ -175,6 +181,7 @@ async def cleanup_old_files(
     Args:
         request: Cleanup configuration (age threshold, prefix filter)
         service: Storage service instance (injected)
+        current_user: Current authenticated user (injected)
 
     Returns:
         CleanupResponse with count of deleted files and freed space
@@ -212,6 +219,7 @@ async def cleanup_old_files(
 )
 async def get_presigned_url(
     service: StorageServiceDep,
+    current_user: CurrentUser,
     path: str = Query(..., description="Path to the file in storage (e.g., 'images/dataset-1/img001.jpg')"),
     expires_in: int = Query(3600, ge=60, le=86400, description="URL expiration time in seconds (60-86400)"),
 ) -> Dict[str, Union[str, datetime]]:

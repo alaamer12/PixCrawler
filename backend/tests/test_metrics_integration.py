@@ -14,6 +14,7 @@ from backend.main import app
 from backend.services.crawl_job import execute_crawl_job
 from backend.models import CrawlJob
 from backend.schemas.metrics import MetricsSummary
+from backend.api.dependencies import get_current_user
 import uuid
 
 client = TestClient(app)
@@ -33,12 +34,16 @@ async def test_metrics_endpoint():
             failed_jobs=1
         )
 
-        response = client.get("/api/v1/metrics/summary")
-        assert response.status_code == 200
-        data = response.json()
-        assert "processing_stats" in data
-        assert "total_jobs" in data
-        assert data["total_jobs"] == 10
+        app.dependency_overrides[get_current_user] = lambda: {"user_id": str(uuid.uuid4())}
+        try:
+            response = client.get("/api/v1/metrics/summary")
+            assert response.status_code == 200
+            data = response.json()
+            assert "processing_stats" in data
+            assert "total_jobs" in data
+            assert data["total_jobs"] == 10
+        finally:
+            app.dependency_overrides = {}
 
 @pytest.mark.asyncio
 async def test_metrics_middleware():
@@ -72,8 +77,8 @@ async def test_execute_crawl_job_metrics_integration():
     # Patch where they are defined/imported
     with patch("backend.services.metrics.MetricsService") as MockMetricsService, \
          patch("builder.Builder") as MockBuilder, \
-         patch("backend.services.crawl_job.run_sync", new_callable=AsyncMock) as mock_run_sync, \
-         patch("backend.services.crawl_job.run_in_threadpool", new_callable=AsyncMock) as mock_run_in_threadpool:
+         patch("backend.core.async_helpers.run_sync", new_callable=AsyncMock) as mock_run_sync, \
+         patch("backend.core.async_helpers.run_in_threadpool", new_callable=AsyncMock) as mock_run_in_threadpool:
         
         mock_metrics_service = MockMetricsService.return_value
         mock_metrics_service.start_processing_metric = AsyncMock()

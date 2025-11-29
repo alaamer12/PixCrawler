@@ -213,7 +213,7 @@ def create_app() -> FastAPI:
         return {"status": "healthy", "service": "PixCrawler API"}
 
     # Include API routes
-    app.include_router(api_router, prefix="/api")
+    app.include_router(api_router)
 
     # Add pagination support
     add_pagination(app)

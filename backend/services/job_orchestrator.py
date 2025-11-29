@@ -7,10 +7,11 @@ multi-step workflows with Celery integration, state persistence, and recovery.
 
 import asyncio
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Callable, Coroutine
+from typing import Dict, List, Optional, Any, Callable, Coroutine, TYPE_CHECKING
 from enum import Enum
 
-from sqlalchemy.ext.asyncio import AsyncSession
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.exceptions import NotFoundError, ValidationError
 from backend.models import WorkflowState, WorkflowTask, CrawlJob
