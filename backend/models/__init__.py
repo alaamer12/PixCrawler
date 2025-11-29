@@ -31,6 +31,7 @@ from .dataset import Dataset
 from .notifications import Notification, NotificationPreference
 from .usage import UsageMetric
 from .metrics import ProcessingMetric, ResourceMetric, QueueMetric
+from .workflow import WorkflowStatus, TaskStatus, WorkflowState, WorkflowTask
 
 # Import core models
 from datetime import datetime
@@ -108,6 +109,11 @@ __all__ = [
     'Dataset',
     # Chunk models
     'JobChunk',
+    # Workflow models
+    'WorkflowStatus',
+    'TaskStatus',
+    'WorkflowState',
+    'WorkflowTask',
     # Credit models
     'CreditAccount',
     'CreditTransaction',
