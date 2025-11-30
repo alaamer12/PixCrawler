@@ -3,6 +3,7 @@
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .cache import CacheSettings
 from .celery import CelerySettings
 from .database import DatabaseSettings
 from .rate_limit import RateLimitSettings
@@ -66,6 +67,7 @@ class CommonSettings(BaseSettings):
     supabase: SupabaseSettings = Field(default_factory=SupabaseSettings)
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
+    cache: CacheSettings = Field(default_factory=CacheSettings)
     celery: CelerySettings = Field(default_factory=CelerySettings)
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
