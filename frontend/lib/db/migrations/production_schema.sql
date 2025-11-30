@@ -188,17 +188,17 @@ CREATE INDEX IF NOT EXISTS ix_credit_transactions_created_at ON credit_transacti
 CREATE TABLE IF NOT EXISTS notifications (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
     type VARCHAR(50) NOT NULL,
     category VARCHAR(50),
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
     icon VARCHAR(50),
     color VARCHAR(20),
     action_url TEXT,
     action_label VARCHAR(100),
+    metadata JSONB,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     read_at TIMESTAMPTZ,
-    metadata JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT ck_notifications_type_valid CHECK (type IN ('success', 'info', 'warning', 'error'))
 );
