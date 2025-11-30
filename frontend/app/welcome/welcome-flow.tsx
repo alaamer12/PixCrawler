@@ -1,12 +1,12 @@
 'use client'
 
-import {useState} from 'react'
-import {useRouter} from 'next/navigation'
-import {OnboardingLayout} from '@/components/onboarding/onboarding-layout'
-import {ConfigureStep} from '@/components/onboarding/configure-step'
-import {TestStep} from '@/components/onboarding/test-step'
-import {LaunchStep} from '@/components/onboarding/launch-step'
-import type {User} from '@supabase/supabase-js'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { OnboardingLayout } from '@/components/onboarding/onboarding-layout'
+import { ConfigureStep } from '@/components/onboarding/configure-step'
+import { TestStep } from '@/components/onboarding/test-step'
+import { LaunchStep } from '@/components/onboarding/launch-step'
+import type { User } from '@supabase/supabase-js'
 
 export interface DatasetConfig {
   name: string
@@ -26,7 +26,7 @@ interface WelcomeFlowProps {
   user: User
 }
 
-export function WelcomeFlow({user}: WelcomeFlowProps) {
+export function WelcomeFlow({ user }: WelcomeFlowProps) {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [config, setConfig] = useState<DatasetConfig>({
@@ -63,8 +63,8 @@ export function WelcomeFlow({user}: WelcomeFlowProps) {
   const handleLaunch = async () => {
     try {
       // Create dataset job
-      const {onboardingService} = await import('@/lib/api/onboarding')
-      const {jobId} = await onboardingService.createDatasetJob(config)
+      const { onboardingService } = await import('@/lib/api/onboarding')
+      const { jobId } = await onboardingService.createDatasetJob(config)
 
       // Mark onboarding as completed (handles dev mode gracefully)
       await onboardingService.completeOnboarding()
@@ -76,8 +76,8 @@ export function WelcomeFlow({user}: WelcomeFlowProps) {
         // In dev mode, redirect to dashboard with dev_bypass param
         router.push('/dashboard?dev_bypass=true')
       } else {
-        // In production, redirect to dataset monitoring page
-        router.push(`/dashboard/datasets/${jobId}`)
+        // In production, redirect to usage page
+        router.push(`/usage?jobId=${jobId}`)
       }
     } catch (error) {
       console.error('Failed to launch dataset:', error)

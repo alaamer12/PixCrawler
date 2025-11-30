@@ -27,6 +27,16 @@ yarn-error.log*
 
 # local env files
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.test
+
+# Allow .env.example files to be committed
+!.env.example
+!.env.example.*
+!.env.*.example
 
 # vercel
 .vercel

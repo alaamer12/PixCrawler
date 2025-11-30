@@ -1,65 +1,38 @@
 'use client'
 
-import {useEffect, useState} from 'react'
-import {createClient} from '@/lib/supabase/client'
-import {Project} from '@/lib/db/schema'
+import { useState } from 'react'
+import { useProjects, useCreateProject } from '@/lib/hooks'
+import { Project } from '@/lib/db/schema'
 
 interface ProjectsListProps {
   userId: string
 }
 
-export function ProjectsList({userId}: ProjectsListProps) {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
+export function ProjectsList({ userId }: ProjectsListProps) {
+  // Use custom hooks for data operations
+  const { projects, loading, refetch } = useProjects(userId)
+  const { createProject: createProjectMutation, loading: creating } = useCreateProject(userId)
+
+  // UI state
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectDescription, setNewProjectDescription] = useState('')
-  const supabase = createClient()
-
-  useEffect(() => {
-    fetchProjects()
-  }, [userId])
-
-  const fetchProjects = async () => {
-    try {
-      const {data, error} = await supabase
-        .from('projects')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', {ascending: false})
-
-      if (error) throw error
-      setProjects(data || [])
-    } catch (error) {
-      console.error('Error fetching projects:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const createProject = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newProjectName.trim()) return
 
-    try {
-      const {data, error} = await supabase
-        .from('projects')
-        .insert({
-          name: newProjectName,
-          description: newProjectDescription,
-          user_id: userId,
-        })
-        .select()
-        .single()
+    const newProject = await createProjectMutation({
+      name: newProjectName,
+      description: newProjectDescription,
+    })
 
-      if (error) throw error
-
-      setProjects([data, ...projects])
+    if (newProject) {
       setNewProjectName('')
       setNewProjectDescription('')
       setShowCreateForm(false)
-    } catch (error) {
-      console.error('Error creating project:', error)
+      // Refetch to get updated list
+      await refetch()
     }
   }
 

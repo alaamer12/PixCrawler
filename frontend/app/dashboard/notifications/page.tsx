@@ -1,12 +1,11 @@
 'use client'
 
-import React, {useCallback, useEffect, useMemo, useState} from 'react'
-import {useRouter} from 'next/navigation'
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
-import {Button} from '@/components/ui/button'
-import {Badge} from '@/components/ui/badge'
-import {Skeleton} from '@/components/ui/skeleton'
-import {useToast} from '@/components/ui/use-toast'
+import React, { useCallback, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Bell,
   CheckCheck,
@@ -21,8 +20,14 @@ import {
   Shield,
   Trash2,
 } from 'lucide-react'
-import {cn} from '@/lib/utils'
-import type {Notification} from '@/lib/db/schema'
+import { cn } from '@/lib/utils'
+import type { Notification } from '@/lib/db/schema'
+import {
+  useNotifications,
+  useMarkAsRead,
+  useMarkAllAsRead,
+  useDeleteNotification
+} from '@/lib/hooks/useNotifications'
 
 const iconMap: Record<string, React.ElementType> = {
   'circle-check-big': CheckCircle,
@@ -43,129 +48,44 @@ const ITEMS_PER_PAGE = 10
 
 export default function NotificationsPage() {
   const router = useRouter()
-  const {toast} = useToast()
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
-  const [currentPage, setCurrentPage] = useState(1)
 
-  useEffect(() => {
-    fetchNotifications()
-  }, [filter])
+  const {
+    notifications,
+    paginatedNotifications,
+    loading,
+    refetch,
+    pagination: { currentPage, totalPages, setPage }
+  } = useNotifications({
+    filter: filter === 'unread' ? { unread: true } : undefined,
+    pageSize: ITEMS_PER_PAGE
+  })
 
-  const fetchNotifications = useCallback(async () => {
-    try {
-      setLoading(true)
-      const url = filter === 'unread'
-        ? '/api/notifications?unread=true'
-        : '/api/notifications'
+  const { markAsRead } = useMarkAsRead()
+  const { markAllAsRead } = useMarkAllAsRead()
+  const { deleteNotification } = useDeleteNotification()
 
-      const response = await fetch(url)
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch notifications')
-      }
-
-      const data = await response.json()
-      setNotifications(data.notifications)
-      setCurrentPage(1) // Reset to first page on filter change
-    } catch (error) {
-      console.error('Error fetching notifications:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to load notifications',
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
+  const handleMarkAllAsRead = useCallback(async () => {
+    const success = await markAllAsRead()
+    if (success) {
+      refetch()
     }
-  }, [filter, toast])
+  }, [markAllAsRead, refetch])
 
-  const markAsRead = useCallback(async (id: number) => {
-    try {
-      const response = await fetch(`/api/notifications/${id}`, {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({isRead: true}),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to mark as read')
-      }
-
-      setNotifications(prev =>
-        prev.map(n => (n.id === id ? {...n, isRead: true, readAt: new Date()} : n))
-      )
-    } catch (error) {
-      console.error('Error marking notification as read:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to mark notification as read',
-        variant: 'destructive',
-      })
+  const handleDelete = useCallback(async (id: number) => {
+    const success = await deleteNotification(id)
+    if (success) {
+      refetch()
     }
-  }, [toast])
+  }, [deleteNotification, refetch])
 
-  const markAllAsRead = useCallback(async () => {
-    try {
-      const response = await fetch('/api/notifications/mark-all-read', {
-        method: 'POST',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to mark all as read')
-      }
-
-      setNotifications(prev =>
-        prev.map(n => ({...n, isRead: true, readAt: new Date()}))
-      )
-
-      toast({
-        title: 'Success',
-        description: 'All notifications marked as read',
-      })
-    } catch (error) {
-      console.error('Error marking all as read:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to mark all notifications as read',
-        variant: 'destructive',
-      })
-    }
-  }, [toast])
-
-  const deleteNotification = useCallback(async (id: number) => {
-    try {
-      const response = await fetch(`/api/notifications/${id}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete notification')
-      }
-
-      setNotifications(prev => prev.filter(n => n.id !== id))
-
-      toast({
-        title: 'Success',
-        description: 'Notification deleted',
-      })
-    } catch (error) {
-      console.error('Error deleting notification:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to delete notification',
-        variant: 'destructive',
-      })
-    }
-  }, [toast])
-
-  const handleNotificationClick = useCallback((notification: Notification) => {
+  const handleNotificationClick = useCallback(async (notification: Notification) => {
     if (!notification.isRead) {
-      markAsRead(notification.id)
+      await markAsRead(notification.id)
+      refetch()
     }
     router.push(`/notifications/${notification.id}`)
-  }, [markAsRead, router])
+  }, [markAsRead, refetch, router])
 
   const getTimeAgo = useCallback((date: Date | string) => {
     const now = new Date()
@@ -186,26 +106,14 @@ export default function NotificationsPage() {
 
   // Memoized calculations
   const unreadCount = useMemo(() =>
-      notifications.filter(n => !n.isRead).length,
+    notifications.filter(n => !n.isRead).length,
     [notifications]
   )
 
-  // Pagination logic
-  const paginatedNotifications = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-    const endIndex = startIndex + ITEMS_PER_PAGE
-    return notifications.slice(startIndex, endIndex)
-  }, [notifications, currentPage])
-
-  const totalPages = useMemo(() =>
-      Math.ceil(notifications.length / ITEMS_PER_PAGE),
-    [notifications.length]
-  )
-
   const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page)
-    window.scrollTo({top: 0, behavior: 'smooth'})
-  }, [])
+    setPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [setPage])
 
   return (
     <div className="container max-w-4xl mx-auto p-6 space-y-6">
@@ -223,12 +131,12 @@ export default function NotificationsPage() {
             size="sm"
             onClick={() => setFilter(filter === 'all' ? 'unread' : 'all')}
           >
-            <Filter className="h-4 w-4 mr-2"/>
+            <Filter className="h-4 w-4 mr-2" />
             {filter === 'all' ? 'Show Unread' : 'Show All'}
           </Button>
           {unreadCount > 0 && (
-            <Button variant="outline" size="sm" onClick={markAllAsRead}>
-              <CheckCheck className="h-4 w-4 mr-2"/>
+            <Button variant="outline" size="sm" onClick={handleMarkAllAsRead}>
+              <CheckCheck className="h-4 w-4 mr-2" />
               Mark All Read
             </Button>
           )}
@@ -278,17 +186,17 @@ export default function NotificationsPage() {
             <div className="space-y-4">
               {[1, 2, 3].map(i => (
                 <div key={i} className="flex items-start gap-4">
-                  <Skeleton className="h-10 w-10 rounded-lg"/>
+                  <Skeleton className="h-10 w-10 rounded-lg" />
                   <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-3/4"/>
-                    <Skeleton className="h-3 w-1/2"/>
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
                   </div>
                 </div>
               ))}
             </div>
           ) : notifications.length === 0 ? (
             <div className="text-center py-12">
-              <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4"/>
+              <Bell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-lg font-medium">No notifications</p>
               <p className="text-sm text-muted-foreground">
                 {filter === 'unread'
@@ -303,8 +211,8 @@ export default function NotificationsPage() {
                   const Icon = notification.icon
                     ? iconMap[notification.icon] || Bell
                     : Bell
-                  const colorClass = notification.iconColor
-                    ? colorMap[notification.iconColor] || colorMap.blue
+                  const colorClass = notification.color
+                    ? colorMap[notification.color] || colorMap.blue
                     : colorMap.blue
 
                   return (
@@ -317,7 +225,7 @@ export default function NotificationsPage() {
                       onClick={() => handleNotificationClick(notification)}
                     >
                       <div className={cn('p-2 rounded-lg', colorClass)}>
-                        <Icon className="h-5 w-5"/>
+                        <Icon className="h-5 w-5" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
@@ -329,7 +237,7 @@ export default function NotificationsPage() {
                               {notification.message}
                             </p>
                             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                              <Clock className="h-3 w-3"/>
+                              <Clock className="h-3 w-3" />
                               {getTimeAgo(notification.createdAt)}
                             </p>
                           </div>
@@ -345,11 +253,11 @@ export default function NotificationsPage() {
                         size="icon"
                         onClick={e => {
                           e.stopPropagation()
-                          deleteNotification(notification.id)
+                          handleDelete(notification.id)
                         }}
                         className="hover:bg-destructive/10 hover:text-destructive"
                       >
-                        <Trash2 className="h-4 w-4"/>
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   )
@@ -369,11 +277,11 @@ export default function NotificationsPage() {
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
                     >
-                      <ChevronLeft className="h-4 w-4 mr-1"/>
+                      <ChevronLeft className="h-4 w-4 mr-1" />
                       Previous
                     </Button>
                     <div className="flex items-center gap-1">
-                      {Array.from({length: totalPages}, (_, i) => i + 1).map(page => (
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                         <Button
                           key={page}
                           variant={currentPage === page ? 'default' : 'outline'}
@@ -392,7 +300,7 @@ export default function NotificationsPage() {
                       disabled={currentPage === totalPages}
                     >
                       Next
-                      <ChevronRight className="h-4 w-4 ml-1"/>
+                      <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   </div>
                 </div>

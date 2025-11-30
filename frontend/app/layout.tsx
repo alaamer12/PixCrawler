@@ -29,6 +29,11 @@ export const metadata = {
       'max-snippet': -1,
     },
   },
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -36,16 +41,26 @@ export const metadata = {
     title: 'PixCrawler - AI-Powered Image Dataset Builder',
     description: 'Build production-ready image datasets in minutes with AI-powered crawling, validation, and organization.',
     siteName: 'PixCrawler',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'PixCrawler',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'PixCrawler - AI-Powered Image Dataset Builder',
     description: 'Build production-ready image datasets in minutes with AI-powered crawling, validation, and organization.',
     creator: '@pixcrawler',
+    images: ['/twitter-card.png'],
   },
   alternates: {
     canonical: 'https://pixcrawler.io',
   },
+  manifest: '/site.webmanifest',
 };
 
 export const viewport: Viewport = {
