@@ -86,7 +86,8 @@ class Notification(Base):
     )
     
     # Classification
-    type: Mapped[str] = mapped_column(
+    type_: Mapped[str] = mapped_column(
+        "type",
         String(50),
         nullable=False,
         index=True,
@@ -152,7 +153,7 @@ class Notification(Base):
     # Constraints
     __table_args__ = (
         CheckConstraint(
-            "type IN ('success', 'info', 'warning', 'error')",
+            "\"type\" IN ('success', 'info', 'warning', 'error')",
             name="ck_notifications_type_valid",
         ),
         CheckConstraint(

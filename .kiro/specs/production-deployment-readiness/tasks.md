@@ -130,8 +130,14 @@ This implementation plan breaks down the production deployment readiness feature
   - Configure cache control headers
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 5. Create unified startup scripts
-- [ ] 5.1 Create scripts/start-dev.sh for Unix/Linux/Mac
+- [x] 5. Create unified startup scripts
+
+
+
+
+- [x] 5.1 Create scripts/start-dev.sh for Unix/Linux/Mac
+
+
   - Add shebang and script header
   - Implement dependency checking (Python 3.11+, Node.js 18+, Redis, PostgreSQL)
   - Implement environment validation (.env files exist, required variables set)
@@ -141,13 +147,17 @@ This implementation plan breaks down the production deployment readiness feature
   - Add clear status messages and service URLs
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
 
-- [ ] 5.2 Create scripts/start-dev.ps1 for Windows PowerShell
+- [x] 5.2 Create scripts/start-dev.ps1 for Windows PowerShell
+
+
   - Implement same functionality as bash script
   - Use PowerShell syntax and commands
   - Handle Windows-specific paths and processes
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
 
-- [ ] 5.3 Create scripts/start-dev.cmd for Windows Command Prompt
+- [x] 5.3 Create scripts/start-dev.cmd for Windows Command Prompt
+
+
   - Implement same functionality as bash script
   - Use CMD syntax and commands
   - Handle Windows-specific paths and processes
@@ -155,22 +165,34 @@ This implementation plan breaks down the production deployment readiness feature
 
 
 
-- [ ] 6. Verify and align database schema
-- [ ] 6.1 Review frontend Drizzle schema (frontend/lib/db/schema.ts)
+
+- [x] 6. Verify and align database schema
+
+
+
+
+- [x] 6.1 Review frontend Drizzle schema (frontend/lib/db/schema.ts)
+
   - Verify all 11 tables are defined (profiles, projects, crawl_jobs, images, activity_logs, api_keys, credit_accounts, credit_transactions, notifications, notification_preferences, usage_metrics)
   - Verify relationships and constraints
   - Verify indexes are defined
   - _Requirements: 6.1, 6.5_
+
+
 
 - [ ] 6.2 Review backend SQLAlchemy models (backend/database/models.py)
   - Verify models match Drizzle schema exactly
   - Verify table names, column names, and types match
   - Verify relationships match
   - Document any discrepancies
+
+
   - _Requirements: 6.2, 6.3_
 
 - [ ] 6.3 Update production_schema.sql if needed
   - Ensure SQL matches Drizzle schema
+
+
   - Verify all tables, indexes, RLS policies, and triggers are included
   - Test SQL execution on fresh database
   - _Requirements: 6.3, 6.5_

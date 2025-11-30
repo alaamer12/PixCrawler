@@ -175,7 +175,7 @@ class ValidationService(BaseService):
                     "metadata": {
                         "width": image.width,
                         "height": image.height,
-                        "format_": image.format,
+                        "format_": image.format_,
                         "file_size": image.file_size
                     },
                     "validated_at": datetime.utcnow().isoformat() + "Z"
