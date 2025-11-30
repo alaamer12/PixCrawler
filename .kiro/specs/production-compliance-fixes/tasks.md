@@ -31,7 +31,9 @@
 
 
 
-- [ ] 1.3 Fix Celery task retry logic in builder/tasks.py and validator/tasks.py
+- [x] 1.3 Fix Celery task retry logic in builder/tasks.py and validator/tasks.py
+
+
 
   - Remove `autoretry_for` parameter from all 12 task decorators (8 in builder, 4 in validator)
   - Add `bind=True` and `acks_late=True` to all task decorators

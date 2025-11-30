@@ -26,6 +26,9 @@ import tempfile
 from utility.compress.archiver import Archiver
 from utility.compress.compressor import ImageCompressor
 from utility.compress.config import CompressionSettings, get_compression_settings
+from utility.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 __all__ = ['run', 'compress', 'decompress']
 
@@ -67,6 +70,7 @@ def compress(
     archive: bool = False,
     archive_output: Optional[str | Path] = None,
     debug: bool = False,
+    job_id: Optional[str] = None,
 ) -> Path:
     """
     Simple high-level API for compressing images.
@@ -81,6 +85,7 @@ def compress(
         archive: Create archive after compression
         archive_output: Archive output path (default: ./dataset.zst)
         debug: Show detailed statistics (before/after sizes, compression ratio)
+        job_id: Optional job ID for structured logging
 
     Returns:
         Path to output directory or archive file
@@ -100,6 +105,16 @@ def compress(
         )
         ```
     """
+
+    # Add structured logging context
+    log_context = logger.bind(
+        operation="compress",
+        format=format_,
+        quality=quality,
+        compression_level=quality,
+        lossless=lossless,
+        job_id=job_id
+    )
 
     # Create configuration from parameters
     cfg = CompressionSettings(
@@ -136,6 +151,13 @@ def compress(
         print(f"Workers: {cfg.resolved_workers}")
         print(f"{'='*60}\n")
 
+    log_context.info(
+        "Starting image compression",
+        input_dir=str(cfg.input_dir),
+        output_dir=str(cfg.output_dir),
+        workers=cfg.resolved_workers
+    )
+
     # Compress images
     compressor = ImageCompressor(cfg)
     compressor.run()
@@ -162,6 +184,18 @@ def compress(
         print(f"Compression Ratio: {compression_ratio:.2f}%")
         print(f"{'='*60}\n")
 
+    # Get file count for logging
+    file_count = sum(
+        len(filenames)
+        for _, _, filenames in os.walk(cfg.output_dir)
+    )
+    
+    log_context.info(
+        "Image compression completed",
+        file_count=file_count,
+        output_dir=str(cfg.output_dir)
+    )
+
     # Create archive if requested
     if archive:
         archiver = Archiver(cfg.output_dir)
@@ -170,6 +204,7 @@ def compress(
         if debug:
             print(f"Creating archive: {out}")
 
+        log_context.info("Creating archive", archive_path=str(out), archive_type="zstd")
         archive_path = archiver.create(out, use_tar=True, kind="zstd", level=10)
 
         if debug:
@@ -184,6 +219,12 @@ def compress(
             print(f"Total Space Saved: {(input_size - archive_size) / (1024*1024):.2f} MB")
             print(f"Total Compression: {(1 - archive_size / input_size) * 100:.2f}%")
             print(f"{'='*60}\n")
+
+        log_context.info(
+            "Archive created successfully",
+            archive_path=str(archive_path),
+            archive_size_mb=os.path.getsize(archive_path) / (1024*1024)
+        )
 
         return archive_path
 
