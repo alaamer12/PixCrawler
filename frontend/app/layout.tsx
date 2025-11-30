@@ -60,6 +60,7 @@ export const metadata = {
   alternates: {
     canonical: 'https://pixcrawler.io',
   },
+  manifest: '/site.webmanifest',
 };
 
 export const viewport: Viewport = {
