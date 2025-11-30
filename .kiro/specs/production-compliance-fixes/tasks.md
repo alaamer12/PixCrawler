@@ -32,6 +32,7 @@
 
 
 - [ ] 1.3 Fix Celery task retry logic in builder/tasks.py and validator/tasks.py
+
   - Remove `autoretry_for` parameter from all 12 task decorators (8 in builder, 4 in validator)
   - Add `bind=True` and `acks_late=True` to all task decorators
   - Implement try-except blocks with explicit `self.retry()` for infrastructure failures
@@ -69,21 +70,29 @@
   - Verify all existing log calls work without modification
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
 
-- [ ] 3. Add structured logging to critical operations
+- [x] 3. Add structured logging to critical operations
 
-- [ ] 3.1 Add structured logging context to job creation
+
+
+- [x] 3.1 Add structured logging context to job creation
+
+
   - Add `logger.contextualize()` or `logger.bind()` to job creation in builder/tasks.py
   - Include context: user_id, job_id, keywords, max_images
   - Update all log calls within job creation to include structured context
   - _Requirements: 5.1, 5.2, 5.4_
 
-- [ ] 3.2 Add structured logging context to image download
+- [x] 3.2 Add structured logging context to image download
+
+
   - Add `logger.bind()` to download operations in builder/_downloader.py
   - Include context: job_id, chunk_id, url, attempt_number
   - Add structured context to retry attempt logs
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 3.3 Add structured logging context to validation, compression, and export
+- [x] 3.3 Add structured logging context to validation, compression, and export
+
+
   - Add `logger.bind()` to validation operations in validator/tasks.py (context: job_id, image_id, validation_level)
   - Add `logger.bind()` to compression operations in utility/compress/ (context: job_id, format, compression_level, file_count)
   - Add `logger.bind()` to export operations in backend/api/v1/endpoints/exports.py (context: user_id, job_id, export_format, storage_tier)
