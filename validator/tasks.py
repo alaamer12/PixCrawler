@@ -215,13 +215,6 @@ def validate_image_impl(
     name="validator.check_duplicates",
     # Pydantic Support
     typing=True,
-    # Retry Configuration
-    autoretry_for=(IOError, OSError),
-    max_retries=3,
-    default_retry_delay=60,
-    retry_backoff=True,
-    retry_backoff_max=600,
-    retry_jitter=True,
     # Result Storage
     ignore_result=False,
     store_errors_even_if_ignored=True,
@@ -244,6 +237,10 @@ def check_duplicates_task(
 ) -> Dict[str, Any]:
     """
     Celery task for checking duplicate images.
+    
+    Retry Strategy:
+        - Infrastructure failures: Retry up to 3 times with 60s delay
+        - Permanent errors: Fail immediately
 
     Args:
         self: BaseTask Type from Celery
@@ -253,12 +250,27 @@ def check_duplicates_task(
         mode: Validation mode (strict, lenient, report_only)
         duplicate_action: Action for duplicates (remove, quarantine, report_only)
     """
-    config = ValidatorConfig(
-        mode=CheckMode(mode),
-        duplicate_action=DuplicateAction(duplicate_action),
-    )
-
-    return check_duplicates_impl(directory, category_name, keyword, config)
+    try:
+        config = ValidatorConfig(
+            mode=CheckMode(mode),
+            duplicate_action=DuplicateAction(duplicate_action),
+        )
+        return check_duplicates_impl(directory, category_name, keyword, config)
+    except (MemoryError, OSError) as e:
+        logger.error(
+            f"Infrastructure failure for duplicate check '{directory}': {e}",
+            directory=directory,
+            error_type=type(e).__name__,
+            retry_count=self.request.retries
+        )
+        raise self.retry(exc=e, max_retries=3, countdown=60)
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error for duplicate check '{directory}': {e}",
+            directory=directory,
+            error_type=type(e).__name__
+        )
+        raise
 
 
 @app.task(
@@ -267,13 +279,6 @@ def check_duplicates_task(
     name="validator.check_integrity",
     # Pydantic Support
     typing=True,
-    # Retry Configuration
-    autoretry_for=(IOError, OSError),
-    max_retries=3,
-    default_retry_delay=60,
-    retry_backoff=True,
-    retry_backoff_max=600,
-    retry_jitter=True,
     # Result Storage
     ignore_result=False,
     store_errors_even_if_ignored=True,
@@ -296,6 +301,10 @@ def check_integrity_task(
 ) -> Dict[str, Any]:
     """
     Celery task for checking image integrity.
+    
+    Retry Strategy:
+        - Infrastructure failures: Retry up to 3 times with 60s delay
+        - Permanent errors: Fail immediately
 
     Args:
         self: BaseTask Type from Celery
@@ -305,9 +314,24 @@ def check_integrity_task(
         keyword: Keyword for reporting
         mode: Validation mode (strict, lenient, report_only)
     """
-    config = ValidatorConfig(mode=CheckMode(mode))
-
-    return check_integrity_impl(directory, expected_count, category_name, keyword, config)
+    try:
+        config = ValidatorConfig(mode=CheckMode(mode))
+        return check_integrity_impl(directory, expected_count, category_name, keyword, config)
+    except (MemoryError, OSError) as e:
+        logger.error(
+            f"Infrastructure failure for integrity check '{directory}': {e}",
+            directory=directory,
+            error_type=type(e).__name__,
+            retry_count=self.request.retries
+        )
+        raise self.retry(exc=e, max_retries=3, countdown=60)
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error for integrity check '{directory}': {e}",
+            directory=directory,
+            error_type=type(e).__name__
+        )
+        raise
 
 
 @app.task(
@@ -316,13 +340,6 @@ def check_integrity_task(
     name="validator.check_all",
     # Pydantic Support
     typing=True,
-    # Retry Configuration
-    autoretry_for=(IOError, OSError),
-    max_retries=3,
-    default_retry_delay=60,
-    retry_backoff=True,
-    retry_backoff_max=600,
-    retry_jitter=True,
     # Result Storage
     ignore_result=False,
     store_errors_even_if_ignored=True,
@@ -346,6 +363,10 @@ def check_all_task(
 ) -> Dict[str, Any]:
     """
     Celery task for performing both duplicate and integrity checks.
+    
+    Retry Strategy:
+        - Infrastructure failures: Retry up to 3 times with 60s delay
+        - Permanent errors: Fail immediately
 
     Args:
         self: BaseTask Type from Celery
@@ -356,12 +377,27 @@ def check_all_task(
         mode: Validation mode (strict, lenient, report_only)
         duplicate_action: Action for duplicates (remove, quarantine, report_only)
     """
-    config = ValidatorConfig(
-        mode=CheckMode(mode),
-        duplicate_action=DuplicateAction(duplicate_action),
-    )
-
-    return check_all_impl(directory, expected_count, category_name, keyword, config)
+    try:
+        config = ValidatorConfig(
+            mode=CheckMode(mode),
+            duplicate_action=DuplicateAction(duplicate_action),
+        )
+        return check_all_impl(directory, expected_count, category_name, keyword, config)
+    except (MemoryError, OSError) as e:
+        logger.error(
+            f"Infrastructure failure for comprehensive check '{directory}': {e}",
+            directory=directory,
+            error_type=type(e).__name__,
+            retry_count=self.request.retries
+        )
+        raise self.retry(exc=e, max_retries=3, countdown=60)
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error for comprehensive check '{directory}': {e}",
+            directory=directory,
+            error_type=type(e).__name__
+        )
+        raise
 
 
 @app.task(
@@ -370,11 +406,6 @@ def check_all_task(
     name="validator.validate_image_fast",
     # Pydantic Support
     typing=True,
-    # Retry Configuration (minimal for fast validation)
-    autoretry_for=(IOError,),
-    max_retries=2,
-    default_retry_delay=5,
-    retry_backoff=False,
     # Result Storage
     ignore_result=False,
     acks_late=True,
@@ -393,17 +424,37 @@ def validate_image_fast_task(
 ) -> Dict[str, Any]:
     """
     Celery task for fast image validation.
+    
+    Retry Strategy:
+        - Infrastructure failures: Retry up to 3 times with 60s delay
+        - Permanent errors: Fail immediately
 
     Fast validation checks:
     - File exists and is readable
-    - Valid image format_
+    - Valid image format
     - Basic file size checks
 
     Args:
         self: BaseTask Type from Celery
         image_path: Path to image file
     """
-    return validate_image_impl(image_path, ValidationLevel.FAST)
+    try:
+        return validate_image_impl(image_path, ValidationLevel.FAST)
+    except (MemoryError, OSError) as e:
+        logger.error(
+            f"Infrastructure failure for fast validation '{image_path}': {e}",
+            image_path=image_path,
+            error_type=type(e).__name__,
+            retry_count=self.request.retries
+        )
+        raise self.retry(exc=e, max_retries=3, countdown=60)
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error for fast validation '{image_path}': {e}",
+            image_path=image_path,
+            error_type=type(e).__name__
+        )
+        raise
 
 
 @app.task(
@@ -412,12 +463,6 @@ def validate_image_fast_task(
     name="validator.validate_image_medium",
     # Pydantic Support
     typing=True,
-    # Retry Configuration
-    autoretry_for=(IOError, OSError),
-    max_retries=2,
-    default_retry_delay=10,
-    retry_backoff=True,
-    retry_backoff_max=60,
     # Result Storage
     ignore_result=False,
     acks_late=True,
@@ -436,6 +481,10 @@ def validate_image_medium_task(
 ) -> Dict[str, Any]:
     """
     Celery task for medium image validation.
+    
+    Retry Strategy:
+        - Infrastructure failures: Retry up to 3 times with 60s delay
+        - Permanent errors: Fail immediately
 
     Medium validation checks:
     - All fast checks
@@ -447,7 +496,23 @@ def validate_image_medium_task(
         self: BaseTask Type from Celery
         image_path: Path to image file
     """
-    return validate_image_impl(image_path, ValidationLevel.MEDIUM)
+    try:
+        return validate_image_impl(image_path, ValidationLevel.MEDIUM)
+    except (MemoryError, OSError) as e:
+        logger.error(
+            f"Infrastructure failure for medium validation '{image_path}': {e}",
+            image_path=image_path,
+            error_type=type(e).__name__,
+            retry_count=self.request.retries
+        )
+        raise self.retry(exc=e, max_retries=3, countdown=60)
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error for medium validation '{image_path}': {e}",
+            image_path=image_path,
+            error_type=type(e).__name__
+        )
+        raise
 
 
 @app.task(
@@ -456,13 +521,6 @@ def validate_image_medium_task(
     name="validator.validate_image_slow",
     # Pydantic Support
     typing=True,
-    # Retry Configuration
-    autoretry_for=(IOError, OSError),
-    max_retries=3,
-    default_retry_delay=30,
-    retry_backoff=True,
-    retry_backoff_max=300,
-    retry_jitter=True,
     # Result Storage
     ignore_result=False,
     store_errors_even_if_ignored=True,
@@ -482,6 +540,10 @@ def validate_image_slow_task(
 ) -> Dict[str, Any]:
     """
     Celery task for thorough image validation.
+    
+    Retry Strategy:
+        - Infrastructure failures: Retry up to 3 times with 60s delay
+        - Permanent errors: Fail immediately
 
     Slow validation checks:
     - All medium checks
@@ -493,4 +555,20 @@ def validate_image_slow_task(
         self: BaseTask Type from Celery
         image_path: Path to image file
     """
-    return validate_image_impl(image_path, ValidationLevel.SLOW)
+    try:
+        return validate_image_impl(image_path, ValidationLevel.SLOW)
+    except (MemoryError, OSError) as e:
+        logger.error(
+            f"Infrastructure failure for slow validation '{image_path}': {e}",
+            image_path=image_path,
+            error_type=type(e).__name__,
+            retry_count=self.request.retries
+        )
+        raise self.retry(exc=e, max_retries=3, countdown=60)
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error for slow validation '{image_path}': {e}",
+            image_path=image_path,
+            error_type=type(e).__name__
+        )
+        raise

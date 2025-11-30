@@ -1,7 +1,13 @@
 # Implementation Plan
 
-- [ ] 1. Implement error classification and retry infrastructure
-- [ ] 1.1 Set up error classification foundation
+- [x] 1. Implement error classification and retry infrastructure
+
+
+
+
+- [x] 1.1 Set up error classification foundation
+
+
   - Extend `builder/_exceptions.py` with PermanentError and TransientError base classes
   - Add specific exception types: ValidationError, NotFoundError, AuthenticationError, BadRequestError, RateLimitError, ServiceUnavailableError, TimeoutException, NetworkError
   - Implement `classify_http_error(status_code: int)` function with HTTP_ERROR_MAP
@@ -9,7 +15,9 @@
   - Add comprehensive docstrings explaining retry behavior for each exception type
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
 
-- [ ] 1.2 Add Tenacity dependency and implement network retry
+- [x] 1.2 Add Tenacity dependency and implement network retry
+
+
   - Add `tenacity>=8.2.0` to `builder/pyproject.toml` dependencies
   - Update `builder/_downloader.py` to import Tenacity decorators
   - Add `@retry` decorator to image download operations with stop_after_attempt(3)
@@ -20,6 +28,8 @@
   - Integrate error classification to raise appropriate exception types
   - Add docstrings documenting retry strategy and timing
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8_
+
+
 
 - [ ] 1.3 Fix Celery task retry logic in builder/tasks.py and validator/tasks.py
   - Remove `autoretry_for` parameter from all 12 task decorators (8 in builder, 4 in validator)
@@ -39,8 +49,17 @@
   - Test retry count limits (max 3) and timing (60s for Celery, exponential for Tenacity)
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ] 2. Migrate to centralized logging system
-- [ ] 2.1 Migrate all files to centralized logging
+- [x] 2. Migrate to centralized logging system
+
+
+
+
+
+
+
+- [x] 2.1 Migrate all files to centralized logging
+
+
   - Migrate `backend/storage/datalake_blob_provider.py`
   - Migrate `builder/_generator.py`
   - Migrate `builder/_downloader.py`
@@ -51,6 +70,7 @@
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
 
 - [ ] 3. Add structured logging to critical operations
+
 - [ ] 3.1 Add structured logging context to job creation
   - Add `logger.contextualize()` or `logger.bind()` to job creation in builder/tasks.py
   - Include context: user_id, job_id, keywords, max_images

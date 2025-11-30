@@ -26,6 +26,7 @@ from typing import Dict, List, Any, Optional
 from builder._config import get_engines
 from builder._downloader import ImageDownloader
 from builder._generator import LabelGenerator
+from builder._exceptions import PermanentError
 from _keywords import KeywordManagement
 from builder._predefined_variations import get_search_variations
 from builder._search_engines import (
@@ -37,7 +38,7 @@ from builder._search_engines import (
 )
 from celery_core.app import get_celery_app
 from celery_core.base import BaseTask
-from logging_config import get_logger
+from utility.logging_config import get_logger
 
 logger = get_logger(__name__)
 app = get_celery_app()
@@ -143,13 +144,6 @@ def task_download_google_impl(
     name='builder.download_google',
     # Pydantic Support
     typing=True,
-    # Retry Configuration
-    autoretry_for=(ConnectionError, TimeoutError, IOError),
-    max_retries=5,
-    default_retry_delay=120,
-    retry_backoff=True,
-    retry_backoff_max=1800,
-    retry_jitter=True,
     # Result Storage
     ignore_result=False,
     store_errors_even_if_ignored=True,
@@ -171,8 +165,38 @@ def task_download_google(
     max_images: int = 100,
     variations: Optional[List[str]] = None
 ) -> Dict[str, Any]:
-    """Celery task for Google image download."""
-    return task_download_google_impl(keyword, output_dir, max_images, variations)
+    """
+    Celery task for Google image download.
+    
+    Retry Strategy:
+        - Infrastructure failures: Retry up to 3 times with 60s delay
+        - Network failures: Delegated to operation layer (Tenacity)
+        - Permanent errors: Fail immediately
+    """
+    try:
+        return task_download_google_impl(keyword, output_dir, max_images, variations)
+    except (MemoryError, OSError) as e:
+        logger.error(
+            f"Infrastructure failure for Google download '{keyword}': {e}",
+            keyword=keyword,
+            error_type=type(e).__name__,
+            retry_count=self.request.retries
+        )
+        raise self.retry(exc=e, max_retries=3, countdown=60)
+    except PermanentError as e:
+        logger.error(
+            f"Permanent error for Google download '{keyword}': {e}",
+            keyword=keyword,
+            error_type=type(e).__name__
+        )
+        raise
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error for Google download '{keyword}': {e}",
+            keyword=keyword,
+            error_type=type(e).__name__
+        )
+        raise
 
 
 def task_download_bing_impl(
@@ -250,13 +274,6 @@ def task_download_bing_impl(
     name='builder.download_bing',
     # Pydantic Support
     typing=True,
-    # Retry Configuration
-    autoretry_for=(ConnectionError, TimeoutError, IOError),
-    max_retries=5,
-    default_retry_delay=120,
-    retry_backoff=True,
-    retry_backoff_max=1800,
-    retry_jitter=True,
     # Result Storage
     ignore_result=False,
     store_errors_even_if_ignored=True,
@@ -278,8 +295,38 @@ def task_download_bing(
     max_images: int = 100,
     variations: Optional[List[str]] = None
 ) -> Dict[str, Any]:
-    """Celery task for Bing image download."""
-    return task_download_bing_impl(keyword, output_dir, max_images, variations)
+    """
+    Celery task for Bing image download.
+    
+    Retry Strategy:
+        - Infrastructure failures: Retry up to 3 times with 60s delay
+        - Network failures: Delegated to operation layer (Tenacity)
+        - Permanent errors: Fail immediately
+    """
+    try:
+        return task_download_bing_impl(keyword, output_dir, max_images, variations)
+    except (MemoryError, OSError) as e:
+        logger.error(
+            f"Infrastructure failure for Bing download '{keyword}': {e}",
+            keyword=keyword,
+            error_type=type(e).__name__,
+            retry_count=self.request.retries
+        )
+        raise self.retry(exc=e, max_retries=3, countdown=60)
+    except PermanentError as e:
+        logger.error(
+            f"Permanent error for Bing download '{keyword}': {e}",
+            keyword=keyword,
+            error_type=type(e).__name__
+        )
+        raise
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error for Bing download '{keyword}': {e}",
+            keyword=keyword,
+            error_type=type(e).__name__
+        )
+        raise
 
 
 def task_download_baidu_impl(
@@ -357,13 +404,6 @@ def task_download_baidu_impl(
     name='builder.download_baidu',
     # Pydantic Support
     typing=True,
-    # Retry Configuration
-    autoretry_for=(ConnectionError, TimeoutError, IOError),
-    max_retries=5,
-    default_retry_delay=120,
-    retry_backoff=True,
-    retry_backoff_max=1800,
-    retry_jitter=True,
     # Result Storage
     ignore_result=False,
     store_errors_even_if_ignored=True,
@@ -385,8 +425,38 @@ def task_download_baidu(
     max_images: int = 100,
     variations: Optional[List[str]] = None
 ) -> Dict[str, Any]:
-    """Celery task for Baidu image download."""
-    return task_download_baidu_impl(keyword, output_dir, max_images, variations)
+    """
+    Celery task for Baidu image download.
+    
+    Retry Strategy:
+        - Infrastructure failures: Retry up to 3 times with 60s delay
+        - Network failures: Delegated to operation layer (Tenacity)
+        - Permanent errors: Fail immediately
+    """
+    try:
+        return task_download_baidu_impl(keyword, output_dir, max_images, variations)
+    except (MemoryError, OSError) as e:
+        logger.error(
+            f"Infrastructure failure for Baidu download '{keyword}': {e}",
+            keyword=keyword,
+            error_type=type(e).__name__,
+            retry_count=self.request.retries
+        )
+        raise self.retry(exc=e, max_retries=3, countdown=60)
+    except PermanentError as e:
+        logger.error(
+            f"Permanent error for Baidu download '{keyword}': {e}",
+            keyword=keyword,
+            error_type=type(e).__name__
+        )
+        raise
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error for Baidu download '{keyword}': {e}",
+            keyword=keyword,
+            error_type=type(e).__name__
+        )
+        raise
 
 
 def task_download_duckduckgo_impl(
@@ -429,13 +499,6 @@ def task_download_duckduckgo_impl(
     name='builder.download_duckduckgo',
     # Pydantic Support
     typing=True,
-    # Retry Configuration
-    autoretry_for=(ConnectionError, TimeoutError, IOError),
-    max_retries=5,
-    default_retry_delay=120,
-    retry_backoff=True,
-    retry_backoff_max=1800,
-    retry_jitter=True,
     # Result Storage
     ignore_result=False,
     store_errors_even_if_ignored=True,
@@ -456,8 +519,38 @@ def task_download_duckduckgo(
     output_dir: str,
     max_images: int = 100
 ) -> Dict[str, Any]:
-    """Celery task for DuckDuckGo image download."""
-    return task_download_duckduckgo_impl(keyword, output_dir, max_images)
+    """
+    Celery task for DuckDuckGo image download.
+    
+    Retry Strategy:
+        - Infrastructure failures: Retry up to 3 times with 60s delay
+        - Network failures: Delegated to operation layer (Tenacity)
+        - Permanent errors: Fail immediately
+    """
+    try:
+        return task_download_duckduckgo_impl(keyword, output_dir, max_images)
+    except (MemoryError, OSError) as e:
+        logger.error(
+            f"Infrastructure failure for DuckDuckGo download '{keyword}': {e}",
+            keyword=keyword,
+            error_type=type(e).__name__,
+            retry_count=self.request.retries
+        )
+        raise self.retry(exc=e, max_retries=3, countdown=60)
+    except PermanentError as e:
+        logger.error(
+            f"Permanent error for DuckDuckGo download '{keyword}': {e}",
+            keyword=keyword,
+            error_type=type(e).__name__
+        )
+        raise
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error for DuckDuckGo download '{keyword}': {e}",
+            keyword=keyword,
+            error_type=type(e).__name__
+        )
+        raise
 
 
 # ============================================================================
@@ -521,13 +614,6 @@ def task_generate_keywords_basic_impl(
     name='builder.generate_keywords',
     # Pydantic Support
     typing=True,
-    # Retry Configuration (AI API may fail)
-    autoretry_for=(ConnectionError, TimeoutError),
-    max_retries=3,
-    default_retry_delay=60,
-    retry_backoff=True,
-    retry_backoff_max=300,
-    retry_jitter=True,
     # Result Storage
     ignore_result=False,
     store_errors_even_if_ignored=True,
@@ -547,8 +633,38 @@ def task_generate_keywords(
     ai_model: str = "gpt4-mini",
     count: int = 10
 ) -> Dict[str, Any]:
-    """Celery task for basic keyword generation (CURRENT WORKING)."""
-    return task_generate_keywords_basic_impl(base_keywords, ai_model, count)
+    """
+    Celery task for basic keyword generation.
+    
+    Retry Strategy:
+        - Infrastructure failures: Retry up to 3 times with 60s delay
+        - Network failures: Delegated to operation layer (Tenacity)
+        - Permanent errors: Fail immediately
+    """
+    try:
+        return task_generate_keywords_basic_impl(base_keywords, ai_model, count)
+    except (MemoryError, OSError) as e:
+        logger.error(
+            f"Infrastructure failure for keyword generation '{base_keywords}': {e}",
+            base_keywords=base_keywords,
+            error_type=type(e).__name__,
+            retry_count=self.request.retries
+        )
+        raise self.retry(exc=e, max_retries=3, countdown=60)
+    except PermanentError as e:
+        logger.error(
+            f"Permanent error for keyword generation '{base_keywords}': {e}",
+            base_keywords=base_keywords,
+            error_type=type(e).__name__
+        )
+        raise
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error for keyword generation '{base_keywords}': {e}",
+            base_keywords=base_keywords,
+            error_type=type(e).__name__
+        )
+        raise
 
 
 # ============================================================================
@@ -672,12 +788,6 @@ def task_generate_labels_impl(
     name='builder.generate_labels',
     # Pydantic Support
     typing=True,
-    # Retry Configuration
-    autoretry_for=(IOError, OSError),
-    max_retries=3,
-    default_retry_delay=30,
-    retry_backoff=True,
-    retry_backoff_max=300,
     # Result Storage
     ignore_result=False,
     acks_late=True,
@@ -693,5 +803,34 @@ def task_generate_labels(
     dataset_dir: str,
     formats: Optional[List[str]] = None
 ) -> Dict[str, Any]:
-    """Celery task for generating label files."""
-    return task_generate_labels_impl(dataset_dir, formats)
+    """
+    Celery task for generating label files.
+    
+    Retry Strategy:
+        - Infrastructure failures: Retry up to 3 times with 60s delay
+        - Permanent errors: Fail immediately
+    """
+    try:
+        return task_generate_labels_impl(dataset_dir, formats)
+    except (MemoryError, OSError) as e:
+        logger.error(
+            f"Infrastructure failure for label generation '{dataset_dir}': {e}",
+            dataset_dir=dataset_dir,
+            error_type=type(e).__name__,
+            retry_count=self.request.retries
+        )
+        raise self.retry(exc=e, max_retries=3, countdown=60)
+    except PermanentError as e:
+        logger.error(
+            f"Permanent error for label generation '{dataset_dir}': {e}",
+            dataset_dir=dataset_dir,
+            error_type=type(e).__name__
+        )
+        raise
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error for label generation '{dataset_dir}': {e}",
+            dataset_dir=dataset_dir,
+            error_type=type(e).__name__
+        )
+        raise

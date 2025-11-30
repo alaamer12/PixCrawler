@@ -29,10 +29,12 @@ from typing import Tuple, Optional
 from _base import IDownloader
 from _predefined_variations import get_search_variations
 from _search_engines import download_images_ddgs
-from builder._constants import logger
 from builder._engine import EngineProcessor
 from builder._helpers import progress
 from _helpers import rename_images_sequentially
+from utility.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 # Image validation moved to validator package
 
