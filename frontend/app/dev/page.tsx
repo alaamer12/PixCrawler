@@ -1,9 +1,9 @@
 'use client'
 
-import {useEffect} from 'react'
-import {Button} from '@/components/ui/button'
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card'
-import {Badge} from '@/components/ui/badge'
+import { useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import {
   Code,
   Copy,
@@ -19,7 +19,7 @@ import {
   UserPlus
 } from 'lucide-react'
 import Link from 'next/link'
-import {useSearchParams} from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 
 interface PageInfo {
   path: string
@@ -39,7 +39,7 @@ const PAGES: PageInfo[] = [
     description: 'Main landing page with hero section',
     category: 'Public',
     requiresAuth: false,
-    icon: <Home className="size-4"/>
+    icon: <Home className="size-4" />
   },
   {
     path: '/pricing',
@@ -47,15 +47,7 @@ const PAGES: PageInfo[] = [
     description: 'Pricing plans and subscription options',
     category: 'Public',
     requiresAuth: false,
-    icon: <Database className="size-4"/>
-  },
-  {
-    path: '/pricing/plans',
-    name: 'All Plans',
-    description: 'Detailed pricing with credit packages',
-    category: 'Public',
-    requiresAuth: false,
-    icon: <Database className="size-4"/>
+    icon: <Database className="size-4" />
   },
   {
     path: '/examples',
@@ -63,7 +55,7 @@ const PAGES: PageInfo[] = [
     description: 'Dataset examples and use cases',
     category: 'Public',
     requiresAuth: false,
-    icon: <Eye className="size-4"/>
+    icon: <Eye className="size-4" />
   },
 
   // Auth Pages
@@ -73,7 +65,7 @@ const PAGES: PageInfo[] = [
     description: 'User authentication login form',
     category: 'Auth',
     requiresAuth: false,
-    icon: <Lock className="size-4"/>
+    icon: <Lock className="size-4" />
   },
   {
     path: '/signup',
@@ -81,7 +73,7 @@ const PAGES: PageInfo[] = [
     description: 'User registration form',
     category: 'Auth',
     requiresAuth: false,
-    icon: <UserPlus className="size-4"/>
+    icon: <UserPlus className="size-4" />
   },
   {
     path: '/auth/forgot-password',
@@ -89,7 +81,7 @@ const PAGES: PageInfo[] = [
     description: 'Password reset request form',
     category: 'Auth',
     requiresAuth: false,
-    icon: <Unlock className="size-4"/>
+    icon: <Unlock className="size-4" />
   },
   {
     path: '/auth/reset-password',
@@ -97,7 +89,7 @@ const PAGES: PageInfo[] = [
     description: 'Password reset form with token',
     category: 'Auth',
     requiresAuth: false,
-    icon: <Unlock className="size-4"/>
+    icon: <Unlock className="size-4" />
   },
   {
     path: '/auth/auth-code-error',
@@ -105,7 +97,7 @@ const PAGES: PageInfo[] = [
     description: 'Authentication error page',
     category: 'Auth',
     requiresAuth: false,
-    icon: <Lock className="size-4"/>
+    icon: <Lock className="size-4" />
   },
 
   // Payment Pages
@@ -115,7 +107,7 @@ const PAGES: PageInfo[] = [
     description: 'Payment confirmation and success page',
     category: 'Payment',
     requiresAuth: false,
-    icon: <CreditCard className="size-4"/>
+    icon: <CreditCard className="size-4" />
   },
   {
     path: '/payment/cancelled',
@@ -123,7 +115,7 @@ const PAGES: PageInfo[] = [
     description: 'Payment cancellation page',
     category: 'Payment',
     requiresAuth: false,
-    icon: <CreditCard className="size-4"/>
+    icon: <CreditCard className="size-4" />
   },
 
   // Onboarding Pages
@@ -134,7 +126,15 @@ const PAGES: PageInfo[] = [
     category: 'Onboarding',
     requiresAuth: true,
     oneTime: true,
-    icon: <User className="size-4"/>
+    icon: <User className="size-4" />
+  },
+  {
+    path: '/usage',
+    name: 'Usage Guide',
+    description: 'Post-onboarding usage instructions',
+    category: 'Onboarding',
+    requiresAuth: true,
+    icon: <Code className="size-4" />
   },
 
   // Dashboard Pages
@@ -144,7 +144,7 @@ const PAGES: PageInfo[] = [
     description: 'Main dashboard overview',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <Database className="size-4"/>
+    icon: <Database className="size-4" />
   },
   {
     path: '/dashboard/projects',
@@ -152,7 +152,7 @@ const PAGES: PageInfo[] = [
     description: 'Project management interface',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <Database className="size-4"/>
+    icon: <Database className="size-4" />
   },
   {
     path: '/dashboard/projects/new',
@@ -160,7 +160,7 @@ const PAGES: PageInfo[] = [
     description: 'Create new project form (restructured)',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <Database className="size-4"/>
+    icon: <Database className="size-4" />
   },
   {
     path: '/dashboard/projects/1',
@@ -168,7 +168,7 @@ const PAGES: PageInfo[] = [
     description: 'View project with datasets list and management',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <Database className="size-4"/>
+    icon: <Database className="size-4" />
   },
   {
     path: '/dashboard/projects/1/datasets/new',
@@ -176,7 +176,7 @@ const PAGES: PageInfo[] = [
     description: 'Create dataset within a project with full configuration',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <Database className="size-4"/>
+    icon: <Database className="size-4" />
   },
   {
     path: '/dashboard/projects/1/datasets/1',
@@ -184,7 +184,7 @@ const PAGES: PageInfo[] = [
     description: 'View dataset with job monitoring, logs, and real-time updates',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <Database className="size-4"/>
+    icon: <Database className="size-4" />
   },
   {
     path: '/dashboard/datasets',
@@ -192,23 +192,7 @@ const PAGES: PageInfo[] = [
     description: 'Dataset management and listing',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <Database className="size-4"/>
-  },
-  {
-    path: '/dashboard/datasets/cats_dogs_001',
-    name: 'Dataset Dashboard (Old)',
-    description: 'Complete dataset dashboard with overview, gallery, files',
-    category: 'Dashboard',
-    requiresAuth: true,
-    icon: <Database className="size-4"/>
-  },
-  {
-    path: '/dashboard/datasets/new',
-    name: 'New Dataset (Old)',
-    description: 'Create new dataset form',
-    category: 'Dashboard',
-    requiresAuth: true,
-    icon: <Database className="size-4"/>
+    icon: <Database className="size-4" />
   },
   {
     path: '/dashboard/profile',
@@ -216,7 +200,7 @@ const PAGES: PageInfo[] = [
     description: 'User profile and account settings',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <User className="size-4"/>
+    icon: <User className="size-4" />
   },
   {
     path: '/dashboard/notifications',
@@ -224,7 +208,7 @@ const PAGES: PageInfo[] = [
     description: 'Notification center with filters and actions',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <Database className="size-4"/>
+    icon: <Database className="size-4" />
   },
   {
     path: '/dashboard/projects/1/settings',
@@ -232,7 +216,7 @@ const PAGES: PageInfo[] = [
     description: 'Manage project-level settings and configuration',
     category: 'Dashboard',
     requiresAuth: true,
-    icon: <Settings className="size-4"/>
+    icon: <Settings className="size-4" />
   },
 ]
 
@@ -289,7 +273,7 @@ export default function DevPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center gap-3">
-        <Code className="size-8 text-primary"/>
+        <Code className="size-8 text-primary" />
         <div>
           <h1 className="text-3xl font-bold">Development Page Navigator</h1>
           <p className="text-muted-foreground">
@@ -319,7 +303,7 @@ export default function DevPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Eye className="size-5"/>
+            <Eye className="size-5" />
             Quick Access
           </CardTitle>
           <CardDescription>
@@ -329,32 +313,26 @@ export default function DevPage() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
-              <Link href="/dashboard/datasets/cats_dogs_001">
-                <Database className="size-5"/>
-                <span className="text-sm">Dataset Dashboard</span>
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
               <Link href="/pricing">
-                <CreditCard className="size-5"/>
+                <CreditCard className="size-5" />
                 <span className="text-sm">Pricing</span>
               </Link>
             </Button>
             <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
               <Link href="/welcome">
-                <User className="size-5"/>
+                <User className="size-5" />
                 <span className="text-sm">Welcome Flow</span>
               </Link>
             </Button>
             <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
               <Link href="/dashboard">
-                <Home className="size-5"/>
+                <Home className="size-5" />
                 <span className="text-sm">Dashboard</span>
               </Link>
             </Button>
             <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
               <Link href="/dashboard/projects?dev_bypass=true">
-                <Database className="size-5"/>
+                <Database className="size-5" />
                 <span className="text-sm">Projects</span>
               </Link>
             </Button>
@@ -366,7 +344,7 @@ export default function DevPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="size-5"/>
+            <Settings className="size-5" />
             How to Use
           </CardTitle>
           <CardDescription>
@@ -418,7 +396,7 @@ export default function DevPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-medium truncate">{page.name}</h3>
                         {page.requiresAuth && (
-                          <Lock className="size-3 text-muted-foreground"/>
+                          <Lock className="size-3 text-muted-foreground" />
                         )}
                         {page.oneTime && (
                           <Badge variant="outline" className="text-xs">
@@ -443,14 +421,14 @@ export default function DevPage() {
                       title="Copy URL"
                       className="h-8 w-8 p-0"
                     >
-                      <Copy className="size-4"/>
+                      <Copy className="size-4" />
                     </Button>
                     <Button asChild size="sm" variant="ghost" className="h-8 w-8 p-0">
                       <Link
                         href={getDevUrl(page)}
                         title="View Page"
                       >
-                        <Eye className="size-4"/>
+                        <Eye className="size-4" />
                       </Link>
                     </Button>
                     <Button asChild size="sm" variant="outline" className="h-8 w-8 p-0">
@@ -459,7 +437,7 @@ export default function DevPage() {
                         target="_blank"
                         title="Open in New Tab"
                       >
-                        <ExternalLink className="size-4"/>
+                        <ExternalLink className="size-4" />
                       </Link>
                     </Button>
                   </div>

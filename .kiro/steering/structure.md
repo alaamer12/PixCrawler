@@ -1,5 +1,10 @@
 # PixCrawler Project Structure
 
+ALAWAY RUN PYTHON FROM `.venv`
+ALWAYS RUN FRONTEND USING `bun` AS PACKAGE MANAGER
+ALWAYS WRITE SMALL EDITS TO AVOID INTERNAL TOKENS ISSUES
+
+
 ## Repository Organization
 This is a monorepo using UV workspace configuration with 5 Python packages and a Next.js frontend application.
 

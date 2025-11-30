@@ -1,180 +1,282 @@
-import { useEffect, useState, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import type { RealtimeChannel } from '@supabase/supabase-js'
+/**
+ * Notifications Hooks
+ * 
+ * Custom React hooks for notification-related data operations.
+ * Provides hooks for fetching, marking as read, and deleting notifications.
+ */
+
+import { useState, useEffect, useCallback } from 'react'
+import { apiService, type NotificationFilter } from '@/lib/services'
 import type { Notification } from '@/lib/db/schema'
+import { useToast } from '@/components/ui/use-toast'
+
+interface UseNotificationsResult {
+  notifications: Notification[]
+  paginatedNotifications: Notification[]
+  loading: boolean
+  error: Error | null
+  refetch: () => Promise<void>
+  pagination: {
+    currentPage: number
+    totalPages: number
+    totalItems: number
+    setPage: (page: number) => void
+    pageSize: number
+  }
+}
+
+interface UseNotificationResult {
+  notification: Notification | null
+  loading: boolean
+  error: Error | null
+  notFound: boolean
+  refetch: () => Promise<void>
+}
+
+interface UseMarkAsReadResult {
+  markAsRead: (id: number) => Promise<boolean>
+  loading: boolean
+  error: Error | null
+}
+
+interface UseMarkAllAsReadResult {
+  markAllAsRead: () => Promise<boolean>
+  loading: boolean
+  error: Error | null
+}
+
+interface UseDeleteNotificationResult {
+  deleteNotification: (id: number) => Promise<boolean>
+  loading: boolean
+  error: Error | null
+}
+
+interface UseNotificationsOptions {
+  filter?: NotificationFilter
+  pageSize?: number
+  initialPage?: number
+}
 
 /**
- * Hook for managing real-time notifications with Supabase
- * Subscribes to notification changes and provides methods to mark as read
+ * Hook to fetch notifications with optional filtering and pagination
  */
-export function useNotifications(userId?: string) {
+export function useNotifications(options: UseNotificationsOptions = {}): UseNotificationsResult {
+  const { filter, pageSize = 10, initialPage = 1 } = options
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
-  const [unreadCount, setUnreadCount] = useState(0)
-  const supabase = createClient()
+  const [error, setError] = useState<Error | null>(null)
+  const [currentPage, setCurrentPage] = useState(initialPage)
 
-  // Fetch initial notifications
   const fetchNotifications = useCallback(async () => {
-    if (!userId) {
+    setLoading(true)
+    setError(null)
+
+    const response = await apiService.getNotifications(filter)
+
+    if (response.error) {
+      setError(response.error)
+      setNotifications([])
+    } else {
+      setNotifications(response.data || [])
+    }
+
+    setLoading(false)
+  }, [filter])
+
+  useEffect(() => {
+    fetchNotifications()
+  }, [fetchNotifications])
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filter])
+
+  // Pagination logic
+  const totalItems = notifications.length
+  const totalPages = Math.ceil(totalItems / pageSize)
+  const startIndex = (currentPage - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const paginatedNotifications = notifications.slice(startIndex, endIndex)
+
+  const setPage = useCallback((page: number) => {
+    setCurrentPage(page)
+  }, [])
+
+  return {
+    notifications,
+    paginatedNotifications,
+    loading,
+    error,
+    refetch: fetchNotifications,
+    pagination: {
+      currentPage,
+      totalPages,
+      totalItems,
+      setPage,
+      pageSize
+    }
+  }
+}
+
+/**
+ * Hook to fetch a single notification by ID
+ */
+export function useNotification(id: number): UseNotificationResult {
+  const [notification, setNotification] = useState<Notification | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+  const [notFound, setNotFound] = useState(false)
+
+  const fetchNotification = useCallback(async () => {
+    if (!id) {
       setLoading(false)
       return
     }
 
-    try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(50)
+    setLoading(true)
+    setError(null)
+    setNotFound(false)
 
-      if (error) throw error
+    const response = await apiService.getNotification(id)
 
-      setNotifications(data || [])
-      setUnreadCount(data?.filter(n => !n.is_read).length || 0)
-    } catch (error) {
-      console.error('Error fetching notifications:', error)
-    } finally {
-      setLoading(false)
+    if (response.error) {
+      setError(response.error)
+      setNotification(null)
+
+      // Check if it's a 404 error
+      if ('statusCode' in response.error && (response.error as any).statusCode === 404) {
+        setNotFound(true)
+      }
+    } else {
+      setNotification(response.data)
     }
-  }, [userId, supabase])
 
-  // Mark notification as read
-  const markAsRead = useCallback(async (notificationId: number) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq('id', notificationId)
+    setLoading(false)
+  }, [id])
 
-      if (error) throw error
-
-      // Update local state
-      setNotifications(prev =>
-        prev.map(n =>
-          n.id === notificationId
-            ? { ...n, is_read: true, read_at: new Date() }
-            : n
-        )
-      )
-      setUnreadCount(prev => Math.max(0, prev - 1))
-    } catch (error) {
-      console.error('Error marking notification as read:', error)
-    }
-  }, [supabase])
-
-  // Mark all notifications as read
-  const markAllAsRead = useCallback(async () => {
-    if (!userId) return
-
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq('user_id', userId)
-        .eq('is_read', false)
-
-      if (error) throw error
-
-      // Update local state
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, is_read: true, read_at: new Date() }))
-      )
-      setUnreadCount(0)
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error)
-    }
-  }, [userId, supabase])
-
-  // Delete notification
-  const deleteNotification = useCallback(async (notificationId: number) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId)
-
-      if (error) throw error
-
-      // Update local state
-      setNotifications(prev => prev.filter(n => n.id !== notificationId))
-      setUnreadCount(prev => {
-        const notification = notifications.find(n => n.id === notificationId)
-        return notification && !notification.isRead ? prev - 1 : prev
-      })
-    } catch (error) {
-      console.error('Error deleting notification:', error)
-    }
-  }, [supabase, notifications])
-
-  // Set up real-time subscription
   useEffect(() => {
-    if (!userId) return
-
-    fetchNotifications()
-
-    // Subscribe to new notifications
-    const channel: RealtimeChannel = supabase
-      .channel(`notifications:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          const newNotification = payload.new as Notification
-          setNotifications(prev => [newNotification, ...prev])
-          setUnreadCount(prev => prev + 1)
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          const updatedNotification = payload.new as Notification
-          setNotifications(prev =>
-            prev.map(n =>
-              n.id === updatedNotification.id ? updatedNotification : n
-            )
-          )
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          const deletedId = (payload.old as Notification).id
-          setNotifications(prev => prev.filter(n => n.id !== deletedId))
-        }
-      )
-      .subscribe()
-
-    // Cleanup subscription on unmount
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [userId, supabase, fetchNotifications])
+    fetchNotification()
+  }, [fetchNotification])
 
   return {
-    notifications,
+    notification,
     loading,
-    unreadCount,
+    error,
+    notFound,
+    refetch: fetchNotification,
+  }
+}
+
+/**
+ * Hook to mark a notification as read
+ */
+export function useMarkAsRead(): UseMarkAsReadResult {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+
+  const markAsRead = useCallback(async (id: number): Promise<boolean> => {
+    setLoading(true)
+    setError(null)
+
+    const response = await apiService.markNotificationAsRead(id)
+
+    if (response.error) {
+      setError(response.error)
+      console.error('Error marking notification as read:', response.error)
+      setLoading(false)
+      return false
+    }
+
+    setLoading(false)
+    return true
+  }, [])
+
+  return {
     markAsRead,
+    loading,
+    error,
+  }
+}
+
+/**
+ * Hook to mark all notifications as read
+ */
+export function useMarkAllAsRead(): UseMarkAllAsReadResult {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+  const { toast } = useToast()
+
+  const markAllAsRead = useCallback(async (): Promise<boolean> => {
+    setLoading(true)
+    setError(null)
+
+    const response = await apiService.markAllNotificationsAsRead()
+
+    if (response.error) {
+      setError(response.error)
+      toast({
+        title: 'Error',
+        description: 'Failed to mark all notifications as read',
+        variant: 'destructive',
+      })
+      setLoading(false)
+      return false
+    }
+
+    toast({
+      title: 'Success',
+      description: 'All notifications marked as read',
+    })
+
+    setLoading(false)
+    return true
+  }, [toast])
+
+  return {
     markAllAsRead,
+    loading,
+    error,
+  }
+}
+
+/**
+ * Hook to delete a notification
+ */
+export function useDeleteNotification(): UseDeleteNotificationResult {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+  const { toast } = useToast()
+
+  const deleteNotification = useCallback(async (id: number): Promise<boolean> => {
+    setLoading(true)
+    setError(null)
+
+    const response = await apiService.deleteNotification(id)
+
+    if (response.error) {
+      setError(response.error)
+      toast({
+        title: 'Error',
+        description: 'Failed to delete notification',
+        variant: 'destructive',
+      })
+      setLoading(false)
+      return false
+    }
+
+    toast({
+      title: 'Success',
+      description: 'Notification deleted',
+    })
+
+    setLoading(false)
+    return true
+  }, [toast])
+
+  return {
     deleteNotification,
-    refetch: fetchNotifications,
+    loading,
+    error,
   }
 }

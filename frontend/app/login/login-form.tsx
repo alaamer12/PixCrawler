@@ -1,10 +1,10 @@
 'use client'
 
-import {useState} from 'react'
-import {authService} from '@/lib/auth'
-import {useRouter} from 'next/navigation'
-import {Button} from '@/components/ui/button'
-import {OAuthButtons} from '@/components/auth/oauth-buttons'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { OAuthButtons } from '@/components/auth/oauth-buttons'
+import { authService } from '@/lib/auth'
 
 export function LoginForm() {
   const [email, setEmail] = useState('')
@@ -21,13 +21,14 @@ export function LoginForm() {
     try {
       await authService.signIn(email, password)
       router.push('/dashboard')
-      router.refresh()
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred')
+      console.error('Login error:', err)
+      setError(err.message || 'Failed to sign in. Please check your credentials.')
     } finally {
       setLoading(false)
     }
   }
+
 
   return (
     <div className="bg-card border border-border rounded-xl shadow-lg p-6 md:p-8 space-y-6">
@@ -97,7 +98,7 @@ export function LoginForm() {
         </Button>
       </form>
 
-      <OAuthButtons mode="signin"/>
+      <OAuthButtons mode="signin" />
 
       <div className="text-center pt-4 border-t border-border">
         <p className="text-sm text-muted-foreground">

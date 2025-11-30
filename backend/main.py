@@ -5,6 +5,7 @@ Main application entry point for the PixCrawler backend service.
 """
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator
@@ -51,96 +52,221 @@ async def check_redis_available(redis_url: str) -> bool:
         await test_connection.ping()
         await test_connection.close()
         return True
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Redis connection check failed: {e}")
         return False
 
 
-async def handle_missing_redis(settings) -> None:
-    """Handle case when Redis is not available."""
+async def handle_missing_redis(settings, redis_type: str = "cache") -> None:
+    """
+    Handle case when Redis is not available.
+    
+    Args:
+        settings: Application settings
+        redis_type: Type of Redis connection ("cache" or "limiter")
+    """
     is_production = settings.environment == "production"
 
     if is_production:
-        msg = build_fatal_redis_message(settings)
+        msg = build_fatal_redis_message(settings, redis_type)
         logger.error(msg)
         raise RuntimeError(msg)
 
-    log_dev_redis_warning(settings)
+    log_dev_redis_warning(settings, redis_type)
 
 
-def build_fatal_redis_message(settings) -> str:
-    """Build fatal error message for production."""
+def build_fatal_redis_message(settings, redis_type: str) -> str:
+    """
+    Build fatal error message for production.
+    
+    Args:
+        settings: Application settings
+        redis_type: Type of Redis connection ("cache" or "limiter")
+    """
+    if redis_type == "cache":
+        redis_url = settings.cache.get_redis_url()
+        feature = "caching"
+    else:
+        redis_url = settings.rate_limit.get_redis_url()
+        feature = "rate limiting"
+    
     return (
-        f"❌ FATAL: Redis is not available at {settings.redis.url}\n"
-        "Redis is required in production for rate limiting and caching.\n"
-        "Please start Redis or update REDIS_URL in your environment."
+        f"FATAL: Redis is not available at {redis_url}\n"
+        f"Redis is required in production for {feature}.\n"
+        f"Please start Redis or update {redis_type.upper()}_REDIS_* environment variables."
     )
 
 
-def log_dev_redis_warning(settings) -> None:
-    """Log warnings for non-production environments."""
-    logger.warning(f"⚠️  Redis not available at {settings.redis.url}")
-    logger.warning("⚠️  Rate limiting disabled. This is acceptable in development.")
-    logger.warning("⚠️  For production, ensure Redis is running.")
+def log_dev_redis_warning(settings, redis_type: str) -> None:
+    """
+    Log warnings for non-production environments.
+    
+    Args:
+        settings: Application settings
+        redis_type: Type of Redis connection ("cache" or "limiter")
+    """
+    if redis_type == "cache":
+        redis_url = settings.cache.get_redis_url()
+        feature = "Caching"
+    else:
+        redis_url = settings.rate_limit.get_redis_url()
+        feature = "Rate limiting"
+    
+    logger.warning(f"WARNING: Redis not available at {redis_url}")
+    logger.warning(f"WARNING: {feature} disabled. This is acceptable in development.")
+    logger.warning("WARNING: For production, ensure Redis is running.")
 
 
-# noinspection D
-async def initialize_limiter(settings) -> redis.Redis | None:
-    """Initialize Redis connection + FastAPI-Limiter when available."""
+async def initialize_cache(settings) -> redis.Redis | None:
+    """
+    Initialize Redis connection for caching when available.
+    
+    Args:
+        settings: Application settings
+        
+    Returns:
+        Redis connection or None if unavailable
+    """
+    if not settings.cache.enabled:
+        logger.info("INFO: Caching is disabled via configuration")
+        return None
+    
+    cache_url = settings.cache.get_redis_url()
+    
+    if not await check_redis_available(cache_url):
+        await handle_missing_redis(settings, "cache")
+        return None
+    
     try:
         conn = await redis.from_url(
-            settings.redis.url,
+            cache_url,
             encoding="utf-8",
-            decode_responses=True
+            decode_responses=True,
+            socket_connect_timeout=2,
+            socket_timeout=2
+        )
+        logger.info(f"SUCCESS: Cache initialized with Redis at {cache_url}")
+        return conn
+    except Exception as e:
+        logger.error(f"Failed to initialize cache: {e}")
+        if settings.environment == "production":
+            raise
+        return None
+
+
+async def initialize_limiter(settings) -> redis.Redis | None:
+    """
+    Initialize Redis connection + FastAPI-Limiter when available.
+    
+    Args:
+        settings: Application settings
+        
+    Returns:
+        Redis connection or None if unavailable
+    """
+    if not settings.rate_limit.enabled:
+        logger.info("INFO: Rate limiting is disabled via configuration")
+        return None
+    
+    limiter_url = settings.rate_limit.get_redis_url()
+    
+    if not await check_redis_available(limiter_url):
+        await handle_missing_redis(settings, "limiter")
+        return None
+    
+    try:
+        conn = await redis.from_url(
+            limiter_url,
+            encoding="utf-8",
+            decode_responses=True,
+            socket_connect_timeout=2,
+            socket_timeout=2
         )
         await FastAPILimiter.init(conn)
-        logger.info(f"✅ FastAPI-Limiter initialized with Redis at {settings.redis.url}")
+        logger.info(f"SUCCESS: FastAPI-Limiter initialized with Redis at {limiter_url}")
         return conn
-
     except Exception as e:
         await handle_limiter_error(e, settings)
         return None
 
 
 async def handle_limiter_error(error: Exception, settings) -> None:
-    """Handle FastAPI-Limiter init errors based on environment."""
+    """
+    Handle FastAPI-Limiter init errors based on environment.
+    
+    Args:
+        error: Exception that occurred
+        settings: Application settings
+    """
     is_production = settings.environment == "production"
 
     msg = f"Failed to initialize FastAPI-Limiter: {error}"
     if is_production:
-        logger.error(f"❌ FATAL: {msg}")
+        logger.error(f"FATAL: {msg}")
         raise error
 
-    logger.warning(f"⚠️  {msg}")
-    logger.warning("⚠️  Rate limiting disabled.")
+    logger.warning(f"WARNING: {msg}")
+    logger.warning("WARNING: Rate limiting disabled.")
 
 
-async def cleanup_resources(conn: redis.Redis) -> None:
-    """Cleanup Redis + limiter safely with timeout."""
+async def cleanup_resources(cache_conn: redis.Redis | None, limiter_conn: redis.Redis | None) -> None:
+    """
+    Cleanup Redis connections safely with timeout.
+    
+    Args:
+        cache_conn: Cache Redis connection or None
+        limiter_conn: Limiter Redis connection or None
+    """
     try:
-        await asyncio.wait_for(FastAPILimiter.close(), timeout=2.0)
-        await asyncio.wait_for(conn.close(), timeout=2.0)
-        logger.info("FastAPI-Limiter and Redis connection closed")
+        # Close limiter
+        if limiter_conn:
+            await asyncio.wait_for(FastAPILimiter.close(), timeout=2.0)
+            await asyncio.wait_for(limiter_conn.close(), timeout=2.0)
+            logger.info("SUCCESS: FastAPI-Limiter and limiter Redis connection closed")
+        
+        # Close cache
+        if cache_conn:
+            await asyncio.wait_for(cache_conn.close(), timeout=2.0)
+            logger.info("SUCCESS: Cache Redis connection closed")
 
     except asyncio.TimeoutError:
-        logger.warning("Redis cleanup timed out (normal if Redis was down on shutdown)")
+        logger.warning("WARNING: Redis cleanup timed out (normal if Redis was down on shutdown)")
     except Exception as e:
-        logger.error(f"Error closing Redis connection: {e}")
+        logger.error(f"ERROR: Error closing Redis connections: {e}")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """
+    Application lifespan manager.
+    
+    Handles startup and shutdown of Redis connections for cache and rate limiting.
+    Implements graceful degradation in development and fail-fast in production.
+    
+    Args:
+        app: FastAPI application instance
+        
+    Yields:
+        None during application runtime
+    """
     settings = get_settings()
-
-    if not await check_redis_available(settings.redis.url):
-        await handle_missing_redis(settings)
-        yield
-        return
-
-    conn = await initialize_limiter(settings)
+    
+    logger.info("Starting PixCrawler API...")
+    logger.info(f"Environment: {settings.environment}")
+    
+    # Initialize cache connection
+    cache_conn = await initialize_cache(settings)
+    
+    # Initialize rate limiter connection
+    limiter_conn = await initialize_limiter(settings)
+    
+    logger.info("Application startup complete")
+    
     yield
-
-    if conn:
-        await cleanup_resources(conn)
+    
+    logger.info("Shutting down PixCrawler API...")
+    await cleanup_resources(cache_conn, limiter_conn)
+    logger.info("Application shutdown complete")
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     settings = get_settings()
@@ -219,9 +345,9 @@ def create_app() -> FastAPI:
     add_pagination(app)
     logger.info("Pagination support added to FastAPI app")
 
-    logger.info("✨ PixCrawler API initialized with custom documentation")
-    logger.info("📚 Swagger UI: http://localhost:8000/docs")
-    logger.info("📖 ReDoc: http://localhost:8000/redoc")
+    logger.info("PixCrawler API initialized with custom documentation")
+    logger.info("Swagger UI: http://localhost:8000/docs")
+    logger.info("ReDoc: http://localhost:8000/redoc")
 
     return app
 

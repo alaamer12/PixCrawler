@@ -190,7 +190,8 @@ class CreditTransaction(Base):
     )
 
     # Transaction details
-    type: Mapped[str] = mapped_column(
+    type_: Mapped[str] = mapped_column(
+        "type",
         String(20),
         nullable=False,
         index=True,
@@ -243,7 +244,7 @@ class CreditTransaction(Base):
     # Constraints
     __table_args__ = (
         CheckConstraint(
-            "type IN ('purchase', 'usage', 'refund', 'bonus')",
+            "\"type\" IN ('purchase', 'usage', 'refund', 'bonus')",
             name="ck_credit_transactions_type_valid",
         ),
         CheckConstraint(

@@ -33,7 +33,10 @@ from .usage import UsageMetric
 from .metrics import ProcessingMetric, ResourceMetric, QueueMetric
 from .workflow import WorkflowStatus, TaskStatus, WorkflowState, WorkflowTask
 
-# Import core models
+# Import core models from database.models (synchronized with Drizzle schema)
+from backend.database.models import Profile, Project, CrawlJob, Image
+
+# Import for mixins
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
@@ -100,7 +103,7 @@ __all__ = [
     'Base',
     'TimestampMixin',
     'ChunkTrackingMixin',
-    # Core models
+    # Core models (from database.models - synchronized with Drizzle)
     'Profile',
     'Project',
     'CrawlJob',
@@ -428,7 +431,7 @@ class ActivityLog(Base):
     action: Mapped[str] = mapped_column(Text, nullable=False)
     resource_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     resource_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    metadata_: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    metadata_: Mapped[Optional[dict]] = mapped_column("metadata", JSONB, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -439,7 +442,6 @@ class ActivityLog(Base):
     # Relationships
     user: Mapped[Optional["Profile"]] = relationship(
         "Profile",
-        back_populates="activity_logs",
         lazy="joined",
     )
 

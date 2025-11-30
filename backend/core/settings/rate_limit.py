@@ -1,6 +1,7 @@
 """Rate limiting configuration settings."""
 
-from pydantic import Field
+import re
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = ["RateLimitSettings"]
@@ -8,18 +9,29 @@ __all__ = ["RateLimitSettings"]
 
 class RateLimitSettings(BaseSettings):
     """
-    API rate limiting configuration.
+    API rate limiting configuration with Redis backend.
     
     Environment variables:
-        RATE_LIMIT_ENABLED: Enable rate limiting
-        RATE_LIMIT_CREATE_DATASET: Dataset creation limit
-        RATE_LIMIT_CREATE_CRAWL_JOB: Crawl job creation limit
-        RATE_LIMIT_RETRY_JOB: Job retry limit
-        RATE_LIMIT_BUILD_JOB: Build job start limit
+        LIMITER_ENABLED: Enable rate limiting
+        LIMITER_REDIS_HOST: Redis host address
+        LIMITER_REDIS_PORT: Redis port number
+        LIMITER_REDIS_PASSWORD: Redis password (optional)
+        LIMITER_REDIS_DB: Redis database number
+        LIMITER_PREFIX: Key prefix for rate limiter entries
+        LIMITER_DEFAULT_TIMES: Default request count
+        LIMITER_DEFAULT_SECONDS: Default time window in seconds
+        RATE_LIMIT_CREATE_DATASET: Dataset creation limit (legacy)
+        RATE_LIMIT_CREATE_CRAWL_JOB: Crawl job creation limit (legacy)
+        RATE_LIMIT_RETRY_JOB: Job retry limit (legacy)
+        RATE_LIMIT_BUILD_JOB: Build job start limit (legacy)
+    
+    Note:
+        Uses LIMITER_ prefix for Redis configuration to avoid conflicts with CACHE_.
+        Legacy RATE_LIMIT_ prefixed variables are still supported for backward compatibility.
     """
     
     model_config = SettingsConfigDict(
-        env_prefix="RATE_LIMIT_",
+        env_prefix="LIMITER_",
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
@@ -31,6 +43,51 @@ class RateLimitSettings(BaseSettings):
         description="Enable API rate limiting",
         examples=[True, False]
     )
+    redis_host: str = Field(
+        default="localhost",
+        min_length=1,
+        description="Redis host address for rate limiter",
+        examples=["localhost", "redis", "127.0.0.1", "redis.example.com"]
+    )
+    redis_port: int = Field(
+        default=6379,
+        ge=1,
+        le=65535,
+        description="Redis port number",
+        examples=[6379, 6380]
+    )
+    redis_password: str | None = Field(
+        default=None,
+        description="Redis password (optional)",
+        examples=["mypassword", None]
+    )
+    redis_db: int = Field(
+        default=1,
+        ge=0,
+        le=15,
+        description="Redis database number (0-15), use different from cache",
+        examples=[1, 2, 3]
+    )
+    prefix: str = Field(
+        default="pixcrawler:limiter:",
+        min_length=1,
+        description="Key prefix for rate limiter entries",
+        examples=["pixcrawler:limiter:", "app:limiter:", "limiter:"]
+    )
+    default_times: int = Field(
+        default=10,
+        ge=1,
+        description="Default number of requests allowed",
+        examples=[10, 20, 50]
+    )
+    default_seconds: int = Field(
+        default=60,
+        ge=1,
+        description="Default time window in seconds",
+        examples=[60, 120, 300]
+    )
+    
+    # Legacy rate limit configurations (backward compatibility)
     create_dataset: str = Field(
         default="10/60",
         description="Rate limit for dataset creation (times/seconds)",
@@ -51,3 +108,51 @@ class RateLimitSettings(BaseSettings):
         description="Rate limit for build job start (times/seconds)",
         examples=["5/60", "10/120", "3/30"]
     )
+    
+    @field_validator("prefix")
+    @classmethod
+    def validate_prefix(cls, v: str) -> str:
+        """Ensure prefix ends with colon for proper key namespacing."""
+        if not v.endswith(":"):
+            return f"{v}:"
+        return v
+    
+    @field_validator("create_dataset", "create_crawl_job", "retry_job", "build_job")
+    @classmethod
+    def validate_rate_limit_format(cls, v: str) -> str:
+        """
+        Validate rate limit format is 'times/seconds'.
+        
+        Args:
+            v: Rate limit string
+            
+        Returns:
+            Validated rate limit string
+            
+        Raises:
+            ValueError: If format is invalid
+        """
+        pattern = r'^\d+/\d+$'
+        if not re.match(pattern, v):
+            raise ValueError(
+                f"Rate limit must be in format 'times/seconds' (e.g., '10/60'), got: {v}"
+            )
+        
+        times, seconds = v.split('/')
+        if int(times) < 1:
+            raise ValueError(f"Times must be at least 1, got: {times}")
+        if int(seconds) < 1:
+            raise ValueError(f"Seconds must be at least 1, got: {seconds}")
+        
+        return v
+    
+    def get_redis_url(self) -> str:
+        """
+        Build Redis connection URL from components.
+        
+        Returns:
+            Redis URL string in format: redis://[:password@]host:port/db
+        """
+        if self.redis_password:
+            return f"redis://:{self.redis_password}@{self.redis_host}:{self.redis_port}/{self.redis_db}"
+        return f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"

@@ -77,15 +77,6 @@ export class ImageBuffer {
     return this.cache.has(key)
   }
 
-  // Get cache statistics
-  getStats() {
-    return {
-      size: this.size,
-      capacity: this.capacity,
-      hitRate: this.size / this.capacity
-    }
-  }
-
   private createNode(key: string, value: string | HTMLImageElement): CacheNode {
     return {
       key,

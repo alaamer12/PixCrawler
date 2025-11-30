@@ -33,7 +33,6 @@ import {
   Globe,
   Linkedin,
   Github,
-  Twitter,
   Save,
   X,
   Check,
@@ -61,6 +60,7 @@ import {
 import { useAuth } from '@/lib/auth/hooks'
 import { cn } from '@/lib/utils'
 import { z } from 'zod'
+import { useProfile, useUpdateProfile, useDeleteAccount } from '@/lib/hooks'
 
 // Validation Schema
 const profileSchema = z.object({
@@ -278,22 +278,40 @@ const InfoItem = ({
 
 export function AccountProfile() {
   const { toast } = useToast()
-  const { user, signOut, updateUser } = useAuth()
-  const [isSaving, setIsSaving] = useState(false)
+  const { user } = useAuth()
+
+  // Custom hooks
+  const { profile, loading: profileLoading } = useProfile()
+  const { updateProfile, loading: isSaving } = useUpdateProfile()
+  const { deleteAccount, loading: isDeleting } = useDeleteAccount()
+
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
-  const [isDeleting, setIsDeleting] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState(user?.profile?.avatarUrl || '')
   const [hasChanges, setHasChanges] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const [profileData, setProfileData] = useState<ProfileData>({
+  // Initialize with default profile, will be updated when profile loads
+  const [editedData, setEditedData] = useState<ProfileData>({
     ...DEFAULT_PROFILE,
     firstName: user?.profile?.fullName?.split(' ')[0] || '',
     lastName: user?.profile?.fullName?.split(' ')[1] || '',
     email: user?.email || '',
   })
 
-  const [editedData, setEditedData] = useState<ProfileData>(profileData)
+  // Sync profile data when loaded
+  React.useEffect(() => {
+    if (profile) {
+      setEditedData(prev => ({
+        ...prev,
+        ...profile,
+        // Ensure email matches auth user if not in profile
+        email: profile.email || user?.email || prev.email
+      }))
+      if (profile.avatarUrl) {
+        setAvatarUrl(profile.avatarUrl)
+      }
+    }
+  }, [profile, user?.email])
 
   const validateField = (key: keyof ProfileData, value: any) => {
     try {
@@ -303,12 +321,13 @@ export function AccountProfile() {
         delete newErrors[key]
         return newErrors
       })
-      return true
     } catch (error) {
       if (error instanceof z.ZodError) {
-        setErrors(prev => ({ ...prev, [key]: error.errors[0].message }))
+        setErrors(prev => ({
+          ...prev,
+          [key]: error.errors[0].message
+        }))
       }
-      return false
     }
   }
 
@@ -322,8 +341,8 @@ export function AccountProfile() {
   }
 
   const handleSave = async () => {
-    // Validate all fields before saving
     const result = profileSchema.safeParse(editedData)
+
     if (!result.success) {
       const newErrors: Record<string, string> = {}
       result.error.errors.forEach(err => {
@@ -340,28 +359,19 @@ export function AccountProfile() {
       return
     }
 
-    setIsSaving(true)
-    await new Promise(resolve => setTimeout(resolve, 1200))
-
-    // Update global user state
-    updateUser({
-      email: editedData.email,
-      profile: {
-        ...user?.profile!,
-        fullName: `${editedData.firstName} ${editedData.lastName}`.trim(),
-        avatarUrl: avatarUrl,
-        email: editedData.email
-      }
+    // Use the updateProfile hook
+    const success = await updateProfile({
+      ...editedData,
+      avatarUrl // Include avatar URL in update
     })
 
-    setProfileData(editedData)
-    setIsSaving(false)
-    setHasChanges(false)
-
-    toast({
-      title: 'Profile updated',
-      description: 'Your changes have been saved successfully',
-    })
+    if (success) {
+      setHasChanges(false)
+      toast({
+        title: 'Profile updated',
+        description: 'Your changes have been saved successfully',
+      })
+    }
   }
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -400,7 +410,7 @@ export function AccountProfile() {
 
   const handleExportData = () => {
     const dataStr = JSON.stringify({
-      profile: profileData,
+      profile: editedData,
       settings: {},
       exportDate: new Date().toISOString()
     }, null, 2)
@@ -427,33 +437,8 @@ export function AccountProfile() {
       return
     }
 
-    setIsDeleting(true)
-
-    try {
-      const response = await fetch('/api/account/delete', {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) throw new Error('Failed to delete account')
-
-      toast({
-        title: 'Account deleted',
-        description: 'Your account has been permanently deleted',
-      })
-
-      setTimeout(async () => {
-        await signOut()
-        window.location.href = '/'
-      }, 1000)
-    } catch (error) {
-      console.error('Error deleting account:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to delete account. Please try again',
-        variant: 'destructive',
-      })
-      setIsDeleting(false)
-    }
+    // Use the deleteAccount hook
+    await deleteAccount()
   }
 
   const displayData = editedData // Always show edited data since we are always editing
@@ -719,7 +704,7 @@ export function AccountProfile() {
               onChange={(v) => updateField('github', v)}
             />
             <SocialLink
-              icon={Twitter}
+              icon={X}
               platform="Twitter"
               value={displayData.twitter}
               onChange={(v) => updateField('twitter', v)}
