@@ -263,15 +263,21 @@ class ValidationService(BaseService):
                 "created_at": now.isoformat() + "Z"
             }
 
-            # TODO: Start background task when ValidationRepository is available
-            # asyncio.create_task(
-            #     self._process_validation_job(
-            #         job_id,
-            #         dataset_id,
-            #         validation_level,
-            #         image_ids
-            #     )
-            # )
+            # Start background task using Celery
+            from validator.tasks import check_all_task
+            
+            # Assuming dataset images are in a specific directory
+            # This logic needs to be adapted based on actual storage structure
+            # For now, we'll use a placeholder directory path based on dataset_id
+            dataset_dir = f"/tmp/dataset_{dataset_id}"
+            
+            check_all_task.delay(
+                directory=dataset_dir,
+                expected_count=total_images,
+                mode=validation_level.value if validation_level != ValidationLevel.STANDARD else "lenient"
+            )
+            
+            self.logger.info(f"Started validation task for job {job_id}")
 
             return job_info
 

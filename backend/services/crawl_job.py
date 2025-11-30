@@ -31,7 +31,7 @@ import time
 from datetime import datetime
 from typing import Dict, Any, List, Optional, AsyncGenerator
 from fastapi import HTTPException
-from celery import current_app as celery_app
+from celery_core.app import celery_app
 
 # Optional SSE support
 try:

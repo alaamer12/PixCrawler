@@ -265,21 +265,6 @@ class CrawlJob(Base, TimestampMixin):
         name: Job name
         keywords: JSON array of search keywords
         max_images: Maximum number of images to collect
-        status: Job status (pending, running, completed, failed, cancelled)
-        progress: Progress percentage (0-100)
-        total_images: Total images found
-        downloaded_images: Number of images downloaded
-        valid_images: Number of valid images
-        total_chunks: Total number of processing chunks
-        active_chunks: Number of currently active chunks
-        completed_chunks: Number of completed chunks
-        failed_chunks: Number of failed chunks
-        task_ids: JSON array of Celery task IDs
-        started_at: Job start timestamp
-        completed_at: Job completion timestamp
-        created_at: Job creation timestamp
-        updated_at: Job last update timestamp
-    
     Relationships:
         project: Parent project (many-to-one)
         images: Crawled images (one-to-many)
@@ -553,7 +538,8 @@ class Image(Base):
         comment="AI-generated labels",
     )
     
-    metadata: Mapped[Optional[dict]] = mapped_column(
+    metadata_: Mapped[Optional[dict]] = mapped_column(
+        "metadata",
         JSONB,
         nullable=True,
         comment="Additional image metadata",
@@ -641,7 +627,8 @@ class ActivityLog(Base):
     )
     
     # Metadata
-    metadata: Mapped[Optional[dict]] = mapped_column(
+    metadata_: Mapped[Optional[dict]] = mapped_column(
+        "metadata",
         JSONB,
         nullable=True,
     )
