@@ -132,6 +132,63 @@ class RateLimitError(PixCrawlerException):
     pass
 
 
+class RateLimitExceeded(PixCrawlerException):
+    """
+    Raised when user tier rate limits are exceeded.
+
+    Used for tier-based rate limiting with detailed
+    information about current usage and limits.
+
+    Attributes:
+        tier: User tier name
+        current_usage: Current usage count
+        limit: Tier limit
+        request_type: Type of request that exceeded limit
+    """
+
+    def __init__(
+        self,
+        tier: str = None,
+        current_usage: int = None,
+        limit: int = None,
+        request_type: str = None,
+        message: str = None,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """
+        Initialize RateLimitExceeded exception.
+
+        Args:
+            tier: User tier name
+            current_usage: Current usage count
+            limit: Tier limit
+            request_type: Type of request that exceeded limit
+            message: Custom error message
+            details: Optional additional error details
+        """
+        self.tier = tier
+        self.current_usage = current_usage
+        self.limit = limit
+        self.request_type = request_type
+
+        if message is None:
+            message = f"Rate limit exceeded for tier '{tier}'"
+
+        if details is None:
+            details = {}
+
+        if tier:
+            details["tier"] = tier
+        if current_usage is not None:
+            details["current_usage"] = current_usage
+        if limit is not None:
+            details["limit"] = limit
+        if request_type:
+            details["request_type"] = request_type
+
+        super().__init__(message, details)
+
+
 async def pixcrawler_exception_handler(
     request: Request, exc: PixCrawlerException
 ) -> JSONResponse:
