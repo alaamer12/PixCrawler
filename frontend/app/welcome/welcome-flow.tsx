@@ -76,8 +76,8 @@ export function WelcomeFlow({ user }: WelcomeFlowProps) {
         // In dev mode, redirect to dashboard with dev_bypass param
         router.push('/dashboard?dev_bypass=true')
       } else {
-        // In production, redirect to dataset monitoring page
-        router.push(`/dashboard/datasets/${jobId}`)
+        // In production, redirect to usage page
+        router.push(`/usage?jobId=${jobId}`)
       }
     } catch (error) {
       console.error('Failed to launch dataset:', error)

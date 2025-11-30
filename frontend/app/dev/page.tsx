@@ -128,6 +128,14 @@ const PAGES: PageInfo[] = [
     oneTime: true,
     icon: <User className="size-4" />
   },
+  {
+    path: '/usage',
+    name: 'Usage Guide',
+    description: 'Post-onboarding usage instructions',
+    category: 'Onboarding',
+    requiresAuth: true,
+    icon: <Code className="size-4" />
+  },
 
   // Dashboard Pages
   {

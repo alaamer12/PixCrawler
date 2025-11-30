@@ -11,6 +11,17 @@ PixCrawler serves as more than just a scraping tool; it acts as a centralized, v
 
 This guide demonstrates how to leverage the SDK to integrate PixCrawler datasets into your existing data infrastructure.
 
+## Getting Started via UI
+
+After creating a dataset, you can access the **Usage Guide** directly from the dashboard:
+
+1.  Navigate to your dataset dashboard.
+2.  Click the **Usage Guide** button in the top header.
+3.  This page provides:
+    -   The exact `pip install` command.
+    -   A ready-to-copy Python snippet pre-filled with your `job_id`.
+    -   Direct navigation back to the dashboard.
+
 ## Core Patterns
 
 ### 1. The "Streaming Source" Pattern

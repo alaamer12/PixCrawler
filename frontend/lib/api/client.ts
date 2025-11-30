@@ -2,8 +2,9 @@ import { env } from '@/lib/env'
 
 /**
  * API Client Configuration
+ * Uses validated environment variables from env.ts
  */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+const API_BASE_URL = env.NEXT_PUBLIC_API_URL
 const DEFAULT_TIMEOUT = 30000 // 30 seconds
 
 /**
