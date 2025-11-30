@@ -50,14 +50,6 @@ const PAGES: PageInfo[] = [
     icon: <Database className="size-4" />
   },
   {
-    path: '/pricing/plans',
-    name: 'All Plans',
-    description: 'Detailed pricing with credit packages',
-    category: 'Public',
-    requiresAuth: false,
-    icon: <Database className="size-4" />
-  },
-  {
     path: '/examples',
     name: 'Examples',
     description: 'Dataset examples and use cases',
@@ -195,22 +187,6 @@ const PAGES: PageInfo[] = [
     icon: <Database className="size-4" />
   },
   {
-    path: '/dashboard/datasets/cats_dogs_001',
-    name: 'Dataset Dashboard (Old)',
-    description: 'Complete dataset dashboard with overview, gallery, files',
-    category: 'Dashboard',
-    requiresAuth: true,
-    icon: <Database className="size-4" />
-  },
-  {
-    path: '/dashboard/datasets/new',
-    name: 'New Dataset (Old)',
-    description: 'Create new dataset form',
-    category: 'Dashboard',
-    requiresAuth: true,
-    icon: <Database className="size-4" />
-  },
-  {
     path: '/dashboard/profile',
     name: 'Profile',
     description: 'User profile and account settings',
@@ -328,12 +304,6 @@ export default function DevPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
-              <Link href="/dashboard/datasets/cats_dogs_001">
-                <Database className="size-5" />
-                <span className="text-sm">Dataset Dashboard</span>
-              </Link>
-            </Button>
             <Button asChild variant="outline" className="h-auto p-4 flex-col gap-2">
               <Link href="/pricing">
                 <CreditCard className="size-5" />
