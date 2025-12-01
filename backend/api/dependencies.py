@@ -41,6 +41,7 @@ from backend.services.user import UserService
 from backend.services.storage import StorageService
 from backend.services.resource_monitor import ResourceMonitor
 from backend.services.metrics import MetricsService
+from backend.services.dashboard import DashboardService
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """
@@ -84,6 +85,7 @@ __all__ = [
     'get_auth_service',
     'get_resource_monitor',
     'get_metrics_service',
+    'get_dashboard_service',
 ]
 
 # HTTP Bearer token scheme
@@ -419,3 +421,30 @@ def get_metrics_service(session: DBSession) -> MetricsService:
         resource_repo=resource_repo,
         queue_repo=queue_repo
     )
+
+
+def get_dashboard_service(session: DBSession) -> DashboardService:
+    """
+    Dependency injection for DashboardService.
+
+    Creates service with all required repositories following the pattern:
+    get_service(session) -> Service where service receives repositories.
+
+    Args:
+        session: Database session (injected by FastAPI)
+
+    Returns:
+        DashboardService instance with injected repositories
+    """
+    # Create repository instances
+    project_repo = ProjectRepository(session)
+    crawl_job_repo = CrawlJobRepository(session)
+    image_repo = ImageRepository(session)
+    
+    # Inject repositories into service
+    return DashboardService(
+        project_repo=project_repo,
+        crawl_job_repo=crawl_job_repo,
+        image_repo=image_repo
+    )
+

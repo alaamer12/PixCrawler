@@ -36,6 +36,7 @@ from backend.api.dependencies import (
     get_auth_service,
     get_resource_monitor,
     get_metrics_service,
+    get_dashboard_service,
 )
 from backend.services.crawl_job import CrawlJobService
 from backend.services.dataset import DatasetService
@@ -45,6 +46,7 @@ from backend.services.user import UserService
 from backend.services.validation import ValidationService
 from backend.services.resource_monitor import ResourceMonitor
 from backend.services.metrics import MetricsService
+from backend.services.dashboard import DashboardService
 
 __all__ = [
     # Auth & Session
@@ -59,6 +61,7 @@ __all__ = [
     'SupabaseAuthServiceDep',
     'ResourceMonitorDep',
     'MetricsServiceDep',
+    'DashboardServiceDep',
     # Path Parameters
     'UserID',
     'DatasetID',
@@ -253,6 +256,24 @@ Usage:
     ):
         return await service.get_processing_metrics(...)
 """
+
+DashboardServiceDep = Annotated[
+    DashboardService,
+    Depends(get_dashboard_service)
+]
+"""
+Dashboard service dependency.
+
+Automatically injects DashboardService for dashboard statistics aggregation.
+
+Usage:
+    @router.get("/dashboard/stats")
+    async def get_dashboard_stats(
+        service: DashboardServiceDep
+    ):
+        return await service.get_dashboard_stats(...)
+"""
+
 
 # ============================================================================
 # Path Parameter Type Aliases
