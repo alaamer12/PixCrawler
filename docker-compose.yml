@@ -1,0 +1,266 @@
+# =============================================================================
+# PixCrawler Docker Compose Configuration
+# =============================================================================
+# Usage:
+#   Development (standalone, no Redis):
+#     docker compose up
+#
+#   With Redis + Worker:
+#     docker compose --profile with-redis up
+#
+#   With Redis + Worker + Flower monitoring:
+#     docker compose --profile with-redis --profile monitoring up
+#   
+#   Build and run:
+#     docker compose build
+#     docker compose --profile with-redis up --build
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # Redis Service (Optional - Profile: with-redis)
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: pixcrawler-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - redis_data:/data
+    networks:
+      - pixcrawler-network
+    restart: unless-stopped
+    profiles:
+      - with-redis
+
+  # ===========================================================================
+  # Backend API Service (Default - Standalone Mode)
+  # ===========================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: pixcrawler-backend
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source code for hot-reload in development
+      - ./backend:/app/backend:ro
+      - ./builder:/app/builder:ro
+      - ./utility:/app/utility:ro
+      - ./celery_core:/app/celery_core:ro
+      - ./validator:/app/validator:ro
+      # Persistent storage
+      - backend_storage:/app/storage
+      - backend_logs:/app/logs
+    environment:
+      # Application
+      - PYTHONPATH=/app
+      - ENVIRONMENT=development
+      - DEBUG=true
+
+      # Redis (will fail gracefully in standalone mode)
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+
+      # Database (SQLite for development)
+      - DATABASE_URL=sqlite+aiosqlite:///./app.db
+
+      # Storage
+      - STORAGE_PROVIDER=local
+      - STORAGE_LOCAL_STORAGE_PATH=/app/storage
+
+      # CORS
+      - ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    depends_on:
+      redis:
+        condition: service_healthy
+        required: false # Can run without Redis
+    restart: unless-stopped
+    networks:
+      - pixcrawler-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    profiles:
+      - with-redis
+
+  # ===========================================================================
+  # Backend API Service (Standalone Mode - No Redis Dependency)
+  # ===========================================================================
+  backend-standalone:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: pixcrawler-backend-standalone
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source code for hot-reload in development
+      - ./backend:/app/backend:ro
+      - ./builder:/app/builder:ro
+      - ./utility:/app/utility:ro
+      - ./celery_core:/app/celery_core:ro
+      - ./validator:/app/validator:ro
+      # Persistent storage
+      - backend_storage:/app/storage
+      - backend_logs:/app/logs
+    environment:
+      # Application
+      - PYTHONPATH=/app
+      - ENVIRONMENT=development
+      - DEBUG=true
+
+      # Redis (will be unavailable, app handles gracefully)
+      - REDIS_URL=redis://localhost:6379/0
+      - CELERY_BROKER_URL=redis://localhost:6379/1
+      - CELERY_RESULT_BACKEND=redis://localhost:6379/2
+
+      # Database (SQLite for development)
+      - DATABASE_URL=sqlite+aiosqlite:///./app.db
+
+      # Storage
+      - STORAGE_PROVIDER=local
+      - STORAGE_LOCAL_STORAGE_PATH=/app/storage
+
+      # CORS
+      - ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    restart: unless-stopped
+    networks:
+      - pixcrawler-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    profiles:
+      - standalone
+
+  # ===========================================================================
+  # Celery Worker Service (Profile: with-redis)
+  # ===========================================================================
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: pixcrawler-worker
+    command: celery -A celery_core.app worker --loglevel=info --concurrency=4 --max-tasks-per-child=100
+    volumes:
+      # Mount source code for development
+      - ./backend:/app/backend:ro
+      - ./builder:/app/builder:ro
+      - ./utility:/app/utility:ro
+      - ./celery_core:/app/celery_core:ro
+      - ./validator:/app/validator:ro
+      # Persistent storage
+      - worker_storage:/app/storage
+      - worker_logs:/app/logs
+    environment:
+      # Application
+      - PYTHONPATH=/app
+      - ENVIRONMENT=development
+
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+
+      # Database
+      - DATABASE_URL=sqlite+aiosqlite:///./app.db
+
+      # Storage
+      - STORAGE_PROVIDER=local
+      - STORAGE_LOCAL_STORAGE_PATH=/app/storage
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - pixcrawler-network
+    healthcheck:
+      test: [ "CMD-SHELL", "celery -A celery_core.app inspect ping || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    profiles:
+      - with-redis
+
+  # ===========================================================================
+  # Flower Monitoring Service (Profile: monitoring)
+  # ===========================================================================
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: pixcrawler-flower
+    command: celery -A celery_core.app flower --port=5555 --broker=redis://redis:6379/1
+    ports:
+      - "5555:5555"
+    environment:
+      # Application
+      - PYTHONPATH=/app
+
+      # Redis/Celery
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    depends_on:
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - pixcrawler-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:5555/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    profiles:
+      - with-redis
+      - monitoring
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  pixcrawler-network:
+    driver: bridge
+    name: pixcrawler-network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  redis_data:
+    name: pixcrawler-redis-data
+  backend_storage:
+    name: pixcrawler-backend-storage
+  backend_logs:
+    name: pixcrawler-backend-logs
+  worker_storage:
+    name: pixcrawler-worker-storage
+  worker_logs:
+    name: pixcrawler-worker-logs

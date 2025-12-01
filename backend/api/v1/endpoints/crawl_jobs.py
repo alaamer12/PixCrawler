@@ -4,7 +4,7 @@ Crawl job management endpoints.
 This module provides API endpoints for managing image crawling jobs,
 including creation, status monitoring, and execution control.
 """
-
+ 
 from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, status

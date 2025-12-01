@@ -1,6 +1,7 @@
+
 """
 SQLAlchemy database models for PixCrawler.
-
+ 
 This module provides comprehensive SQLAlchemy ORM models for the PixCrawler
 backend, synchronized with the Drizzle schema in the frontend.
 
@@ -98,6 +99,7 @@ class ChunkTrackingMixin:
         """Check if all chunks are completed."""
         return self.total_chunks > 0 and self.completed_chunks == self.total_chunks
 
+
 __all__ = [
     # Base classes
     'Base',
@@ -163,9 +165,12 @@ class ActivityLog(Base):
         index=True,
     )
     action: Mapped[str] = mapped_column(Text, nullable=False)
-    resource_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    resource_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    metadata_: Mapped[Optional[dict]] = mapped_column("metadata", JSONB, nullable=True)
+    resource_type: Mapped[Optional[str]] = mapped_column(
+        String(50), nullable=True)
+    resource_id: Mapped[Optional[str]] = mapped_column(
+        String(50), nullable=True)
+    metadata_: Mapped[Optional[dict]] = mapped_column(
+        "metadata", JSONB, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

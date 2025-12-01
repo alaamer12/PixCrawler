@@ -1,7 +1,7 @@
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
+ 
 [project]
 name = "pixcrawler-backend"
 version = "0.1.0"
@@ -29,8 +29,9 @@ dependencies = [
   "sse_starlette",
   "azure-storage-blob",
   "psutil",
+  "aiosqlite>=0.17.0",
 ]
-
+ 
 [project.optional-dependencies]
 dev = [
   "pytest>=7.4.0",
