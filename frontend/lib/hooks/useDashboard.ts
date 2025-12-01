@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { apiService } from '@/lib/services'
+import { dashboardApi } from '@/lib/api/services/dashboard.service'
 
 // Types for dashboard data
 export interface Dataset {
@@ -40,6 +41,8 @@ export interface DashboardStats {
     totalDatasets: number
     totalImages: number
     activeJobs: number
+    storageUsed?: string
+    processingSpeed?: string
 }
 
 /**
@@ -159,12 +162,17 @@ export function useDashboardStats() {
         setLoading(true)
         setError(null)
 
-        const { data, error: fetchError } = await apiService.getDashboardStats()
+        const { data, error: fetchError } = await dashboardApi.getStats()
 
         if (fetchError) {
             setError(fetchError)
         } else if (data) {
-            setStats(data)
+            setStats({
+                totalProjects: data.total_projects,
+                totalDatasets: data.total_datasets,
+                totalImages: data.total_images,
+                activeJobs: data.active_jobs,
+            })
         }
 
         setLoading(false)

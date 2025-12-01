@@ -1,8 +1,8 @@
-import {NextRequest, NextResponse} from 'next/server'
-import {createClient} from '@/lib/supabase/server'
-import {db} from '@/lib/db'
-import {notifications} from '@/lib/db/schema'
-import {desc, eq} from 'drizzle-orm'
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { db } from '@/lib/db'
+import { notifications } from '@/lib/db/schema'
+import { desc, eq } from 'drizzle-orm'
 
 /**
  * GET /api/notifications
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
           actionLabel: 'View Invoice',
           isRead: false,
           readAt: null,
-          metadata: {amount: 49.99, currency: 'USD'},
+          metadata: { amount: 49.99, currency: 'USD' },
           createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
         },
         {
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
           actionLabel: 'Review Activity',
           isRead: true,
           readAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3),
-          metadata: {ip: '192.168.1.1', location: 'San Francisco, CA'},
+          metadata: { ip: '192.168.1.1', location: 'San Francisco, CA' },
           createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3), // 3 days ago
         },
       ]
@@ -113,12 +113,12 @@ export async function GET(request: NextRequest) {
 
     // Authenticate user
     const supabase = await createClient()
-    const {data: {user}, error: authError} = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json(
-        {error: 'Unauthorized'},
-        {status: 401}
+        { error: 'Unauthorized' },
+        { status: 401 }
       )
     }
 
@@ -148,8 +148,8 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching notifications:', error)
     return NextResponse.json(
-      {error: 'Internal server error'},
-      {status: 500}
+      { error: 'Internal server error' },
+      { status: 500 }
     )
   }
 }
@@ -162,23 +162,23 @@ export async function POST(request: NextRequest) {
   try {
     // Authenticate user
     const supabase = await createClient()
-    const {data: {user}, error: authError} = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json(
-        {error: 'Unauthorized'},
-        {status: 401}
+        { error: 'Unauthorized' },
+        { status: 401 }
       )
     }
 
     const body = await request.json()
-    const {type, title, message, icon, iconColor, actionUrl, metadata} = body
+    const { type, title, message, icon, color, actionUrl, metadata } = body
 
     // Validate required fields
     if (!type || !title || !message) {
       return NextResponse.json(
-        {error: 'Missing required fields: type, title, message'},
-        {status: 400}
+        { error: 'Missing required fields: type, title, message' },
+        { status: 400 }
       )
     }
 
@@ -191,18 +191,18 @@ export async function POST(request: NextRequest) {
         title,
         message,
         icon,
-        iconColor,
+        color,
         actionUrl,
         metadata,
       })
       .returning()
 
-    return NextResponse.json({notification}, {status: 201})
+    return NextResponse.json({ notification }, { status: 201 })
   } catch (error) {
     console.error('Error creating notification:', error)
     return NextResponse.json(
-      {error: 'Internal server error'},
-      {status: 500}
+      { error: 'Internal server error' },
+      { status: 500 }
     )
   }
 }
