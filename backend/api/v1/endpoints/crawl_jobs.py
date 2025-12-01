@@ -7,7 +7,7 @@ including creation, status monitoring, and execution control.
 
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi_limiter.depends import RateLimiter
 from fastapi_pagination import Page
 
@@ -29,6 +29,7 @@ router = APIRouter(
     tags=["Crawl Jobs"],
     responses=get_common_responses(401, 404, 500),
 )
+
 
 @router.get(
     "/",

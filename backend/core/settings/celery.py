@@ -9,12 +9,12 @@ __all__ = ["CelerySettings"]
 class CelerySettings(BaseSettings):
     """
     Celery distributed task queue configuration.
-    
+
     Environment variables:
         CELERY_BROKER_URL: Message broker URL
         CELERY_RESULT_BACKEND: Result backend URL
     """
-    
+
     model_config = SettingsConfigDict(
         env_prefix="CELERY_",
         env_file=".env",
@@ -22,7 +22,7 @@ class CelerySettings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
-    
+
     broker_url: str = Field(
         ...,
         min_length=1,
@@ -33,5 +33,6 @@ class CelerySettings(BaseSettings):
         ...,
         min_length=1,
         description="Celery result backend URL",
-        examples=["redis://localhost:6379/0", "db+postgresql://user:pass@localhost/celery"]
+        examples=["redis://localhost:6379/0",
+                  "db+postgresql://user:pass@localhost/celery"]
     )
