@@ -123,8 +123,8 @@ class RateLimiter:
     # Tier-based concurrent job limits
     TIER_LIMITS = {
         'free': 1,
-        'pro': 3,
-        'enterprise': 10
+        'hobby': 3,
+        'pro': 10
     }
 
     # Task name to monitor (should match your Celery task name)
@@ -323,9 +323,11 @@ class CrawlJobService(BaseService):
         """
         # RATE LIMITING: Check if user can start a new job
         # This queries all 35 Celery workers to count active jobs for this user
-        # and compares against their tier limit (Free: 1, Pro: 3, Enterprise: 10)
+        # and compares against their tier limit (Free: 1, Hobby: 3, Pro: 10)
         if user_id:
-            RateLimiter.check_concurrency(user_id, tier)
+            # Determine actual user tier from credit account
+            real_tier = await self._get_user_tier(uuid.UUID(user_id))
+            RateLimiter.check_concurrency(user_id, real_tier)
         # Verify project exists using repository
         project = await self.project_repo.get_by_id(project_id)
         if not project:
@@ -800,14 +802,105 @@ class CrawlJobService(BaseService):
                 action="CANCEL_CRAWL_JOB",
                 resource_type="crawl_job",
                 resource_id=str(job_id),
-                metadata={
-                    "job_name": job.name,
-                    "previous_status": job.status,
-                    "downloaded_images": job.downloaded_images or 0,
-                    "valid_images": job.valid_images or 0,
-                    "progress": job.progress or 0
-                }
+                metadata={"reason": "User requested cancellation"}
             )
+
+        return updated_job
+
+    async def apply_retention_policy(self) -> Dict[str, int]:
+        """
+        Apply data retention policies based on user tiers.
+
+        Policies:
+        - Free: Archive after 7 days
+        - Hobby: Move to cold storage after 30 days
+        - Pro: Keep hot indefinitely
+        """
+        from datetime import timedelta
+        
+        results = {
+            'archived': 0,
+            'cold_storage': 0,
+            'errors': 0
+        }
+        
+        try:
+            # Get all completed jobs
+            completed_jobs = await self.crawl_job_repo.get_by_status('completed')
+            
+            now = datetime.utcnow()
+            
+            for job in completed_jobs:
+                if not job.completed_at:
+                    continue
+                    
+                # Calculate age
+                age = now - job.completed_at
+                
+                # Get user tier
+                # Note: We assume job.project.user is available via lazy='joined'
+                user_id = job.project.user_id if job.project else None
+                if not user_id:
+                    continue
+                    
+                tier = await self._get_user_tier(user_id)
+                
+                if tier == 'free':
+                    if age > timedelta(days=7):
+                        await self.update_job_status(job.id, 'archived')
+                        results['archived'] += 1
+                elif tier == 'hobby':
+                    if age > timedelta(days=30):
+                        await self.update_job_status(job.id, 'cold_storage')
+                        results['cold_storage'] += 1
+                # Pro: do nothing
+                
+        except Exception as e:
+            logger.error(f"Error applying retention policy: {str(e)}")
+            results['errors'] += 1
+            
+        return results
+
+    async def _get_user_tier(self, user_id: uuid.UUID) -> str:
+        """
+        Determine user's subscription tier based on credit account limits.
+        
+        Uses CreditAccount.monthly_limit to infer tier:
+        - < 2000: Free
+        - 2000 - 500,000: Hobby
+        - > 500,000: Pro
+        
+        Args:
+            user_id: User UUID
+            
+        Returns:
+            Tier name ('free', 'hobby', 'pro')
+        """
+        from sqlalchemy import select
+        from backend.models import CreditAccount
+        
+        try:
+            # Query credit account for user
+            query = select(CreditAccount).where(CreditAccount.user_id == user_id)
+            result = await self.crawl_job_repo.session.execute(query)
+            account = result.scalar_one_or_none()
+            
+            if not account:
+                return 'free'
+                
+            limit = account.monthly_limit
+            
+            if limit > 500000:
+                return 'pro'
+            elif limit > 2000:
+                return 'hobby'
+            else:
+                return 'free'
+                
+        except Exception as e:
+            logger.error(f"Error determining user tier for {user_id}: {str(e)}")
+            return 'free'
+
 
         # Step 5: Broadcast cancellation via Supabase real-time
         supabase = get_supabase_client()

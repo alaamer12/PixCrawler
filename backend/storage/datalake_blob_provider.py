@@ -8,7 +8,6 @@ common blob operations.
 """
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO, Iterable, Optional, Union, List, Dict, Any
@@ -20,9 +19,10 @@ from azure.storage.blob import (
 )
 
 from .storage_settings import StorageSettings
+from utility.logging_config import get_logger
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 BytesLike = Union[bytes, bytearray, memoryview]

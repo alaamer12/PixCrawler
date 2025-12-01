@@ -29,10 +29,12 @@ from typing import Tuple, Optional
 from _base import IDownloader
 from _predefined_variations import get_search_variations
 from _search_engines import download_images_ddgs
-from builder._constants import logger
 from builder._engine import EngineProcessor
 from builder._helpers import progress
 from _helpers import rename_images_sequentially
+from utility.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 # Image validation moved to validator package
 
@@ -93,7 +95,7 @@ class ImageDownloader(IDownloader):
         # Shared counter for downloaded images
         self.total_downloaded = 0
 
-    def download(self, keyword: str, out_dir: str, max_num: int) -> Tuple[bool, int]:
+    def download(self, keyword: str, out_dir: str, max_num: int, job_id: Optional[str] = None, chunk_id: Optional[str] = None) -> Tuple[bool, int]:
         """
         Downloads images using multiple image crawlers sequentially.
         Includes fallback to DuckDuckGo if primary crawlers do not meet the download target.
@@ -102,11 +104,22 @@ class ImageDownloader(IDownloader):
             keyword (str): The search term for images.
             out_dir (str): The output directory path where images will be saved.
             max_num (int): The maximum number of images to download.
+            job_id (Optional[str]): Optional job ID for structured logging.
+            chunk_id (Optional[str]): Optional chunk ID for structured logging.
 
         Returns:
             Tuple[bool, int]: A tuple where the first element is True if any images were downloaded,
                              and the second element is the total count of downloaded images.
         """
+        # Add structured logging context
+        log_context = logger.bind(
+            operation="image_download",
+            keyword=keyword,
+            max_num=max_num,
+            job_id=job_id,
+            chunk_id=chunk_id
+        )
+        
         try:
             # Ensure output directory exists
             Path(out_dir).mkdir(parents=True, exist_ok=True)
@@ -120,6 +133,7 @@ class ImageDownloader(IDownloader):
             # Update progress display
             progress.set_subtask_description(f"Starting download for: {keyword}")
             progress.set_subtask_postfix(target=max_num)
+            log_context.info(f"Starting image download for keyword: {keyword}")
 
             # Generate search variations
             variations = [template.format(keyword=keyword) for template in
@@ -130,6 +144,7 @@ class ImageDownloader(IDownloader):
 
             # Use engines in sequence with fallbacks
             progress.set_subtask_description(f"Downloading sequentially: {keyword}")
+            log_context.info("Starting sequential engine download", variations_count=len(variations))
             self.engine_processor.download_with_sequential_engines(keyword,
                                                                        variations,
                                                                        out_dir, max_num)
@@ -138,11 +153,18 @@ class ImageDownloader(IDownloader):
             if self.total_downloaded < max_num:
                 progress.set_subtask_description(
                     f"Using DuckDuckGo fallback: {keyword}")
+                log_context.info(
+                    "Using DuckDuckGo fallback",
+                    downloaded_so_far=self.total_downloaded,
+                    remaining=max_num - self.total_downloaded
+                )
                 self._try_duckduckgo_fallback(
                     keyword=keyword,
                     out_dir=out_dir,
                     max_num=max_num,
-                    total_downloaded=self.total_downloaded
+                    total_downloaded=self.total_downloaded,
+                    job_id=job_id,
+                    chunk_id=chunk_id
                 )
 
             # Rename all files sequentially
@@ -156,19 +178,28 @@ class ImageDownloader(IDownloader):
             # Update progress with results
             progress.set_subtask_description(
                 f"Downloaded {self.total_downloaded}/{max_num} images for {keyword}")
+            log_context.info(
+                f"Image download completed",
+                downloaded=self.total_downloaded,
+                target=max_num,
+                success_rate=f"{(self.total_downloaded/max_num)*100:.1f}%"
+            )
 
             return self.total_downloaded > 0, self.total_downloaded
 
         except Exception as e:
-            logger.warning(
-                f"All crawlers failed with error: {e}. Trying DuckDuckGo as fallback.")
+            log_context.warning(
+                f"All crawlers failed with error: {e}. Trying DuckDuckGo as fallback.",
+                error=str(e),
+                error_type=type(e).__name__
+            )
             progress.set_subtask_description(
                 f"Error occurred, using final fallback: {keyword}")
-            return self._final_duckduckgo_fallback(keyword, out_dir, max_num)
+            return self._final_duckduckgo_fallback(keyword, out_dir, max_num, job_id, chunk_id)
 
     @staticmethod
     def _try_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int,
-                                 total_downloaded: int) -> int:
+                                 total_downloaded: int, job_id: Optional[str] = None, chunk_id: Optional[str] = None) -> int:
         """
         Attempts to use DuckDuckGo as a fallback option if other engines haven't downloaded enough images.
 
@@ -177,6 +208,8 @@ class ImageDownloader(IDownloader):
             out_dir (str): The output directory.
             max_num (int): The maximum number of images to download.
             total_downloaded (int): The current count of downloaded images.
+            job_id (Optional[str]): Optional job ID for structured logging.
+            chunk_id (Optional[str]): Optional chunk ID for structured logging.
 
         Returns:
             int: The updated total downloaded count after the fallback attempt.
@@ -184,19 +217,31 @@ class ImageDownloader(IDownloader):
         if total_downloaded >= max_num:
             return total_downloaded
 
-        logger.info(
-            f"Crawlers downloaded {total_downloaded}/{max_num} images. Trying DuckDuckGo as fallback.")
+        log_context = logger.bind(
+            operation="duckduckgo_fallback",
+            keyword=keyword,
+            job_id=job_id,
+            chunk_id=chunk_id
+        )
+        log_context.info(
+            f"Crawlers downloaded {total_downloaded}/{max_num} images. Trying DuckDuckGo as fallback.",
+            total_downloaded=total_downloaded,
+            max_num=max_num,
+            remaining=max_num - total_downloaded
+        )
         ddgs_success, ddgs_count = download_images_ddgs(
             keyword=keyword,
             out_dir=out_dir,
             max_num=max_num - total_downloaded
         )
         if ddgs_success:
+            log_context.info("DuckDuckGo fallback successful", ddgs_count=ddgs_count)
             return total_downloaded + ddgs_count
+        log_context.warning("DuckDuckGo fallback failed")
         return total_downloaded
 
     @staticmethod
-    def _final_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int) -> Tuple[
+    def _final_duckduckgo_fallback(keyword: str, out_dir: str, max_num: int, job_id: Optional[str] = None, chunk_id: Optional[str] = None) -> Tuple[
         bool, int]:
         """
         Performs a final fallback to DuckDuckGo when all other download methods have failed.
@@ -205,16 +250,27 @@ class ImageDownloader(IDownloader):
             keyword (str): The search term.
             out_dir (str): The output directory.
             max_num (int): The maximum number of images to download.
+            job_id (Optional[str]): Optional job ID for structured logging.
+            chunk_id (Optional[str]): Optional chunk ID for structured logging.
 
         Returns:
             Tuple[bool, int]: A tuple indicating success (True/False) and the number of images downloaded.
         """
+        log_context = logger.bind(
+            operation="final_duckduckgo_fallback",
+            keyword=keyword,
+            max_num=max_num,
+            job_id=job_id,
+            chunk_id=chunk_id
+        )
+        log_context.info("Attempting final DuckDuckGo fallback")
         success, count = download_images_ddgs(keyword, out_dir, max_num)
         if success and count > 0:
             rename_images_sequentially(out_dir)
+            log_context.info("Final fallback successful", count=count)
             return True, count
         else:
-            logger.error(f"All download methods failed for '{keyword}'")
+            log_context.error(f"All download methods failed for '{keyword}'")
             return False, 0
 
     def add_search_variation(self, variation_template: str) -> None:

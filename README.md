@@ -44,6 +44,95 @@ PixCrawler is a powerful, scalable SaaS platform that automates the creation of 
 
 ## 🚀 Quick Start
 
+### Prerequisites
+
+- **Python**: 3.11 or higher
+- **Node.js**: 18.0 or higher
+- **Bun**: Latest version (primary package manager for frontend)
+- **Redis**: 5.0 or higher
+- **PostgreSQL**: 14 or higher (via Supabase)
+
+### Environment Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/pixcrawler.git
+   cd pixcrawler
+   ```
+
+2. **Set up environment variables**
+   
+   Copy the example environment files and configure them:
+   ```bash
+   # Root level (global settings)
+   cp .env.example .env
+   
+   # Backend configuration
+   cp backend/.env.example backend/.env
+   
+   # Frontend configuration
+   cp frontend/.env.example frontend/.env
+   ```
+   
+   See [CONFIGURATION.md](./CONFIGURATION.md) for detailed configuration guide.
+
+3. **Install dependencies**
+   
+   ```bash
+   # Backend (Python with UV)
+   uv sync
+   
+   # Frontend (Bun)
+   cd frontend
+   bun install
+   ```
+
+4. **Set up the database**
+   
+   ```bash
+   cd frontend
+   bun run db:setup    # Create RLS policies
+   bun run db:migrate  # Run migrations
+   ```
+
+5. **Start the development environment**
+   
+   Use the unified startup script for your platform:
+   
+   ```bash
+   # Unix/Linux/Mac
+   ./scripts/start-dev.sh
+   
+   # Windows PowerShell
+   .\scripts\start-dev.ps1
+   
+   # Windows Command Prompt
+   .\scripts\start-dev.cmd
+   ```
+   
+   Or start services individually:
+   
+   ```bash
+   # Terminal 1: Backend
+   cd backend
+   uv run uvicorn backend.main:app --reload
+   
+   # Terminal 2: Frontend
+   cd frontend
+   bun dev
+   
+   # Terminal 3: Redis
+   redis-server
+   
+   # Terminal 4: Celery Worker
+   celery -A celery_core.app worker --loglevel=info
+   ```
+
+6. **Access the application**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:8000
+   - API Documentation: http://localhost:8000/docs
+
 ### 1️⃣ **Configuration**
 
 Create your dataset configuration using our intuitive web interface or JSON schema:
@@ -115,13 +204,230 @@ graph LR
 
 ### 🔗 **Quick Links**
 
-- 📖 User Guide
-- 🔧 Configuration Schema
-- ❓ FAQ
+- 📖 [Configuration Guide](./CONFIGURATION.md) - Complete environment variable reference
+- 🚀 [Deployment Guide](./DEPLOYMENT.md) - Production deployment instructions
+- 🔧 [API Documentation](http://localhost:8000/docs) - Interactive API reference
+- 🏗️ [Architecture Guide](./backend/ARCHITECTURE.md) - System architecture overview
+- 📊 [Compliance Reports](./docs/compilance/) - Architecture compliance documentation
 
 ### 🛠️ **Developer Resources**
 
 - 📊 Jupyter Examples
+- 🔄 [Retry Architecture](./docs/RETRY_ARCHITECTURE.md) - Retry strategy guide
+- 📝 [Logging Guide](./docs/LOGGING_GUIDE.md) - Centralized logging system
+- 🔀 [Workflows Guide](./docs/WORKFLOWS_GUIDE.md) - Celery workflow patterns
+- 📦 [Chunk Orchestration](./docs/CHUNK_ORCHESTRATION_GUIDE.md) - Distributed processing guide
+
+---
+
+## ⚙️ Configuration Guide
+
+PixCrawler uses a three-tier configuration system:
+
+1. **Root Level** (`.env`) - Global project settings
+   - Supabase credentials (URL, service role key, anon key)
+   - Azure storage connection strings
+   - Global environment settings
+
+2. **Backend Level** (`backend/.env`) - Backend-specific configuration
+   - Server settings (host, port, debug mode)
+   - Database connection (PostgreSQL via Supabase)
+   - Redis cache and rate limiter settings
+   - Celery task queue configuration
+   - Storage provider settings
+   - CORS configuration
+
+3. **Frontend Level** (`frontend/.env`) - Frontend-specific configuration
+   - Supabase client settings (URL, anon key)
+   - API endpoint URLs
+   - Stripe integration (optional)
+   - Resend email service (optional)
+   - Application URLs
+
+For detailed configuration options, see [CONFIGURATION.md](./CONFIGURATION.md).
+
+---
+
+## 🔧 Development Workflow
+
+### Running Tests
+
+```bash
+# Backend tests
+cd backend
+uv run pytest
+uv run pytest --cov=backend --cov-report=html
+
+# Frontend tests (when available)
+cd frontend
+bun test
+```
+
+### Code Quality
+
+```bash
+# Backend linting and formatting
+cd backend
+uv run ruff check .
+uv run ruff format .
+
+# Type checking
+uv run mypy .
+
+# Frontend linting
+cd frontend
+bun run lint
+```
+
+### Database Migrations
+
+```bash
+cd frontend
+
+# Generate new migration
+bun run db:generate
+
+# Apply migrations
+bun run db:migrate
+
+# Open Drizzle Studio
+bun run db:studio
+```
+
+### API Development
+
+- API documentation is auto-generated at `/docs` (Swagger UI)
+- Alternative documentation at `/redoc`
+- Postman collections available in `postman/` directory
+
+---
+
+## 🚀 Production Deployment
+
+### Backend Deployment (Azure App Service)
+
+1. **Set environment variables** in Azure Portal
+   - Copy all variables from `backend/.env.example`
+   - Set `PIXCRAWLER_ENVIRONMENT=production`
+   - Configure Supabase credentials
+   - Set up Azure storage connection strings
+
+2. **Deploy using Azure CLI**
+   ```bash
+   az webapp up --name pixcrawler-backend --resource-group pixcrawler-rg
+   ```
+
+3. **Verify deployment**
+   - Check health endpoint: `https://your-app.azurewebsites.net/health`
+   - Review logs in Azure Monitor
+
+### Frontend Deployment (Vercel)
+
+1. **Connect repository** to Vercel
+2. **Configure environment variables** in Vercel Dashboard
+   - Use values from `frontend/.env.example.production`
+   - Set Supabase URL and anon key
+   - Configure API URL to point to backend
+   - Add Stripe keys (if using payments)
+   - Add Resend API key (if using email)
+
+3. **Deploy**
+   ```bash
+   cd frontend
+   bun run build
+   vercel --prod
+   ```
+
+### Alternative: Azure Static Web Apps
+
+1. **Create Static Web App** in Azure Portal
+2. **Configure build settings**
+   - Build command: `bun run build`
+   - Output directory: `.next`
+   - App location: `frontend`
+
+3. **Set environment variables** in Azure Portal
+4. **Deploy via GitHub Actions** (auto-configured)
+
+For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
+---
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+#### Redis Connection Failed
+
+**Problem**: Backend fails to start with "Redis connection refused"
+
+**Solution**:
+```bash
+# Check if Redis is running
+redis-cli ping
+
+# Start Redis if not running
+redis-server
+
+# For development, Redis failures are logged as warnings
+# For production, ensure Redis is properly configured
+```
+
+#### Database Connection Issues
+
+**Problem**: "Could not connect to database"
+
+**Solution**:
+1. Verify Supabase credentials in `.env` files
+2. Check database URL format: `postgresql+asyncpg://user:pass@host:5432/db`
+3. Ensure connection pool settings are appropriate for Supabase (5-10 connections)
+4. Check Supabase dashboard for connection limits
+
+#### Frontend Environment Variables Missing
+
+**Problem**: "Missing required environment variable"
+
+**Solution**:
+1. Ensure all required variables from `frontend/.env.example` are set
+2. Restart the Next.js dev server after changing `.env` files
+3. Check `frontend/lib/env.ts` for validation errors
+
+#### Celery Worker Not Processing Tasks
+
+**Problem**: Tasks stuck in pending state
+
+**Solution**:
+```bash
+# Check if Celery worker is running
+celery -A celery_core.app inspect active
+
+# Restart worker
+celery -A celery_core.app worker --loglevel=info
+
+# Check Redis connection
+redis-cli ping
+```
+
+#### Port Already in Use
+
+**Problem**: "Address already in use" error
+
+**Solution**:
+```bash
+# Find process using port 8000 (backend)
+lsof -i :8000  # Unix/Mac
+netstat -ano | findstr :8000  # Windows
+
+# Kill the process or use a different port
+uvicorn backend.main:app --reload --port 8001
+```
+
+### Getting Help
+
+- Check [DEPLOYMENT.md](./DEPLOYMENT.md) for deployment-specific issues
+- Review [CONFIGURATION.md](./CONFIGURATION.md) for configuration problems
+- Open an issue on GitHub for bugs
+- Contact support for production issues
 
 ---
 

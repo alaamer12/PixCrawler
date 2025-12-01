@@ -1,4 +1,4 @@
-import {z} from 'zod'
+import { z } from 'zod'
 
 // Pricing Plans
 export interface PricingPlan {
@@ -10,10 +10,14 @@ export interface PricingPlan {
   interval?: 'month' | 'year' | null
   features: string[]
   popular?: boolean
-  stripePriceId?: string
+  lemonSqueezyVariantId?: string
   credits?: number
   maxDatasets?: number
   maxImagesPerDataset?: number
+  storage?: {
+    retentionDays?: number // Days before deletion/archival (e.g. for Free tier)
+    hotStorageDays?: number // Days in hot storage before moving to cold (e.g. for Hobby tier)
+  }
 }
 
 // Payment Intent Types
@@ -38,11 +42,11 @@ export interface CheckoutSessionData {
 // Subscription Types
 export interface SubscriptionData {
   userId: string
-  stripeCustomerId: string
-  stripeSubscriptionId: string
-  stripePriceId: string
+  lemonSqueezyCustomerId: string
+  lemonSqueezySubscriptionId: string
+  lemonSqueezyVariantId: string
   planId: string
-  status: 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'trialing' | 'unpaid'
+  status: 'active' | 'cancelled' | 'expired' | 'on_trial' | 'paused' | 'past_due' | 'unpaid'
   currentPeriodStart: Date
   currentPeriodEnd: Date
   cancelAtPeriodEnd: boolean
@@ -54,10 +58,10 @@ export interface SubscriptionData {
 export interface TransactionData {
   id: string
   userId: string
-  stripePaymentIntentId: string
+  lemonSqueezyOrderId: string
   amount: number
   currency: string
-  status: 'succeeded' | 'pending' | 'failed' | 'canceled'
+  status: 'paid' | 'pending' | 'failed' | 'refunded'
   planId: string
   metadata?: Record<string, string>
   createdAt: Date
@@ -65,13 +69,12 @@ export interface TransactionData {
 }
 
 // Webhook Event Types
-export interface StripeWebhookEvent {
-  id: string
-  type: string
-  data: {
-    object: any
+export interface LemonSqueezyWebhookEvent {
+  meta: {
+    event_name: string
+    custom_data?: Record<string, any>
   }
-  created: number
+  data: any
 }
 
 // Validation Schemas
@@ -109,9 +112,9 @@ export class PaymentError extends Error {
   }
 }
 
-export class StripeError extends PaymentError {
+export class LemonSqueezyError extends PaymentError {
   constructor(message: string, code?: string) {
     super(message, code, 400)
-    this.name = 'StripeError'
+    this.name = 'LemonSqueezyError'
   }
 }

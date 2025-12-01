@@ -1,277 +1,324 @@
-import Stripe from 'stripe'
-import {stripe, STRIPE_CONFIG} from './stripe'
-import {CheckoutSessionData, PaymentError, PaymentIntentData, StripeError} from './types'
-import {getPlanById, isSubscriptionPlan} from './plans'
+import crypto from 'crypto'
+import {
+  createCheckout,
+  getOrder,
+  listCustomers,
+  createCustomer,
+  listSubscriptions,
+  cancelSubscription,
+  updateSubscription,
+  getCustomer,
+  type Checkout,
+  type Order,
+  type Customer,
+  type Subscription,
+} from '@lemonsqueezy/lemonsqueezy.js'
+import { LEMONSQUEEZY_CONFIG } from './lemonsqueezy'
+import { CheckoutSessionData, PaymentError, LemonSqueezyError } from './types'
+import { getPlanById } from './plans'
 
 export class PaymentService {
   /**
-   * Create a payment intent for one-time payments
+   * Create a checkout URL for Lemon Squeezy
    */
-  static async createPaymentIntent(data: PaymentIntentData): Promise<Stripe.PaymentIntent> {
+  static async createCheckoutSession(data: CheckoutSessionData): Promise<Checkout> {
     try {
       const plan = getPlanById(data.planId)
       if (!plan) {
         throw new PaymentError('Invalid plan ID', 'INVALID_PLAN')
       }
 
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(data.amount * 100), // Convert to cents
-        currency: data.currency,
-        metadata: {
-          userId: data.userId,
-          planId: data.planId,
-          ...data.metadata,
-        },
-        automatic_payment_methods: {
-          enabled: true,
-        },
-      })
-
-      return paymentIntent
-    } catch (error) {
-      if (error instanceof Stripe.errors.StripeError) {
-        throw new StripeError(error.message, error.code)
+      if (!plan.lemonSqueezyVariantId) {
+        throw new PaymentError('Plan does not have a Lemon Squeezy variant ID', 'MISSING_VARIANT_ID')
       }
-      throw new PaymentError('Failed to create payment intent')
+
+      const checkout = await createCheckout(
+        LEMONSQUEEZY_CONFIG.storeId,
+        plan.lemonSqueezyVariantId,
+        {
+          checkoutOptions: {
+            embed: false,
+            media: true,
+            logo: true,
+            desc: true,
+            discount: true,
+            dark: false,
+            subscriptionPreview: true,
+          },
+          checkoutData: {
+            email: data.metadata?.userEmail,
+            custom: {
+              userId: data.userId,
+              planId: data.planId,
+              ...data.metadata,
+            },
+          },
+          productOptions: {
+            redirectUrl: data.successUrl,
+            receiptButtonText: 'Go to Dashboard',
+            receiptThankYouNote: 'Thank you for your purchase!',
+          },
+          expiresAt: null,
+          preview: false,
+          testMode: LEMONSQUEEZY_CONFIG.testMode,
+        }
+      )
+
+      if (!checkout.data) {
+        throw new PaymentError('Failed to create checkout session: No data returned')
+      }
+
+      return checkout.data
+    } catch (error) {
+      if (error instanceof Error && !(error instanceof PaymentError)) {
+        throw new LemonSqueezyError(error.message)
+      }
+      throw error
     }
   }
 
   /**
-   * Create a checkout session for subscriptions or one-time payments
+   * Retrieve an order by ID
    */
-  static async createCheckoutSession(data: CheckoutSessionData): Promise<Stripe.Checkout.Session> {
+  static async getOrder(orderId: string): Promise<Order> {
     try {
-      const plan = getPlanById(data.planId)
-      if (!plan) {
-        throw new PaymentError('Invalid plan ID', 'INVALID_PLAN')
+      const order = await getOrder(orderId, {
+        include: ['order-items', 'subscriptions', 'license-keys'],
+      })
+
+      if (!order.data) {
+        throw new PaymentError('Order not found', 'ORDER_NOT_FOUND')
       }
 
-      if (!plan.stripePriceId) {
-        throw new PaymentError('Plan does not have a Stripe price ID', 'MISSING_PRICE_ID')
+      return order.data
+    } catch (error) {
+      if (error instanceof Error && !(error instanceof PaymentError)) {
+        throw new LemonSqueezyError(error.message)
       }
+      throw error
+    }
+  }
 
-      // Determine if this is a subscription or one-time payment
-      const mode = isSubscriptionPlan(data.planId) ? 'subscription' : 'payment'
-
-      const sessionConfig: Stripe.Checkout.SessionCreateParams = {
-        mode,
-        payment_method_types: STRIPE_CONFIG.payment_method_types,
-        line_items: [
-          {
-            price: plan.stripePriceId,
-            quantity: 1,
+  /**
+   * Create or retrieve a Lemon Squeezy customer
+   */
+  static async createOrGetCustomer(userId: string, email?: string, name?: string): Promise<Customer> {
+    try {
+      // First, try to find existing customer by email
+      if (email) {
+        const { data: existingCustomers } = await listCustomers({
+          filter: {
+            storeId: LEMONSQUEEZY_CONFIG.storeId,
+            email,
           },
-        ],
-        success_url: data.successUrl || STRIPE_CONFIG.success_url,
-        cancel_url: data.cancelUrl || STRIPE_CONFIG.cancel_url,
-        metadata: {
-          userId: data.userId,
-          planId: data.planId,
-          ...data.metadata,
-        },
-        customer_email: undefined, // Will be set if user email is available
-      }
+        })
 
-      // For subscriptions, add additional configuration
-      if (mode === 'subscription') {
-        sessionConfig.subscription_data = {
-          metadata: {
-            userId: data.userId,
-            planId: data.planId,
-          },
+        // listCustomers returns { data: ListCustomers }
+        // ListCustomers has a data property which is Customer[]
+        const customers = (existingCustomers as any).data as Customer[]
+
+        if (customers && customers.length > 0) {
+          return customers[0]
         }
       }
 
-      return await stripe.checkout.sessions.create(sessionConfig)
-    } catch (error) {
-      if (error instanceof Stripe.errors.StripeError) {
-        throw new StripeError(error.message, error.code)
-      }
-      throw new PaymentError('Failed to create checkout session')
-    }
-  }
-
-  /**
-   * Retrieve a checkout session
-   */
-  static async getCheckoutSession(sessionId: string): Promise<Stripe.Checkout.Session> {
-    try {
-      return await stripe.checkout.sessions.retrieve(sessionId, {
-        expand: ['line_items', 'payment_intent', 'subscription'],
-      })
-    } catch (error) {
-      if (error instanceof Stripe.errors.StripeError) {
-        throw new StripeError(error.message, error.code)
-      }
-      throw new PaymentError('Failed to retrieve checkout session')
-    }
-  }
-
-  /**
-   * Create or retrieve a Stripe customer
-   */
-  static async createOrGetCustomer(userId: string, email?: string, name?: string): Promise<Stripe.Customer> {
-    try {
-      // First, try to find existing customer by metadata
-      const existingCustomers = await stripe.customers.list({
-        limit: 1,
-        metadata: {userId},
-      })
-
-      if (existingCustomers.data.length > 0) {
-        return existingCustomers.data[0]
-      }
-
       // Create new customer
-      const customer = await stripe.customers.create({
-        email,
-        name,
-        metadata: {userId},
+      const customer = await createCustomer(LEMONSQUEEZY_CONFIG.storeId, {
+        name: name || '',
+        email: email || '',
       })
 
-      return customer
-    } catch (error) {
-      if (error instanceof Stripe.errors.StripeError) {
-        throw new StripeError(error.message, error.code)
+      if (!customer.data) {
+        throw new PaymentError('Failed to create customer', 'CUSTOMER_CREATION_FAILED')
       }
-      throw new PaymentError('Failed to create or retrieve customer')
+
+      return customer.data
+    } catch (error) {
+      if (error instanceof Error && !(error instanceof PaymentError)) {
+        throw new LemonSqueezyError(error.message)
+      }
+      throw error
     }
   }
 
   /**
    * Get customer's active subscriptions
    */
-  static async getCustomerSubscriptions(customerId: string): Promise<Stripe.Subscription[]> {
+  static async getCustomerSubscriptions(customerId: string): Promise<Subscription[]> {
     try {
-      const subscriptions = await stripe.subscriptions.list({
-        customer: customerId,
-        status: 'active',
-        expand: ['data.items.data.price'],
-      })
-      return subscriptions.data
-    } catch (error) {
-      if (error instanceof Stripe.errors.StripeError) {
-        throw new StripeError(error.message, error.code)
+      // We need to get the customer's email to filter subscriptions, 
+      // as listSubscriptions doesn't support filtering by customerId directly.
+      const customer = await getCustomer(customerId)
+      if (!customer.data) {
+        throw new PaymentError('Customer not found', 'CUSTOMER_NOT_FOUND')
       }
-      throw new PaymentError('Failed to retrieve customer subscriptions')
+
+      const email = (customer.data as any).attributes.email
+
+      const { data: subscriptions } = await listSubscriptions({
+        filter: {
+          storeId: LEMONSQUEEZY_CONFIG.storeId,
+          userEmail: email,
+          status: 'active',
+        },
+      })
+
+      // subscriptions is ListSubscriptions, which has data: Subscription[]
+      return (subscriptions as any)?.data || []
+    } catch (error) {
+      if (error instanceof Error && !(error instanceof PaymentError)) {
+        throw new LemonSqueezyError(error.message)
+      }
+      throw error
     }
   }
 
   /**
-   * Cancel a subscription
+   * Cancel a subscription (cancels at period end by default)
    */
-  static async cancelSubscription(subscriptionId: string, cancelAtPeriodEnd: boolean = true): Promise<Stripe.Subscription> {
+  static async cancelSubscription(subscriptionId: string): Promise<Subscription> {
     try {
-      const subscription = await stripe.subscriptions.update(subscriptionId, {
-        cancel_at_period_end: cancelAtPeriodEnd,
-      })
-      return subscription
-    } catch (error) {
-      if (error instanceof Stripe.errors.StripeError) {
-        throw new StripeError(error.message, error.code)
+      const subscription = await cancelSubscription(subscriptionId)
+
+      if (!subscription.data) {
+        throw new PaymentError('Failed to cancel subscription', 'CANCEL_FAILED')
       }
-      throw new PaymentError('Failed to cancel subscription')
+
+      return subscription.data
+    } catch (error) {
+      if (error instanceof Error && !(error instanceof PaymentError)) {
+        throw new LemonSqueezyError(error.message)
+      }
+      throw error
     }
   }
 
   /**
    * Reactivate a subscription
    */
-  static async reactivateSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
+  static async reactivateSubscription(subscriptionId: string): Promise<Subscription> {
     try {
-      const subscription = await stripe.subscriptions.update(subscriptionId, {
-        cancel_at_period_end: false,
+      const subscription = await updateSubscription(subscriptionId, {
+        cancelled: false,
       })
-      return subscription
-    } catch (error) {
-      if (error instanceof Stripe.errors.StripeError) {
-        throw new StripeError(error.message, error.code)
+
+      if (!subscription.data) {
+        throw new PaymentError('Failed to reactivate subscription', 'REACTIVATE_FAILED')
       }
-      throw new PaymentError('Failed to reactivate subscription')
+
+      return subscription.data
+    } catch (error) {
+      if (error instanceof Error && !(error instanceof PaymentError)) {
+        throw new LemonSqueezyError(error.message)
+      }
+      throw error
     }
   }
 
   /**
-   * Create a billing portal session
+   * Get customer portal URL
+   * Lemon Squeezy has a universal customer portal
    */
-  static async createBillingPortalSession(customerId: string, returnUrl: string): Promise<Stripe.BillingPortal.Session> {
-    try {
-      const session = await stripe.billingPortal.sessions.create({
-        customer: customerId,
-        return_url: returnUrl,
-      })
-      return session
-    } catch (error) {
-      if (error instanceof Stripe.errors.StripeError) {
-        throw new StripeError(error.message, error.code)
-      }
-      throw new PaymentError('Failed to create billing portal session')
-    }
+  static getCustomerPortalUrl(subscriptionId?: string): string {
+    // If we have a subscription ID, we could fetch the subscription
+    // and return the customer-specific portal URL from subscription.data.attributes.urls.customer_portal
+    // For now, return the universal portal
+    return 'https://app.lemonsqueezy.com/my-orders'
   }
 
   /**
    * Verify webhook signature
    */
-  static verifyWebhookSignature(payload: string, signature: string): Stripe.Event {
+  static verifyWebhookSignature(payload: string, signature: string): any {
     try {
-      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
-      return stripe.webhooks.constructEvent(payload, signature, webhookSecret)
+      const webhookSecret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET!
+
+      // Create HMAC with SHA-256
+      const hmac = crypto.createHmac('sha256', webhookSecret)
+      const digest = hmac.update(payload).digest('hex')
+
+      if (digest !== signature) {
+        throw new PaymentError('Invalid webhook signature', 'INVALID_SIGNATURE')
+      }
+
+      return JSON.parse(payload)
     } catch (error) {
+      if (error instanceof PaymentError) {
+        throw error
+      }
       throw new PaymentError('Invalid webhook signature', 'INVALID_SIGNATURE')
     }
   }
 
   /**
-   * Get payment method details
+   * Update subscription plan
    */
-  static async getPaymentMethod(paymentMethodId: string): Promise<Stripe.PaymentMethod> {
+  static async updateSubscriptionPlan(
+    subscriptionId: string,
+    newVariantId: string
+  ): Promise<Subscription> {
     try {
-      return await stripe.paymentMethods.retrieve(paymentMethodId)
-    } catch (error) {
-      if (error instanceof Stripe.errors.StripeError) {
-        throw new StripeError(error.message, error.code)
-      }
-      throw new PaymentError('Failed to retrieve payment method')
-    }
-  }
-
-  /**
-   * Refund a payment
-   */
-  static async refundPayment(paymentIntentId: string, amount?: number): Promise<Stripe.Refund> {
-    try {
-      const refundData: Stripe.RefundCreateParams = {
-        payment_intent: paymentIntentId,
-      }
-
-      if (amount) {
-        refundData.amount = Math.round(amount * 100) // Convert to cents
-      }
-
-      return await stripe.refunds.create(refundData)
-    } catch (error) {
-      if (error instanceof Stripe.errors.StripeError) {
-        throw new StripeError(error.message, error.code)
-      }
-      throw new PaymentError('Failed to process refund')
-    }
-  }
-
-  /**
-   * Get usage records for metered billing
-   */
-  static async createUsageRecord(subscriptionItemId: string, quantity: number, timestamp?: number): Promise<Stripe.UsageRecord> {
-    try {
-      return await stripe.subscriptionItems.createUsageRecord(subscriptionItemId, {
-        quantity,
-        timestamp: timestamp || Math.floor(Date.now() / 1000),
-        action: 'increment',
+      const subscription = await updateSubscription(subscriptionId, {
+        variantId: parseInt(newVariantId),
       })
-    } catch (error) {
-      if (error instanceof Stripe.errors.StripeError) {
-        throw new StripeError(error.message, error.code)
+
+      if (!subscription.data) {
+        throw new PaymentError('Failed to update subscription', 'UPDATE_FAILED')
       }
-      throw new PaymentError('Failed to create usage record')
+
+      return subscription.data
+    } catch (error) {
+      if (error instanceof Error && !(error instanceof PaymentError)) {
+        throw new LemonSqueezyError(error.message)
+      }
+      throw error
+    }
+  }
+
+  /**
+   * Pause a subscription
+   */
+  static async pauseSubscription(subscriptionId: string, resumeAt?: Date): Promise<Subscription> {
+    try {
+      const subscription = await updateSubscription(subscriptionId, {
+        pause: {
+          mode: resumeAt ? 'void' : 'free',
+          resumesAt: resumeAt?.toISOString(),
+        },
+      })
+
+      if (!subscription.data) {
+        throw new PaymentError('Failed to pause subscription', 'PAUSE_FAILED')
+      }
+
+      return subscription.data
+    } catch (error) {
+      if (error instanceof Error && !(error instanceof PaymentError)) {
+        throw new LemonSqueezyError(error.message)
+      }
+      throw error
+    }
+  }
+
+  /**
+   * Resume a paused subscription
+   */
+  static async resumeSubscription(subscriptionId: string): Promise<Subscription> {
+    try {
+      const subscription = await updateSubscription(subscriptionId, {
+        pause: null,
+      })
+
+      if (!subscription.data) {
+        throw new PaymentError('Failed to resume subscription', 'RESUME_FAILED')
+      }
+
+      return subscription.data
+    } catch (error) {
+      if (error instanceof Error && !(error instanceof PaymentError)) {
+        throw new LemonSqueezyError(error.message)
+      }
+      throw error
     }
   }
 }

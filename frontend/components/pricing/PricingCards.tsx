@@ -1,96 +1,48 @@
 'use client'
 
-import {memo, useMemo, useState} from 'react'
-import {Button} from '@/components/ui/button'
-import {Check, Crown, Star, Zap, Loader2} from 'lucide-react'
-import {useAuth} from '@/lib/auth/hooks'
-import {useRouter} from 'next/navigation'
+import { memo, useMemo, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Check, Crown, Star, Zap, Loader2, Rocket } from 'lucide-react'
+import { useAuth } from '@/lib/auth/hooks'
+import { useRouter } from 'next/navigation'
+import { PRICING_PLANS as PLANS_DATA } from '@/lib/payments/plans'
+import type { PricingPlan as PlanType } from '@/lib/payments/types'
 
-interface PricingPlan {
-  id: string
-  name: string
-  price: string
-  period: string
-  description: string
-  features: string[]
-  popular?: boolean
-  enterprise?: boolean
+interface PricingPlan extends Omit<PlanType, 'price' | 'interval'> {
+  displayPrice: string
+  displayPeriod: string
   icon: React.ReactNode
   buttonText: string
   buttonVariant: 'outline' | 'default' | 'brand'
   includesPrevious?: boolean
-  stripePriceId?: string
+  enterprise?: boolean
 }
 
-const PRICING_PLANS: PricingPlan[] = [
-  {
-    id: 'starter',
-    name: 'Starter',
-    price: 'Free',
-    period: 'forever',
-    description: 'Perfect for trying out PixCrawler and small projects',
-    icon: <Star className="w-5 h-5"/>,
-    features: [
-      '1,000 images per month',
-      '2 concurrent downloads',
-      'Basic image validation',
-      'JSON/CSV export',
-      'Community support',
-      '7-day data retention'
-    ],
-    buttonText: 'Get Started Free',
-    buttonVariant: 'outline'
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    price: '$29',
-    period: 'per month',
-    description: 'Ideal for professionals and growing teams',
-    icon: <Zap className="w-5 h-5"/>,
-    popular: true,
-    includesPrevious: true,
-    stripePriceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
-    features: [
-      '50,000 images per month',
-      '10 concurrent downloads',
-      'Advanced image validation',
-      'All export formats (JSON, CSV, YAML, TXT)',
-      'Priority support',
-      '30-day data retention',
-      'Custom keywords expansion',
-      'Duplicate detection',
-      'API access'
-    ],
-    buttonText: 'Start Free Trial',
-    buttonVariant: 'default'
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: 'Custom',
-    period: 'contact us',
-    description: 'For large organizations with custom requirements',
-    icon: <Crown className="w-5 h-5"/>,
-    enterprise: true,
-    includesPrevious: true,
-    features: [
-      'Unlimited images',
-      'Unlimited concurrent downloads',
-      'Premium image validation',
-      'Custom export formats',
-      'Dedicated support',
-      'Unlimited data retention',
-      'Advanced AI keyword expansion',
-      'Custom integrations',
-      'SLA guarantee',
-      'On-premise deployment',
-      'Custom branding'
-    ],
-    buttonText: 'Contact Sales',
-    buttonVariant: 'brand'
+// Map imported plans to UI format
+const PRICING_PLANS: PricingPlan[] = PLANS_DATA.filter(p => p.interval !== null || p.id === 'free').map((plan) => {
+  const isEnterprise = plan.id === 'enterprise'
+  const isPro = plan.id === 'pro'
+  const isHobby = plan.id === 'hobby'
+  const isFree = plan.id === 'free'
+
+  return {
+    ...plan,
+    displayPrice: isFree ? 'Free' : isEnterprise ? 'Custom' : `$${plan.price}`,
+    displayPeriod: isFree ? 'forever' : isEnterprise ? 'contact us' : plan.interval || 'month',
+    icon: isFree ? <Star className="w-5 h-5" /> :
+      isHobby ? <Rocket className="w-5 h-5" /> :
+        isPro ? <Zap className="w-5 h-5" /> :
+          <Crown className="w-5 h-5" />,
+    buttonText: isFree ? 'Get Started Free' :
+      isEnterprise ? 'Contact Sales' :
+        'Start Free Trial',
+    buttonVariant: isFree ? 'outline' as const :
+      isEnterprise ? 'brand' as const :
+        'default' as const,
+    includesPrevious: !isFree,
+    enterprise: isEnterprise
   }
-]
+})
 
 interface PricingCardProps {
   plan: PricingPlan
@@ -99,7 +51,7 @@ interface PricingCardProps {
   isLoading?: boolean
 }
 
-const PricingCard = memo(({plan, currentPlan, onSelectPlan, isLoading = false}: PricingCardProps) => {
+const PricingCard = memo(({ plan, currentPlan, onSelectPlan, isLoading = false }: PricingCardProps) => {
   const [isProcessing, setIsProcessing] = useState(false)
   const isCurrentPlan = currentPlan === plan.id
 
@@ -124,7 +76,7 @@ const PricingCard = memo(({plan, currentPlan, onSelectPlan, isLoading = false}: 
   const features = useMemo(() =>
     plan.features.map((feature, index) => (
       <li key={`${plan.name}-feature-${index}`} className="flex items-start gap-3">
-        <Check className="w-4 h-4 text-success mt-0.5 flex-shrink-0"/>
+        <Check className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
         <span className="text-sm">{feature}</span>
       </li>
     )), [plan.features, plan.name])
@@ -135,9 +87,9 @@ const PricingCard = memo(({plan, currentPlan, onSelectPlan, isLoading = false}: 
         <div className="absolute -top-4 left-1/2 -translate-x-1/2">
           <div
             className="bg-gradient-to-r from-primary to-secondary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium flex items-center gap-1">
-            <Star className="w-3 h-3 fill-current"/>
+            <Star className="w-3 h-3 fill-current" />
             Most Popular
-            <Star className="w-3 h-3 fill-current"/>
+            <Star className="w-3 h-3 fill-current" />
           </div>
         </div>
       )}
@@ -150,12 +102,12 @@ const PricingCard = memo(({plan, currentPlan, onSelectPlan, isLoading = false}: 
           </div>
 
           <div className="mb-2">
-            <span className="text-4xl font-bold">{plan.price}</span>
-            {plan.price !== 'Free' && plan.price !== 'Custom' && (
-              <span className="text-muted-foreground ml-1">/{plan.period}</span>
+            <span className="text-4xl font-bold">{plan.displayPrice}</span>
+            {plan.displayPrice !== 'Free' && plan.displayPrice !== 'Custom' && (
+              <span className="text-muted-foreground ml-1">/{plan.displayPeriod}</span>
             )}
-            {plan.price === 'Free' && (
-              <span className="text-muted-foreground ml-1">{plan.period}</span>
+            {plan.displayPrice === 'Free' && (
+              <span className="text-muted-foreground ml-1">{plan.displayPeriod}</span>
             )}
           </div>
 
@@ -165,9 +117,9 @@ const PricingCard = memo(({plan, currentPlan, onSelectPlan, isLoading = false}: 
         {plan.includesPrevious && (
           <div className="mb-6 p-3 bg-muted/30 rounded-lg border border-muted">
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Star className="w-4 h-4 fill-current text-primary"/>
+              <Star className="w-4 h-4 fill-current text-primary" />
               <span className="font-medium">Everything in previous plan, plus:</span>
-              <Star className="w-4 h-4 fill-current text-primary"/>
+              <Star className="w-4 h-4 fill-current text-primary" />
             </div>
           </div>
         )}
@@ -185,7 +137,7 @@ const PricingCard = memo(({plan, currentPlan, onSelectPlan, isLoading = false}: 
             disabled={isCurrentPlan || isProcessing || isLoading}
           >
             {(isProcessing || isLoading) && (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin"/>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             )}
             {isCurrentPlan ? 'Current Plan' : plan.buttonText}
           </Button>
@@ -201,9 +153,9 @@ interface PricingCardsProps {
   currentPlan?: string
 }
 
-export const PricingCards = memo(({currentPlan}: PricingCardsProps) => {
+export const PricingCards = memo(({ currentPlan }: PricingCardsProps) => {
   const [isLoading, setIsLoading] = useState(false)
-  const {user} = useAuth()
+  const { user } = useAuth()
   const router = useRouter()
 
   const handleSelectPlan = async (planId: string) => {
@@ -213,7 +165,7 @@ export const PricingCards = memo(({currentPlan}: PricingCardsProps) => {
     }
 
     // Handle free plan
-    if (planId === 'starter') {
+    if (planId === 'free') {
       router.push('/dashboard')
       return
     }
@@ -242,7 +194,7 @@ export const PricingCards = memo(({currentPlan}: PricingCardsProps) => {
         throw new Error('Failed to create checkout session')
       }
 
-      const {url} = await response.json()
+      const { url } = await response.json()
 
       if (url) {
         window.location.href = url

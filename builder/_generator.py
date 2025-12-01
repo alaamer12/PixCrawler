@@ -30,7 +30,6 @@ Note: Report generation has been moved to the src package.
 """
 
 import json
-import logging
 import os
 import threading
 import time
@@ -47,14 +46,14 @@ from _keywords import KeywordManagement, keyword_stats, AlternativeKeyTermGenera
 from _predefined_variations import get_search_variations
 from _search_engines import download_images_ddgs
 from builder._config import DatasetGenerationConfig, CONFIG_SCHEMA
-from builder._constants import DEFAULT_CACHE_FILE, ENGINES, \
-    logger, IMAGE_EXTENSIONS
+from builder._constants import DEFAULT_CACHE_FILE, ENGINES, IMAGE_EXTENSIONS
 from builder._downloader import ImageDownloader
 from builder._exceptions import ConfigurationError, DownloadError, \
     GenerationError
 from builder._helpers import DatasetTracker, ProgressManager, progress, \
     valid_image_ext
 from _helpers import rename_images_sequentially
+from utility.logging_config import get_logger
 
 __all__ = [
     'retry_download',
@@ -66,6 +65,8 @@ __all__ = [
 ]
 
 from progress import ProgressCache
+
+logger = get_logger(__name__)
 
 BACKOFF_DELAY: Final[float] = 0.5
 
