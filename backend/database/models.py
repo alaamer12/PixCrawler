@@ -553,8 +553,8 @@ class Image(Base):
         comment="AI-generated labels",
     )
 
-    image_metadata: Mapped[Optional[dict]] = mapped_column(
-        "image_metadata",
+    metadata_: Mapped[Optional[dict]] = mapped_column(
+        "metadata",
         JSONB,
         nullable=True,
         comment="Additional image metadata",
@@ -621,7 +621,6 @@ class ActivityLog(Base):
         SQLAlchemyUUID(as_uuid=True),
         ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=True,
-        index=True,
     )
 
     # Event details
@@ -641,7 +640,8 @@ class ActivityLog(Base):
     )
 
     # Metadata
-    metadata: Mapped[Optional[dict]] = mapped_column(
+    metadata_: Mapped[Optional[dict]] = mapped_column(
+        "metadata",
         JSONB,
         nullable=True,
     )
@@ -651,7 +651,6 @@ class ActivityLog(Base):
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
-        index=True,
     )
 
     # Relationships

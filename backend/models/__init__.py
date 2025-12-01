@@ -1,7 +1,6 @@
-
 """
 SQLAlchemy database models for PixCrawler.
- 
+
 This module provides comprehensive SQLAlchemy ORM models for the PixCrawler
 backend, synchronized with the Drizzle schema in the frontend.
 
@@ -35,7 +34,7 @@ from .metrics import ProcessingMetric, ResourceMetric, QueueMetric
 from .workflow import WorkflowStatus, TaskStatus, WorkflowState, WorkflowTask
 
 # Import core models from database.models (synchronized with Drizzle schema)
-from backend.database.models import Profile, Project, CrawlJob, Image
+from backend.database.models import Profile, Project, CrawlJob, Image, ActivityLog
 
 # Import for mixins
 from datetime import datetime
@@ -134,60 +133,3 @@ __all__ = [
     'ResourceMetric',
     'QueueMetric',
 ]
-
-
-class ActivityLog(Base):
-    """
-    Activity log model (mirrors Drizzle activityLogs table).
-
-    Tracks user actions and system events.
-
-    Attributes:
-        id: Serial primary key
-        user_id: Optional reference to profiles.id (FK)
-        action: Action description
-        resource_type: Type of resource affected
-        resource_id: ID of resource affected
-        metadata_: Additional event metadata (JSON)
-        timestamp: Event timestamp
-
-    Relationships:
-        user: User who performed the action (many-to-one)
-    """
-
-    __tablename__ = "activity_logs"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[Optional[UUID]] = mapped_column(
-        SQLAlchemyUUID(as_uuid=True),
-        ForeignKey("profiles.id", ondelete="CASCADE"),
-        nullable=True,
-        index=True,
-    )
-    action: Mapped[str] = mapped_column(Text, nullable=False)
-    resource_type: Mapped[Optional[str]] = mapped_column(
-        String(50), nullable=True)
-    resource_id: Mapped[Optional[str]] = mapped_column(
-        String(50), nullable=True)
-    metadata_: Mapped[Optional[dict]] = mapped_column(
-        "metadata", JSONB, nullable=True)
-    timestamp: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-        index=True,
-    )
-
-    # Relationships
-    user: Mapped[Optional["Profile"]] = relationship(
-        "Profile",
-        lazy="joined",
-    )
-
-    # Indexes
-    __table_args__ = (
-        Index("ix_activity_logs_user_id", "user_id"),
-        Index("ix_activity_logs_timestamp", "timestamp"),
-        Index("ix_activity_logs_user_timestamp", "user_id", "timestamp"),
-        Index("ix_activity_logs_resource", "resource_type", "resource_id"),
-    )

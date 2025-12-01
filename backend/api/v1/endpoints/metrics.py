@@ -11,9 +11,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 
-from backend.api.dependencies import get_current_user, get_metrics_service
-from backend.api.types import MetricsServiceDep
-from backend.services.metrics import MetricsService
+from backend.api.types import MetricsServiceDep, CurrentUser
 from backend.schemas.metrics import (
     ProcessingMetricResponse,
     ResourceMetricResponse,
@@ -37,6 +35,8 @@ router = APIRouter(prefix="/metrics", tags=["metrics"])
     description="Retrieve processing metrics with optional filters for job, user, time range, and operation type"
 )
 async def get_processing_metrics(
+    service: MetricsServiceDep,
+    current_user: CurrentUser,
     job_id: Optional[int] = Query(None, description="Filter by job ID"),
     user_id: Optional[UUID] = Query(None, description="Filter by user ID"),
     start_time: Optional[datetime] = Query(
@@ -56,8 +56,6 @@ async def get_processing_metrics(
     limit: int = Query(100, ge=1, le=1000,
                        description="Maximum number of records"),
     offset: int = Query(0, ge=0, description="Number of records to skip"),
-    current_user: dict = Depends(get_current_user),
-    service: MetricsService = Depends(get_metrics_service)
 ) -> List[ProcessingMetricResponse]:
     """
     Get processing metrics with optional filters.
@@ -95,6 +93,8 @@ async def get_processing_metrics(
     description="Retrieve system resource usage metrics including CPU, memory, disk, and network"
 )
 async def get_resource_metrics(
+    service: MetricsServiceDep,
+    current_user: CurrentUser,
     job_id: Optional[int] = Query(None, description="Filter by job ID"),
     metric_type: Optional[str] = Query(
         None,
@@ -109,8 +109,6 @@ async def get_resource_metrics(
     limit: int = Query(100, ge=1, le=1000,
                        description="Maximum number of records"),
     offset: int = Query(0, ge=0, description="Number of records to skip"),
-    current_user: dict = Depends(get_current_user),
-    service: MetricsService = Depends(get_metrics_service)
 ) -> List[ResourceMetricResponse]:
     """
     Get resource usage metrics.
@@ -144,11 +142,11 @@ async def get_resource_metrics(
     status_code=status.HTTP_201_CREATED
 )
 async def collect_resource_metrics(
+    service: MetricsServiceDep,
+    current_user: CurrentUser,
     job_id: Optional[int] = Query(
         None, description="Associate metrics with job ID"),
     hostname: Optional[str] = Query(None, description="Hostname for metrics"),
-    service: MetricsService = Depends(get_metrics_service),
-    current_user: dict = Depends(get_current_user)
 ) -> List[ResourceMetricResponse]:
     """
     Collect current system resource metrics.
@@ -179,6 +177,8 @@ async def collect_resource_metrics(
     description="Retrieve task queue depth and status metrics"
 )
 async def get_queue_metrics(
+    service: MetricsServiceDep,
+    current_user: CurrentUser,
     queue_name: Optional[str] = Query(
         None, description="Filter by queue name"),
     start_time: Optional[datetime] = Query(
@@ -188,8 +188,6 @@ async def get_queue_metrics(
     limit: int = Query(100, ge=1, le=1000,
                        description="Maximum number of records"),
     offset: int = Query(0, ge=0, description="Number of records to skip"),
-    current_user: dict = Depends(get_current_user),
-    service: MetricsService = Depends(get_metrics_service)
 ) -> List[QueueMetricResponse]:
     """
     Get queue depth and status metrics.
@@ -221,8 +219,8 @@ async def get_queue_metrics(
 )
 async def get_latest_queue_status(
     queue_name: str,
-    service: MetricsService = Depends(get_metrics_service),
-    current_user: dict = Depends(get_current_user)
+    service: MetricsServiceDep,
+    current_user: CurrentUser,
 ) -> QueueMetricResponse:
     """
     Get the latest status for a specific queue.
@@ -258,6 +256,8 @@ async def get_latest_queue_status(
     description="Retrieve comprehensive metrics summary with aggregated statistics"
 )
 async def get_metrics_summary(
+    service: MetricsServiceDep,
+    current_user: CurrentUser,
     start_time: Optional[datetime] = Query(
         None,
         description="Start of time range (ISO 8601). Defaults to 24 hours ago"
@@ -266,49 +266,27 @@ async def get_metrics_summary(
         None,
         description="End of time range (ISO 8601). Defaults to now"
     ),
-    service: MetricsService = Depends(get_metrics_service),
-    current_user: dict = Depends(get_current_user)
 ) -> MetricsSummary:
     """
     Get comprehensive metrics summary.
 
     Returns aggregated statistics for processing performance, resource usage,
     and queue status over the specified time range. Defaults to last 24 hours.
-
-    Includes:
-    - Processing statistics by operation type
-    - Average resource usage (CPU, memory, disk, network)
-    - Queue depth and worker statistics
-    - Overall job success rates
     """
     try:
-        # Default to last 24 hours if not specified
+        # Default to last 24 hours if no time range specified
+        if not start_time:
+            start_time = datetime.utcnow() - timedelta(hours=24)
         if not end_time:
             end_time = datetime.utcnow()
-        if not start_time:
-            start_time = end_time - timedelta(days=1)
 
-        # Validate time range
-        if start_time >= end_time:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="start_time must be before end_time"
-            )
-
-        # Limit time range to 30 days
-        max_range = timedelta(days=30)
-        if (end_time - start_time) > max_range:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Time range cannot exceed 30 days"
-            )
-
-        summary = await service.get_metrics_summary(start_time, end_time)
+        summary = await service.get_metrics_summary(
+            start_time=start_time,
+            end_time=end_time
+        )
         return summary
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate metrics summary: {str(e)}"
+            detail=f"Failed to retrieve metrics summary: {str(e)}"
         )
