@@ -105,8 +105,8 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    // Redirect to welcome if onboarding not completed
-    if (profile && !profile.onboarding_completed) {
+    // Redirect to welcome if profile is missing or onboarding not completed
+    if (!profile || !profile.onboarding_completed) {
       return NextResponse.redirect(new URL('/welcome', request.url))
     }
   }

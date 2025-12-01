@@ -1,5 +1,5 @@
-import {createClient} from '@/lib/supabase/client'
-import type {DatasetConfig, TestResult} from '@/app/welcome/welcome-flow'
+import { createClient } from '@/lib/supabase/client'
+import type { DatasetConfig, TestResult } from '@/app/welcome/welcome-flow'
 
 export class OnboardingService {
   private supabase = createClient()
@@ -71,7 +71,7 @@ export class OnboardingService {
       // Generate a mock job ID
       const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 
-      return {jobId}
+      return { jobId }
     } catch (error) {
       throw new Error('Failed to create dataset job')
     }
@@ -79,7 +79,7 @@ export class OnboardingService {
 
   // Mark onboarding as completed
   async completeOnboarding(): Promise<void> {
-    const {data: {user}} = await this.supabase.auth.getUser()
+    const { data: { user } } = await this.supabase.auth.getUser()
 
     if (!user) {
       // In development with dev_bypass, skip database update
@@ -90,28 +90,31 @@ export class OnboardingService {
       throw new Error('User not authenticated')
     }
 
-    const {error} = await this.supabase
+    const { error } = await this.supabase
       .from('profiles')
-      .update({
+      .upsert({
+        id: user.id,
+        email: user.email!,
         onboarding_completed: true,
-        onboarding_completed_at: new Date().toISOString()
+        onboarding_completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
-      .eq('id', user.id)
 
     if (error) {
+      console.error('Error updating onboarding status:', error)
       throw new Error('Failed to update onboarding status')
     }
   }
 
   // Check if user has completed onboarding
   async hasCompletedOnboarding(): Promise<boolean> {
-    const {data: {user}} = await this.supabase.auth.getUser()
+    const { data: { user } } = await this.supabase.auth.getUser()
 
     if (!user) {
       return false
     }
 
-    const {data, error} = await this.supabase
+    const { data, error } = await this.supabase
       .from('profiles')
       .select('onboarding_completed')
       .eq('id', user.id)
