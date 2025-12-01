@@ -156,11 +156,22 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "--cov=backend",
+    "--cov=builder",
+    "--cov=utility",
+    "--cov=celery_core",
+    "--cov=validator",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
 ]
-testpaths = ["tests", "backend/tests", "builder/tests"]
+testpaths = [
+    "tests",
+    "backend/tests",
+    "builder/tests",
+    "utility/tests",
+    "celery_core/tests",
+    "validator/tests",
+]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
@@ -169,7 +180,7 @@ markers = [
 
 # Coverage configuration
 [tool.coverage.run]
-source = ["backend"]
+source = ["backend", "builder", "utility", "celery_core", "validator"]
 omit = [
     "*/tests/*",
     "*/test_*.py",
