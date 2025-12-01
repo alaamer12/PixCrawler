@@ -256,42 +256,28 @@ const usePaymentDetails = (sessionId: string | null, isDevMode: boolean) => {
     setError('')
 
     try {
-      const response = await fetch(`/api/stripe/session/${sessionId}`)
+      const response = await fetch(`/api/payments/order/${sessionId}`)
 
       if (!response.ok) {
         throw new Error('Failed to fetch payment details')
       }
 
       const order = await response.json()
+      
       // Handle Lemon Squeezy Order structure
-      // order is { id, type, attributes: { ... } }
       const attributes = order.attributes || {}
-      const customData = order.meta?.custom_data || attributes.urls?.receipt // Fallback or check where custom data is
-      // Actually Lemon Squeezy custom data is usually in meta.custom_data in webhooks, but in API response?
-      // It might be in attributes.order_number or we might need to look at relationships.
-      // Let's assume we passed planId in custom data.
-      // In PaymentService.createCheckoutSession, we passed checkoutData.custom.
-      // This should be available in the order.
-
-      // Lemon Squeezy API: Order object has 'attributes'
-      // attributes.total (cents)
-      // attributes.currency
-      // attributes.status
-      // attributes.first_order_item.variant_name
-
-      // We might not get custom data easily in the order object without including it?
-      // But we can try to infer plan from the variant ID or name.
-
-      const planId = attributes.first_order_item?.variant_id // We might need to map this back to plan
-      // Or we can just use the plan name from the order item
-      const planName = attributes.first_order_item?.variant_name || 'Unknown Plan'
-
-      // If we really need planId for credits, we might need to fetch it or map it.
-      // For now let's try to find it in the plan list by variant ID if possible, or just use the name.
-      // We can iterate PRICING_PLANS to find the matching variant ID.
-      // But we don't have access to PRICING_PLANS here easily without importing.
-      // We imported getPlanById. We can export getPlanByVariantId from plans.ts?
-      // Or just rely on what we have.
+      const customData = attributes.first_order_item?.product?.custom_data || {}
+      
+      // Get plan details from custom data
+      const planId = customData.planId
+      const planName = attributes.first_order_item?.variant_name || customData.planName || 'Unknown Plan'
+      
+      // Get plan to retrieve credits
+      let credits = 0
+      if (planId) {
+        const plan = getPlanById(planId)
+        credits = plan?.credits || 0
+      }
 
       setPaymentDetails({
         sessionId: order.id,
@@ -299,14 +285,9 @@ const usePaymentDetails = (sessionId: string | null, isDevMode: boolean) => {
         amount: attributes.total / 100,
         currency: attributes.currency,
         status: attributes.status,
-        credits: 0, // We might not know credits here without planId
-        isSubscription: attributes.status === 'paid' || attributes.status === 'active', // Simplified
+        credits: credits,
+        isSubscription: !!attributes.first_subscription_item,
       })
-
-      // If we can get the planId from somewhere, we can get credits.
-      // Let's try to get it from custom data if available.
-      // In the API response for getOrder, we might not have custom data unless we requested it?
-      // Lemon Squeezy stores custom data in the order.
 
     } catch (err) {
       setError('Failed to load payment details. Please try again.')
@@ -326,8 +307,8 @@ const usePaymentDetails = (sessionId: string | null, isDevMode: boolean) => {
 // Main Component
 export const PaymentSuccess = () => {
   const searchParams = useSearchParams()
-  // Support both session_id (Stripe legacy) and order_id (Lemon Squeezy)
-  const sessionId = searchParams.get('session_id') || searchParams.get('order_id')
+  // Get order_id from Lemon Squeezy
+  const sessionId = searchParams.get('order_id')
   const isDevMode = process.env.NODE_ENV === 'development' && searchParams.get('dev_bypass') === 'true'
   const { paymentDetails, isLoading, error, retry } = usePaymentDetails(sessionId, isDevMode)
 

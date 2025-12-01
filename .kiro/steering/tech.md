@@ -54,7 +54,7 @@
 - **Data Visualization**: Recharts 3.3+ for charts and graphs
 - **Validation**: Zod 3.24+ for schema validation
 - **State Management**: React hooks, Tanstack React Table 8.21+
-- **Payments**: Stripe (@stripe/stripe-js 8.0+, stripe 19.1+) - planned
+- **Payments**: Lemon Squeezy (@lemonsqueezy/lemonsqueezy.js 4.0+) for payment processing
 - **Email**: Resend 4.0+ for transactional emails (contact forms)
 - **Progress**: @bprogress/next for loading indicators
 - **Notifications**: Sonner 2.0+ for toast notifications

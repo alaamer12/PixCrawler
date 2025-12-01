@@ -141,8 +141,8 @@ export function BillingPage({user, isDevMode}: BillingPageProps) {
   }
 
   const handleManageSubscription = () => {
-    // TODO: Redirect to Lemon Squeezy customer portal (migrated from Stripe)
-    console.log('Manage subscription')
+    // Redirect to Lemon Squeezy customer portal
+    window.open('https://app.lemonsqueezy.com/my-orders', '_blank')
   }
 
   return (

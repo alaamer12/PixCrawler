@@ -39,7 +39,7 @@ export const PricingGrid = memo(({
 
     setIsLoading(true)
     try {
-      const response = await fetch('/api/stripe/create-checkout-session', {
+      const response = await fetch('/api/payments/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

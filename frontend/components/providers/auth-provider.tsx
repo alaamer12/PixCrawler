@@ -13,7 +13,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+function AuthProviderContent({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null)
     const [loading, setLoading] = useState(true)
     const router = useRouter()
@@ -80,6 +80,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <AuthContext.Provider value={{ user, loading, signOut, updateUser }}>
             {children}
         </AuthContext.Provider>
+    )
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+    return (
+        <React.Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+        }>
+            <AuthProviderContent>{children}</AuthProviderContent>
+        </React.Suspense>
     )
 }
 

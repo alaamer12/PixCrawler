@@ -135,11 +135,11 @@ async def get_credit_balance(
                                 "account_id": "123e4567-e89b-12d3-a456-426614174000",
                                 "user_id": "123e4567-e89b-12d3-a456-426614174000",
                                 "type": "purchase",
-                                "description": "Credit purchase via Stripe",
+                                "description": "Credit purchase via Lemon Squeezy",
                                 "amount": 500,
                                 "balance_after": 1500,
                                 "status": "completed",
-                                "metadata": {"stripe_payment_id": "pi_123"},
+                                "metadata": {"lemonsqueezy_order_id": "order_123"},
                                 "created_at": "2024-01-27T10:00:00Z",
                                 "is_credit": True,
                                 "is_debit": False
@@ -223,7 +223,7 @@ async def get_credit_transactions(
     response_model=CreditTransactionResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Purchase Credits",
-    description="Purchase credits via payment integration (Stripe). This endpoint creates a transaction record.",
+    description="Purchase credits via payment integration (Lemon Squeezy). This endpoint creates a transaction record.",
     response_description="Created transaction record",
     operation_id="purchaseCredits",
     responses={

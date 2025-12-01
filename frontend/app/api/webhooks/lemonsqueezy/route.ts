@@ -3,6 +3,10 @@ import { cookies, headers } from 'next/headers'
 import { PaymentService } from '@/lib/payments/service'
 import { createServerClient } from '@supabase/ssr'
 
+/**
+ * Lemon Squeezy Webhook Handler
+ * Handles payment events from Lemon Squeezy
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text()
