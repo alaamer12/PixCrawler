@@ -198,8 +198,7 @@ export abstract class BaseService {
                 data: null,
                 error: new ServiceError(
                     error.message,
-                    undefined,
-                    error
+                    undefined
                 )
             }
         }
@@ -208,8 +207,7 @@ export abstract class BaseService {
             data: null,
             error: new ServiceError(
                 'An unknown error occurred',
-                undefined,
-                error
+                undefined
             )
         }
     }

@@ -1,4 +1,4 @@
-import {PaymentSuccess} from '@/components/stripe'
+import {PaymentSuccess} from '@/components/payments'
 
 export default function PaymentSuccessPage() {
   return <PaymentSuccess/>

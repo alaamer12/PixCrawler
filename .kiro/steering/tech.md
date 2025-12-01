@@ -54,7 +54,7 @@
 - **Data Visualization**: Recharts 3.3+ for charts and graphs
 - **Validation**: Zod 3.24+ for schema validation
 - **State Management**: React hooks, Tanstack React Table 8.21+
-- **Payments**: Stripe (@stripe/stripe-js 8.0+, stripe 19.1+) - planned
+- **Payments**: Lemon Squeezy (@lemonsqueezy/lemonsqueezy.js 4.0+) for payment processing
 - **Email**: Resend 4.0+ for transactional emails (contact forms)
 - **Progress**: @bprogress/next for loading indicators
 - **Notifications**: Sonner 2.0+ for toast notifications
@@ -223,10 +223,10 @@ NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx  # Frontend uses anon key + RLS
 POSTGRES_URL=postgresql://xxx
 
-# Optional (for Stripe)
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_xxx
-STRIPE_SECRET_KEY=sk_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
+# Optional (for Lemon Squeezy)
+LEMONSQUEEZY_API_KEY=your_api_key
+LEMONSQUEEZY_STORE_ID=your_store_id
+LEMONSQUEEZY_WEBHOOK_SECRET=your_webhook_secret
 
 # Optional (for Resend email)
 RESEND_API_KEY=re_xxx

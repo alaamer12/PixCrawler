@@ -109,8 +109,8 @@ export default function NotificationDetailPage() {
   const Icon = notification.icon
     ? iconMap[notification.icon] || Bell
     : Bell
-  const colorClass = notification.iconColor
-    ? colorMap[notification.iconColor] || colorMap.blue
+  const colorClass = notification.color
+    ? colorMap[notification.color] || colorMap.blue
     : colorMap.blue
 
   return (
@@ -161,12 +161,12 @@ export default function NotificationDetailPage() {
           <div>
             <h3 className="font-semibold mb-2">Message</h3>
             <p className="text-muted-foreground leading-relaxed">
-              {String(notification.message)}
+              {notification.message as string}
             </p>
           </div>
 
           {/* Metadata */}
-          {notification.metadata && (
+          {!!notification.metadata && (
             <div>
               <h3 className="font-semibold mb-2">Additional Information</h3>
               <div className="bg-muted p-4 rounded-lg">

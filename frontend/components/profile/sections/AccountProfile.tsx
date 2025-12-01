@@ -282,7 +282,7 @@ export function AccountProfile() {
 
   // Custom hooks
   const { profile, loading: profileLoading } = useProfile()
-  const { updateProfile, loading: isSaving } = useUpdateProfile()
+  const { updateProfile, loading: isSaving } = useUpdateProfile(user?.id || '')
   const { deleteAccount, loading: isDeleting } = useDeleteAccount()
 
   const [deleteConfirmation, setDeleteConfirmation] = useState('')

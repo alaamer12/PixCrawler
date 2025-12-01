@@ -55,8 +55,7 @@ export class ApiService extends BaseService {
                 const errorData = await response.json().catch(() => ({}))
                 throw new ServiceError(
                     errorData.message || response.statusText,
-                    response.status,
-                    errorData
+                    response.status
                 )
             }
             return response
@@ -73,45 +72,28 @@ export class ApiService extends BaseService {
         const url = `${this.baseUrl}${endpoint}`
         this.logRequest(options.method || 'GET', endpoint, options.body)
 
-        const config = await this.applyRequestInterceptors({
+        const config = {
             ...options,
             headers: {
                 'Content-Type': 'application/json',
                 ...options.headers,
             },
-        })
+        }
 
         const response = await fetch(url, config)
-        const processedResponse = await this.applyResponseInterceptors(response)
-
-        const data = await processedResponse.json()
-        this.logResponse(options.method || 'GET', endpoint, data)
-
-        return data
-    }
-
-    /**
-     * Apply request interceptors (helper for fetch method)
-     */
-    private async applyRequestInterceptors(config: any): Promise<any> {
-        // This is a simplified version - in production you'd want proper interceptor handling
-        return config
-    }
-
-    /**
-     * Apply response interceptors (helper for fetch method)
-     */
-    private async applyResponseInterceptors(response: any): Promise<any> {
-        // This is a simplified version - in production you'd want proper interceptor handling
+        
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
             throw new ServiceError(
                 errorData.message || response.statusText,
-                response.status,
-                errorData
+                response.status
             )
         }
-        return response
+
+        const data = await response.json()
+        this.logResponse(options.method || 'GET', endpoint, data)
+
+        return data
     }
 
     // ============================================================================

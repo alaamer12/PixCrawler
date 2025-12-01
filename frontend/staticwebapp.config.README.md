@@ -160,17 +160,17 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 
 #### Content-Security-Policy (CSP)
 ```
-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co https://api.stripe.com wss://*.supabase.co; frame-src 'self' https://js.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://app.lemonsqueezy.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co https://api.lemonsqueezy.com wss://*.supabase.co; frame-src 'self' https://app.lemonsqueezy.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;
 ```
 
 **Breakdown:**
 - `default-src 'self'`: Only load resources from same origin by default
-- `script-src`: Allow scripts from self, Stripe, CDN (with eval/inline for Next.js)
+- `script-src`: Allow scripts from self, Lemon Squeezy, CDN (with eval/inline for Next.js)
 - `style-src`: Allow styles from self, Google Fonts (with inline for Tailwind)
 - `font-src`: Allow fonts from self, Google Fonts
 - `img-src`: Allow images from self, data URIs, HTTPS, blobs
-- `connect-src`: Allow connections to self, Supabase, Stripe
-- `frame-src`: Allow iframes from self, Stripe
+- `connect-src`: Allow connections to self, Supabase, Lemon Squeezy
+- `frame-src`: Allow iframes from self, Lemon Squeezy
 - `object-src 'none'`: Disallow plugins (Flash, etc.)
 - `base-uri 'self'`: Restrict base tag to same origin
 - `form-action 'self'`: Forms can only submit to same origin
@@ -235,9 +235,9 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-production-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_production_supabase_anon_key
 NEXT_PUBLIC_API_URL=https://pixcrawler-api.azurewebsites.net
 NEXT_PUBLIC_APP_URL=https://pixcrawler.io
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+LEMONSQUEEZY_API_KEY=your_api_key
+LEMONSQUEEZY_STORE_ID=your_store_id
+LEMONSQUEEZY_WEBHOOK_SECRET=your_webhook_secret
 RESEND_API_KEY=re_...
 CONTACT_EMAIL=contact@pixcrawler.io
 FROM_EMAIL=noreply@pixcrawler.io

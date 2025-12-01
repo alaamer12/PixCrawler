@@ -35,7 +35,7 @@ Backend Level (backend/.env)
 Frontend Level (frontend/.env)
 ├── Supabase client settings
 ├── API endpoints
-├── Stripe integration (optional)
+├── Lemon Squeezy integration (optional)
 ├── Resend email (optional)
 └── Application URLs
 ```
@@ -546,44 +546,46 @@ POSTGRES_URL=postgresql://postgres:password@db.your-project.supabase.co:5432/pos
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-### Stripe Integration (Optional)
+### Lemon Squeezy Integration (Optional)
 
 ```bash
 # =============================================================================
-# STRIPE PAYMENT INTEGRATION (Optional)
+# LEMON SQUEEZY PAYMENT INTEGRATION (Optional)
 # =============================================================================
 
-# Stripe publishable key (Public)
-# - Purpose: Client-side Stripe initialization
-# - Valid values: pk_test_* (test), pk_live_* (production)
-# - Default: None
-# - Required: No (only if using payments)
-# - Security: Safe to expose (public key)
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-
-# Stripe secret key (Server-side only)
-# - Purpose: Server-side Stripe API calls
-# - Valid values: sk_test_* (test), sk_live_* (production)
+# Lemon Squeezy API key (Server-side only)
+# - Purpose: Server-side Lemon Squeezy API calls
+# - Valid values: API key from Lemon Squeezy dashboard
 # - Default: None
 # - Required: No (only if using payments)
 # - Security: NEVER expose in client-side code
-STRIPE_SECRET_KEY=sk_test_...
+LEMONSQUEEZY_API_KEY=your_api_key
 
-# Stripe webhook secret
-# - Purpose: Verify webhook signatures
-# - Valid values: whsec_*
-# - Default: None
-# - Required: No (only if using webhooks)
-STRIPE_WEBHOOK_SECRET=whsec_...
-
-# Stripe price IDs
-# - Purpose: Product pricing configuration
-# - Valid values: price_* IDs from Stripe Dashboard
+# Lemon Squeezy Store ID
+# - Purpose: Identify your store
+# - Valid values: Store ID from Lemon Squeezy dashboard
 # - Default: None
 # - Required: No (only if using payments)
-STRIPE_FREE_PRICE_ID=price_...
-STRIPE_PRO_PRICE_ID=price_...
-STRIPE_ENTERPRISE_PRICE_ID=price_...
+LEMONSQUEEZY_STORE_ID=your_store_id
+
+# Lemon Squeezy webhook secret
+# - Purpose: Verify webhook signatures
+# - Valid values: Webhook secret from Lemon Squeezy dashboard
+# - Default: None
+# - Required: No (only if using webhooks)
+LEMONSQUEEZY_WEBHOOK_SECRET=your_webhook_secret
+
+# Lemon Squeezy variant IDs
+# - Purpose: Product variant configuration
+# - Valid values: Variant IDs from Lemon Squeezy Dashboard
+# - Default: None
+# - Required: No (only if using payments)
+LEMONSQUEEZY_HOBBY_VARIANT_ID=variant_id
+LEMONSQUEEZY_PRO_VARIANT_ID=variant_id
+LEMONSQUEEZY_PAYG_VARIANT_ID=variant_id
+LEMONSQUEEZY_CREDITS_1000_VARIANT_ID=variant_id
+LEMONSQUEEZY_CREDITS_5000_VARIANT_ID=variant_id
+LEMONSQUEEZY_CREDITS_10000_VARIANT_ID=variant_id
 ```
 
 ### Resend Email Configuration (Optional)
@@ -794,10 +796,10 @@ NEXT_PUBLIC_API_URL=https://api.pixcrawler.com
 NEXT_PUBLIC_APP_URL=https://pixcrawler.com
 NODE_ENV=production
 
-# Optional: Stripe
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+# Optional: Lemon Squeezy
+LEMONSQUEEZY_API_KEY=your_api_key
+LEMONSQUEEZY_STORE_ID=your_store_id
+LEMONSQUEEZY_WEBHOOK_SECRET=your_webhook_secret
 
 # Optional: Resend
 RESEND_API_KEY=re_...

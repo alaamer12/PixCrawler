@@ -590,8 +590,8 @@ Content-Type: application/json
 
 {
   "amount": 1000,
-  "payment_method": "stripe",
-  "payment_token": "tok_visa"
+  "payment_method": "lemonsqueezy",
+  "payment_token": "order_123"
 }
 ```
 

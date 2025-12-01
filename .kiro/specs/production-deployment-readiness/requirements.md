@@ -52,7 +52,7 @@ The system must support both development and production environments with clear 
 2. WHEN frontend configuration is defined THEN it SHALL include settings for:
    - Supabase (URL, anon key)
    - Database (PostgreSQL connection URL)
-   - Stripe (publishable key, secret key, webhook secret, price IDs)
+   - Lemon Squeezy (API key, store ID, webhook secret, variant IDs)
    - Resend (API key, contact email, from email)
    - Application (public URL, environment)
 3. WHEN the frontend `.env.example` or `.env.example.production` files are provided THEN they SHALL be comprehensively documented with detailed comments

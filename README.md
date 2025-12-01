@@ -240,7 +240,7 @@ PixCrawler uses a three-tier configuration system:
 3. **Frontend Level** (`frontend/.env`) - Frontend-specific configuration
    - Supabase client settings (URL, anon key)
    - API endpoint URLs
-   - Stripe integration (optional)
+   - Lemon Squeezy integration (optional)
    - Resend email service (optional)
    - Application URLs
 
@@ -328,7 +328,7 @@ bun run db:studio
    - Use values from `frontend/.env.example.production`
    - Set Supabase URL and anon key
    - Configure API URL to point to backend
-   - Add Stripe keys (if using payments)
+   - Add Lemon Squeezy keys (if using payments)
    - Add Resend API key (if using email)
 
 3. **Deploy**

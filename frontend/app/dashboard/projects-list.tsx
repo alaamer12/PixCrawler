@@ -2,7 +2,11 @@
 
 import { useState } from 'react'
 import { useProjects, useCreateProject } from '@/lib/hooks'
+import { useBatchProjects } from '@/lib/hooks/useBatchProjects'
 import { Project } from '@/lib/db/schema'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Button } from '@/components/ui/button'
+import { Trash2 } from 'lucide-react'
 
 interface ProjectsListProps {
   userId: string
@@ -12,11 +16,13 @@ export function ProjectsList({ userId }: ProjectsListProps) {
   // Use custom hooks for data operations
   const { projects, loading, refetch } = useProjects(userId)
   const { createProject: createProjectMutation, loading: creating } = useCreateProject(userId)
+  const { deleteProjects, loading: deleting } = useBatchProjects()
 
   // UI state
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [newProjectDescription, setNewProjectDescription] = useState('')
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
 
   const createProject = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,6 +42,22 @@ export function ProjectsList({ userId }: ProjectsListProps) {
     }
   }
 
+  const toggleSelection = (id: number) => {
+    setSelectedIds(prev =>
+      prev.includes(id)
+        ? prev.filter(pId => pId !== id)
+        : [...prev, id]
+    )
+  }
+
+  const handleBatchDelete = async () => {
+    if (confirm(`Are you sure you want to delete ${selectedIds.length} projects?`)) {
+      await deleteProjects(selectedIds)
+      setSelectedIds([])
+      await refetch()
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -47,7 +69,21 @@ export function ProjectsList({ userId }: ProjectsListProps) {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-medium text-gray-900">Your Projects</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-lg font-medium text-gray-900">Your Projects</h2>
+          {selectedIds.length > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBatchDelete}
+              disabled={deleting}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete ({selectedIds.length})
+            </Button>
+          )}
+        </div>
         <button
           onClick={() => setShowCreateForm(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
@@ -121,8 +157,23 @@ export function ProjectsList({ userId }: ProjectsListProps) {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
-            <div key={project.id} className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">{project.name}</h3>
+            <div key={project.id} className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow relative group">
+              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Checkbox
+                  checked={selectedIds.includes(project.id)}
+                  onCheckedChange={() => toggleSelection(project.id)}
+                />
+              </div>
+              {selectedIds.includes(project.id) && (
+                <div className="absolute top-4 right-4 opacity-100">
+                  <Checkbox
+                    checked={true}
+                    onCheckedChange={() => toggleSelection(project.id)}
+                  />
+                </div>
+              )}
+
+              <h3 className="text-lg font-medium text-gray-900 mb-2 pr-8">{project.name}</h3>
               {project.description && (
                 <p className="text-gray-600 text-sm mb-4">{project.description}</p>
               )}

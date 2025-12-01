@@ -208,7 +208,7 @@ class CreditTransactionBase(BaseModel):
         min_length=1,
         max_length=1000,
         description="Transaction description",
-        examples=["Credit purchase via Stripe", "Image processing usage"],
+        examples=["Credit purchase via Lemon Squeezy", "Image processing usage"],
     )
     
     amount: int = Field(
@@ -220,7 +220,7 @@ class CreditTransactionBase(BaseModel):
         default=None,
         alias="metadata",
         description="Additional transaction data",
-        examples=[{"stripe_payment_id": "pi_123", "invoice_id": "inv_456"}],
+        examples=[{"lemonsqueezy_order_id": "order_123", "invoice_id": "inv_456"}],
     )
 
 
@@ -271,11 +271,11 @@ class CreditTransactionListResponse(BaseModel):
             "account_id": "123e4567-e89b-12d3-a456-426614174000",
             "user_id": "123e4567-e89b-12d3-a456-426614174000",
             "type": "purchase",
-            "description": "Credit purchase via Stripe",
+            "description": "Credit purchase via Lemon Squeezy",
             "amount": 500,
             "balance_after": 1500,
             "status": "completed",
-            "metadata": {"stripe_payment_id": "pi_123"},
+            "metadata": {"lemonsqueezy_order_id": "order_123"},
             "created_at": "2024-01-27T10:00:00Z"
         }]]
     )

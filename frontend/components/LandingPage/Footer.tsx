@@ -137,7 +137,7 @@ export const Footer = memo(() => {
 
         <div className="border-t border-border pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-foreground/60">
-            © 2025 PixCrawler. All rights reserved.
+            © {new Date().getFullYear()} PixCrawler. All rights reserved.
           </p>
           <SocialLinks />
         </div>

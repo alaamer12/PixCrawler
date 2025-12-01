@@ -15,6 +15,7 @@ export interface Profile {
     email: string
     fullName: string | null
     avatarUrl: string | null
+    role: string
     onboardingCompleted: boolean
     createdAt: Date
     updatedAt: Date
@@ -67,8 +68,7 @@ export class SupabaseService extends BaseService {
             if (error) {
                 throw new ServiceError(
                     `Failed to fetch profile: ${error.message}`,
-                    error.code === 'PGRST116' ? 404 : 500,
-                    error
+                    error.code === 'PGRST116' ? 404 : 500
                 )
             }
 
@@ -79,6 +79,7 @@ export class SupabaseService extends BaseService {
                 email: data.email,
                 fullName: data.full_name,
                 avatarUrl: data.avatar_url,
+                role: data.role,
                 onboardingCompleted: data.onboarding_completed,
                 createdAt: new Date(data.created_at),
                 updatedAt: new Date(data.updated_at),
@@ -114,8 +115,7 @@ export class SupabaseService extends BaseService {
             if (error) {
                 throw new ServiceError(
                     `Failed to update profile: ${error.message}`,
-                    500,
-                    error
+                    500
                 )
             }
 
@@ -126,6 +126,7 @@ export class SupabaseService extends BaseService {
                 email: data.email,
                 fullName: data.full_name,
                 avatarUrl: data.avatar_url,
+                role: data.role,
                 onboardingCompleted: data.onboarding_completed,
                 createdAt: new Date(data.created_at),
                 updatedAt: new Date(data.updated_at),
@@ -153,8 +154,7 @@ export class SupabaseService extends BaseService {
             if (error) {
                 throw new ServiceError(
                     `Failed to fetch projects: ${error.message}`,
-                    500,
-                    error
+                    500
                 )
             }
 
@@ -180,8 +180,7 @@ export class SupabaseService extends BaseService {
             if (error) {
                 throw new ServiceError(
                     `Failed to fetch project: ${error.message}`,
-                    error.code === 'PGRST116' ? 404 : 500,
-                    error
+                    error.code === 'PGRST116' ? 404 : 500
                 )
             }
 
@@ -213,8 +212,7 @@ export class SupabaseService extends BaseService {
             if (error) {
                 throw new ServiceError(
                     `Failed to create project: ${error.message}`,
-                    500,
-                    error
+                    500
                 )
             }
 
@@ -244,8 +242,7 @@ export class SupabaseService extends BaseService {
             if (error) {
                 throw new ServiceError(
                     `Failed to update project: ${error.message}`,
-                    500,
-                    error
+                    500
                 )
             }
 
@@ -270,8 +267,7 @@ export class SupabaseService extends BaseService {
             if (error) {
                 throw new ServiceError(
                     `Failed to delete project: ${error.message}`,
-                    500,
-                    error
+                    500
                 )
             }
 
