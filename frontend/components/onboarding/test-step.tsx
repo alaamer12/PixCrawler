@@ -9,7 +9,7 @@ import type {DatasetConfig, TestResult} from '@/app/welcome/welcome-flow'
 interface TestStepProps {
   config: DatasetConfig
   testResult: TestResult | null
-  onTestComplete: (result: TestResult) => void
+  onTestComplete: (result: TestResult | null) => void
   onNext: () => void
   onBack: () => void
 }

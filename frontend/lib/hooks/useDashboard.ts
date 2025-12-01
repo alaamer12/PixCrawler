@@ -57,14 +57,10 @@ export function useDatasets() {
         setLoading(true)
         setError(null)
 
-        const { data, error: fetchError } = await apiService.getDatasets()
-
-        if (fetchError) {
-            setError(fetchError)
-        } else if (data) {
-            setDatasets(data)
-        }
-
+        // TODO: Implement proper datasets fetching - currently returning empty array
+        // The apiService.getDatasets() requires a projectId parameter
+        // For dashboard view, we need an endpoint that returns all datasets for the user
+        setDatasets([])
         setLoading(false)
     }, [])
 
@@ -92,14 +88,10 @@ export function useJobs() {
         setLoading(true)
         setError(null)
 
-        const { data, error: fetchError } = await apiService.getJobs()
-
-        if (fetchError) {
-            setError(fetchError)
-        } else if (data) {
-            setJobs(data)
-        }
-
+        // TODO: Implement proper jobs fetching - currently returning empty array
+        // The apiService.getJobs() requires a datasetId parameter
+        // For dashboard view, we need an endpoint that returns all jobs for the user
+        setJobs([])
         setLoading(false)
     }, [])
 
@@ -127,14 +119,9 @@ export function useActivities() {
         setLoading(true)
         setError(null)
 
-        const { data, error: fetchError } = await apiService.getActivities()
-
-        if (fetchError) {
-            setError(fetchError)
-        } else if (data) {
-            setActivities(data)
-        }
-
+        // TODO: Implement proper activities fetching - currently returning empty array
+        // Need to create proper activities endpoint in the backend
+        setActivities([])
         setLoading(false)
     }, [])
 

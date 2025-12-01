@@ -1,7 +1,9 @@
 import {NextRequest, NextResponse} from 'next/server'
 import {Resend} from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Initialize Resend with API key or empty string for build time
+// TODO: Do it with catious because this can be buggy
+const resend = new Resend(process.env.RESEND_API_KEY || '')
 
 interface ContactFormData {
   name: string

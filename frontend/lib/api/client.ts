@@ -78,6 +78,13 @@ class ApiClient {
     })
   }
 
+  patch<T>(endpoint: string, body?: any) {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    })
+  }
+
   delete<T>(endpoint: string, body?: any) {
     return this.request<T>(endpoint, {
       method: 'DELETE',

@@ -102,9 +102,9 @@ export function useUpdateProfile(userId: string): UseUpdateProfileResult {
                 updateUser({
                     email: response.data.email,
                     profile: {
-                        fullName: response.data.fullName,
-                        avatarUrl: response.data.avatarUrl,
-                        email: response.data.email,
+                        ...response.data,
+                        fullName: response.data.fullName ?? undefined,
+                        avatarUrl: response.data.avatarUrl ?? undefined,
                     },
                 })
             }

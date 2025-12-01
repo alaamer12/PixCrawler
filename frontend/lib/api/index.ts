@@ -3,7 +3,7 @@
  * Provides type-safe API methods for all backend endpoints
  */
 
-import { apiClient, ApiError } from './client'
+import { apiClient } from './client'
 import type { Project, CrawlJob, Notification } from '@/lib/db/schema'
 
 /**
@@ -99,6 +99,6 @@ export const notificationsApi = {
 }
 
 /**
- * Export API client and error class
+ * Export API client
  */
-export { apiClient, ApiError }
+export { apiClient }
