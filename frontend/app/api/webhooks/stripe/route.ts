@@ -1,19 +1,19 @@
-import {NextRequest, NextResponse} from 'next/server'
-import {cookies, headers} from 'next/headers'
-import {PaymentService} from '@/lib/payments/service'
-import {createServerClient} from '@supabase/ssr'
-import Stripe from 'stripe'
+import { NextRequest, NextResponse } from 'next/server'
+import { cookies, headers } from 'next/headers'
+import { PaymentService } from '@/lib/payments/service'
+import { createServerClient } from '@supabase/ssr'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text()
-    const headersList = headers()
-    const signature = headersList.get('stripe-signature')
+    const headersList = await headers()
+    const signature = headersList.get('x-signature')
+    const eventName = headersList.get('x-event-name')
 
     if (!signature) {
       return NextResponse.json(
-        {error: 'Missing stripe-signature header'},
-        {status: 400}
+        { error: 'Missing x-signature header' },
+        { status: 400 }
       )
     }
 
@@ -21,152 +21,106 @@ export async function POST(request: NextRequest) {
     const event = PaymentService.verifyWebhookSignature(body, signature)
 
     // Handle the event
-    await handleWebhookEvent(event)
+    await handleWebhookEvent(eventName!, event)
 
-    return NextResponse.json({received: true})
+    return NextResponse.json({ received: true })
 
   } catch (error) {
     console.error('Webhook error:', error)
     return NextResponse.json(
-      {error: 'Webhook handler failed'},
-      {status: 400}
+      { error: 'Webhook handler failed' },
+      { status: 400 }
     )
   }
 }
 
-async function handleWebhookEvent(event: Stripe.Event) {
+async function handleWebhookEvent(eventName: string, event: any) {
+  const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       cookies: {
         get(name: string) {
-          return cookies().get(name)?.value
+          return cookieStore.get(name)?.value
         },
       },
     }
   )
 
-  switch (event.type) {
-    case 'checkout.session.completed':
-      await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session, supabase)
+  switch (eventName) {
+    case 'order_created':
+      await handleOrderCreated(event.data, supabase)
       break
 
-    case 'payment_intent.succeeded':
-      await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent, supabase)
+    case 'subscription_created':
+      await handleSubscriptionCreated(event.data, supabase)
       break
 
-    case 'payment_intent.payment_failed':
-      await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent, supabase)
+    case 'subscription_updated':
+      await handleSubscriptionUpdated(event.data, supabase)
       break
 
-    case 'customer.subscription.created':
-      await handleSubscriptionCreated(event.data.object as Stripe.Subscription, supabase)
+    case 'subscription_cancelled':
+      await handleSubscriptionCancelled(event.data, supabase)
       break
 
-    case 'customer.subscription.updated':
-      await handleSubscriptionUpdated(event.data.object as Stripe.Subscription, supabase)
+    case 'subscription_payment_success':
+      await handleSubscriptionPaymentSuccess(event.data, supabase)
       break
 
-    case 'customer.subscription.deleted':
-      await handleSubscriptionDeleted(event.data.object as Stripe.Subscription, supabase)
-      break
-
-    case 'invoice.payment_succeeded':
-      await handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice, supabase)
-      break
-
-    case 'invoice.payment_failed':
-      await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice, supabase)
+    case 'subscription_payment_failed':
+      await handleSubscriptionPaymentFailed(event.data, supabase)
       break
 
     default:
-      console.log(`Unhandled event type: ${event.type}`)
+      console.log(`Unhandled event type: ${eventName}`)
   }
 }
 
-async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, supabase: any) {
-  const userId = session.metadata?.userId
-  const planId = session.metadata?.planId
+async function handleOrderCreated(order: any, supabase: any) {
+  const customData = order.attributes.first_order_item?.product?.custom_data || {}
+  const userId = customData.userId
+  const planId = customData.planId
 
   if (!userId || !planId) {
-    console.error('Missing userId or planId in session metadata')
+    console.error('Missing userId or planId in order custom data')
     return
   }
 
   try {
     // Record the transaction
     await supabase.from('transactions').insert({
-      id: session.id,
+      id: order.id,
       user_id: userId,
-      stripe_payment_intent_id: session.payment_intent,
-      amount: session.amount_total ? session.amount_total / 100 : 0,
-      currency: session.currency,
-      status: 'succeeded',
+      lemonsqueezy_order_id: order.id,
+      amount: parseFloat(order.attributes.total) / 100,
+      currency: order.attributes.currency,
+      status: order.attributes.status === 'paid' ? 'paid' : 'pending',
       plan_id: planId,
-      metadata: session.metadata,
+      metadata: customData,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
 
-    // If this is a subscription, it will be handled by subscription.created event
-    // If this is a one-time payment, update user credits/plan
-    if (session.mode === 'payment') {
+    // If this is a one-time payment (not subscription), update user credits/plan
+    if (!order.attributes.first_subscription_item) {
       await handleOneTimePayment(userId, planId, supabase)
     }
 
-    console.log(`Checkout session completed for user ${userId}, plan ${planId}`)
+    console.log(`Order created for user ${userId}, plan ${planId}`)
   } catch (error) {
-    console.error('Error handling checkout session completed:', error)
+    console.error('Error handling order created:', error)
   }
 }
 
-async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent, supabase: any) {
-  const userId = paymentIntent.metadata?.userId
-  const planId = paymentIntent.metadata?.planId
+async function handleSubscriptionCreated(subscription: any, supabase: any) {
+  const customData = subscription.attributes.custom_data || {}
+  const userId = customData.userId
+  const planId = customData.planId
 
   if (!userId || !planId) {
-    console.error('Missing userId or planId in payment intent metadata')
-    return
-  }
-
-  try {
-    // Update transaction status
-    await supabase.from('transactions')
-      .update({
-        status: 'succeeded',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('stripe_payment_intent_id', paymentIntent.id)
-
-    console.log(`Payment intent succeeded for user ${userId}, plan ${planId}`)
-  } catch (error) {
-    console.error('Error handling payment intent succeeded:', error)
-  }
-}
-
-async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent, supabase: any) {
-  try {
-    // Update transaction status
-    await supabase.from('transactions')
-      .update({
-        status: 'failed',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('stripe_payment_intent_id', paymentIntent.id)
-
-    console.log(`Payment intent failed: ${paymentIntent.id}`)
-  } catch (error) {
-    console.error('Error handling payment intent failed:', error)
-  }
-}
-
-async function handleSubscriptionCreated(subscription: Stripe.Subscription, supabase: any) {
-  const userId = subscription.metadata?.userId
-  const planId = subscription.metadata?.planId
-
-  if (!userId || !planId) {
-    console.error('Missing userId or planId in subscription metadata')
+    console.error('Missing userId or planId in subscription custom data')
     return
   }
 
@@ -174,23 +128,23 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription, supa
     // Create or update subscription record
     await supabase.from('subscriptions').upsert({
       user_id: userId,
-      stripe_customer_id: subscription.customer,
-      stripe_subscription_id: subscription.id,
-      stripe_price_id: subscription.items.data[0]?.price.id,
+      lemonsqueezy_customer_id: subscription.attributes.customer_id.toString(),
+      lemonsqueezy_subscription_id: subscription.id,
+      lemonsqueezy_variant_id: subscription.attributes.variant_id.toString(),
       plan_id: planId,
-      status: subscription.status,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-      cancel_at_period_end: subscription.cancel_at_period_end,
+      status: subscription.attributes.status,
+      current_period_start: new Date(subscription.attributes.renews_at).toISOString(),
+      current_period_end: new Date(subscription.attributes.ends_at || subscription.attributes.renews_at).toISOString(),
+      cancel_at_period_end: subscription.attributes.cancelled,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
 
     // Update user's plan
-    await supabase.from('user_profiles')
+    await supabase.from('profiles')
       .update({
         current_plan: planId,
-        subscription_status: subscription.status,
+        subscription_status: subscription.attributes.status,
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId)
@@ -201,18 +155,19 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription, supa
   }
 }
 
-async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supabase: any) {
+async function handleSubscriptionUpdated(subscription: any, supabase: any) {
   try {
     // Update subscription record
     await supabase.from('subscriptions')
       .update({
-        status: subscription.status,
-        current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-        cancel_at_period_end: subscription.cancel_at_period_end,
+        status: subscription.attributes.status,
+        current_period_start: new Date(subscription.attributes.renews_at).toISOString(),
+        current_period_end: new Date(subscription.attributes.ends_at || subscription.attributes.renews_at).toISOString(),
+        cancel_at_period_end: subscription.attributes.cancelled,
+        lemonsqueezy_variant_id: subscription.attributes.variant_id.toString(),
         updated_at: new Date().toISOString(),
       })
-      .eq('stripe_subscription_id', subscription.id)
+      .eq('lemonsqueezy_subscription_id', subscription.id)
 
     console.log(`Subscription updated: ${subscription.id}`)
   } catch (error) {
@@ -220,48 +175,62 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription, supa
   }
 }
 
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription, supabase: any) {
+async function handleSubscriptionCancelled(subscription: any, supabase: any) {
   try {
     // Update subscription status
     await supabase.from('subscriptions')
       .update({
-        status: 'canceled',
+        status: 'cancelled',
+        cancel_at_period_end: true,
         updated_at: new Date().toISOString(),
       })
-      .eq('stripe_subscription_id', subscription.id)
+      .eq('lemonsqueezy_subscription_id', subscription.id)
 
     // Update user's plan to free tier
-    const userId = subscription.metadata?.userId
+    const customData = subscription.attributes.custom_data || {}
+    const userId = customData.userId
     if (userId) {
-      await supabase.from('user_profiles')
+      await supabase.from('profiles')
         .update({
           current_plan: 'starter',
-          subscription_status: 'canceled',
+          subscription_status: 'cancelled',
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId)
     }
 
-    console.log(`Subscription deleted: ${subscription.id}`)
+    console.log(`Subscription cancelled: ${subscription.id}`)
   } catch (error) {
-    console.error('Error handling subscription deleted:', error)
+    console.error('Error handling subscription cancelled:', error)
   }
 }
 
-async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice, supabase: any) {
-  console.log(`Invoice payment succeeded: ${invoice.id}`)
+async function handleSubscriptionPaymentSuccess(subscription: any, supabase: any) {
+  console.log(`Subscription payment succeeded: ${subscription.id}`)
   // Handle successful recurring payments here
+  // You might want to update credits or extend access
 }
 
-async function handleInvoicePaymentFailed(invoice: Stripe.Invoice, supabase: any) {
-  console.log(`Invoice payment failed: ${invoice.id}`)
+async function handleSubscriptionPaymentFailed(subscription: any, supabase: any) {
+  console.log(`Subscription payment failed: ${subscription.id}`)
   // Handle failed recurring payments here
   // You might want to notify the user or update their subscription status
+
+  try {
+    await supabase.from('subscriptions')
+      .update({
+        status: 'past_due',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('lemonsqueezy_subscription_id', subscription.id)
+  } catch (error) {
+    console.error('Error handling subscription payment failed:', error)
+  }
 }
 
 async function handleOneTimePayment(userId: string, planId: string, supabase: any) {
   // Handle one-time payments (credit packages)
-  const {getPlanById} = await import('@/lib/payments/plans')
+  const { getPlanById } = await import('@/lib/payments/plans')
   const plan = getPlanById(planId)
 
   if (plan && plan.credits) {

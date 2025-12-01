@@ -1,72 +1,74 @@
-import {PricingPlan} from './types'
+import { PricingPlan } from './types'
 
 // PixCrawler Pricing Plans
 export const PRICING_PLANS: PricingPlan[] = [
   {
-    id: 'starter',
-    name: 'Starter',
-    description: 'Perfect for individuals and small projects',
+    id: 'free',
+    name: 'Free',
+    description: 'Perfect for testing and small experiments',
     price: 0,
     currency: 'usd',
     interval: null,
     features: [
-      '1,000 images per month',
-      '3 datasets',
-      'Basic image sources',
+      '1 dataset',
+      'Max 1,500 images',
+      '7-day data retention',
       'Standard quality',
-      'Email support',
-      'Basic analytics'
+      'Community support'
     ],
-    credits: 1000,
-    maxDatasets: 3,
-    maxImagesPerDataset: 500,
+    credits: 1500,
+    maxDatasets: 1,
+    maxImagesPerDataset: 1500,
+    storage: {
+      retentionDays: 7
+    }
+  },
+  {
+    id: 'hobby',
+    name: 'Hobby',
+    description: 'For serious hobbyists and creators',
+    price: 70,
+    currency: 'usd',
+    interval: 'month',
+    features: [
+      '10 datasets',
+      'Max 50,000 images per dataset',
+      '30-day hot storage',
+      'Cold storage afterwards',
+      'Priority support',
+      'API access'
+    ],
+    popular: true,
+    lemonSqueezyVariantId: process.env.LEMONSQUEEZY_HOBBY_VARIANT_ID,
+    credits: 500000,
+    maxDatasets: 10,
+    maxImagesPerDataset: 50000,
+    storage: {
+      hotStorageDays: 30
+    }
   },
   {
     id: 'pro',
     name: 'Pro',
-    description: 'Ideal for growing businesses and researchers',
-    price: 29,
+    description: 'For professionals and businesses',
+    price: 180,
     currency: 'usd',
     interval: 'month',
     features: [
-      '10,000 images per month',
-      'Unlimited datasets',
-      'All image sources',
-      'High quality images',
-      'Priority support',
-      'Advanced analytics',
-      'API access',
-      'Custom labeling'
-    ],
-    popular: true,
-    stripePriceId: process.env.STRIPE_PRO_PRICE_ID,
-    credits: 10000,
-    maxDatasets: -1, // Unlimited
-    maxImagesPerDataset: 2000,
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    description: 'For large organizations with custom needs',
-    price: 99,
-    currency: 'usd',
-    interval: 'month',
-    features: [
-      '50,000 images per month',
-      'Unlimited datasets',
-      'All premium sources',
-      'Ultra-high quality',
+      '30 datasets',
+      'Max 2,000,000 images per dataset',
+      'Extended hot storage',
       'Dedicated support',
-      'Custom integrations',
-      'Advanced API',
-      'White-label options',
-      'SLA guarantee',
-      'Custom training'
+      'Commercial usage rights',
+      'Early access to features'
     ],
-    stripePriceId: process.env.STRIPE_ENTERPRISE_PRICE_ID,
-    credits: 50000,
-    maxDatasets: -1, // Unlimited
-    maxImagesPerDataset: 10000,
+    lemonSqueezyVariantId: process.env.LEMONSQUEEZY_PRO_VARIANT_ID,
+    credits: 60000000,
+    maxDatasets: 30,
+    maxImagesPerDataset: 2000000,
+    storage: {
+      hotStorageDays: -1 // Indefinite
+    }
   },
   {
     id: 'pay-as-you-go',
@@ -84,7 +86,7 @@ export const PRICING_PLANS: PricingPlan[] = [
       'Basic analytics',
       'API access'
     ],
-    stripePriceId: process.env.STRIPE_PAYG_PRICE_ID,
+    lemonSqueezyVariantId: process.env.LEMONSQUEEZY_PAYG_VARIANT_ID,
     credits: 0, // Credits purchased as needed
     maxDatasets: -1,
     maxImagesPerDataset: 5000,
@@ -105,7 +107,7 @@ export const CREDIT_PACKAGES: PricingPlan[] = [
       'All image sources',
       'High quality images'
     ],
-    stripePriceId: process.env.STRIPE_CREDITS_1000_PRICE_ID,
+    lemonSqueezyVariantId: process.env.LEMONSQUEEZY_CREDITS_1000_VARIANT_ID,
     credits: 1000,
   },
   {
@@ -122,7 +124,7 @@ export const CREDIT_PACKAGES: PricingPlan[] = [
       '20% savings'
     ],
     popular: true,
-    stripePriceId: process.env.STRIPE_CREDITS_5000_PRICE_ID,
+    lemonSqueezyVariantId: process.env.LEMONSQUEEZY_CREDITS_5000_VARIANT_ID,
     credits: 5000,
   },
   {
@@ -138,7 +140,7 @@ export const CREDIT_PACKAGES: PricingPlan[] = [
       'High quality images',
       '30% savings'
     ],
-    stripePriceId: process.env.STRIPE_CREDITS_10000_PRICE_ID,
+    lemonSqueezyVariantId: process.env.LEMONSQUEEZY_CREDITS_10000_VARIANT_ID,
     credits: 10000,
   }
 ]
@@ -148,8 +150,8 @@ export const getPlanById = (planId: string): PricingPlan | undefined => {
   return [...PRICING_PLANS, ...CREDIT_PACKAGES].find(plan => plan.id === planId)
 }
 
-export const getPlanByStripePrice = (stripePriceId: string): PricingPlan | undefined => {
-  return [...PRICING_PLANS, ...CREDIT_PACKAGES].find(plan => plan.stripePriceId === stripePriceId)
+export const getPlanByLemonSqueezyVariant = (lemonSqueezyVariantId: string): PricingPlan | undefined => {
+  return [...PRICING_PLANS, ...CREDIT_PACKAGES].find(plan => plan.lemonSqueezyVariantId === lemonSqueezyVariantId)
 }
 
 export const isSubscriptionPlan = (planId: string): boolean => {

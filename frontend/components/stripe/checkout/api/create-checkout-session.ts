@@ -1,6 +1,5 @@
-import {PaymentService} from '@/lib/payments/service'
-import {createCheckoutSessionSchema} from '@/lib/payments/types'
-import {getPlanById} from '@/lib/payments/plans'
+import { PaymentService } from '@/lib/payments/service'
+import { getPlanById } from '@/lib/payments/plans'
 
 export interface CreateCheckoutSessionRequest {
   planId: string
@@ -11,21 +10,15 @@ export interface CreateCheckoutSessionRequest {
 }
 
 export interface CreateCheckoutSessionResponse {
-  sessionId: string
-  url: string | null
+  checkoutId: string
+  url: string
 }
 
 export class CheckoutSessionAPI {
   static async createSession(
     data: CreateCheckoutSessionRequest
   ): Promise<CreateCheckoutSessionResponse> {
-    // Validate request data
-    const validationResult = createCheckoutSessionSchema.safeParse(data)
-    if (!validationResult.success) {
-      throw new Error(`Invalid request data: ${validationResult.error.errors.map(e => e.message).join(', ')}`)
-    }
-
-    const {planId, userId, successUrl, cancelUrl, metadata} = validationResult.data
+    const { planId, userId, metadata } = data
 
     // Get plan details
     const plan = getPlanById(planId)
@@ -33,17 +26,15 @@ export class CheckoutSessionAPI {
       throw new Error('Invalid plan ID')
     }
 
-    if (!plan.stripePriceId) {
+    if (!plan.lemonSqueezyVariantId) {
       throw new Error('Plan does not support online payments')
     }
 
-    // Create checkout session
-    const session = await PaymentService.createCheckoutSession({
-      priceId: plan.stripePriceId,
+    // Create checkout with Lemon Squeezy
+    const checkout = await PaymentService.createCheckoutSession({
+      priceId: plan.lemonSqueezyVariantId,
       userId,
       planId,
-      successUrl: successUrl || `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancelUrl: cancelUrl || `${process.env.NEXT_PUBLIC_APP_URL}/payment/cancelled`,
       metadata: {
         planName: plan.name,
         ...metadata,
@@ -51,12 +42,12 @@ export class CheckoutSessionAPI {
     })
 
     return {
-      sessionId: session.id,
-      url: session.url,
+      checkoutId: checkout.data.id,
+      url: checkout.data.attributes.url,
     }
   }
 
-  static async getSession(sessionId: string) {
-    return await PaymentService.getCheckoutSession(sessionId)
+  static async getOrder(orderId: string) {
+    return await PaymentService.getOrder(orderId)
   }
 }

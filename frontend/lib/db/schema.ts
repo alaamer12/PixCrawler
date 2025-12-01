@@ -1,13 +1,13 @@
-import {boolean, integer, jsonb, pgTable, serial, text, timestamp, uuid, varchar, numeric, time, check, index, unique} from 'drizzle-orm/pg-core';
-import {relations} from 'drizzle-orm';
+import { boolean, integer, jsonb, pgTable, serial, text, timestamp, uuid, varchar, numeric, time, check, index, unique } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
 
 // User profiles table (extends Supabase auth.users)
 export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey(), // References auth.users.id
-  email: varchar('email', {length: 255}).notNull().unique(),
-  fullName: varchar('full_name', {length: 100}),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  fullName: varchar('full_name', { length: 100 }),
   avatarUrl: text('avatar_url'),
-  role: varchar('role', {length: 20}).notNull().default('user'),
+  role: varchar('role', { length: 20 }).notNull().default('user'),
   onboardingCompleted: boolean('onboarding_completed').notNull().default(false),
   onboardingCompletedAt: timestamp('onboarding_completed_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -17,12 +17,12 @@ export const profiles = pgTable('profiles', {
 // Projects table for organizing image crawling tasks
 export const projects = pgTable('projects', {
   id: serial('id').primaryKey(),
-  name: varchar('name', {length: 100}).notNull(),
+  name: varchar('name', { length: 100 }).notNull(),
   description: text('description'),
   userId: uuid('user_id')
     .notNull()
     .references(() => profiles.id),
-  status: varchar('status', {length: 20}).notNull().default('active'),
+  status: varchar('status', { length: 20 }).notNull().default('active'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -33,10 +33,10 @@ export const crawlJobs = pgTable('crawl_jobs', {
   projectId: integer('project_id')
     .notNull()
     .references(() => projects.id),
-  name: varchar('name', {length: 100}).notNull(),
+  name: varchar('name', { length: 100 }).notNull(),
   keywords: jsonb('keywords').notNull(), // Array of search keywords
   maxImages: integer('max_images').notNull().default(1000),
-  status: varchar('status', {length: 20}).notNull().default('pending'),
+  status: varchar('status', { length: 20 }).notNull().default('pending'),
   progress: integer('progress').notNull().default(0),
   totalImages: integer('total_images').notNull().default(0),
   downloadedImages: integer('downloaded_images').notNull().default(0),
@@ -60,13 +60,13 @@ export const images = pgTable('images', {
     .notNull()
     .references(() => crawlJobs.id),
   originalUrl: text('original_url').notNull(),
-  filename: varchar('filename', {length: 255}).notNull(),
+  filename: varchar('filename', { length: 255 }).notNull(),
   storageUrl: text('storage_url'), // Supabase Storage URL
   width: integer('width'),
   height: integer('height'),
   fileSize: integer('file_size'),
-  format: varchar('format', {length: 10}),
-  hash: varchar('hash', {length: 64}), // For duplicate detection
+  format: varchar('format', { length: 10 }),
+  hash: varchar('hash', { length: 64 }), // For duplicate detection
   isValid: boolean('is_valid').notNull().default(true),
   isDuplicate: boolean('is_duplicate').notNull().default(false),
   labels: jsonb('labels'), // AI-generated labels
@@ -80,8 +80,8 @@ export const activityLogs = pgTable('activity_logs', {
   id: serial('id').primaryKey(),
   userId: uuid('user_id').references(() => profiles.id),
   action: text('action').notNull(),
-  resourceType: varchar('resource_type', {length: 50}),
-  resourceId: varchar('resource_id', {length: 50}),
+  resourceType: varchar('resource_type', { length: 50 }),
+  resourceId: varchar('resource_id', { length: 50 }),
   metadata: jsonb('metadata'),
   timestamp: timestamp('timestamp').notNull().defaultNow(),
 });
@@ -92,15 +92,15 @@ export const apiKeys = pgTable('api_keys', {
   userId: uuid('user_id')
     .notNull()
     .references(() => profiles.id),
-  name: varchar('name', {length: 200}).notNull(),
-  keyHash: varchar('key_hash', {length: 255}).notNull().unique(),
-  keyPrefix: varchar('key_prefix', {length: 20}).notNull(),
-  status: varchar('status', {length: 20}).notNull().default('active'),
+  name: varchar('name', { length: 200 }).notNull(),
+  keyHash: varchar('key_hash', { length: 255 }).notNull().unique(),
+  keyPrefix: varchar('key_prefix', { length: 20 }).notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('active'),
   permissions: jsonb('permissions').notNull().default([]),
   rateLimit: integer('rate_limit').notNull().default(1000),
   usageCount: integer('usage_count').notNull().default(0),
   lastUsedAt: timestamp('last_used_at'),
-  lastUsedIp: varchar('last_used_ip', {length: 45}),
+  lastUsedIp: varchar('last_used_ip', { length: 45 }),
   expiresAt: timestamp('expires_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
@@ -115,7 +115,7 @@ export const creditAccounts = pgTable('credit_accounts', {
     .references(() => profiles.id),
   currentBalance: integer('current_balance').notNull().default(0),
   monthlyUsage: integer('monthly_usage').notNull().default(0),
-  averageDailyUsage: numeric('average_daily_usage', {precision: 10, scale: 2}).notNull().default('0.00'),
+  averageDailyUsage: numeric('average_daily_usage', { precision: 10, scale: 2 }).notNull().default('0.00'),
   autoRefillEnabled: boolean('auto_refill_enabled').notNull().default(false),
   refillThreshold: integer('refill_threshold').notNull().default(100),
   refillAmount: integer('refill_amount').notNull().default(500),
@@ -133,11 +133,11 @@ export const creditTransactions = pgTable('credit_transactions', {
   userId: uuid('user_id')
     .notNull()
     .references(() => profiles.id),
-  type: varchar('type', {length: 20}).notNull(), // 'purchase', 'usage', 'refund', 'bonus'
+  type: varchar('type', { length: 20 }).notNull(), // 'purchase', 'usage', 'refund', 'bonus'
   description: text('description').notNull(),
   amount: integer('amount').notNull(),
   balanceAfter: integer('balance_after').notNull(),
-  status: varchar('status', {length: 20}).notNull().default('completed'),
+  status: varchar('status', { length: 20 }).notNull().default('completed'),
   metadata: jsonb('metadata'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
@@ -158,7 +158,7 @@ export const notificationPreferences = pgTable('notification_preferences', {
   securityEnabled: boolean('security_enabled').notNull().default(true),
   marketingEnabled: boolean('marketing_enabled').notNull().default(false),
   productUpdatesEnabled: boolean('product_updates_enabled').notNull().default(true),
-  digestFrequency: varchar('digest_frequency', {length: 20}).notNull().default('daily'),
+  digestFrequency: varchar('digest_frequency', { length: 20 }).notNull().default('daily'),
   quietHoursStart: time('quiet_hours_start'),
   quietHoursEnd: time('quiet_hours_end'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -171,15 +171,15 @@ export const usageMetrics = pgTable('usage_metrics', {
   userId: uuid('user_id')
     .notNull()
     .references(() => profiles.id),
-  metricDate: timestamp('metric_date', {mode: 'date'}).notNull(),
+  metricDate: timestamp('metric_date', { mode: 'date' }).notNull(),
   imagesProcessed: integer('images_processed').notNull().default(0),
   imagesLimit: integer('images_limit').notNull().default(10000),
-  storageUsedGb: numeric('storage_used_gb', {precision: 10, scale: 2}).notNull().default('0.00'),
-  storageLimitGb: numeric('storage_limit_gb', {precision: 10, scale: 2}).notNull().default('100.00'),
+  storageUsedGb: numeric('storage_used_gb', { precision: 10, scale: 2 }).notNull().default('0.00'),
+  storageLimitGb: numeric('storage_limit_gb', { precision: 10, scale: 2 }).notNull().default('100.00'),
   apiCalls: integer('api_calls').notNull().default(0),
   apiCallsLimit: integer('api_calls_limit').notNull().default(50000),
-  bandwidthUsedGb: numeric('bandwidth_used_gb', {precision: 10, scale: 2}).notNull().default('0.00'),
-  bandwidthLimitGb: numeric('bandwidth_limit_gb', {precision: 10, scale: 2}).notNull().default('500.00'),
+  bandwidthUsedGb: numeric('bandwidth_used_gb', { precision: 10, scale: 2 }).notNull().default('0.00'),
+  bandwidthLimitGb: numeric('bandwidth_limit_gb', { precision: 10, scale: 2 }).notNull().default('500.00'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
@@ -189,22 +189,56 @@ export const notifications = pgTable('notifications', {
   userId: uuid('user_id')
     .notNull()
     .references(() => profiles.id),
-  type: varchar('type', {length: 50}).notNull(), // 'success', 'info', 'warning', 'error'
-  category: varchar('category', {length: 50}), // 'crawl_job', 'payment', 'system', 'security', 'dataset', 'project'
-  title: varchar('title', {length: 255}).notNull(),
+  type: varchar('type', { length: 50 }).notNull(), // 'success', 'info', 'warning', 'error'
+  category: varchar('category', { length: 50 }), // 'crawl_job', 'payment', 'system', 'security', 'dataset', 'project'
+  title: varchar('title', { length: 255 }).notNull(),
   message: text('message').notNull(),
-  icon: varchar('icon', {length: 50}), // Lucide icon name
-  color: varchar('color', {length: 20}), // Display color
+  icon: varchar('icon', { length: 50 }), // Lucide icon name
+  color: varchar('color', { length: 20 }), // Display color
   actionUrl: text('action_url'), // Optional URL to navigate to
-  actionLabel: varchar('action_label', {length: 100}), // Action button label
+  actionLabel: varchar('action_label', { length: 100 }), // Action button label
   metadata: jsonb('metadata'), // Additional data
   isRead: boolean('is_read').notNull().default(false),
   readAt: timestamp('read_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+// Subscriptions table for Lemon Squeezy subscriptions
+export const subscriptions = pgTable('subscriptions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profiles.id),
+  lemonSqueezyCustomerId: varchar('lemonsqueezy_customer_id', { length: 255 }).notNull(),
+  lemonSqueezySubscriptionId: varchar('lemonsqueezy_subscription_id', { length: 255 }).notNull().unique(),
+  lemonSqueezyVariantId: varchar('lemonsqueezy_variant_id', { length: 255 }).notNull(),
+  planId: varchar('plan_id', { length: 50 }).notNull(),
+  status: varchar('status', { length: 20 }).notNull(), // 'active', 'cancelled', 'expired', 'on_trial', 'paused', 'past_due', 'unpaid'
+  currentPeriodStart: timestamp('current_period_start').notNull(),
+  currentPeriodEnd: timestamp('current_period_end').notNull(),
+  cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Transactions table for payment transactions
+export const transactions = pgTable('transactions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profiles.id),
+  lemonSqueezyOrderId: varchar('lemonsqueezy_order_id', { length: 255 }).notNull().unique(),
+  amount: numeric('amount', { precision: 10, scale: 2 }).notNull(),
+  currency: varchar('currency', { length: 3 }).notNull().default('usd'),
+  status: varchar('status', { length: 20 }).notNull(), // 'paid', 'pending', 'failed', 'refunded'
+  planId: varchar('plan_id', { length: 50 }).notNull(),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
 // Relations
-export const profilesRelations = relations(profiles, ({many, one}) => ({
+export const profilesRelations = relations(profiles, ({ many, one }) => ({
   projects: many(projects),
   activityLogs: many(activityLogs),
   notifications: many(notifications),
@@ -212,9 +246,11 @@ export const profilesRelations = relations(profiles, ({many, one}) => ({
   creditAccount: one(creditAccounts),
   notificationPreferences: one(notificationPreferences),
   usageMetrics: many(usageMetrics),
+  subscriptions: many(subscriptions),
+  transactions: many(transactions),
 }));
 
-export const projectsRelations = relations(projects, ({one, many}) => ({
+export const projectsRelations = relations(projects, ({ one, many }) => ({
   user: one(profiles, {
     fields: [projects.userId],
     references: [profiles.id],
@@ -222,7 +258,7 @@ export const projectsRelations = relations(projects, ({one, many}) => ({
   crawlJobs: many(crawlJobs),
 }));
 
-export const crawlJobsRelations = relations(crawlJobs, ({one, many}) => ({
+export const crawlJobsRelations = relations(crawlJobs, ({ one, many }) => ({
   project: one(projects, {
     fields: [crawlJobs.projectId],
     references: [projects.id],
@@ -230,35 +266,35 @@ export const crawlJobsRelations = relations(crawlJobs, ({one, many}) => ({
   images: many(images),
 }));
 
-export const imagesRelations = relations(images, ({one}) => ({
+export const imagesRelations = relations(images, ({ one }) => ({
   crawlJob: one(crawlJobs, {
     fields: [images.crawlJobId],
     references: [crawlJobs.id],
   }),
 }));
 
-export const activityLogsRelations = relations(activityLogs, ({one}) => ({
+export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
   user: one(profiles, {
     fields: [activityLogs.userId],
     references: [profiles.id],
   }),
 }));
 
-export const notificationsRelations = relations(notifications, ({one}) => ({
+export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(profiles, {
     fields: [notifications.userId],
     references: [profiles.id],
   }),
 }));
 
-export const apiKeysRelations = relations(apiKeys, ({one}) => ({
+export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
   user: one(profiles, {
     fields: [apiKeys.userId],
     references: [profiles.id],
   }),
 }));
 
-export const creditAccountsRelations = relations(creditAccounts, ({one, many}) => ({
+export const creditAccountsRelations = relations(creditAccounts, ({ one, many }) => ({
   user: one(profiles, {
     fields: [creditAccounts.userId],
     references: [profiles.id],
@@ -266,7 +302,7 @@ export const creditAccountsRelations = relations(creditAccounts, ({one, many}) =
   transactions: many(creditTransactions),
 }));
 
-export const creditTransactionsRelations = relations(creditTransactions, ({one}) => ({
+export const creditTransactionsRelations = relations(creditTransactions, ({ one }) => ({
   account: one(creditAccounts, {
     fields: [creditTransactions.accountId],
     references: [creditAccounts.id],
@@ -277,16 +313,30 @@ export const creditTransactionsRelations = relations(creditTransactions, ({one})
   }),
 }));
 
-export const notificationPreferencesRelations = relations(notificationPreferences, ({one}) => ({
+export const notificationPreferencesRelations = relations(notificationPreferences, ({ one }) => ({
   user: one(profiles, {
     fields: [notificationPreferences.userId],
     references: [profiles.id],
   }),
 }));
 
-export const usageMetricsRelations = relations(usageMetrics, ({one}) => ({
+export const usageMetricsRelations = relations(usageMetrics, ({ one }) => ({
   user: one(profiles, {
     fields: [usageMetrics.userId],
+    references: [profiles.id],
+  }),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  user: one(profiles, {
+    fields: [subscriptions.userId],
+    references: [profiles.id],
+  }),
+}));
+
+export const transactionsRelations = relations(transactions, ({ one }) => ({
+  user: one(profiles, {
+    fields: [transactions.userId],
     references: [profiles.id],
   }),
 }));
@@ -314,6 +364,10 @@ export type NotificationPreference = typeof notificationPreferences.$inferSelect
 export type NewNotificationPreference = typeof notificationPreferences.$inferInsert;
 export type UsageMetric = typeof usageMetrics.$inferSelect;
 export type NewUsageMetric = typeof usageMetrics.$inferInsert;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type NewSubscription = typeof subscriptions.$inferInsert;
+export type Transaction = typeof transactions.$inferSelect;
+export type NewTransaction = typeof transactions.$inferInsert;
 
 // Enums
 export enum ProjectStatus {

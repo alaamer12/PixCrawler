@@ -40,31 +40,35 @@ const envSchema = z.object({
     .default('http://localhost:3000'),
 
   // =============================================================================
-  // STRIPE CONFIGURATION (Optional - for payments)
+  // LEMON SQUEEZY CONFIGURATION (Optional - for payments)
   // =============================================================================
-  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z
+  LEMONSQUEEZY_API_KEY: z
     .string()
-    .startsWith('pk_', 'Stripe publishable key must start with pk_')
+    .min(1, 'Lemon Squeezy API key is required')
     .optional(),
-  STRIPE_SECRET_KEY: z
+  LEMONSQUEEZY_STORE_ID: z
     .string()
-    .startsWith('sk_', 'Stripe secret key must start with sk_')
+    .min(1, 'Lemon Squeezy store ID is required')
     .optional(),
-  STRIPE_WEBHOOK_SECRET: z
+  LEMONSQUEEZY_WEBHOOK_SECRET: z
     .string()
-    .startsWith('whsec_', 'Stripe webhook secret must start with whsec_')
+    .min(1, 'Lemon Squeezy webhook secret is required')
     .optional(),
-  STRIPE_FREE_PRICE_ID: z
+  LEMONSQUEEZY_PAYG_VARIANT_ID: z
     .string()
-    .startsWith('price_', 'Stripe price ID must start with price_')
+    .min(1, 'Lemon Squeezy Pay-as-you-go variant ID is required')
     .optional(),
-  STRIPE_PRO_PRICE_ID: z
+  LEMONSQUEEZY_CREDITS_1000_VARIANT_ID: z
     .string()
-    .startsWith('price_', 'Stripe price ID must start with price_')
+    .min(1, 'Lemon Squeezy 1000 credits variant ID is required')
     .optional(),
-  STRIPE_ENTERPRISE_PRICE_ID: z
+  LEMONSQUEEZY_CREDITS_5000_VARIANT_ID: z
     .string()
-    .startsWith('price_', 'Stripe price ID must start with price_')
+    .min(1, 'Lemon Squeezy 5000 credits variant ID is required')
+    .optional(),
+  LEMONSQUEEZY_CREDITS_10000_VARIANT_ID: z
+    .string()
+    .min(1, 'Lemon Squeezy 10000 credits variant ID is required')
     .optional(),
 
   // =============================================================================
@@ -101,29 +105,33 @@ function validateEnv() {
       // Supabase
       NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      
+
       // Database
       POSTGRES_URL: process.env.POSTGRES_URL,
-      
+
       // API
       NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-      
+
       // Application
       NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-      
-      // Stripe
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
-      STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
-      STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
-      STRIPE_FREE_PRICE_ID: process.env.STRIPE_FREE_PRICE_ID,
-      STRIPE_PRO_PRICE_ID: process.env.STRIPE_PRO_PRICE_ID,
-      STRIPE_ENTERPRISE_PRICE_ID: process.env.STRIPE_ENTERPRISE_PRICE_ID,
-      
+
+      // Lemon Squeezy
+      LEMONSQUEEZY_API_KEY: process.env.LEMONSQUEEZY_API_KEY,
+      LEMONSQUEEZY_STORE_ID: process.env.LEMONSQUEEZY_STORE_ID,
+      LEMONSQUEEZY_WEBHOOK_SECRET: process.env.LEMONSQUEEZY_WEBHOOK_SECRET,
+      LEMONSQUEEZY_HOBBY_VARIANT_ID: process.env.LEMONSQUEEZY_HOBBY_VARIANT_ID,
+      LEMONSQUEEZY_PRO_VARIANT_ID: process.env.LEMONSQUEEZY_PRO_VARIANT_ID,
+      LEMONSQUEEZY_ENTERPRISE_VARIANT_ID: process.env.LEMONSQUEEZY_ENTERPRISE_VARIANT_ID,
+      LEMONSQUEEZY_PAYG_VARIANT_ID: process.env.LEMONSQUEEZY_PAYG_VARIANT_ID,
+      LEMONSQUEEZY_CREDITS_1000_VARIANT_ID: process.env.LEMONSQUEEZY_CREDITS_1000_VARIANT_ID,
+      LEMONSQUEEZY_CREDITS_5000_VARIANT_ID: process.env.LEMONSQUEEZY_CREDITS_5000_VARIANT_ID,
+      LEMONSQUEEZY_CREDITS_10000_VARIANT_ID: process.env.LEMONSQUEEZY_CREDITS_10000_VARIANT_ID,
+
       // Resend
       RESEND_API_KEY: process.env.RESEND_API_KEY,
       CONTACT_EMAIL: process.env.CONTACT_EMAIL,
       FROM_EMAIL: process.env.FROM_EMAIL,
-      
+
       // Node environment
       NODE_ENV: process.env.NODE_ENV,
     })
@@ -134,7 +142,7 @@ function validateEnv() {
         const message = err.message
         return `  • ${field}: ${message}`
       }).join('\n')
-      
+
       throw new Error(
         `❌ Environment variable validation failed:\n\n${errorMessages}\n\n` +
         `Please check your .env file and ensure all required variables are set correctly.\n` +
