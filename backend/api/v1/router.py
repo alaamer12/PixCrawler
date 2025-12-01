@@ -9,7 +9,7 @@ from fastapi import APIRouter
 from starlette.responses import JSONResponse
 
 from backend.api.v1.response_models import get_common_responses
-from .endpoints import auth, crawl_jobs, datasets, exports, health, storage, users, validation, projects, notifications, metrics
+from .endpoints import auth, crawl_jobs, datasets, exports, health, storage, users, validation, projects, notifications, metrics, credits, api_keys, activity, dashboard, batch
 
 __all__ = ['api_router']
 
@@ -95,5 +95,40 @@ api_router.include_router(
 # Metrics - Operational metrics and monitoring
 api_router.include_router(
     metrics.router,
+    include_in_schema=True,
+)
+
+# Credits - Credit and billing management
+api_router.include_router(
+    credits.router,
+    prefix="/credits",
+    include_in_schema=True,
+)
+
+# API Keys - API key management
+api_router.include_router(
+    api_keys.router,
+    prefix="/api-keys",
+    include_in_schema=True,
+)
+
+# Activity Logs - User activity tracking
+api_router.include_router(
+    activity.router,
+    prefix="/activity",
+    include_in_schema=True,
+)
+
+# Dashboard - Dashboard statistics
+api_router.include_router(
+    dashboard.router,
+    prefix="/dashboard",
+    include_in_schema=True,
+)
+
+# Batch Operations
+api_router.include_router(
+    batch.router,
+    prefix="/batch",
     include_in_schema=True,
 )

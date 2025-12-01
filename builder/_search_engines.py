@@ -91,10 +91,38 @@ class DDGSImageDownloader(ISearchEngineDownloader):
         self.min_file_size = 1000  # bytes
         self.delay = 0.2  # seconds between downloads
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((
+            TimeoutException,
+            NetworkError,
+            RateLimitError,
+            ServiceUnavailableError
+        )),
+        before_sleep=before_sleep_log(logger, 30),  # Log level WARNING (30)
+        reraise=True
+    )
     def _get_image(self, image_url: str, file_path: str) -> bool:
         """
         Downloads a single image from a given URL and saves it to the specified file path.
-        Includes retry logic for SSL verification and checks for content type and file size.
+        Includes automatic retry for transient errors with exponential backoff.
+
+        Retry Strategy:
+            - Attempt 1: Immediate
+            - Attempt 2: Wait 2s
+            - Attempt 3: Wait 4s
+            - Max wait: 10s
+            
+        Retries on:
+            - Network timeouts (TimeoutException)
+            - Network connectivity issues (NetworkError)
+            - Rate limiting (RateLimitError - HTTP 429)
+            - Service unavailable (ServiceUnavailableError - HTTP 503/504)
+            
+        Does NOT retry on:
+            - Permanent errors (404, 401, 403, 400)
+            - Validation errors (non-image content, file too small)
 
         Args:
             image_url (str): The URL of the image to download.
@@ -102,6 +130,10 @@ class DDGSImageDownloader(ISearchEngineDownloader):
 
         Returns:
             bool: True if the download and validation were successful, False otherwise.
+            
+        Raises:
+            PermanentError: For non-retryable errors (404, validation failures)
+            TransientError: After all retries exhausted
         """
         try:
             # First try with verification
@@ -122,6 +154,18 @@ class DDGSImageDownloader(ISearchEngineDownloader):
                     verify=False,
                     headers={'User-Agent': self.user_agent}
                 )
+
+            # Handle rate limiting with Retry-After header
+            if response.status_code == 429:
+                retry_after = int(response.headers.get('Retry-After', 5))
+                logger.warning(f"Rate limited, waiting {retry_after}s for {image_url}")
+                time.sleep(retry_after)
+                raise RateLimitError(f"Rate limited: {image_url}")
+
+            # Classify HTTP errors for proper retry behavior
+            if response.status_code >= 400:
+                error_class = classify_http_error(response.status_code)
+                raise error_class(f"HTTP {response.status_code}: {image_url}")
 
             response.raise_for_status()
 
@@ -148,13 +192,22 @@ class DDGSImageDownloader(ISearchEngineDownloader):
                 raise DownloadError(f"Downloaded image failed validation: {file_path}")
             return True
 
+        except requests.exceptions.Timeout as timeout_e:
+            logger.warning(f"Timeout downloading {image_url}: {timeout_e}")
+            raise TimeoutException(f"Timeout downloading {image_url}") from timeout_e
+        except requests.exceptions.ConnectionError as conn_e:
+            logger.warning(f"Connection error downloading {image_url}: {conn_e}")
+            raise NetworkError(f"Connection error downloading {image_url}") from conn_e
         except requests.exceptions.RequestException as req_e:
             logger.warning(f"Network or request error downloading {image_url}: {req_e}")
-            raise DownloadError(
+            raise NetworkError(
                 f"Network or request error downloading {image_url}: {req_e}") from req_e
         except DownloadError as de:
             logger.warning(f"Download error for {image_url}: {de}")
             raise de
+        except (RateLimitError, ServiceUnavailableError, TimeoutException, NetworkError):
+            # Re-raise transient errors for Tenacity to handle
+            raise
         except Exception as e:
             logger.warning(
                 f"An unexpected error occurred while downloading {image_url}: {e}")

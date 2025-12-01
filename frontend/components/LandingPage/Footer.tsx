@@ -1,9 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import {memo} from 'react'
-import {Github, Linkedin, Twitter} from 'lucide-react'
-import {Logo} from '@/components/shared/Logo'
+import { memo } from 'react'
+import { Github, Linkedin, Twitter } from 'lucide-react'
+import { Logo } from '@/components/shared/Logo'
 
 interface FooterLink {
   label: string
@@ -19,46 +19,48 @@ const FOOTER_SECTIONS: FooterSection[] = [
   {
     title: 'Product',
     links: [
-      {label: 'Features', href: '/#features'},
-      {label: 'Pricing', href: '/pricing'},
-      {label: 'Documentation', href: '/docs'},
-      {label: 'API Reference', href: '/docs/api'}
+      { label: 'Features', href: '/#features' },
+      { label: 'Pricing', href: '/pricing' },
+      // TODO: Update to link to Python SDK documentation on PyPI when SDK is published
+      { label: 'Documentation', href: '/docs' },
+      // TODO: Update to link to Python SDK API reference when SDK is published
+      { label: 'API Reference', href: '/docs/api' }
     ]
   },
   {
     title: 'Company',
     links: [
-      {label: 'About', href: '/about'},
-      {label: 'Contact', href: '/contact'}
+      { label: 'About', href: '/about' },
+      { label: 'Contact', href: '/contact' }
     ]
   },
   {
     title: 'Resources',
     links: [
-      {label: 'Examples', href: '/examples'},
-      {label: 'FAQ', href: '/faq'}
+      { label: 'Examples', href: '/examples' },
+      { label: 'FAQ', href: '/faq' }
     ]
   },
   {
     title: 'Legal',
     links: [
-      {label: 'Privacy Policy', href: '/privacy'},
-      {label: 'Terms of Service', href: '/terms'}
+      { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Terms of Service', href: '/terms' }
     ]
   }
 ]
 
 const SOCIAL_LINKS = [
-  {icon: Twitter, href: 'https://twitter.com', label: 'Twitter'},
-  {icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn'},
-  {icon: Github, href: 'https://github.com', label: 'GitHub'}
+  { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
+  { icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
+  { icon: Github, href: 'https://github.com', label: 'GitHub' }
 ] as const
 
 const BrandSection = memo(() => {
   return (
     <div className="col-span-2">
       <Link href="/" className="inline-block" aria-label="PixCrawler Home">
-        <Logo showIcon={false} showText size="md" className="mb-3"/>
+        <Logo showIcon={false} showText size="md" className="mb-3" />
       </Link>
       <p className="text-sm text-foreground/60 leading-relaxed max-w-sm">
         Automated image dataset builder for ML & research. Transform keywords into
@@ -69,7 +71,7 @@ const BrandSection = memo(() => {
 })
 BrandSection.displayName = 'BrandSection'
 
-const FooterLinks = memo(({title, links}: FooterSection) => {
+const FooterLinks = memo(({ title, links }: FooterSection) => {
   return (
     <div>
       <div className="font-semibold text-m mb-4 text-foreground">{title}</div>
@@ -93,7 +95,7 @@ FooterLinks.displayName = 'FooterLinks'
 const SocialLinks = memo(() => {
   return (
     <div className="flex gap-3">
-      {SOCIAL_LINKS.map(({icon: Icon, href, label}) => (
+      {SOCIAL_LINKS.map(({ icon: Icon, href, label }) => (
         <a
           key={label}
           href={href}
@@ -127,7 +129,7 @@ export const Footer = memo(() => {
     <footer className="py-12 md:py-16 footer-bg border-t border-border">
       <div className="container mx-auto px-4 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-6 gap-8 md:gap-12 mb-12">
-          <BrandSection/>
+          <BrandSection />
           {FOOTER_SECTIONS.map((section) => (
             <FooterLinks key={section.title} {...section} />
           ))}
@@ -135,9 +137,9 @@ export const Footer = memo(() => {
 
         <div className="border-t border-border pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-foreground/60">
-            © 2025 PixCrawler. All rights reserved.
+            © {new Date().getFullYear()} PixCrawler. All rights reserved.
           </p>
-          <SocialLinks/>
+          <SocialLinks />
         </div>
       </div>
     </footer>

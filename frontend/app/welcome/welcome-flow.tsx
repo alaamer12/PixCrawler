@@ -56,7 +56,7 @@ export function WelcomeFlow({ user }: WelcomeFlowProps) {
     setConfig(newConfig)
   }
 
-  const handleTestComplete = (result: TestResult) => {
+  const handleTestComplete = (result: TestResult | null) => {
     setTestResult(result)
   }
 

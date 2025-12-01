@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, memo } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Activity,
@@ -16,28 +16,23 @@ import {
 } from 'lucide-react'
 
 import { useAuth } from '@/lib/auth/hooks'
-import { useProjects, useDatasets, useJobs, useActivities, useDashboardStats } from '@/lib/hooks'
+import { useProjects, useDatasets, useJobs, useActivities, useDashboardStats, type Job as HookJob, type Activity as HookActivity } from '@/lib/hooks'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatsCard } from '@/components/dashboard/stats-card'
-import { DataTable, Column, StatusBadge } from '@/components/dashboard/data-table'
+import { DataTable, StatusBadge } from '@/components/dashboard/data-table'
 import { JobProgress } from '@/components/dashboard/progress-bar'
-import { ActivityTimeline, ActivityItem } from '@/components/dashboard/activity-timeline'
+import { ActivityTimeline, type ActivityItem } from '@/components/dashboard/activity-timeline'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton'
-import { DataState } from '@/components/ui/data-state'
 
 // Type definitions
-interface Project {
-  id: string
-  name: string
-  description?: string
-  datasetsCount: number
-  totalImages: number
-  status: 'active' | 'archived'
-  createdAt: Date
-  updatedAt: Date
+import type { Project as DBProject } from '@/lib/db/schema'
+
+interface Project extends DBProject {
+  datasetsCount?: number
+  totalImages?: number
 }
 
 interface Dataset {
@@ -45,30 +40,40 @@ interface Dataset {
   projectId: string
   projectName: string
   name: string
-  status: 'pending' | 'processing' | 'completed' | 'failed'
+  status: 'active' | 'processing' | 'completed' | 'failed'
+  imageCount: number
   imagesCollected: number
   totalImages: number
   createdAt: Date
 }
 
-interface Job {
-  id: string
-  datasetId: string
-  datasetName: string
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'paused'
-  progress: number
-  totalItems: number
-  processedItems: number
+interface Job extends HookJob {
+  datasetId?: string
+  datasetName?: string
+  totalItems?: number
+  processedItems?: number
   startedAt?: Date
 }
 
-interface DashboardStats {
-  totalProjects: number
-  activeJobs: number
-  totalDatasets: number
-  totalImages: number
-  storageUsed: string
-  processingSpeed: string
+// Helper function to transform Activity to ActivityItem
+function transformActivity(activity: HookActivity): ActivityItem {
+  // Map activity type to a more specific type for the timeline
+  const typeMap: Record<string, ActivityItem['type']> = {
+    'CREATE_PROJECT': 'project_created',
+    'START_CRAWL_JOB': 'job_started',
+    'COMPLETE_CRAWL_JOB': 'job_completed',
+    'DOWNLOAD_IMAGES': 'dataset_downloaded',
+  }
+
+  return {
+    id: activity.id,
+    type: (typeMap[activity.type] || 'settings_updated') as ActivityItem['type'],
+    title: activity.message,
+    description: undefined,
+    timestamp: activity.timestamp,
+    user: activity.userId,
+    metadata: undefined,
+  }
 }
 
 export default function DashboardPage() {
@@ -77,11 +82,23 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('overview')
 
   // Use custom hooks for data fetching
-  const { projects, loading: projectsLoading } = useProjects()
-  const { datasets, loading: datasetsLoading } = useDatasets()
-  const { jobs, loading: jobsLoading } = useJobs()
-  const { activities, loading: activitiesLoading } = useActivities()
+  const { projects, loading: projectsLoading } = useProjects(user?.id || '')
+  const { datasets: hookDatasets, loading: datasetsLoading } = useDatasets()
+  const { jobs: hookJobs, loading: jobsLoading } = useJobs()
+  const { activities: hookActivities, loading: activitiesLoading } = useActivities()
   const { stats, loading: statsLoading } = useDashboardStats()
+
+  // Transform data to match component expectations
+  const jobs = hookJobs as Job[]
+  const activities = hookActivities.map(transformActivity)
+  
+  // Mock datasets with proper structure (until API is implemented)
+  const datasets = hookDatasets.map(ds => ({
+    ...ds,
+    projectName: 'Project Name', // TODO: Join with projects
+    imagesCollected: ds.imageCount || 0,
+    totalImages: ds.imageCount || 0,
+  }))
 
   const loading = projectsLoading || datasetsLoading || jobsLoading || activitiesLoading || statsLoading
 
@@ -200,7 +217,7 @@ export default function DashboardPage() {
                       key: 'datasetsCount',
                       header: 'Datasets',
                       cell: (project: Project) => (
-                        <Badge variant="outline">{project.datasetsCount}</Badge>
+                        <Badge variant="outline">{project.datasetsCount || 0}</Badge>
                       )
                     },
                     {
@@ -242,7 +259,7 @@ export default function DashboardPage() {
                       <div key={job.id} className="space-y-2 p-3 rounded-lg border bg-muted/30">
                         <div className="flex justify-between items-start">
                           <div>
-                            <p className="font-medium text-sm">{job.datasetName}</p>
+                            <p className="font-medium text-sm">{job.datasetName || job.name || 'Unnamed Job'}</p>
                             <p className="text-xs text-muted-foreground">Job #{job.id}</p>
                           </div>
                           <StatusBadge status={job.status} />
@@ -250,8 +267,8 @@ export default function DashboardPage() {
                         <JobProgress
                           status={job.status}
                           progress={job.progress}
-                          totalItems={job.totalItems}
-                          processedItems={job.processedItems}
+                          totalItems={job.totalItems || 0}
+                          processedItems={job.processedItems || 0}
                         />
                       </div>
                     ))}
@@ -332,7 +349,7 @@ export default function DashboardPage() {
                     key: 'datasetsCount',
                     header: 'Datasets',
                     cell: (project: Project) => (
-                      <Badge variant="outline">{project.datasetsCount}</Badge>
+                      <Badge variant="outline">{project.datasetsCount || 0}</Badge>
                     )
                   },
                   {
@@ -408,7 +425,7 @@ export default function DashboardPage() {
                   <div key={job.id} className="p-4 rounded-lg border bg-card">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h4 className="font-medium">{job.datasetName}</h4>
+                        <h4 className="font-medium">{job.datasetName || job.name || 'Unnamed Job'}</h4>
                         <p className="text-sm text-muted-foreground">Job ID: {job.id}</p>
                       </div>
                       <StatusBadge status={job.status} />
@@ -416,12 +433,12 @@ export default function DashboardPage() {
                     <JobProgress
                       status={job.status}
                       progress={job.progress}
-                      totalItems={job.totalItems}
-                      processedItems={job.processedItems}
+                      totalItems={job.totalItems || 0}
+                      processedItems={job.processedItems || 0}
                     />
                     <div className="mt-4 flex justify-between text-sm text-muted-foreground">
                       <span>Started: {job.startedAt ? new Date(job.startedAt).toLocaleString() : '-'}</span>
-                      <span>{job.processedItems} / {job.totalItems} items</span>
+                      <span>{job.processedItems || 0} / {job.totalItems || 0} items</span>
                     </div>
                   </div>
                 ))}

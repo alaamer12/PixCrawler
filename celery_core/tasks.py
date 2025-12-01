@@ -104,3 +104,49 @@ def get_worker_stats(self: Self) -> Dict[str, Any]:
     except Exception as exc:
         logger.error(f"Failed to get worker stats: {exc}")
         raise
+
+
+@app.task(bind=True, base=BaseTask, name='celery_core.check_storage_policies', rate_limit='1/h')
+def check_storage_policies(self: Self) -> Dict[str, Any]:
+    """
+    Check and apply storage retention policies for all datasets.
+    """
+    import asyncio
+    from backend.database.connection import AsyncSessionLocal
+    from backend.services.crawl_job import CrawlJobService
+    from backend.repositories import (
+        CrawlJobRepository, ProjectRepository, ImageRepository, ActivityLogRepository
+    )
+    
+    async def _run_check():
+        session = AsyncSessionLocal()
+        try:
+            async with session.begin():
+                service = CrawlJobService(
+                    crawl_job_repo=CrawlJobRepository(session),
+                    project_repo=ProjectRepository(session),
+                    image_repo=ImageRepository(session),
+                    activity_log_repo=ActivityLogRepository(session)
+                )
+                return await service.apply_retention_policy()
+        finally:
+            await session.close()
+            
+    try:
+        # Run async function in sync task
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+        results = loop.run_until_complete(_run_check())
+        
+        return {
+            'status': 'completed',
+            'results': results,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+    except Exception as exc:
+        logger.error(f"Storage policy check failed: {exc}")
+        raise

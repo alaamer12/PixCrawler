@@ -30,6 +30,7 @@ router = APIRouter(
     responses=get_common_responses(401, 404, 500),
 )
 
+
 @router.get(
     "/",
     response_model=Page[CrawlJobResponse],

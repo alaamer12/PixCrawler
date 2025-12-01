@@ -176,6 +176,14 @@ async def export_dataset_json(
     Raises:
         HTTPException: If dataset not found or access denied
     """
+    # Add structured logging context
+    log_context = logger.bind(
+        operation="export_dataset",
+        user_id=current_user["user_id"],
+        dataset_id=dataset_id,
+        export_format="json"
+    )
+    
     try:
         # Verify access
         dataset = await dataset_service.get_dataset(dataset_id, current_user["user_id"])
@@ -183,8 +191,12 @@ async def export_dataset_json(
         # Get all images (this would be paginated in production)
         images = await dataset_service.get_dataset_images(dataset_id)
 
-        logger.info(f"Exporting dataset {dataset_id} as JSON ({len(images)} images)")
+        log_context.info(
+            f"Exporting dataset {dataset_id} as JSON",
+            image_count=len(images)
+        )
 
+        log_context.info("JSON export completed successfully")
         return StreamingResponse(
             generate_json_stream(images),
             media_type="application/json",
@@ -194,6 +206,7 @@ async def export_dataset_json(
         )
 
     except NotFoundError:
+        log_context.warning(f"Dataset {dataset_id} not found")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Dataset {dataset_id} not found"
@@ -242,6 +255,14 @@ async def export_dataset_csv(
     Raises:
         HTTPException: If dataset not found or access denied
     """
+    # Add structured logging context
+    log_context = logger.bind(
+        operation="export_dataset",
+        user_id=current_user["user_id"],
+        dataset_id=dataset_id,
+        export_format="csv"
+    )
+    
     try:
         # Verify access
         dataset = await dataset_service.get_dataset(dataset_id, current_user["user_id"])
@@ -249,8 +270,12 @@ async def export_dataset_csv(
         # Get all images
         images = await dataset_service.get_dataset_images(dataset_id)
 
-        logger.info(f"Exporting dataset {dataset_id} as CSV ({len(images)} images)")
+        log_context.info(
+            f"Exporting dataset {dataset_id} as CSV",
+            image_count=len(images)
+        )
 
+        log_context.info("CSV export completed successfully")
         return StreamingResponse(
             generate_csv_stream(images),
             media_type="text/csv",
@@ -260,6 +285,7 @@ async def export_dataset_csv(
         )
 
     except NotFoundError:
+        log_context.warning(f"Dataset {dataset_id} not found")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Dataset {dataset_id} not found"
@@ -311,6 +337,14 @@ async def export_dataset_zip(
     Raises:
         HTTPException: If dataset not found or access denied
     """
+    # Add structured logging context
+    log_context = logger.bind(
+        operation="export_dataset",
+        user_id=current_user["user_id"],
+        dataset_id=dataset_id,
+        export_format="zip"
+    )
+    
     try:
         # Verify access
         dataset = await dataset_service.get_dataset(dataset_id, current_user["user_id"])
@@ -325,11 +359,18 @@ async def export_dataset_zip(
             "total_images": len(images),
         }
 
-        logger.info(f"Exporting dataset {dataset_id} as ZIP ({len(images)} images)")
+        log_context.info(
+            f"Exporting dataset {dataset_id} as ZIP",
+            image_count=len(images)
+        )
 
         # Generate ZIP in thread pool
         zip_bytes = await generate_zip_archive(dataset_id, images, metadata)
 
+        log_context.info(
+            "ZIP export completed successfully",
+            zip_size_mb=len(zip_bytes) / (1024*1024)
+        )
         return StreamingResponse(
             iter([zip_bytes]),
             media_type="application/zip",
@@ -340,6 +381,7 @@ async def export_dataset_zip(
         )
 
     except NotFoundError:
+        log_context.warning(f"Dataset {dataset_id} not found")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Dataset {dataset_id} not found"
@@ -402,6 +444,14 @@ async def download_image(
     Raises:
         HTTPException: If image not found or access denied
     """
+    # Add structured logging context
+    log_context = logger.bind(
+        operation="download_image",
+        user_id=current_user["user_id"],
+        dataset_id=dataset_id,
+        image_id=image_id
+    )
+    
     try:
         # Verify access to dataset
         await dataset_service.get_dataset(dataset_id, current_user["user_id"])
@@ -417,13 +467,18 @@ async def download_image(
         if not file_path.exists():
             raise NotFoundError(f"Image file not found: {file_path}")
 
-        logger.info(f"Serving image {image_id} from dataset {dataset_id}")
+        log_context.info(
+            f"Serving image {image_id} from dataset {dataset_id}",
+            file_path=str(file_path),
+            mime_type=image.get("mime_type", "image/jpeg")
+        )
 
         # FileResponse automatically handles:
         # - Content-Type detection
         # - Range requests (partial content)
         # - ETag generation
         # - Last-Modified headers
+        log_context.info("Image download completed successfully")
         return FileResponse(
             path=file_path,
             filename=file_path.name,
@@ -431,6 +486,7 @@ async def download_image(
         )
 
     except NotFoundError as e:
+        log_context.warning(f"Image or dataset not found: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e)

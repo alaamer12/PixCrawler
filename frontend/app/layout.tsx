@@ -12,6 +12,7 @@ import { ErrorBoundaryProvider } from '@/components/providers/error-boundary-pro
 import { AuthProvider } from '@/components/providers/auth-provider';
 
 export const metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: 'PixCrawler - AI-Powered Image Dataset Builder for ML & Research',
   description: 'Build production-ready image datasets in minutes with AI-powered crawling, validation, and organization. Multi-source scraping from Google, Bing, and more. Perfect for ML researchers and developers.',
   keywords: ['image dataset', 'machine learning', 'AI dataset builder', 'image scraping', 'ML training data', 'computer vision', 'dataset generation'],

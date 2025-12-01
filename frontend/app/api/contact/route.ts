@@ -1,7 +1,15 @@
 import {NextRequest, NextResponse} from 'next/server'
 import {Resend} from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy initialization of Resend to avoid build-time errors when API key is not set
+// NOTE: This can be buggy - ensure RESEND_API_KEY is set in production
+let resend: Resend | null = null
+function getResend() {
+  if (!resend && process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY)
+  }
+  return resend
+}
 
 interface ContactFormData {
   name: string
@@ -48,8 +56,17 @@ export async function POST(request: NextRequest) {
 
     const autoReplyHtml = createAutoReplyTemplate({name})
 
+    // Get Resend instance
+    const resendClient = getResend()
+    if (!resendClient) {
+      return NextResponse.json(
+        {error: 'Email service not configured'},
+        {status: 503}
+      )
+    }
+
     // Send email to PixCrawler team
-    const emailResponse = await resend.emails.send({
+    const emailResponse = await resendClient.emails.send({
       from: FROM_EMAIL,
       to: CONTACT_EMAIL,
       subject: `[PixCrawler Contact] ${subject} - ${name}`,
@@ -58,7 +75,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Send auto-reply to user
-    const autoReplyResponse = await resend.emails.send({
+    const autoReplyResponse = await resendClient.emails.send({
       from: FROM_EMAIL,
       to: email,
       subject: 'Thank you for contacting PixCrawler',

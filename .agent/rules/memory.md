@@ -157,7 +157,7 @@ Frontend (anon key + RLS) ↔ Supabase PostgreSQL ↔ Backend (service role)
 app/
 ├── (auth)/              # Auth route group
 ├── (dashboard)/         # Dashboard route group
-├── api/                 # API routes (stripe, webhooks, contact)
+├── api/                 # API routes (payments, webhooks, contact)
 ├── dashboard/           # Protected dashboard
 │   ├── billing/
 │   ├── datasets/
@@ -179,7 +179,7 @@ components/
 │   └── ...
 ├── LandingPage/         # Hero, Navigation, Features, etc.
 ├── auth/                # auth-guard.tsx
-├── Image/, dataset/, pricing/, stripe/
+├── Image/, dataset/, pricing/, payments/
 ```
 
 ### Library Structure
@@ -302,9 +302,9 @@ className={cn(buttonVariants({ variant, size }), className)}
 - Storage: Configured for images
 - Real-time: Subscriptions for live updates
 
-### Stripe
-- Payment routes in app/api/stripe/
-- Checkout session, customer portal, webhooks
+### Lemon Squeezy
+- Payment routes in app/api/payments/
+- Checkout session, order details, webhooks
 
 ### Third-Party Libraries
 - UI: Radix UI primitives (14+ components)
@@ -329,7 +329,7 @@ className={cn(buttonVariants({ variant, size }), className)}
 
 ### 🚧 Partially Implemented
 - Real-time subscriptions (configured)
-- Stripe payments (routes exist)
+- Lemon Squeezy payments (routes exist)
 - Image crawling integration (UI ready)
 - Activity logging (schema exists)
 

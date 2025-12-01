@@ -123,8 +123,8 @@ class RateLimiter:
     # Tier-based concurrent job limits
     TIER_LIMITS = {
         'free': 1,
-        'pro': 3,
-        'enterprise': 10
+        'hobby': 3,
+        'pro': 10
     }
 
     # Task name to monitor (should match your Celery task name)
@@ -323,9 +323,11 @@ class CrawlJobService(BaseService):
         """
         # RATE LIMITING: Check if user can start a new job
         # This queries all 35 Celery workers to count active jobs for this user
-        # and compares against their tier limit (Free: 1, Pro: 3, Enterprise: 10)
+        # and compares against their tier limit (Free: 1, Hobby: 3, Pro: 10)
         if user_id:
-            RateLimiter.check_concurrency(user_id, tier)
+            # Determine actual user tier from credit account
+            real_tier = await self._get_user_tier(uuid.UUID(user_id))
+            RateLimiter.check_concurrency(user_id, real_tier)
         # Verify project exists using repository
         project = await self.project_repo.get_by_id(project_id)
         if not project:

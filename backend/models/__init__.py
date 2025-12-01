@@ -36,6 +36,7 @@ from .workflow import WorkflowStatus, TaskStatus, WorkflowState, WorkflowTask
 # Import core models from database.models (synchronized with Drizzle schema)
 from backend.database.models import Profile, Project, CrawlJob, Image, ActivityLog
 
+
 __all__ = [
     # Base classes
     'Base',
