@@ -11,6 +11,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 
+from backend.api.dependencies import get_current_user
 from backend.api.types import MetricsServiceDep, CurrentUser
 from backend.schemas.metrics import (
     ProcessingMetricResponse,

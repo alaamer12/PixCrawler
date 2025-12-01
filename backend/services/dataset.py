@@ -139,6 +139,12 @@ class DatasetService(BaseService):
                         {"status": DatasetStatus(crawl_job.status.upper())}
                     )
         
+        # Update last_accessed_at
+        await self.dataset_repo.update(
+            dataset_id,
+            {"last_accessed_at": datetime.now()}
+        )
+        
         return DatasetResponse(
             id=dataset.id,
             user_id=dataset.user_id,

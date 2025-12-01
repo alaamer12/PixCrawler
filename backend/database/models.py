@@ -627,8 +627,6 @@ class ActivityLog(Base):
     # Metadata
     metadata_: Mapped[Optional[dict]] = mapped_column(
         "metadata",
-    metadata_: Mapped[Optional[dict]] = mapped_column(
-        "metadata",
         JSONB,
         nullable=True,
     )

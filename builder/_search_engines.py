@@ -12,7 +12,14 @@ from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCra
 
 from ._base import ISearchEngineDownloader
 from ._constants import logger
-from ._exceptions import DownloadError
+from ._exceptions import (
+    DownloadError,
+    TimeoutException,
+    NetworkError,
+    RateLimitError,
+    ServiceUnavailableError,
+    classify_http_error
+)
 
 
 @dataclass
@@ -91,22 +98,24 @@ class DDGSImageDownloader(ISearchEngineDownloader):
         self.min_file_size = 1000  # bytes
         self.delay = 0.2  # seconds between downloads
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type((
-            TimeoutException,
-            NetworkError,
-            RateLimitError,
-            ServiceUnavailableError
-        )),
-        before_sleep=before_sleep_log(logger, 30),  # Log level WARNING (30)
-        reraise=True
-    )
+    # NOTE: Retry logic temporarily disabled - tenacity not installed
+    # Future TODO: Add tenacity to dependencies or implement custom retry logic
+    # @retry(
+    #     stop=stop_after_attempt(3),
+    #     wait=wait_exponential(multiplier=1, min=2, max=10),
+    #     retry=retry_if_exception_type((
+    #         TimeoutException,
+    #         NetworkError,
+    #         RateLimitError,
+    #         ServiceUnavailableError
+    #     )),
+    #     before_sleep=before_sleep_log(logger, 30),
+    #     reraise=True
+    # )
     def _get_image(self, image_url: str, file_path: str) -> bool:
         """
         Downloads a single image from a given URL and saves it to the specified file path.
-        Includes automatic retry for transient errors with exponential backoff.
+        NOTE: Automatic retry disabled - tenacity not available
 
         Retry Strategy:
             - Attempt 1: Immediate

@@ -45,15 +45,12 @@ from jsonschema import validate
 from ._keywords import KeywordManagement, keyword_stats, AlternativeKeyTermGenerator
 from ._predefined_variations import get_search_variations
 from ._search_engines import download_images_ddgs
-from builder._config import DatasetGenerationConfig, CONFIG_SCHEMA
-from builder._constants import DEFAULT_CACHE_FILE, ENGINES, IMAGE_EXTENSIONS
-from builder._downloader import ImageDownloader
-from builder._exceptions import ConfigurationError, DownloadError, \
-    GenerationError
-from builder._helpers import DatasetTracker, ProgressManager, progress, \
-    valid_image_ext
-from ._helpers import rename_images_sequentially
-from _helpers import rename_images_sequentially
+from ._config import DatasetGenerationConfig, CONFIG_SCHEMA
+from ._constants import DEFAULT_CACHE_FILE, ENGINES, IMAGE_EXTENSIONS
+from ._downloader import ImageDownloader
+from ._exceptions import ConfigurationError, DownloadError, GenerationError
+from ._helpers import DatasetTracker, ProgressManager, progress, valid_image_ext, rename_images_sequentially
+from .progress import ProgressCache
 from utility.logging_config import get_logger
 
 __all__ = [
@@ -64,9 +61,6 @@ __all__ = [
     'generate_dataset',
     'ConfigManager',
 ]
-
-from .progress import ProgressCache
-from progress import ProgressCache
 
 logger = get_logger(__name__)
 

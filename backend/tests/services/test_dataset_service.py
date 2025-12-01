@@ -240,7 +240,10 @@ async def test_update_dataset_success(
     )
     
     assert result.name == "Updated Name"
-    mock_dataset_repo.update.assert_called_once()
+    assert result.name == "Updated Name"
+    # Verify the update was called with the correct arguments
+    # Note: update is called twice, once for the actual update and once for last_accessed_at in get_dataset_by_id
+    mock_dataset_repo.update.assert_any_call(1, {"name": "Updated Name"})
 
 
 @pytest.mark.asyncio

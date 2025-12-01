@@ -16,7 +16,9 @@ from sqlalchemy import (
     Text,
     ForeignKey,
     Index,
+    Index,
     CheckConstraint,
+    func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -101,6 +103,29 @@ class Dataset(Base, TimestampMixin):
     )
     download_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    # Lifecycle management
+    storage_tier: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="hot",
+        server_default="hot",
+        index=True,
+        comment="Storage tier: hot, warm, cold"
+    )
+    
+    archived_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Timestamp when dataset was archived"
+    )
+    
+    last_accessed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        comment="Timestamp of last access"
+    )
     
     # Relationships
     user: Mapped["Profile"] = relationship(
