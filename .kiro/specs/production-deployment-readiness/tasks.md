@@ -27,7 +27,7 @@ This implementation plan breaks down the production deployment readiness feature
 - [ ] 1.3 Create frontend/.env.example with full frontend configuration
   - Document Supabase client section (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, POSTGRES_URL)
   - Document API configuration section (NEXT_PUBLIC_API_URL)
-  - Document Stripe integration section (NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_*_PRICE_ID)
+  - Document Lemon Squeezy integration section (LEMONSQUEEZY_API_KEY, LEMONSQUEEZY_STORE_ID, LEMONSQUEEZY_WEBHOOK_SECRET, LEMONSQUEEZY_*_VARIANT_ID)
   - Document Resend email section (RESEND_API_KEY, CONTACT_EMAIL, FROM_EMAIL)
   - Document application settings section (NEXT_PUBLIC_APP_URL, NODE_ENV)
   - Add clear section headers with detailed comments
@@ -90,7 +90,7 @@ This implementation plan breaks down the production deployment readiness feature
 
 
   - Add NEXT_PUBLIC_API_URL validation
-  - Add comprehensive Stripe configuration fields
+  - Add comprehensive Lemon Squeezy configuration fields
   - Add Resend email configuration fields
   - Add NEXT_PUBLIC_APP_URL validation
   - Improve error messages for missing variables

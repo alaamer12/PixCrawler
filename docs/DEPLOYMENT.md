@@ -380,10 +380,10 @@ NEXT_PUBLIC_API_URL=https://pixcrawler-backend.azurewebsites.net
 NEXT_PUBLIC_APP_URL=https://pixcrawler.com
 NODE_ENV=production
 
-# Optional: Stripe
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+# Optional: Lemon Squeezy
+LEMONSQUEEZY_API_KEY=your_api_key
+LEMONSQUEEZY_STORE_ID=your_store_id
+LEMONSQUEEZY_WEBHOOK_SECRET=your_webhook_secret
 
 # Optional: Resend
 RESEND_API_KEY=re_...
@@ -729,7 +729,7 @@ docker run -d \
 - [ ] `NEXT_PUBLIC_API_URL`
 - [ ] `NEXT_PUBLIC_APP_URL`
 - [ ] `NODE_ENV=production`
-- [ ] `STRIPE_SECRET_KEY` (if using payments)
+- [ ] `LEMONSQUEEZY_API_KEY` (if using payments)
 - [ ] `RESEND_API_KEY` (if using email)
 
 ---

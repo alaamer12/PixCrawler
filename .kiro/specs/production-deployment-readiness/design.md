@@ -20,7 +20,7 @@ This design document outlines the architecture for making PixCrawler production-
 
 Root Level: Global project settings, shared credentials
 Backend Level: Server, database, Redis, Celery, storage configuration
-Frontend Level: Supabase client, API endpoints, Stripe, Resend, app URLs
+Frontend Level: Supabase client, API endpoints, Lemon Squeezy, Resend, app URLs
 
 ### Environment File Strategy
 
@@ -133,11 +133,11 @@ A. Supabase Client
 B. API Configuration
 - NEXT_PUBLIC_API_URL: Backend API base URL
 
-C. Stripe Integration (Optional)
-- NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: Stripe public key
-- STRIPE_SECRET_KEY: Stripe secret key (server-side only)
-- STRIPE_WEBHOOK_SECRET: Webhook verification secret
-- STRIPE_*_PRICE_ID: Price IDs for different plans
+C. Lemon Squeezy Integration (Optional)
+- LEMONSQUEEZY_API_KEY: Lemon Squeezy API key (server-side only)
+- LEMONSQUEEZY_STORE_ID: Store ID
+- LEMONSQUEEZY_WEBHOOK_SECRET: Webhook verification secret
+- LEMONSQUEEZY_*_VARIANT_ID: Variant IDs for different plans
 
 
 D. Resend Email (Optional)
@@ -511,7 +511,7 @@ Sections:
 - Celery Configuration
 - Storage Configuration
 - Email Configuration (Resend)
-- Payment Configuration (Stripe)
+- Payment Configuration (Lemon Squeezy)
 
 B. README Updates
 

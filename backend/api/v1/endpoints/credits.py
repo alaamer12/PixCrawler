@@ -236,11 +236,11 @@ async def get_credit_transactions(
                         "account_id": "123e4567-e89b-12d3-a456-426614174000",
                         "user_id": "123e4567-e89b-12d3-a456-426614174000",
                         "type": "purchase",
-                        "description": "Credit purchase via Stripe",
+                        "description": "Credit purchase via Lemon Squeezy",
                         "amount": 500,
                         "balance_after": 1500,
                         "status": "completed",
-                        "metadata": {"stripe_payment_id": "pi_123"},
+                        "metadata": {"lemonsqueezy_order_id": "order_123"},
                         "created_at": "2024-01-27T10:00:00Z"
                     }
                 }
@@ -253,22 +253,22 @@ async def purchase_credits(
     current_user: CurrentUser,
     service: CreditService = Depends(get_credit_service),
     amount: int = Query(..., gt=0, le=50000, description="Amount of credits to purchase"),
-    payment_id: Optional[str] = Query(None, description="Stripe payment ID"),
+    payment_id: Optional[str] = Query(None, description="Lemon Squeezy order ID"),
 ) -> CreditTransactionResponse:
     """
     Purchase credits for the current user.
     
     Creates a credit transaction record for a successful payment.
-    In production, this should be called after Stripe payment confirmation.
+    In production, this should be called after Lemon Squeezy payment confirmation.
     
     **Note:** This is a simplified implementation. In production:
-    1. Frontend initiates Stripe payment
-    2. Stripe webhook confirms payment
+    1. Frontend initiates Lemon Squeezy payment
+    2. Lemon Squeezy webhook confirms payment
     3. Backend creates transaction via this endpoint
     
     **Query Parameters:**
     - `amount` (int): Credits to purchase (1-50000)
-    - `payment_id` (str): Stripe payment ID for reference
+    - `payment_id` (str): Lemon Squeezy order ID for reference
     
     **Authentication Required:** Bearer token
     
