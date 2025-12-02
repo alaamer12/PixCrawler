@@ -284,8 +284,8 @@ def create_app() -> FastAPI:
             "name": "MIT License",
             "url": "https://opensource.org/licenses/MIT",
         },
-        docs_url=None,  # Disable default docs
-        redoc_url=None,  # Disable default redoc
+        docs_url="/docs",  # Enable default FastAPI docs
+        redoc_url="/redoc",  # Enable default ReDoc
         openapi_url="/openapi.json",
         lifespan=lifespan,
     )
@@ -313,24 +313,24 @@ def create_app() -> FastAPI:
     else:
         logger.warning(f"Static directory not found at {STATIC_DIR}")
 
-    # Custom documentation routes
-    @app.get("/docs", include_in_schema=False)
-    async def custom_swagger_ui_html():
-        """Serve custom Swagger UI with PixCrawler branding."""
-        swagger_file = STATIC_DIR / "swagger-ui.html"
-        if swagger_file.exists():
-            with open(swagger_file, "r", encoding="utf-8") as f:
-                return HTMLResponse(content=f.read())
-        return HTMLResponse(content="<h1>Swagger UI not found</h1>", status_code=404)
+    # Custom documentation routes (optional - uncomment to use custom docs instead of default)
+    # @app.get("/docs", include_in_schema=False)
+    # async def custom_swagger_ui_html():
+    #     """Serve custom Swagger UI with PixCrawler branding."""
+    #     swagger_file = STATIC_DIR / "swagger-ui.html"
+    #     if swagger_file.exists():
+    #         with open(swagger_file, "r", encoding="utf-8") as f:
+    #             return HTMLResponse(content=f.read())
+    #     return HTMLResponse(content="<h1>Swagger UI not found</h1>", status_code=404)
 
-    @app.get("/redoc", include_in_schema=False)
-    async def custom_redoc_html():
-        """Serve custom ReDoc with PixCrawler branding."""
-        redoc_file = STATIC_DIR / "redoc.html"
-        if redoc_file.exists():
-            with open(redoc_file, "r", encoding="utf-8") as f:
-                return HTMLResponse(content=f.read())
-        return HTMLResponse(content="<h1>ReDoc not found</h1>", status_code=404)
+    # @app.get("/redoc", include_in_schema=False)
+    # async def custom_redoc_html():
+    #     """Serve custom ReDoc with PixCrawler branding."""
+    #     redoc_file = STATIC_DIR / "redoc.html"
+    #     if redoc_file.exists():
+    #         with open(redoc_file, "r", encoding="utf-8") as f:
+    #             return HTMLResponse(content=f.read())
+    #     return HTMLResponse(content="<h1>ReDoc not found</h1>", status_code=404)
 
     # Root-level health check (no prefix) # Placeholder health for conventional use
     @app.get("/health", tags=["Health"], include_in_schema=True)
@@ -345,9 +345,10 @@ def create_app() -> FastAPI:
     add_pagination(app)
     logger.info("Pagination support added to FastAPI app")
 
-    logger.info("PixCrawler API initialized with custom documentation")
+    logger.info("PixCrawler API initialized with FastAPI documentation")
     logger.info("Swagger UI: http://localhost:8000/docs")
     logger.info("ReDoc: http://localhost:8000/redoc")
+    logger.info("OpenAPI Schema: http://localhost:8000/openapi.json")
 
     return app
 

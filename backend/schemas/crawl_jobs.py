@@ -9,6 +9,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
 from uuid import UUID
+from fastapi import Depends
+
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, computed_field
 
