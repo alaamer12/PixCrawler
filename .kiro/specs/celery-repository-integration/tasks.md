@@ -85,6 +85,7 @@
 
 
 
+
   - Create service methods for task dispatch and result handling
   - Implement business logic for job lifecycle management
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
@@ -212,7 +213,10 @@
   - Implement authentication and authorization
   - _Requirements: 1.1, 1.4, 3.5, 4.1, 4.5, 7.1, 7.2, 7.3, 8.1, 8.2, 8.3, 8.4_
 
-- [ ] 4.1 Implement POST /api/v1/jobs/{job_id}/start endpoint
+- [x] 4.1 Implement POST /api/v1/jobs/{job_id}/start endpoint
+
+
+
 
   - ✅ POST /api/v1/jobs/ exists (creates and starts job)
   - ❌ Missing: Separate POST /api/v1/jobs/{job_id}/start endpoint
@@ -220,7 +224,13 @@
   - Note: Current implementation creates and starts in one call
   - _Requirements: 1.1, 1.4, 7.1, 7.2, 7.3, 8.1, 8.2, 8.3, 8.4_
 
-- [ ] 4.2 Add POST /api/v1/jobs/{job_id}/start endpoint
+- [x] 4.2 Add POST /api/v1/jobs/{job_id}/start endpoint
+
+
+
+
+
+
   - Add new endpoint for starting existing pending jobs
   - Call CrawlJobService.start_job with job_id
   - Return JobStartResponse with task_ids, total_chunks
@@ -238,20 +248,35 @@
 - [ ]* 4.5 Write property test for resource not found handling
   - **Property 18: Resource Not Found Handling**
   - **Validates: Requirements 7.2**
+-
 
-- [ ] 4.6 Implement POST /api/v1/jobs/{job_id}/stop endpoint
+- [x] 4.6 Implement POST /api/v1/jobs/{job_id}/stop endpoint
+
+
+
+
   - ✅ POST /api/v1/jobs/{job_id}/cancel exists
   - ✅ Calls CrawlJobService.cancel_job
   - ✅ Handles errors appropriately
   - ❌ Missing: Return JobStopResponse with revoked_tasks count
   - _Requirements: 4.1, 4.5, 7.1, 7.2, 7.3, 8.1, 8.2, 8.3, 8.4_
 
-- [ ] 4.7 Update cancel endpoint to return JobStopResponse
+- [x] 4.7 Update cancel endpoint to return JobStopResponse
+
+
+
+
+
+
   - Modify response to include revoked_tasks count
   - Use JobStopResponse schema
   - _Requirements: 4.1, 4.5_
+-
 
-- [ ] 4.8 Implement GET /api/v1/jobs/{job_id}/progress endpoint
+- [x] 4.8 Implement GET /api/v1/jobs/{job_id}/progress endpoint
+
+
+
   - ✅ Endpoint exists
   - ✅ Returns CrawlJobProgress with chunk statistics
   - ✅ Handles authentication and authorization
@@ -268,7 +293,12 @@
   - Test error scenarios (404, 403, 400, 500)
   - _Requirements: 1.1, 4.1, 3.5, 7.1, 7.2, 7.3_
 
-- [ ] 5. Implement API Endpoints for Validation
+- [x] 5. Implement API Endpoints for Validation
+
+
+
+
+
   - Create FastAPI endpoints for image validation
   - Implement authentication and authorization
   - _Requirements: 5.1, 7.1, 7.2, 7.3, 7.4, 8.1, 8.2, 8.3, 8.4_
@@ -285,7 +315,8 @@
   - ❌ Missing: ValidationService implementation (currently stubs)
   - _Requirements: 5.1, 7.1, 7.2, 7.3, 7.4, 8.1, 8.2, 8.3, 8.4_
 
-- [ ] 5.2 Add POST /api/v1/validation/job/{job_id} endpoint
+- [x] 5.2 Add POST /api/v1/validation/job/{job_id} endpoint
+
   - Add new endpoint for job-specific validation
   - Accept ValidationRequest with level (fast/medium/slow)
   - Call ValidationService.validate_job_images
@@ -302,12 +333,19 @@
   - Test error scenarios (404, 403, 422)
   - _Requirements: 5.1, 7.1, 7.2, 7.3, 7.4_
 
-- [ ] 6. Implement Error Handling and Logging
+- [x] 6. Implement Error Handling and Logging
+
+
+
+
+
   - Add comprehensive error handling across all layers
   - Implement structured logging with context
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 8.5_
 
-- [ ] 6.1 Add error handling to service layer
+- [x] 6.1 Add error handling to service layer
+
+
   - ✅ Service layer uses custom exceptions (NotFoundError, ValidationError)
   - ✅ Structured logging with Loguru
   - ✅ Context included in logs (job_id, user_id)
@@ -317,7 +355,9 @@
   - **Property 20: Task Dispatch Error Handling**
   - **Validates: Requirements 7.1**
 
-- [ ] 6.3 Add error handling to API endpoints
+- [x] 6.3 Add error handling to API endpoints
+
+
   - ✅ Endpoints map exceptions to HTTP status codes
   - ✅ Consistent error response format via HTTPException
   - ✅ Error details included in responses
@@ -329,7 +369,9 @@
   - Verify logging occurs for all errors
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 7. Implement Idempotency and Deduplication
+- [-] 7. Implement Idempotency and Deduplication
+
+
   - Add idempotency checks for job operations
   - Implement result deduplication
   - _Requirements: 11.1, 11.2, 11.3, 11.4_

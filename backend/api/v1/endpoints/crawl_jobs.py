@@ -20,6 +20,8 @@ from backend.schemas.crawl_jobs import (
     CrawlJobProgress,
     CrawlJobResponse,
     JobLogEntry,
+    JobStartResponse,
+    JobStopResponse,
 )
 from backend.services.crawl_job import execute_crawl_job
 
@@ -242,17 +244,118 @@ async def get_crawl_job(
 
 
 @router.post(
+    "/{job_id}/start",
+    response_model=JobStartResponse,
+    summary="Start Crawl Job",
+    description="Start a pending crawl job by dispatching Celery tasks.",
+    response_description="Job start confirmation with task IDs",
+    operation_id="startCrawlJob",
+    dependencies=[Depends(RateLimiter(times=10, seconds=60))],
+    responses={
+        200: {
+            "description": "Job started successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "job_id": 1,
+                        "status": "running",
+                        "task_ids": ["task-uuid-1", "task-uuid-2"],
+                        "total_chunks": 6,
+                        "message": "Job started with 6 tasks"
+                    }
+                }
+            }
+        },
+        400: {
+            "description": "Job cannot be started (wrong status)",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Cannot start job with status 'running'. Only pending jobs can be started."}
+                }
+            }
+        },
+        **get_common_responses(401, 403, 404, 429, 500)
+    }
+)
+async def start_crawl_job(
+    job_id: JobID,
+    current_user: CurrentUser,
+    service: CrawlJobServiceDep,
+) -> JobStartResponse:
+    """
+    Start a pending crawl job.
+
+    Dispatches Celery tasks for each keyword-engine combination and updates
+    the job status to 'running'. Only pending jobs can be started.
+
+    **Rate Limit:** 10 requests per minute
+
+    **Authentication Required:** Bearer token
+
+    Args:
+        job_id: Crawl job ID
+        current_user: Current authenticated user
+        service: CrawlJob service (injected)
+
+    Returns:
+        JobStartResponse with task IDs and status
+
+    Raises:
+        HTTPException: If job not found, wrong status, or start fails
+    """
+    try:
+        # Call the service start_job method
+        result = await service.start_job(
+            job_id=job_id,
+            user_id=current_user["user_id"]
+        )
+
+        return JobStartResponse(
+            job_id=result["job_id"],
+            status=result["status"],
+            task_ids=result["task_ids"],
+            total_chunks=result["total_chunks"],
+            message=result["message"]
+        )
+
+    except ValidationError as e:
+        # Job status doesn't allow starting
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except NotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Crawl job not found"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to start crawl job: {str(e)}"
+        )
+
+
+@router.post(
     "/{job_id}/cancel",
+    response_model=JobStopResponse,
     summary="Cancel Crawl Job",
     description="Cancel a running or pending crawl job.",
-    response_description="Cancellation confirmation message",
+    response_description="Cancellation confirmation with revoked tasks count",
     operation_id="cancelCrawlJob",
     responses={
         200: {
             "description": "Job cancelled successfully",
             "content": {
                 "application/json": {
-                    "example": {"message": "Crawl job cancelled successfully"}
+                    "example": {
+                        "job_id": 1,
+                        "status": "cancelled",
+                        "revoked_tasks": 6,
+                        "message": "Job cancelled successfully. 6 task(s) revoked."
+                    }
                 }
             }
         },
@@ -271,11 +374,12 @@ async def cancel_crawl_job(
     job_id: JobID,
     current_user: CurrentUser,
     service: CrawlJobServiceDep,
-) -> dict[str, str]:
+) -> JobStopResponse:
     """
     Cancel a running crawl job.
 
     Attempts to cancel a crawl job that is currently running or pending.
+    Revokes all associated Celery tasks and updates job status to 'cancelled'.
     Completed or failed jobs cannot be cancelled.
 
     **Authentication Required:** Bearer token
@@ -286,19 +390,24 @@ async def cancel_crawl_job(
         service: CrawlJob service (injected)
 
     Returns:
-        Success message
+        JobStopResponse with revoked tasks count and status
 
     Raises:
         HTTPException: If job not found, wrong status, or cancellation fails
     """
     try:
         # Call the service cancel_job method
-        await service.cancel_job(
+        result = await service.cancel_job(
             job_id=job_id,
             user_id=current_user["user_id"]
         )
 
-        return {"message": "Crawl job cancelled successfully"}
+        return JobStopResponse(
+            job_id=result["job_id"],
+            status=result["status"],
+            revoked_tasks=result["revoked_tasks"],
+            message=result["message"]
+        )
 
     except ValidationError as e:
         # Job status doesn't allow cancellation
@@ -504,11 +613,15 @@ async def get_crawl_job_logs(
             "content": {
                 "application/json": {
                     "example": {
+                        "job_id": 1,
                         "status": "running",
                         "progress": 75,
-                        "total_images": 750,
+                        "total_chunks": 10,
+                        "active_chunks": 2,
+                        "completed_chunks": 7,
+                        "failed_chunks": 1,
                         "downloaded_images": 750,
-                        "valid_images": 705,
+                        "estimated_completion": None,
                         "started_at": "2024-01-01T10:00:00Z",
                         "updated_at": "2024-01-01T10:15:00Z"
                     }
@@ -556,13 +669,16 @@ async def get_crawl_job_progress(
             )
 
         return CrawlJobProgress(
+            job_id=job.id,
             status=job.status,
             progress=job.progress,
-            total_images=job.total_images,
+            total_chunks=job.total_chunks,
+            active_chunks=job.active_chunks,
+            completed_chunks=job.completed_chunks,
+            failed_chunks=job.failed_chunks,
             downloaded_images=job.downloaded_images,
-            valid_images=job.valid_images,
+            estimated_completion=None,  # TODO: Calculate based on progress rate
             started_at=job.started_at.isoformat() if job.started_at else None,
-            completed_at=job.completed_at.isoformat() if job.completed_at else None,
             updated_at=job.updated_at.isoformat(),
         )
 

@@ -494,7 +494,7 @@ async def test_cancel_job_success(
 ):
     """Test successful job cancellation."""
     sample_crawl_job.status = "running"
-    sample_crawl_job.task_ids = []
+    sample_crawl_job.task_ids = ["task-1", "task-2", "task-3"]
     
     cancelled_job = copy_model(sample_crawl_job, status="cancelled")
     
@@ -503,7 +503,12 @@ async def test_cancel_job_success(
     
     result = await crawl_job_service.cancel_job(1, str(uuid4()))
     
-    assert result.status == "cancelled"
+    # Check that result is a dictionary with expected keys
+    assert isinstance(result, dict)
+    assert result["job_id"] == 1
+    assert result["status"] == "cancelled"
+    assert result["revoked_tasks"] == 3
+    assert "message" in result
     mock_activity_log_repo.create.assert_called_once()
 
 

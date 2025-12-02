@@ -1056,7 +1056,7 @@ class CrawlJobService(BaseService):
         self,
         job_id: int,
         user_id: Optional[str] = None
-    ) -> CrawlJob:
+    ) -> Dict[str, Any]:
         """
         Cancel a running or pending crawl job.
 
@@ -1073,7 +1073,11 @@ class CrawlJobService(BaseService):
             user_id: Optional user ID for activity logging
 
         Returns:
-            Updated crawl job with 'cancelled' status
+            Dictionary containing:
+                - job_id: Job ID
+                - status: Job status (should be 'cancelled')
+                - revoked_tasks: Number of tasks revoked
+                - message: Success message
 
         Raises:
             NotFoundError: If job doesn't exist
@@ -1095,10 +1099,12 @@ class CrawlJobService(BaseService):
 
         logger.info(f"Cancelling job {job_id} with status '{job.status}'")
 
-        # Step 1: Revoke Celery tasks
+        # Step 1: Revoke Celery tasks and count them
+        revoked_count = 0
         if job.task_ids and isinstance(job.task_ids, list) and len(job.task_ids) > 0:
             await self._revoke_celery_tasks(job.task_ids, terminate=True)
-            logger.info(f"Revoked {len(job.task_ids)} Celery tasks for job {job_id}")
+            revoked_count = len(job.task_ids)
+            logger.info(f"Revoked {revoked_count} Celery tasks for job {job_id}")
         else:
             logger.info(f"No Celery tasks to revoke for job {job_id}")
 
@@ -1124,10 +1130,18 @@ class CrawlJobService(BaseService):
                 action="CANCEL_CRAWL_JOB",
                 resource_type="crawl_job",
                 resource_id=str(job_id),
-                metadata={"reason": "User requested cancellation"}
+                metadata={
+                    "reason": "User requested cancellation",
+                    "revoked_tasks": revoked_count
+                }
             )
 
-        return updated_job
+        return {
+            "job_id": job_id,
+            "status": updated_job.status,
+            "revoked_tasks": revoked_count,
+            "message": f"Job cancelled successfully. {revoked_count} task(s) revoked."
+        }
 
     async def apply_retention_policy(self) -> Dict[str, int]:
         """
