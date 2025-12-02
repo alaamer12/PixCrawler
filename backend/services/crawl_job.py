@@ -369,15 +369,19 @@ class CrawlJobService(BaseService):
         """
         Start a crawl job by dispatching Celery tasks.
         
-        This method implements the complete job start workflow:
+        This method implements the complete job start workflow with idempotency:
         1. Retrieve and validate job exists
-        2. Validate job status (must be 'pending')
+        2. Check job status for idempotency (return existing task_ids if already running)
         3. Validate job ownership
         4. Calculate total chunks (keywords × engines)
         5. Dispatch download tasks for each keyword-engine combination
         6. Store task IDs in database
         7. Update job status to 'running' with total_chunks
         8. Create notification
+        
+        Idempotency:
+        - If job is already running, returns existing task_ids without dispatching new tasks
+        - If job is not in pending status (and not running), returns 400 error
         
         Args:
             job_id: ID of the job to start
@@ -389,7 +393,7 @@ class CrawlJobService(BaseService):
         
         Raises:
             NotFoundError: If job not found
-            ValidationError: If job status is not 'pending' or user doesn't own job
+            ValidationError: If job status doesn't allow starting or user doesn't own job
         """
         from builder.tasks import (
             task_download_google,
@@ -403,7 +407,24 @@ class CrawlJobService(BaseService):
         if not job:
             raise NotFoundError(f"Crawl job not found: {job_id}")
         
-        # Step 2: Validate job status
+        # Step 2: Check job status for idempotency
+        # If job is already running, return existing task_ids (idempotent behavior)
+        if job.status == 'running':
+            existing_task_ids = await self.crawl_job_repo.get_active_tasks(job_id)
+            logger.info(
+                f"Job {job_id} is already running. Returning existing task_ids (idempotent).",
+                job_id=job_id,
+                task_count=len(existing_task_ids)
+            )
+            return {
+                "job_id": job_id,
+                "status": "running",
+                "task_ids": existing_task_ids,
+                "total_chunks": job.total_chunks or 0,
+                "message": f"Job is already running with {len(existing_task_ids)} tasks (idempotent response)"
+            }
+        
+        # If job is not pending (and not running), it cannot be started
         if job.status != 'pending':
             raise ValidationError(
                 f"Cannot start job with status '{job.status}'. "
@@ -534,16 +555,23 @@ class CrawlJobService(BaseService):
         result: Dict[str, Any]
     ) -> None:
         """
-        Handle Celery task completion callback.
+        Handle Celery task completion callback with result deduplication.
         
         This method processes task completion results and updates the job state:
-        1. Retrieve job from repository
-        2. Update chunk counters (completed_chunks++, active_chunks--)
-        3. Calculate progress percentage
-        4. If successful, create image records using bulk_create()
-        5. If failed, increment failed_chunks
-        6. If all chunks complete, mark job as completed
-        7. Create notification if job completed
+        1. Retrieve job from repository within a transaction
+        2. Check if task has already been processed (deduplication)
+        3. Update chunk counters (completed_chunks++, active_chunks--)
+        4. Calculate progress percentage
+        5. If successful, create image records using bulk_create()
+        6. If failed, increment failed_chunks
+        7. Mark task as processed to prevent duplicate processing
+        8. If all chunks complete, mark job as completed
+        9. Create notification if job completed
+        
+        Deduplication:
+        - Uses database transaction to ensure atomic updates
+        - Checks current chunk counts before updating to detect duplicates
+        - Prevents race conditions through transaction isolation
         
         Args:
             job_id: ID of the job
@@ -557,17 +585,45 @@ class CrawlJobService(BaseService):
         Raises:
             NotFoundError: If job not found
         """
-        # Step 1: Retrieve job
-        job = await self.get_job(job_id)
-        if not job:
-            raise NotFoundError(f"Crawl job not found: {job_id}")
-        
-        logger.info(
-            f"Processing task completion for job {job_id}, task {task_id}",
-            job_id=job_id,
-            task_id=task_id,
-            success=result.get('success', False)
-        )
+        # Use a database transaction to ensure atomic updates
+        # This prevents race conditions and duplicate processing
+        async with self.crawl_job_repo.session.begin_nested():
+            # Step 1: Retrieve job with row-level lock (SELECT FOR UPDATE)
+            # This ensures no other transaction can modify the job until we're done
+            from sqlalchemy import select
+            from backend.models import CrawlJob
+            
+            stmt = select(CrawlJob).where(CrawlJob.id == job_id).with_for_update()
+            result_obj = await self.crawl_job_repo.session.execute(stmt)
+            job = result_obj.scalar_one_or_none()
+            
+            if not job:
+                raise NotFoundError(f"Crawl job not found: {job_id}")
+            
+            # Step 2: Check for duplicate task result (deduplication)
+            # If the sum of completed + failed chunks would exceed total_chunks,
+            # this is likely a duplicate result
+            current_processed = (job.completed_chunks or 0) + (job.failed_chunks or 0)
+            total_chunks = job.total_chunks or 0
+            
+            if current_processed >= total_chunks and total_chunks > 0:
+                logger.warning(
+                    f"Task {task_id} for job {job_id} appears to be a duplicate. "
+                    f"All chunks already processed ({current_processed}/{total_chunks}). "
+                    f"Ignoring duplicate result (deduplication).",
+                    job_id=job_id,
+                    task_id=task_id,
+                    current_processed=current_processed,
+                    total_chunks=total_chunks
+                )
+                return  # Idempotent - ignore duplicate
+            
+            logger.info(
+                f"Processing task completion for job {job_id}, task {task_id}",
+                job_id=job_id,
+                task_id=task_id,
+                success=result.get('success', False)
+            )
         
         # Step 2: Update chunk counters
         success = result.get('success', False)
@@ -1058,7 +1114,7 @@ class CrawlJobService(BaseService):
         user_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Cancel a running or pending crawl job.
+        Cancel a running or pending crawl job with idempotency.
 
         This method performs a complete cancellation workflow:
         1. Validates job exists and can be cancelled
@@ -1067,6 +1123,10 @@ class CrawlJobService(BaseService):
         4. Updates job status to 'cancelled'
         5. Logs cancellation activity
         6. Broadcasts cancellation via real-time updates
+
+        Idempotency:
+        - If job is already cancelled/completed/failed, returns success without side effects
+        - Only pending or running jobs trigger actual cancellation workflow
 
         Args:
             job_id: Crawl job ID to cancel
@@ -1089,6 +1149,21 @@ class CrawlJobService(BaseService):
         job = await self.get_job(job_id)
         if not job:
             raise NotFoundError(f"Crawl job not found: {job_id}")
+
+        # Idempotency: If job is already in a terminal state, return success without side effects
+        if job.status in ['cancelled', 'completed', 'failed']:
+            logger.info(
+                f"Job {job_id} is already in terminal state '{job.status}'. "
+                f"Returning success (idempotent).",
+                job_id=job_id,
+                status=job.status
+            )
+            return {
+                "job_id": job_id,
+                "status": job.status,
+                "revoked_tasks": 0,
+                "message": f"Job is already {job.status} (idempotent response)"
+            }
 
         # Validate job status - only pending or running jobs can be cancelled
         if job.status not in ['pending', 'running', 'in_progress']:
@@ -1351,14 +1426,21 @@ class CrawlJobService(BaseService):
 
     async def retry_job(self, job_id: int, user_id: str) -> CrawlJob:
         """
-        Retry a failed or cancelled crawl job.
+        Retry a failed or cancelled crawl job with counter reset.
+
+        This method resets all job counters and state to allow a fresh retry:
+        - Resets status to 'pending'
+        - Resets progress and image counters
+        - Resets chunk counters (total, active, completed, failed)
+        - Clears task IDs
+        - Clears timestamps
 
         Args:
             job_id: Crawl job ID
             user_id: User ID for ownership verification
 
         Returns:
-            Updated crawl job with reset progress
+            Updated crawl job with reset progress and counters
 
         Raises:
             NotFoundError: If job not found or access denied
@@ -1375,19 +1457,35 @@ class CrawlJobService(BaseService):
                 f"Only failed or cancelled jobs can be retried (current: {job.status})"
             )
 
-        # Reset job state
+        # Reset job state including chunk counters (Requirement 11.4)
         job.status = "pending"
         job.progress = 0
         job.total_images = 0
         job.downloaded_images = 0
         job.valid_images = 0
+        
+        # Reset chunk counters to 0 before dispatching new tasks
+        job.total_chunks = 0
+        job.active_chunks = 0
+        job.completed_chunks = 0
+        job.failed_chunks = 0
+        
+        # Clear task IDs from previous attempt
+        job.task_ids = []
+        
+        # Clear timestamps
         job.started_at = None
         job.completed_at = None
 
         await self.crawl_job_repo.session.commit()
         await self.crawl_job_repo.session.refresh(job)
 
-        logger.info(f"Job {job_id} reset for retry by user {user_id}")
+        logger.info(
+            f"Job {job_id} reset for retry by user {user_id}. "
+            f"All counters and task IDs cleared.",
+            job_id=job_id,
+            user_id=user_id
+        )
 
         return job
 

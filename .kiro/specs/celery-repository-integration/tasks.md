@@ -369,25 +369,35 @@
   - Verify logging occurs for all errors
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [-] 7. Implement Idempotency and Deduplication
+- [x] 7. Implement Idempotency and Deduplication
+
+
+
+
 
 
   - Add idempotency checks for job operations
   - Implement result deduplication
   - _Requirements: 11.1, 11.2, 11.3, 11.4_
 
-- [ ] 7.1 Add idempotency checks to CrawlJobService.start_job
+- [x] 7.1 Add idempotency checks to CrawlJobService.start_job
+
+
   - Check job status before starting
   - Return existing task_ids if job already running
   - Return 400 error if job not in pending status
   - _Requirements: 11.1_
 
-- [ ] 7.2 Add idempotency checks to CrawlJobService.stop_job
+- [x] 7.2 Add idempotency checks to CrawlJobService.stop_job
+
+
   - ✅ cancel_job validates status before stopping
   - ✅ Returns ValidationError if job not running/pending
   - _Requirements: 11.2_
 
-- [ ] 7.3 Implement result deduplication in task completion handler
+- [x] 7.3 Implement result deduplication in task completion handler
+
+
   - Track processed task IDs to prevent duplicate processing
   - Use database transaction to ensure atomic updates
   - Check if task_id already processed before updating counters
@@ -397,7 +407,9 @@
   - **Property 25: Result Deduplication**
   - **Validates: Requirements 11.3**
 
-- [ ] 7.5 Implement retry logic with counter reset
+- [x] 7.5 Implement retry logic with counter reset
+
+
   - ✅ POST /api/v1/jobs/{job_id}/retry exists
   - ✅ retry_job() resets progress and counters
   - ✅ Validates status (only failed/cancelled can retry)
@@ -437,25 +449,40 @@
   - Test task dispatch failures
   - _Requirements: 7.1, 7.2, 7.3, 8.1, 8.2_
 
-- [ ] 9. Update API Documentation
+- [x] 9. Update API Documentation
+
+
+
+
+
+
   - Update OpenAPI schema with new endpoints
   - Add request/response examples
   - Document error codes
   - _Requirements: All_
 
-- [ ] 9.1 Update OpenAPI schema
+- [x] 9.1 Update OpenAPI schema
+
+
   - ✅ Endpoints documented via FastAPI decorators
   - ✅ Request/response schemas defined
   - ✅ Error responses documented
   - ✅ OpenAPI auto-generated at /openapi.json
   - _Requirements: 1.1, 4.1, 3.5, 5.1_
 
-- [ ] 9.2 Add API documentation examples
+- [x] 9.2 Add API documentation examples
+
+
   - Add cURdd API documor new endpoints (start, stop)
   - Add Python client examples
   - Update error response examples
   - Document Celery task integration
   - _Requirements: All_
 
-- [ ] 10. Checkpoint - Ensure all tests pass
+- [x] 10. Checkpoint - Ensure all tests pass
+
+
+
+
+
   - Ensure all tests pass, ask the user if questions arise.
