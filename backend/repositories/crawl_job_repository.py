@@ -285,12 +285,16 @@ class CrawlJobRepository(BaseRepository[CrawlJob]):
         """
         Mark a job as failed with error message.
         
-        Convenience method that sets status to 'failed', stores the error
-        message, and sets the completed_at timestamp.
+        Convenience method that sets status to 'failed' and sets the 
+        completed_at timestamp. The error message is logged but not stored
+        in the database as there is no error field in the schema.
+        
+        Note: Error details are maintained in Celery task results and logs.
+        The service layer should log the error message before calling this method.
         
         Args:
             job_id: Job ID
-            error: Error message describing the failure
+            error: Error message describing the failure (for logging only)
         
         Returns:
             Updated job or None if not found
@@ -299,10 +303,11 @@ class CrawlJobRepository(BaseRepository[CrawlJob]):
         if not job:
             return None
         
+        # Note: error parameter is kept for API compatibility but not stored
+        # The service layer should log errors before calling this method
         return await self.update(
             job,
             status='failed',
-            error=error,
             completed_at=datetime.utcnow()
         )
     

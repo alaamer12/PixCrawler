@@ -1,11 +1,21 @@
 # Implementation Plan
 # USE .venv for running python and python scripts
-- [ ] 1. Update Repository Layer with Task Management Methods
+- [x] 1. Update Repository Layer with Task Management Methods
+
+
+
+
+
   - Add new methods to CrawlJobRepository and ImageRepository for task-related operations
   - Ensure all methods use AsyncSession properly
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
 
-- [ ] 1.1 Add task management methods to CrawlJobRepository
+- [x] 1.1 Add task management methods to CrawlJobRepository
+
+
+
+
+
   - ✅ `update_progress()` exists (persists progress, downloaded_images, valid_images)
   - ✅ `update_chunk_counts()` exists (persists active_chunks, completed_chunks, failed_chunks)
   - ✅ `update_status()` exists (persists status, completed_at, progress)
@@ -15,7 +25,17 @@
   - ❌ Missing: `get_active_tasks(job_id)` method
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
 
-- [ ] 1.2 Complete missing CrawlJobRepository methods
+- [x] 1.2 Complete missing CrawlJobRepository methods
+
+
+
+
+
+
+
+
+
+
   - Implement `add_task_id(job_id, task_id)` to append task ID to task_ids JSONB array
   - Implement `mark_completed(job_id)` as convenience wrapper for update_status
   - Implement `mark_failed(job_id, error)` as convenience wrapper for update_status
@@ -26,14 +46,25 @@
   - **Property 2: Task ID Persistence**
   - **Validates: Requirements 1.3**
 
-- [ ] 1.4 Add image management methods to ImageRepository
+- [x] 1.4 Add image management methods to ImageRepository
+
+
+
+
+
+
   - ✅ `get_by_crawl_job()` exists (renamed from get_by_job)
   - ✅ `count_by_job()` exists
   - ✅ `bulk_create()` exists (can be used for create_from_download)
   - ❌ Missing: `mark_validated(image_id, validation_result)` method
   - _Requirements: 9.6, 9.7_
+-
 
-- [ ] 1.5 Complete missing ImageRepository methods
+- [x] 1.5 Complete missing ImageRepository methods
+
+
+
+
   - Implement `mark_validated(image_id, validation_result)` to update is_valid, is_duplicate, metadata
   - _Requirements: 9.7_
 
