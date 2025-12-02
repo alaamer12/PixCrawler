@@ -452,6 +452,12 @@ class ValidationService(BaseService):
             ValidationError: If validation dispatch fails
             ExternalServiceError: If an unexpected error occurs
         """
+        from validator.tasks import (
+            validate_image_fast_task,
+            validate_image_medium_task,
+            validate_image_slow_task
+        )
+        
         self.log_operation(
             "validate_job_images",
             job_id=job_id,
@@ -466,18 +472,48 @@ class ValidationService(BaseService):
             if not images:
                 raise NotFoundError(f"No images found for job {job_id}")
 
-            # TODO: Dispatch Celery validation tasks based on level
-            # For now, return mock task IDs
-            # When Celery integration is complete:
-            # 1. Import appropriate validation task from validator package
-            # 2. Dispatch task for each image
-            # 3. Collect and return task IDs
+            # Select validation task based on level
+            task_map = {
+                ValidationLevel.BASIC: validate_image_fast_task,
+                ValidationLevel.STANDARD: validate_image_medium_task,
+                ValidationLevel.STRICT: validate_image_slow_task
+            }
             
-            task_ids = [f"task_{job_id}_{i}" for i in range(len(images))]
+            validation_task = task_map.get(validation_level)
+            if not validation_task:
+                raise ValidationError(f"Invalid validation level: {validation_level}")
+            
+            # Dispatch validation tasks
+            task_ids = []
             
             self.logger.info(
-                f"Dispatched {len(task_ids)} validation tasks for job {job_id} "
+                f"Dispatching {len(images)} validation tasks for job {job_id} "
                 f"at level {validation_level.value}"
+            )
+            
+            for image in images:
+                # Dispatch task with image path
+                task = validation_task.delay(
+                    image_path=image.storage_url,
+                    job_id=str(job_id),
+                    image_id=str(image.id)
+                )
+                
+                task_ids.append(task.id)
+                
+                self.logger.debug(
+                    f"Dispatched validation task for image {image.id}: {task.id}",
+                    job_id=job_id,
+                    image_id=image.id,
+                    task_id=task.id,
+                    validation_level=validation_level.value
+                )
+            
+            self.logger.info(
+                f"Successfully dispatched {len(task_ids)} validation tasks for job {job_id}",
+                job_id=job_id,
+                task_count=len(task_ids),
+                validation_level=validation_level.value
             )
 
             return {
@@ -497,6 +533,81 @@ class ValidationService(BaseService):
                 raise ExternalServiceError("Failed to start validation") from e
             raise
 
+    async def handle_validation_result(
+        self,
+        image_id: int,
+        result: Dict[str, Any]
+    ) -> None:
+        """
+        Handle validation task result callback.
+        
+        This method processes validation task completion results and updates
+        the image record with validation status:
+        1. Retrieve image from repository
+        2. Update validation status using mark_validated()
+        3. Update is_valid and is_duplicate flags
+        4. Store validation metadata
+        
+        Args:
+            image_id: ID of the image
+            result: Validation result dictionary containing:
+                - is_valid: Boolean validation status
+                - is_duplicate: Boolean duplicate status (optional)
+                - quality_score: Float quality score (optional)
+                - issues: List of validation issues (optional)
+                - metadata: Additional validation metadata (optional)
+        
+        Raises:
+            NotFoundError: If image not found
+        """
+        self.log_operation(
+            "handle_validation_result",
+            image_id=image_id,
+            is_valid=result.get('is_valid', False)
+        )
+        
+        try:
+            # Retrieve image
+            image = await self.image_repo.get_by_id(image_id)
+            if not image:
+                raise NotFoundError(f"Image with ID {image_id} not found")
+            
+            # Prepare validation result for storage
+            validation_data = {
+                'is_valid': result.get('is_valid', False),
+                'is_duplicate': result.get('is_duplicate', False)
+            }
+            
+            # Build metadata from validation result
+            metadata = {}
+            if 'quality_score' in result:
+                metadata['quality_score'] = result['quality_score']
+            if 'issues' in result:
+                metadata['validation_issues'] = result['issues']
+            if 'metadata' in result:
+                metadata.update(result['metadata'])
+            
+            if metadata:
+                validation_data['metadata'] = metadata
+            
+            # Update image with validation results
+            await self.image_repo.mark_validated(image_id, validation_data)
+            
+            self.logger.info(
+                f"Updated validation results for image {image_id}",
+                image_id=image_id,
+                is_valid=validation_data['is_valid'],
+                is_duplicate=validation_data['is_duplicate']
+            )
+            
+        except Exception as e:
+            if not isinstance(e, NotFoundError):
+                self.logger.error(
+                    f"Unexpected error in handle_validation_result: {str(e)}",
+                    exc_info=True
+                )
+            raise
+    
     async def _process_validation_job(
         self,
         job_id: str,

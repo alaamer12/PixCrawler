@@ -359,6 +359,161 @@ class CrawlJobService(BaseService):
         self.log_operation("create_crawl_job", job_id=crawl_job.id,
                            project_id=project_id)
         return crawl_job
+    
+    async def start_job(
+        self,
+        job_id: int,
+        user_id: str,
+        engines: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Start a crawl job by dispatching Celery tasks.
+        
+        This method implements the complete job start workflow:
+        1. Retrieve and validate job exists
+        2. Validate job status (must be 'pending')
+        3. Validate job ownership
+        4. Calculate total chunks (keywords × engines)
+        5. Dispatch download tasks for each keyword-engine combination
+        6. Store task IDs in database
+        7. Update job status to 'running' with total_chunks
+        8. Create notification
+        
+        Args:
+            job_id: ID of the job to start
+            user_id: ID of the user starting the job
+            engines: List of search engines to use (default: ['google', 'bing', 'duckduckgo'])
+        
+        Returns:
+            Dict with task_ids, status, total_chunks, and message
+        
+        Raises:
+            NotFoundError: If job not found
+            ValidationError: If job status is not 'pending' or user doesn't own job
+        """
+        from builder.tasks import (
+            task_download_google,
+            task_download_bing,
+            task_download_baidu,
+            task_download_duckduckgo
+        )
+        
+        # Step 1: Retrieve job
+        job = await self.get_job(job_id)
+        if not job:
+            raise NotFoundError(f"Crawl job not found: {job_id}")
+        
+        # Step 2: Validate job status
+        if job.status != 'pending':
+            raise ValidationError(
+                f"Cannot start job with status '{job.status}'. "
+                f"Only pending jobs can be started."
+            )
+        
+        # Step 3: Validate ownership
+        project = await self.project_repo.get_by_id(job.project_id)
+        if not project or str(project.user_id) != str(user_id):
+            raise ValidationError("You do not have permission to start this job")
+        
+        # Step 4: Calculate total chunks
+        keywords = job.keywords.get("keywords", [])
+        if not keywords:
+            raise ValidationError("Job has no keywords")
+        
+        # Default engines if not specified
+        if not engines:
+            engines = ['google', 'bing', 'duckduckgo']
+        
+        # Map engine names to task functions
+        engine_tasks = {
+            'google': task_download_google,
+            'bing': task_download_bing,
+            'baidu': task_download_baidu,
+            'duckduckgo': task_download_duckduckgo
+        }
+        
+        # Calculate total chunks (one chunk per keyword-engine combination)
+        total_chunks = len(keywords) * len(engines)
+        
+        # Step 5: Dispatch tasks
+        task_ids = []
+        output_dir = f"/tmp/crawl_{job_id}"
+        
+        logger.info(
+            f"Starting job {job_id}: {len(keywords)} keywords × {len(engines)} engines = {total_chunks} chunks",
+            job_id=job_id,
+            keywords=keywords,
+            engines=engines,
+            total_chunks=total_chunks
+        )
+        
+        for keyword in keywords:
+            for engine in engines:
+                task_func = engine_tasks.get(engine.lower())
+                if not task_func:
+                    logger.warning(f"Unknown engine '{engine}', skipping")
+                    continue
+                
+                # Dispatch task with serializable arguments only
+                task = task_func.delay(
+                    keyword=keyword,
+                    output_dir=output_dir,
+                    max_images=job.max_images // len(keywords),  # Distribute images across keywords
+                    job_id=str(job_id),
+                    user_id=user_id
+                )
+                
+                task_ids.append(task.id)
+                
+                # Store task ID in database
+                await self.crawl_job_repo.add_task_id(job_id, task.id)
+                
+                logger.debug(
+                    f"Dispatched {engine} task for keyword '{keyword}': {task.id}",
+                    job_id=job_id,
+                    keyword=keyword,
+                    engine=engine,
+                    task_id=task.id
+                )
+        
+        # Step 6: Update job status to 'running' with total_chunks
+        await self.crawl_job_repo.update(
+            job,
+            status='running',
+            total_chunks=total_chunks,
+            active_chunks=total_chunks,
+            completed_chunks=0,
+            failed_chunks=0,
+            started_at=datetime.utcnow()
+        )
+        
+        # Step 7: Log activity
+        await self.activity_log_repo.create(
+            user_id=uuid.UUID(user_id),
+            action="START_CRAWL_JOB",
+            resource_type="crawl_job",
+            resource_id=str(job_id),
+            metadata={
+                "total_chunks": total_chunks,
+                "task_count": len(task_ids),
+                "engines": engines
+            }
+        )
+        
+        logger.info(
+            f"Job {job_id} started successfully with {len(task_ids)} tasks",
+            job_id=job_id,
+            task_count=len(task_ids),
+            total_chunks=total_chunks
+        )
+        
+        return {
+            "job_id": job_id,
+            "status": "running",
+            "task_ids": task_ids,
+            "total_chunks": total_chunks,
+            "message": f"Job started with {len(task_ids)} tasks"
+        }
 
     async def get_job(self, job_id: int) -> Optional[CrawlJob]:
         """
@@ -371,6 +526,173 @@ class CrawlJobService(BaseService):
             Crawl job or None if not found
         """
         return await self.crawl_job_repo.get_by_id(job_id)
+    
+    async def handle_task_completion(
+        self,
+        job_id: int,
+        task_id: str,
+        result: Dict[str, Any]
+    ) -> None:
+        """
+        Handle Celery task completion callback.
+        
+        This method processes task completion results and updates the job state:
+        1. Retrieve job from repository
+        2. Update chunk counters (completed_chunks++, active_chunks--)
+        3. Calculate progress percentage
+        4. If successful, create image records using bulk_create()
+        5. If failed, increment failed_chunks
+        6. If all chunks complete, mark job as completed
+        7. Create notification if job completed
+        
+        Args:
+            job_id: ID of the job
+            task_id: ID of the completed task
+            result: Task result dictionary containing:
+                - success: Boolean indicating task success
+                - downloaded: Number of images downloaded
+                - images: List of image metadata dicts (if successful)
+                - error: Error message (if failed)
+        
+        Raises:
+            NotFoundError: If job not found
+        """
+        # Step 1: Retrieve job
+        job = await self.get_job(job_id)
+        if not job:
+            raise NotFoundError(f"Crawl job not found: {job_id}")
+        
+        logger.info(
+            f"Processing task completion for job {job_id}, task {task_id}",
+            job_id=job_id,
+            task_id=task_id,
+            success=result.get('success', False)
+        )
+        
+        # Step 2: Update chunk counters
+        success = result.get('success', False)
+        
+        if success:
+            # Increment completed_chunks, decrement active_chunks
+            new_completed = (job.completed_chunks or 0) + 1
+            new_active = max((job.active_chunks or 0) - 1, 0)
+            new_failed = job.failed_chunks or 0
+        else:
+            # Increment failed_chunks, decrement active_chunks
+            new_completed = job.completed_chunks or 0
+            new_active = max((job.active_chunks or 0) - 1, 0)
+            new_failed = (job.failed_chunks or 0) + 1
+            
+            # Log error
+            error_msg = result.get('error', 'Unknown error')
+            logger.error(
+                f"Task {task_id} failed for job {job_id}: {error_msg}",
+                job_id=job_id,
+                task_id=task_id,
+                error=error_msg
+            )
+        
+        # Update chunk counts
+        await self.crawl_job_repo.update_chunk_counts(
+            job_id=job_id,
+            active_chunks=new_active,
+            completed_chunks=new_completed,
+            failed_chunks=new_failed
+        )
+        
+        # Step 3: Calculate progress percentage
+        total_chunks = job.total_chunks or 1
+        progress = int(((new_completed + new_failed) / total_chunks) * 100)
+        progress = min(progress, 100)
+        
+        # Step 4: Create image records if successful
+        if success and 'images' in result:
+            images_data = result['images']
+            if images_data:
+                try:
+                    # Add job_id to each image
+                    for img_data in images_data:
+                        img_data['crawl_job_id'] = job_id
+                    
+                    await self.image_repo.bulk_create(images_data)
+                    
+                    # Update downloaded_images count
+                    downloaded_count = result.get('downloaded', len(images_data))
+                    new_downloaded = (job.downloaded_images or 0) + downloaded_count
+                    
+                    await self.crawl_job_repo.update_progress(
+                        job_id=job_id,
+                        progress=progress,
+                        downloaded_images=new_downloaded
+                    )
+                    
+                    logger.info(
+                        f"Created {len(images_data)} image records for job {job_id}",
+                        job_id=job_id,
+                        image_count=len(images_data)
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"Failed to create image records for job {job_id}: {str(e)}",
+                        job_id=job_id,
+                        error=str(e)
+                    )
+        else:
+            # Just update progress
+            await self.crawl_job_repo.update_progress(
+                job_id=job_id,
+                progress=progress,
+                downloaded_images=job.downloaded_images or 0
+            )
+        
+        # Step 6: Check if all chunks are complete
+        all_chunks_done = (new_completed + new_failed) >= total_chunks
+        
+        if all_chunks_done:
+            # Mark job as completed
+            await self.crawl_job_repo.mark_completed(job_id)
+            
+            logger.info(
+                f"Job {job_id} completed: {new_completed} successful, {new_failed} failed",
+                job_id=job_id,
+                completed_chunks=new_completed,
+                failed_chunks=new_failed
+            )
+            
+            # Step 7: Create completion notification
+            try:
+                from backend.repositories import NotificationRepository
+                from backend.models import Notification
+                
+                # Get project to find user_id
+                project = await self.project_repo.get_by_id(job.project_id)
+                if project:
+                    notification_repo = NotificationRepository(self.crawl_job_repo.session)
+                    await notification_repo.create(
+                        user_id=project.user_id,
+                        type='job_completed',
+                        category='crawl_jobs',
+                        title='Crawl Job Completed',
+                        message=f'Job "{job.name}" has completed with {new_completed} successful chunks and {new_failed} failed chunks.',
+                        metadata_={
+                            'job_id': job_id,
+                            'completed_chunks': new_completed,
+                            'failed_chunks': new_failed,
+                            'total_chunks': total_chunks
+                        }
+                    )
+                    
+                    logger.info(
+                        f"Created completion notification for job {job_id}",
+                        job_id=job_id
+                    )
+            except Exception as e:
+                # Log but don't fail if notification creation fails
+                logger.error(
+                    f"Failed to create completion notification for job {job_id}: {str(e)}",
+                    job_id=job_id,
+                    error=str(e)
+                )
 
     async def update_job_progress(
         self,

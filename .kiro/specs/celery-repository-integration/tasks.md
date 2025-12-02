@@ -41,7 +41,9 @@
   - **Property 13: Image Creation from Download**
   - **Validates: Requirements 6.1**
 
-- [-] 2. Create Request/Response Schemas
+- [x] 2. Create Request/Response Schemas
+
+
 
 
 
@@ -59,12 +61,15 @@
   - ❌ Missing: `JobStopResponse` (for stop endpoint with revoked count)
   - _Requirements: 1.1, 4.1_
 
-- [ ] 2.2 Add missing crawl job response schemas
+
+- [x] 2.2 Add missing crawl job response schemas
   - Create `JobStartResponse` with job_id, status, task_ids, total_chunks, message
   - Create `JobStopResponse` with job_id, status, revoked_tasks, message
   - _Requirements: 1.1, 4.1_
 
-- [ ] 2.3 Create validation schemas
+
+
+- [x] 2.3 Create validation schemas
   - ✅ Validation schemas exist in `backend/schemas/validation.py`
   - ✅ `ValidationAnalyzeRequest`, `ValidationBatchRequest` exist
   - ✅ `ValidationJobResponse`, `ValidationResultsResponse` exist
@@ -76,12 +81,17 @@
   - _Requirements: 7.4_
 
 
-- [ ] 3. Implement Service Layer Orchestration
+- [x] 3. Implement Service Layer Orchestration
+
+
+
   - Create service methods for task dispatch and result handling
   - Implement business logic for job lifecycle management
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
-- [ ] 3.1 Implement CrawlJobService.start_job method
+- [x] 3.1 Implement CrawlJobService.start_job method
+
+
   - ✅ `create_job()` exists with rate limiting
   - ❌ Missing: Celery task dispatch logic
   - ❌ Missing: Calculate total_chunks (keywords × engines)
@@ -90,7 +100,9 @@
   - Note: Currently uses BackgroundTasks, needs Celery integration
   - _Requirements: 1.1, 1.2, 1.3, 1.5, 10.1, 10.2_
 
-- [ ] 3.2 Add Celery task dispatch to start_job
+- [x] 3.2 Add Celery task dispatch to start_job
+
+
   - Import Celery tasks from builder/validator packages
   - Calculate total_chunks = len(keywords) × len(engines)
   - Dispatch download task for each keyword-engine combination
@@ -110,7 +122,9 @@
   - **Property 4: Job Start Idempotency**
   - **Validates: Requirements 1.4, 11.1**
 
-- [ ] 3.6 Implement CrawlJobService.stop_job method
+- [x] 3.6 Implement CrawlJobService.stop_job method
+
+
   - ✅ `cancel_job()` exists with full implementation
   - ✅ Validates job ownership
   - ✅ Revokes Celery tasks
@@ -131,7 +145,9 @@
   - **Property 24: Atomic Job Stop**
   - **Validates: Requirements 10.5**
 
-- [ ] 3.10 Implement CrawlJobService.handle_task_completion method
+- [x] 3.10 Implement CrawlJobService.handle_task_completion method
+
+
   - Create new method to handle Celery task completion callbacks
   - Update chunk counters using update_chunk_counts()
   - Calculate progress percentage
@@ -165,7 +181,9 @@
   - **Property 23: Task Result Processing**
   - **Validates: Requirements 10.3**
 
-- [ ] 3.17 Implement ValidationService.validate_job_images method
+- [x] 3.17 Implement ValidationService.validate_job_images method
+
+
   - Retrieve all images for job using image_repo.get_by_crawl_job()
   - Select validation task based on level (fast/medium/slow)
   - Dispatch validation tasks via Celery
@@ -176,7 +194,9 @@
   - **Property 11: Validation Task Selection**
   - **Validates: Requirements 5.2, 5.3, 5.4, 5.5**
 
-- [ ] 3.19 Implement ValidationService.handle_validation_result method
+- [x] 3.19 Implement ValidationService.handle_validation_result method
+
+
   - Create new method to handle validation task completion
   - Update image validation status using mark_validated()
   - Update is_valid and is_duplicate flags
@@ -193,6 +213,7 @@
   - _Requirements: 1.1, 1.4, 3.5, 4.1, 4.5, 7.1, 7.2, 7.3, 8.1, 8.2, 8.3, 8.4_
 
 - [ ] 4.1 Implement POST /api/v1/jobs/{job_id}/start endpoint
+
   - ✅ POST /api/v1/jobs/ exists (creates and starts job)
   - ❌ Missing: Separate POST /api/v1/jobs/{job_id}/start endpoint
   - ❌ Missing: Return JobStartResponse with task_ids

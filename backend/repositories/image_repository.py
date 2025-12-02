@@ -91,3 +91,45 @@ class ImageRepository(BaseRepository[Image]):
             await self.session.refresh(image)
         
         return images
+    
+    async def mark_validated(
+        self,
+        image_id: int,
+        validation_result: dict
+    ) -> Optional[Image]:
+        """
+        Update image with validation results.
+        
+        This method persists validation results including validity status,
+        duplicate detection, and validation metadata. The service layer is
+        responsible for determining the validation results.
+        
+        Args:
+            image_id: Image ID
+            validation_result: Dictionary with validation data containing:
+                - is_valid: Boolean validation status
+                - is_duplicate: Boolean duplicate status
+                - metadata: Additional validation metadata (optional)
+        
+        Returns:
+            Updated image or None if not found
+        """
+        image = await self.get_by_id(image_id)
+        if not image:
+            return None
+        
+        # Extract validation fields
+        update_data = {
+            'is_valid': validation_result.get('is_valid', False),
+            'is_duplicate': validation_result.get('is_duplicate', False)
+        }
+        
+        # Merge validation metadata if provided
+        if 'metadata' in validation_result:
+            # Get existing metadata or initialize empty dict
+            existing_metadata = image.metadata_ if image.metadata_ else {}
+            # Merge with new validation metadata
+            existing_metadata.update(validation_result['metadata'])
+            update_data['metadata_'] = existing_metadata
+        
+        return await self.update(image, **update_data)

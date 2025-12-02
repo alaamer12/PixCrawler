@@ -23,6 +23,8 @@ __all__ = [
     'CrawlJobProgress',
     'JobLogEntry',
     'JobLogListResponse',
+    'JobStartResponse',
+    'JobStopResponse',
 ]
 
 
@@ -259,3 +261,26 @@ class JobLogListResponse(BaseModel):
         description="Metadata",
         examples=[{"total": 15}]
     )
+
+
+class JobStartResponse(BaseModel):
+    """Schema for job start endpoint response."""
+    
+    model_config = ConfigDict(use_enum_values=True)
+    
+    job_id: int = Field(description="Job ID")
+    status: str = Field(description="Job status (should be 'running')")
+    task_ids: list[str] = Field(description="List of Celery task IDs dispatched")
+    total_chunks: int = Field(ge=0, description="Total number of chunks (keywords × engines)")
+    message: str = Field(description="Success message")
+
+
+class JobStopResponse(BaseModel):
+    """Schema for job stop endpoint response."""
+    
+    model_config = ConfigDict(use_enum_values=True)
+    
+    job_id: int = Field(description="Job ID")
+    status: str = Field(description="Job status (should be 'cancelled')")
+    revoked_tasks: int = Field(ge=0, description="Number of tasks revoked")
+    message: str = Field(description="Success message")
