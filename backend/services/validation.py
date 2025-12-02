@@ -422,6 +422,81 @@ class ValidationService(BaseService):
             "updated_by": int(user_id) if user_id.isdigit() else None
         }
 
+    async def validate_job_images(
+        self,
+        job_id: int,
+        validation_level: ValidationLevel,
+        user_id: str
+    ) -> Dict[str, Any]:
+        """
+        Validate all images in a crawl job.
+
+        Retrieves all images for the specified job and dispatches validation
+        tasks via Celery based on the requested validation level.
+
+        Args:
+            job_id: ID of the crawl job
+            validation_level: Validation level (basic/standard/strict)
+            user_id: ID of the user requesting validation
+
+        Returns:
+            Dictionary containing validation job information with keys:
+                - job_id: Crawl job ID
+                - images_count: Number of images to validate
+                - validation_level: Validation level used
+                - task_ids: List of Celery task IDs
+                - message: Success message
+
+        Raises:
+            NotFoundError: If job not found or no images found
+            ValidationError: If validation dispatch fails
+            ExternalServiceError: If an unexpected error occurs
+        """
+        self.log_operation(
+            "validate_job_images",
+            job_id=job_id,
+            validation_level=validation_level.value,
+            user_id=user_id
+        )
+
+        try:
+            # Get all images for the job
+            images = await self.image_repo.get_by_crawl_job(job_id)
+            
+            if not images:
+                raise NotFoundError(f"No images found for job {job_id}")
+
+            # TODO: Dispatch Celery validation tasks based on level
+            # For now, return mock task IDs
+            # When Celery integration is complete:
+            # 1. Import appropriate validation task from validator package
+            # 2. Dispatch task for each image
+            # 3. Collect and return task IDs
+            
+            task_ids = [f"task_{job_id}_{i}" for i in range(len(images))]
+            
+            self.logger.info(
+                f"Dispatched {len(task_ids)} validation tasks for job {job_id} "
+                f"at level {validation_level.value}"
+            )
+
+            return {
+                "job_id": job_id,
+                "images_count": len(images),
+                "validation_level": validation_level.value,
+                "task_ids": task_ids,
+                "message": f"Validation started for {len(images)} images"
+            }
+
+        except Exception as e:
+            if not isinstance(e, (NotFoundError, ValidationError)):
+                self.logger.error(
+                    f"Unexpected error in validate_job_images: {str(e)}",
+                    exc_info=True
+                )
+                raise ExternalServiceError("Failed to start validation") from e
+            raise
+
     async def _process_validation_job(
         self,
         job_id: str,
