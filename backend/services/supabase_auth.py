@@ -225,6 +225,74 @@ class SupabaseAuthService(BaseService):
             self.logger.error(f"Failed to update user profile: {str(e)}")
             raise
 
+
+    async def sync_profile(
+        self,
+        user_id: str,
+        email: str,
+        user_metadata: Dict[str, Any]
+    ) -> str:
+        """
+        Synchronize user profile between Supabase Auth and profiles table.
+        
+        Creates a new profile if one doesn't exist, otherwise updates the existing one.
+        This method is called by the auth endpoint to ensure profile data is in sync
+        with Supabase Auth after login or OAuth authentication.
+        
+        Args:
+            user_id: Supabase user ID
+            email: User email address
+            user_metadata: User metadata from Supabase Auth (contains full_name, avatar_url, etc.)
+        
+        Returns:
+            Action performed: 'created' or 'updated'
+        
+        Raises:
+            Exception: If sync operation fails
+        """
+        try:
+            # Try to get existing profile
+            try:
+                existing_profile = await self.get_user_profile(user_id)
+                
+                #  Profile exists - update it
+                update_data = {
+                    "email": email,
+                    "full_name": user_metadata.get("full_name", ""),
+                    "avatar_url": user_metadata.get("avatar_url"),
+                    "updated_at": datetime.utcnow().isoformat()
+                }
+                
+                # Remove None values
+                update_data = {k: v for k, v in update_data.items() if v is not None}
+                
+                await self.update_user_profile(user_id, update_data)
+                self.log_operation("sync_profile_update", user_id=user_id)
+                return "updated"
+                
+            except NotFoundError:
+                # Profile doesn't exist - create it
+                profile_data = {
+                    "id": user_id,
+                    "email": email,
+                    "full_name": user_metadata.get("full_name", ""),
+                    "avatar_url": user_metadata.get("avatar_url"),
+                    "user_tier": "FREE",  # Default tier for new users
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat()
+                }
+                
+                # Remove None values
+                profile_data = {k: v for k, v in profile_data.items() if v is not None}
+                
+                await self.create_user_profile(profile_data)
+                self.log_operation("sync_profile_create", user_id=user_id)
+                return "created"
+                
+        except Exception as e:
+            self.logger.error(f"Profile sync failed: {str(e)}")
+            raise
+
     async def get_user_tier(self, user_id: str) -> str:
         """
         Get user's subscription tier from the profiles table.

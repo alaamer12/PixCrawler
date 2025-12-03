@@ -2,13 +2,12 @@
 API endpoints for dataset lifecycle policies.
 """
 
-from typing import List, Dict
+from typing import List, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.deps import get_current_active_user, get_db
-from backend.models.user import User
+from backend.api.dependencies import get_current_user as get_current_active_user, get_session as get_db
 from backend.repositories.dataset_repository import DatasetRepository
 from backend.repositories.policy_repository import (
     ArchivalPolicyRepository,
@@ -59,11 +58,11 @@ def get_execution_service(db: AsyncSession = Depends(get_db)) -> PolicyExecution
 )
 async def create_archival_policy(
     policy_in: ArchivalPolicyCreate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
     service: PolicyService = Depends(get_policy_service),
 ):
     """Create a new archival policy (Admin only)."""
-    if current_user.role != "admin":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     return await service.create_archival_policy(policy_in)
 
@@ -74,11 +73,11 @@ async def create_archival_policy(
     summary="List archival policies"
 )
 async def list_archival_policies(
-    current_user: User = Depends(get_current_active_user),
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
     service: PolicyService = Depends(get_policy_service),
 ):
     """List all archival policies."""
-    if current_user.role != "admin":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     return await service.list_archival_policies()
 
@@ -90,11 +89,11 @@ async def list_archival_policies(
 )
 async def get_archival_policy(
     policy_id: int,
-    current_user: User = Depends(get_current_active_user),
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
     service: PolicyService = Depends(get_policy_service),
 ):
     """Get archival policy by ID."""
-    if current_user.role != "admin":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     return await service.get_archival_policy(policy_id)
 
@@ -107,11 +106,11 @@ async def get_archival_policy(
 async def update_archival_policy(
     policy_id: int,
     policy_in: ArchivalPolicyUpdate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
     service: PolicyService = Depends(get_policy_service),
 ):
     """Update archival policy."""
-    if current_user.role != "admin":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     return await service.update_archival_policy(policy_id, policy_in)
 
@@ -123,11 +122,11 @@ async def update_archival_policy(
 )
 async def delete_archival_policy(
     policy_id: int,
-    current_user: User = Depends(get_current_active_user),
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
     service: PolicyService = Depends(get_policy_service),
 ):
     """Delete archival policy."""
-    if current_user.role != "admin":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     await service.delete_archival_policy(policy_id)
 
@@ -142,11 +141,11 @@ async def delete_archival_policy(
 )
 async def create_cleanup_policy(
     policy_in: CleanupPolicyCreate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
     service: PolicyService = Depends(get_policy_service),
 ):
     """Create a new cleanup policy (Admin only)."""
-    if current_user.role != "admin":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     return await service.create_cleanup_policy(policy_in)
 
@@ -157,11 +156,11 @@ async def create_cleanup_policy(
     summary="List cleanup policies"
 )
 async def list_cleanup_policies(
-    current_user: User = Depends(get_current_active_user),
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
     service: PolicyService = Depends(get_policy_service),
 ):
     """List all cleanup policies."""
-    if current_user.role != "admin":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     return await service.list_cleanup_policies()
 
@@ -173,11 +172,11 @@ async def list_cleanup_policies(
 )
 async def get_cleanup_policy(
     policy_id: int,
-    current_user: User = Depends(get_current_active_user),
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
     service: PolicyService = Depends(get_policy_service),
 ):
     """Get cleanup policy by ID."""
-    if current_user.role != "admin":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     return await service.get_cleanup_policy(policy_id)
 
@@ -190,11 +189,11 @@ async def get_cleanup_policy(
 async def update_cleanup_policy(
     policy_id: int,
     policy_in: CleanupPolicyUpdate,
-    current_user: User = Depends(get_current_active_user),
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
     service: PolicyService = Depends(get_policy_service),
 ):
     """Update cleanup policy."""
-    if current_user.role != "admin":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     return await service.update_cleanup_policy(policy_id, policy_in)
 
@@ -206,11 +205,11 @@ async def update_cleanup_policy(
 )
 async def delete_cleanup_policy(
     policy_id: int,
-    current_user: User = Depends(get_current_active_user),
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
     service: PolicyService = Depends(get_policy_service),
 ):
     """Delete cleanup policy."""
-    if current_user.role != "admin":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     await service.delete_cleanup_policy(policy_id)
 
@@ -224,10 +223,10 @@ async def delete_cleanup_policy(
 )
 async def trigger_archival_execution(
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_active_user),
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
 ):
     """Trigger archival policy execution manually."""
-    if current_user.role != "admin":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     
     # Use Celery task
@@ -242,10 +241,10 @@ async def trigger_archival_execution(
 )
 async def trigger_cleanup_execution(
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_active_user),
+    current_user: Dict[str, Any] = Depends(get_current_active_user),
 ):
     """Trigger cleanup policy execution manually."""
-    if current_user.role != "admin":
+    if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     
     # Use Celery task

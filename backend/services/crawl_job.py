@@ -1044,6 +1044,45 @@ class CrawlJobService(BaseService):
             for log in logs
         ]
 
+    async def _get_user_tier(self, user_id: UUID) -> str:
+        """
+        Get user's subscription tier from credit account.
+        
+        Determines the user's tier based on their credit account balance.
+        Used for rate limiting concurrent jobs.
+        
+        Args:
+            user_id: User UUID
+            
+        Returns:
+            Tier string: 'free', 'hobby', or 'pro'
+        """
+        from sqlalchemy import select
+        from backend.models import CreditAccount
+        
+        try:
+            # Query credit account
+            query = select(CreditAccount).where(CreditAccount.user_id == user_id)
+            result = await self.crawl_job_repo.session.execute(query)
+            credit_account = result.scalar_one_or_none()
+            
+            if not credit_account:
+                return 'free'  # Default to free tier if no account
+            
+            # Determine tier based on credit balance
+            balance = credit_account.current_balance
+            
+            if balance >= 10000:
+                return 'pro'
+            elif balance >= 1000:
+                return 'hobby'
+            else:
+                return 'free'
+                
+        except Exception as e:
+            logger.warning(f"Failed to determine user tier for {user_id}: {str(e)}")
+            return 'free'  # Default to free on error
+
 
     async def _revoke_celery_tasks(
         self,

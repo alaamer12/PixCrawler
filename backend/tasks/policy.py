@@ -6,7 +6,7 @@ import asyncio
 from celery import shared_task
 from loguru import logger
 
-from backend.database.session import AsyncSessionLocal
+from backend.database.connection import AsyncSessionLocal
 from backend.repositories.dataset_repository import DatasetRepository
 from backend.repositories.policy_repository import (
     ArchivalPolicyRepository,

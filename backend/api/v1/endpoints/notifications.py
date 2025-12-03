@@ -5,6 +5,7 @@ This module provides the API endpoints for Notification management.
 """
 
 from typing import List
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -129,8 +130,9 @@ async def list_notifications(
         HTTPException: 500 if database query fails
     """
     try:
+        user_id = UUID(current_user["user_id"])
         notifications = await service.get_notifications(
-            current_user["user_id"], 
+            user_id, 
             skip, 
             limit, 
             unread_only
@@ -138,7 +140,7 @@ async def list_notifications(
         
         # Get total count for pagination metadata
         total = await service.count_notifications(
-            current_user["user_id"],
+            user_id,
             unread_only
         )
         
@@ -213,7 +215,8 @@ async def mark_as_read(
     """
     try:
         if notification_in.is_read:
-            await service.mark_as_read(notification_id, current_user["user_id"])
+            user_id = UUID(current_user["user_id"])
+            await service.mark_as_read(notification_id, user_id)
             
         return NotificationMarkReadResponse(
             data={"id": notification_id, "is_read": True}
@@ -277,7 +280,8 @@ async def mark_all_read(
         HTTPException: 500 if bulk update fails
     """
     try:
-        count = await service.mark_all_as_read(current_user["user_id"])
+        user_id = UUID(current_user["user_id"])
+        count = await service.mark_all_as_read(user_id)
         return NotificationMarkAllReadResponse(
             data={"success": True, "count": count}
         )

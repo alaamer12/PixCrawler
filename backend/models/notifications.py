@@ -168,6 +168,16 @@ class Notification(Base):
         Index("ix_notifications_user_unread", "user_id", "is_read", postgresql_where="is_read = false"),
         Index("ix_notifications_user_created", "user_id", "created_at"),
     )
+    
+    @property
+    def type(self) -> str:
+        """Property accessor for type field to support Pydantic serialization."""
+        return self.type_
+    
+    @type.setter
+    def type(self, value: str) -> None:
+        """Property setter for type field."""
+        self.type_ = value
 
 
 class NotificationPreference(Base, TimestampMixin):

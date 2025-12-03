@@ -571,6 +571,26 @@ class Image(Base):
         Index("ix_images_created_at", "created_at"),
         Index("ix_images_hash", "hash"),  # Column name in database
     )
+    
+    @property
+    def format(self) -> Optional[str]:
+        """Property accessor for format field to support Pydantic serialization."""
+        return self.format_
+    
+    @format.setter
+    def format(self, value: Optional[str]) -> None:
+        """Property setter for format field."""
+        self.format_ = value
+    
+    @property
+    def hash(self) -> Optional[str]:
+        """Property accessor for hash field to support Pydantic serialization."""
+        return self.hash_
+    
+    @hash.setter
+    def hash(self, value: Optional[str]) -> None:
+        """Property setter for hash field."""
+        self.hash_ = value
 
 
 class ActivityLog(Base):
