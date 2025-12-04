@@ -17,6 +17,7 @@ __all__ = [
     'ValidationAnalyzeRequest',
     'ValidationBatchRequest',
     'ValidationLevelUpdateRequest',
+    'ValidationRequest',
     'ValidationAnalyzeResponse',
     'ValidationJobResponse',
     'ValidationJobListResponse',
@@ -24,6 +25,7 @@ __all__ = [
     'ValidationResultsResponse',
     'ValidationStatsResponse',
     'ValidationLevelUpdateResponse',
+    'ValidationResponse',
 ]
 
 
@@ -113,6 +115,22 @@ class ValidationLevelUpdateRequest(BaseModel):
     
     validation_level: ValidationLevel = Field(
         description="New validation level",
+        examples=[ValidationLevel.STANDARD, ValidationLevel.STRICT],
+    )
+
+
+class ValidationRequest(BaseModel):
+    """Schema for job validation request."""
+    
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_assignment=True,
+        extra='forbid',
+    )
+    
+    level: ValidationLevel = Field(
+        default=ValidationLevel.STANDARD,
+        description="Validation level to use (fast/medium/slow maps to basic/standard/strict)",
         examples=[ValidationLevel.STANDARD, ValidationLevel.STRICT],
     )
 
@@ -223,4 +241,16 @@ class ValidationLevelUpdateResponse(BaseModel):
     old_level: ValidationLevel = Field(description="Previous validation level")
     new_level: ValidationLevel = Field(description="New validation level")
     updated_at: datetime = Field(description="Update timestamp")
+    message: str = Field(description="Success message")
+
+
+class ValidationResponse(BaseModel):
+    """Schema for job validation response."""
+    
+    model_config = ConfigDict(use_enum_values=True)
+    
+    job_id: int = Field(description="Crawl job ID")
+    images_count: int = Field(ge=0, description="Number of images to validate")
+    validation_level: ValidationLevel = Field(description="Validation level used")
+    task_ids: list[str] = Field(description="List of Celery task IDs for tracking")
     message: str = Field(description="Success message")

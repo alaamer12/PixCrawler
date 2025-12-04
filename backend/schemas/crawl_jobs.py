@@ -23,6 +23,8 @@ __all__ = [
     'CrawlJobProgress',
     'JobLogEntry',
     'JobLogListResponse',
+    'JobStartResponse',
+    'JobStopResponse',
 ]
 
 
@@ -225,19 +227,17 @@ class CrawlJobProgress(BaseModel):
     
     model_config = ConfigDict(use_enum_values=True)
     
+    job_id: int = Field(description="Job ID")
     status: str = Field(description="Current status")
     progress: int = Field(ge=0, le=100, description="Progress percentage")
-    total_images: int = Field(ge=0, description="Total images found")
+    total_chunks: int = Field(ge=0, description="Total number of chunks")
+    active_chunks: int = Field(ge=0, description="Number of active chunks")
+    completed_chunks: int = Field(ge=0, description="Number of completed chunks")
+    failed_chunks: int = Field(ge=0, description="Number of failed chunks")
     downloaded_images: int = Field(ge=0, description="Images downloaded")
-    valid_images: int = Field(ge=0, description="Valid images")
-    current_keyword: Optional[str] = Field(default=None, description="Currently processing keyword")
-    logs: list[JobLogEntry] = Field(default_factory=list, description="Recent log entries")
-    
-    @computed_field
-    @property
-    def remaining_images(self) -> int:
-        """Calculate remaining images to download."""
-        return max(0, self.total_images - self.downloaded_images)
+    estimated_completion: Optional[datetime] = Field(default=None, description="Estimated completion time")
+    started_at: Optional[str] = Field(default=None, description="Job start timestamp")
+    updated_at: str = Field(description="Last update timestamp")
 
 
 class JobLogListResponse(BaseModel):
@@ -259,3 +259,26 @@ class JobLogListResponse(BaseModel):
         description="Metadata",
         examples=[{"total": 15}]
     )
+
+
+class JobStartResponse(BaseModel):
+    """Schema for job start endpoint response."""
+    
+    model_config = ConfigDict(use_enum_values=True)
+    
+    job_id: int = Field(description="Job ID")
+    status: str = Field(description="Job status (should be 'running')")
+    task_ids: list[str] = Field(description="List of Celery task IDs dispatched")
+    total_chunks: int = Field(ge=0, description="Total number of chunks (keywords × engines)")
+    message: str = Field(description="Success message")
+
+
+class JobStopResponse(BaseModel):
+    """Schema for job stop endpoint response."""
+    
+    model_config = ConfigDict(use_enum_values=True)
+    
+    job_id: int = Field(description="Job ID")
+    status: str = Field(description="Job status (should be 'cancelled')")
+    revoked_tasks: int = Field(ge=0, description="Number of tasks revoked")
+    message: str = Field(description="Success message")
