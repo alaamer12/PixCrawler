@@ -42,7 +42,7 @@ Issues = "https://github.com/pixcrawler/pixcrawler/issues"
 
 
 [tool.uv.workspace]
-members = ["backend", "builder", "utility", "celery_core", "validator"]
+members = ["backend", "builder", "utility", "celery_core", "validator", "sdk"]
 
 [tool.uv.sources]
 pixcrawler-backend = { workspace = true }
@@ -50,6 +50,7 @@ pixcrawler-builder = { workspace = true }
 pixcrawler-utility = { workspace = true }
 pixcrawler-celery-core = { workspace = true }
 pixcrawler-validator = { workspace = true }
+pixcrawler-sdk = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/"]
@@ -207,4 +208,5 @@ dev = [
     "pytest>=8.4.1",
     "pytest-asyncio>=1.2.0",
     "pytest-cov>=7.0.0",
+    "pixcrawler-sdk",
 ]
