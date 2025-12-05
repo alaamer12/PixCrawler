@@ -1,0 +1,3628 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "PixCrawler Frontend Mock API",
+    "version": "1.0.0",
+    "description": "Mock API specification for PixCrawler frontend development. This specification provides realistic mock responses for all backend endpoints, enabling frontend development without running the Python backend. Generated responses follow production API patterns with consistent data structures, ISO 8601 timestamps, and UUID v4 identifiers.",
+    "contact": {
+      "name": "PixCrawler Support",
+      "email": "support@pixcrawler.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4010/api/v1",
+      "description": "Prism Mock Server (Development)"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "UUID": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+        "description": "UUID v4 identifier",
+        "example": "550e8400-e29b-41d4-a716-446655440000"
+      },
+      "Timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$",
+        "description": "ISO 8601 timestamp in UTC",
+        "example": "2025-12-05T10:00:00Z"
+      },
+      "PaginationMeta": {
+        "type": "object",
+        "description": "Pagination metadata for collection responses",
+        "required": ["total", "page", "limit", "pages"],
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Total number of items across all pages",
+            "example": 100,
+            "minimum": 0
+          },
+          "page": {
+            "type": "integer",
+            "description": "Current page number (1-indexed)",
+            "example": 1,
+            "minimum": 1
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Number of items per page",
+            "example": 20,
+            "minimum": 1,
+            "maximum": 100
+          },
+          "pages": {
+            "type": "integer",
+            "description": "Total number of pages",
+            "example": 5,
+            "minimum": 0
+          }
+        }
+      },
+      "SingleObjectResponse": {
+        "type": "object",
+        "description": "Standard response structure for single object responses",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "The response data object"
+          }
+        }
+      },
+      "CollectionResponse": {
+        "type": "object",
+        "description": "Standard response structure for collection responses with pagination",
+        "required": ["data", "meta"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "description": "Array of response data objects",
+            "items": {
+              "type": "object"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMeta"
+          }
+        }
+      },
+      "JobStatus": {
+        "type": "string",
+        "enum": ["pending", "running", "completed", "failed", "cancelled"],
+        "description": "Status of a crawl job",
+        "example": "running"
+      },
+      "ValidationLevel": {
+        "type": "string",
+        "enum": ["fast", "medium", "slow"],
+        "description": "Image validation thoroughness level",
+        "example": "medium"
+      },
+      "TransactionType": {
+        "type": "string",
+        "enum": ["purchase", "usage", "refund", "bonus"],
+        "description": "Type of credit transaction",
+        "example": "purchase"
+      },
+      "TransactionStatus": {
+        "type": "string",
+        "enum": ["pending", "completed", "failed", "refunded"],
+        "description": "Status of a credit transaction",
+        "example": "completed"
+      },
+      "ApiKeyStatus": {
+        "type": "string",
+        "enum": ["active", "revoked", "expired"],
+        "description": "Status of an API key",
+        "example": "active"
+      },
+      "StorageTier": {
+        "type": "string",
+        "enum": ["hot", "warm", "archive"],
+        "description": "Storage tier for files",
+        "example": "hot"
+      },
+      "ActivityAction": {
+        "type": "string",
+        "enum": ["create", "update", "delete", "view", "download", "export"],
+        "description": "Type of activity action",
+        "example": "create"
+      },
+      "ResourceType": {
+        "type": "string",
+        "enum": ["project", "crawl_job", "image", "dataset", "api_key", "credit_transaction"],
+        "description": "Type of resource in activity logs",
+        "example": "crawl_job"
+      },
+      "ServiceStatus": {
+        "type": "string",
+        "enum": ["healthy", "degraded", "unhealthy"],
+        "description": "Health status of a service",
+        "example": "healthy"
+      },
+      "CrawlJob": {
+        "type": "object",
+        "description": "Crawl job object with complete metadata",
+        "required": ["id", "project_id", "name", "keywords", "max_images", "status", "progress", "created_at", "updated_at"],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "project_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name for the crawl job",
+            "example": "Laptop Product Images"
+          },
+          "keywords": {
+            "type": "array",
+            "description": "Keywords to search for images",
+            "items": {
+              "type": "string"
+            },
+            "example": ["laptop", "computer", "notebook"]
+          },
+          "max_images": {
+            "type": "integer",
+            "description": "Maximum number of images to crawl",
+            "example": 1000,
+            "minimum": 1
+          },
+          "engines": {
+            "type": "array",
+            "description": "Search engines to use for crawling",
+            "items": {
+              "type": "string",
+              "enum": ["google", "bing", "duckduckgo", "baidu"]
+            },
+            "example": ["google", "bing", "duckduckgo"]
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "progress": {
+            "type": "integer",
+            "description": "Job completion percentage (0-100)",
+            "example": 45,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "total_chunks": {
+            "type": "integer",
+            "description": "Total number of processing chunks",
+            "example": 10,
+            "minimum": 0
+          },
+          "active_chunks": {
+            "type": "integer",
+            "description": "Number of chunks currently being processed",
+            "example": 3,
+            "minimum": 0
+          },
+          "completed_chunks": {
+            "type": "integer",
+            "description": "Number of chunks that have completed processing",
+            "example": 4,
+            "minimum": 0
+          },
+          "failed_chunks": {
+            "type": "integer",
+            "description": "Number of chunks that failed processing",
+            "example": 1,
+            "minimum": 0
+          },
+          "images_downloaded": {
+            "type": "integer",
+            "description": "Total number of images downloaded",
+            "example": 450,
+            "minimum": 0
+          },
+          "images_validated": {
+            "type": "integer",
+            "description": "Number of images that passed validation",
+            "example": 420,
+            "minimum": 0
+          },
+          "images_failed": {
+            "type": "integer",
+            "description": "Number of images that failed validation",
+            "example": 30,
+            "minimum": 0
+          },
+          "task_ids": {
+            "type": "array",
+            "description": "Celery task IDs for tracking",
+            "items": {
+              "type": "string"
+            },
+            "example": ["task_123_0", "task_123_1", "task_123_2"]
+          },
+          "quality_filters": {
+            "type": "object",
+            "description": "Quality filters for image validation",
+            "properties": {
+              "min_resolution": {
+                "type": "array",
+                "description": "Minimum resolution [width, height]",
+                "items": {
+                  "type": "integer"
+                },
+                "example": [224, 224]
+              },
+              "formats": {
+                "type": "array",
+                "description": "Allowed image formats",
+                "items": {
+                  "type": "string"
+                },
+                "example": ["jpg", "png", "webp"]
+              }
+            }
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "started_at": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ],
+            "nullable": true,
+            "example": "2025-12-05T10:05:00Z"
+          },
+          "completed_at": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ],
+            "nullable": true,
+            "example": null
+          }
+        }
+      },
+      "CreateCrawlJobRequest": {
+        "type": "object",
+        "description": "Request body for creating a new crawl job",
+        "required": ["project_id", "name", "keywords", "max_images"],
+        "properties": {
+          "project_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name for the crawl job",
+            "example": "Laptop Product Images"
+          },
+          "keywords": {
+            "type": "array",
+            "description": "Keywords to search for images",
+            "items": {
+              "type": "string"
+            },
+            "example": ["laptop", "computer", "notebook"],
+            "minItems": 1
+          },
+          "max_images": {
+            "type": "integer",
+            "description": "Maximum number of images to crawl",
+            "example": 1000,
+            "minimum": 1
+          },
+          "engines": {
+            "type": "array",
+            "description": "Search engines to use for crawling",
+            "items": {
+              "type": "string",
+              "enum": ["google", "bing", "duckduckgo", "baidu"]
+            },
+            "example": ["google", "bing", "duckduckgo"]
+          },
+          "quality_filters": {
+            "type": "object",
+            "description": "Quality filters for image validation",
+            "properties": {
+              "min_resolution": {
+                "type": "array",
+                "description": "Minimum resolution [width, height]",
+                "items": {
+                  "type": "integer"
+                },
+                "example": [224, 224]
+              },
+              "formats": {
+                "type": "array",
+                "description": "Allowed image formats",
+                "items": {
+                  "type": "string"
+                },
+                "example": ["jpg", "png", "webp"]
+              }
+            }
+          }
+        }
+      },
+      "StartJobResponse": {
+        "type": "object",
+        "description": "Response when starting a crawl job",
+        "required": ["task_ids", "message"],
+        "properties": {
+          "task_ids": {
+            "type": "array",
+            "description": "Celery task IDs for tracking job execution",
+            "items": {
+              "type": "string"
+            },
+            "example": ["task_770e8400_0", "task_770e8400_1", "task_770e8400_2"]
+          },
+          "message": {
+            "type": "string",
+            "description": "Confirmation message",
+            "example": "Crawl job started successfully with 3 tasks"
+          }
+        }
+      },
+      "CancelJobResponse": {
+        "type": "object",
+        "description": "Response when cancelling a crawl job",
+        "required": ["revoked_count", "status", "message"],
+        "properties": {
+          "revoked_count": {
+            "type": "integer",
+            "description": "Number of tasks that were revoked",
+            "example": 2,
+            "minimum": 0
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "message": {
+            "type": "string",
+            "description": "Confirmation message",
+            "example": "Crawl job cancelled successfully. 2 tasks revoked."
+          }
+        }
+      },
+      "RetryJobResponse": {
+        "type": "object",
+        "description": "Response when retrying a failed crawl job",
+        "required": ["task_ids", "status", "message"],
+        "properties": {
+          "task_ids": {
+            "type": "array",
+            "description": "New Celery task IDs for retry",
+            "items": {
+              "type": "string"
+            },
+            "example": ["task_770e8400_retry_0", "task_770e8400_retry_1"]
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "message": {
+            "type": "string",
+            "description": "Confirmation message",
+            "example": "Crawl job retry initiated with 2 new tasks"
+          }
+        }
+      },
+      "JobProgressResponse": {
+        "type": "object",
+        "description": "Detailed progress information for a crawl job",
+        "required": ["job_id", "status", "progress"],
+        "properties": {
+          "job_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "progress": {
+            "type": "integer",
+            "description": "Job completion percentage (0-100)",
+            "example": 45,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "total_chunks": {
+            "type": "integer",
+            "description": "Total number of processing chunks",
+            "example": 10,
+            "minimum": 0
+          },
+          "active_chunks": {
+            "type": "integer",
+            "description": "Number of chunks currently being processed",
+            "example": 3,
+            "minimum": 0
+          },
+          "completed_chunks": {
+            "type": "integer",
+            "description": "Number of chunks that have completed processing",
+            "example": 4,
+            "minimum": 0
+          },
+          "failed_chunks": {
+            "type": "integer",
+            "description": "Number of chunks that failed processing",
+            "example": 1,
+            "minimum": 0
+          },
+          "images_downloaded": {
+            "type": "integer",
+            "description": "Total number of images downloaded",
+            "example": 450,
+            "minimum": 0
+          },
+          "images_validated": {
+            "type": "integer",
+            "description": "Number of images that passed validation",
+            "example": 420,
+            "minimum": 0
+          },
+          "images_failed": {
+            "type": "integer",
+            "description": "Number of images that failed validation",
+            "example": 30,
+            "minimum": 0
+          },
+          "estimated_completion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ],
+            "nullable": true,
+            "description": "Estimated completion time",
+            "example": "2025-12-05T11:30:00Z"
+          }
+        }
+      },
+      "AnalyzeImageRequest": {
+        "type": "object",
+        "description": "Request body for analyzing a single image",
+        "required": ["image_url"],
+        "properties": {
+          "image_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the image to analyze",
+            "example": "https://example.com/images/laptop.jpg"
+          }
+        }
+      },
+      "ImageValidationResult": {
+        "type": "object",
+        "description": "Validation result for a single image",
+        "required": ["is_valid", "is_duplicate", "dimensions", "format", "hash"],
+        "properties": {
+          "is_valid": {
+            "type": "boolean",
+            "description": "Whether the image passed validation",
+            "example": true
+          },
+          "is_duplicate": {
+            "type": "boolean",
+            "description": "Whether the image is a duplicate",
+            "example": false
+          },
+          "dimensions": {
+            "type": "object",
+            "description": "Image dimensions",
+            "required": ["width", "height"],
+            "properties": {
+              "width": {
+                "type": "integer",
+                "description": "Image width in pixels",
+                "example": 1920
+              },
+              "height": {
+                "type": "integer",
+                "description": "Image height in pixels",
+                "example": 1080
+              }
+            }
+          },
+          "format": {
+            "type": "string",
+            "description": "Image format",
+            "example": "jpg",
+            "enum": ["jpg", "jpeg", "png", "webp", "gif"]
+          },
+          "file_size": {
+            "type": "integer",
+            "description": "File size in bytes",
+            "example": 245678
+          },
+          "hash": {
+            "type": "string",
+            "description": "Perceptual hash for duplicate detection",
+            "example": "a1b2c3d4e5f6g7h8"
+          },
+          "validation_errors": {
+            "type": "array",
+            "description": "List of validation errors if any",
+            "items": {
+              "type": "string"
+            },
+            "example": []
+          }
+        }
+      },
+      "CreateBatchValidationRequest": {
+        "type": "object",
+        "description": "Request body for creating a batch validation",
+        "required": ["image_ids", "validation_level"],
+        "properties": {
+          "image_ids": {
+            "type": "array",
+            "description": "Array of image IDs to validate",
+            "items": {
+              "$ref": "#/components/schemas/UUID"
+            },
+            "example": ["880e8400-e29b-41d4-a716-446655440010", "880e8400-e29b-41d4-a716-446655440011"],
+            "minItems": 1
+          },
+          "validation_level": {
+            "$ref": "#/components/schemas/ValidationLevel"
+          }
+        }
+      },
+      "BatchValidationResponse": {
+        "type": "object",
+        "description": "Response when creating a batch validation",
+        "required": ["batch_id", "status", "images_count"],
+        "properties": {
+          "batch_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "processing", "completed", "failed"],
+            "description": "Status of the batch validation",
+            "example": "pending"
+          },
+          "images_count": {
+            "type": "integer",
+            "description": "Number of images in the batch",
+            "example": 100,
+            "minimum": 1
+          },
+          "validation_level": {
+            "$ref": "#/components/schemas/ValidationLevel"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "ValidateJobRequest": {
+        "type": "object",
+        "description": "Request body for validating job images",
+        "required": ["validation_level"],
+        "properties": {
+          "validation_level": {
+            "$ref": "#/components/schemas/ValidationLevel"
+          }
+        }
+      },
+      "ValidateJobResponse": {
+        "type": "object",
+        "description": "Response when validating job images",
+        "required": ["task_ids", "images_count", "message"],
+        "properties": {
+          "task_ids": {
+            "type": "array",
+            "description": "Celery task IDs for tracking validation",
+            "items": {
+              "type": "string"
+            },
+            "example": ["validation_task_123_0", "validation_task_123_1"]
+          },
+          "images_count": {
+            "type": "integer",
+            "description": "Number of images being validated",
+            "example": 450,
+            "minimum": 0
+          },
+          "validation_level": {
+            "$ref": "#/components/schemas/ValidationLevel"
+          },
+          "message": {
+            "type": "string",
+            "description": "Confirmation message",
+            "example": "Validation started for 450 images at medium level"
+          }
+        }
+      },
+      "ValidationResultsResponse": {
+        "type": "object",
+        "description": "Aggregated validation results for a job",
+        "required": ["job_id", "total_images", "valid_images", "invalid_images", "duplicate_images"],
+        "properties": {
+          "job_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "total_images": {
+            "type": "integer",
+            "description": "Total number of images processed",
+            "example": 450,
+            "minimum": 0
+          },
+          "valid_images": {
+            "type": "integer",
+            "description": "Number of valid images",
+            "example": 420,
+            "minimum": 0
+          },
+          "invalid_images": {
+            "type": "integer",
+            "description": "Number of invalid images",
+            "example": 30,
+            "minimum": 0
+          },
+          "duplicate_images": {
+            "type": "integer",
+            "description": "Number of duplicate images detected",
+            "example": 15,
+            "minimum": 0
+          },
+          "validation_errors": {
+            "type": "object",
+            "description": "Breakdown of validation errors by type",
+            "properties": {
+              "format_errors": {
+                "type": "integer",
+                "example": 5
+              },
+              "resolution_errors": {
+                "type": "integer",
+                "example": 10
+              },
+              "corrupted_files": {
+                "type": "integer",
+                "example": 15
+              }
+            }
+          },
+          "completed_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "DatasetValidationStatsResponse": {
+        "type": "object",
+        "description": "Comprehensive validation statistics for a dataset",
+        "required": ["dataset_id", "total_images", "validated_images", "validation_coverage"],
+        "properties": {
+          "dataset_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "total_images": {
+            "type": "integer",
+            "description": "Total number of images in dataset",
+            "example": 5000,
+            "minimum": 0
+          },
+          "validated_images": {
+            "type": "integer",
+            "description": "Number of images that have been validated",
+            "example": 4850,
+            "minimum": 0
+          },
+          "validation_coverage": {
+            "type": "number",
+            "format": "float",
+            "description": "Percentage of images validated (0-100)",
+            "example": 97.0,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "valid_images": {
+            "type": "integer",
+            "description": "Number of valid images",
+            "example": 4500,
+            "minimum": 0
+          },
+          "invalid_images": {
+            "type": "integer",
+            "description": "Number of invalid images",
+            "example": 350,
+            "minimum": 0
+          },
+          "duplicate_images": {
+            "type": "integer",
+            "description": "Number of duplicate images",
+            "example": 200,
+            "minimum": 0
+          },
+          "quality_score": {
+            "type": "number",
+            "format": "float",
+            "description": "Overall quality score (0-100)",
+            "example": 92.8,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "last_validated_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "UpdateValidationLevelRequest": {
+        "type": "object",
+        "description": "Request body for updating validation level",
+        "required": ["level"],
+        "properties": {
+          "level": {
+            "$ref": "#/components/schemas/ValidationLevel"
+          }
+        }
+      },
+      "UpdateValidationLevelResponse": {
+        "type": "object",
+        "description": "Response when updating validation level",
+        "required": ["level", "message"],
+        "properties": {
+          "level": {
+            "$ref": "#/components/schemas/ValidationLevel"
+          },
+          "previous_level": {
+            "$ref": "#/components/schemas/ValidationLevel"
+          },
+          "message": {
+            "type": "string",
+            "description": "Confirmation message",
+            "example": "Validation level updated to medium successfully"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "CreditBalance": {
+        "type": "object",
+        "description": "User credit balance and auto-refill settings",
+        "required": ["current_balance", "monthly_usage", "monthly_limit", "auto_refill_enabled"],
+        "properties": {
+          "current_balance": {
+            "type": "integer",
+            "description": "Current credit balance",
+            "example": 1500,
+            "minimum": 0
+          },
+          "monthly_usage": {
+            "type": "integer",
+            "description": "Credits used this month",
+            "example": 2500,
+            "minimum": 0
+          },
+          "monthly_limit": {
+            "type": "integer",
+            "description": "Monthly usage limit",
+            "example": 10000,
+            "minimum": 0
+          },
+          "auto_refill_enabled": {
+            "type": "boolean",
+            "description": "Whether auto-refill is enabled",
+            "example": true
+          },
+          "refill_threshold": {
+            "type": "integer",
+            "description": "Balance threshold that triggers auto-refill",
+            "example": 500,
+            "minimum": 0
+          },
+          "refill_amount": {
+            "type": "integer",
+            "description": "Amount of credits to add on auto-refill",
+            "example": 1000,
+            "minimum": 0
+          },
+          "average_daily_usage": {
+            "type": "number",
+            "format": "float",
+            "description": "Average daily credit usage",
+            "example": 83.33,
+            "minimum": 0
+          },
+          "estimated_days_remaining": {
+            "type": "integer",
+            "description": "Estimated days until credits run out",
+            "example": 18,
+            "minimum": 0
+          }
+        }
+      },
+      "CreditTransaction": {
+        "type": "object",
+        "description": "Credit transaction record",
+        "required": ["id", "type", "amount", "balance_after", "status", "created_at"],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TransactionType"
+          },
+          "amount": {
+            "type": "integer",
+            "description": "Transaction amount (positive for credits added, negative for usage)",
+            "example": 1000
+          },
+          "balance_after": {
+            "type": "integer",
+            "description": "Credit balance after transaction",
+            "example": 2500,
+            "minimum": 0
+          },
+          "status": {
+            "$ref": "#/components/schemas/TransactionStatus"
+          },
+          "description": {
+            "type": "string",
+            "description": "Transaction description",
+            "example": "Credit purchase - 1000 credits"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional transaction metadata",
+            "properties": {
+              "payment_method": {
+                "type": "string",
+                "example": "lemonsqueezy"
+              },
+              "order_id": {
+                "type": "string",
+                "example": "order_abc123"
+              },
+              "job_id": {
+                "$ref": "#/components/schemas/UUID"
+              }
+            }
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "PurchaseCreditsRequest": {
+        "type": "object",
+        "description": "Request body for purchasing credits",
+        "required": ["amount", "payment_method"],
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "description": "Number of credits to purchase",
+            "example": 1000,
+            "minimum": 100
+          },
+          "payment_method": {
+            "type": "string",
+            "description": "Payment method identifier",
+            "example": "lemonsqueezy",
+            "enum": ["lemonsqueezy", "stripe", "paypal"]
+          },
+          "payment_token": {
+            "type": "string",
+            "description": "Payment provider token or order ID",
+            "example": "order_abc123"
+          }
+        }
+      },
+      "PurchaseCreditsResponse": {
+        "type": "object",
+        "description": "Response when purchasing credits",
+        "required": ["transaction_id", "amount", "new_balance", "status"],
+        "properties": {
+          "transaction_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "amount": {
+            "type": "integer",
+            "description": "Number of credits purchased",
+            "example": 1000,
+            "minimum": 0
+          },
+          "new_balance": {
+            "type": "integer",
+            "description": "New credit balance after purchase",
+            "example": 2500,
+            "minimum": 0
+          },
+          "status": {
+            "$ref": "#/components/schemas/TransactionStatus"
+          },
+          "payment_method": {
+            "type": "string",
+            "description": "Payment method used",
+            "example": "lemonsqueezy"
+          },
+          "order_id": {
+            "type": "string",
+            "description": "Payment provider order ID",
+            "example": "order_abc123"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "UsageMetric": {
+        "type": "object",
+        "description": "Daily usage metric",
+        "required": ["date", "images_processed", "credits_used"],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date of the metric",
+            "example": "2025-12-05"
+          },
+          "images_processed": {
+            "type": "integer",
+            "description": "Number of images processed",
+            "example": 250,
+            "minimum": 0
+          },
+          "credits_used": {
+            "type": "integer",
+            "description": "Credits consumed",
+            "example": 125,
+            "minimum": 0
+          },
+          "storage_used_gb": {
+            "type": "number",
+            "format": "float",
+            "description": "Storage used in GB",
+            "example": 2.5,
+            "minimum": 0
+          },
+          "api_calls": {
+            "type": "integer",
+            "description": "Number of API calls made",
+            "example": 150,
+            "minimum": 0
+          },
+          "bandwidth_used_gb": {
+            "type": "number",
+            "format": "float",
+            "description": "Bandwidth used in GB",
+            "example": 1.2,
+            "minimum": 0
+          }
+        }
+      },
+      "UsageMetricsResponse": {
+        "type": "object",
+        "description": "Usage metrics with daily breakdown",
+        "required": ["start_date", "end_date", "total_credits_used", "daily_metrics"],
+        "properties": {
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Start date of the period",
+            "example": "2025-12-01"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "description": "End date of the period",
+            "example": "2025-12-05"
+          },
+          "total_credits_used": {
+            "type": "integer",
+            "description": "Total credits used in the period",
+            "example": 625,
+            "minimum": 0
+          },
+          "total_images_processed": {
+            "type": "integer",
+            "description": "Total images processed in the period",
+            "example": 1250,
+            "minimum": 0
+          },
+          "total_storage_used_gb": {
+            "type": "number",
+            "format": "float",
+            "description": "Total storage used in GB",
+            "example": 12.5,
+            "minimum": 0
+          },
+          "total_api_calls": {
+            "type": "integer",
+            "description": "Total API calls made",
+            "example": 750,
+            "minimum": 0
+          },
+          "total_bandwidth_used_gb": {
+            "type": "number",
+            "format": "float",
+            "description": "Total bandwidth used in GB",
+            "example": 6.0,
+            "minimum": 0
+          },
+          "daily_metrics": {
+            "type": "array",
+            "description": "Daily breakdown of usage metrics",
+            "items": {
+              "$ref": "#/components/schemas/UsageMetric"
+            }
+          }
+        }
+      },
+      "ApiKey": {
+        "type": "object",
+        "description": "API key object with usage statistics",
+        "required": ["id", "name", "key_prefix", "status", "permissions", "rate_limit", "usage_count", "created_at"],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name for the API key",
+            "example": "Production API Key"
+          },
+          "key_prefix": {
+            "type": "string",
+            "description": "First 8 characters of the API key for identification",
+            "example": "pk_live_",
+            "pattern": "^pk_(live|test)_$"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiKeyStatus"
+          },
+          "permissions": {
+            "type": "array",
+            "description": "List of permissions granted to this API key",
+            "items": {
+              "type": "string",
+              "enum": ["read", "write", "delete", "admin"]
+            },
+            "example": ["read", "write"]
+          },
+          "rate_limit": {
+            "type": "integer",
+            "description": "Maximum requests per minute",
+            "example": 1000,
+            "minimum": 1
+          },
+          "usage_count": {
+            "type": "integer",
+            "description": "Total number of requests made with this key",
+            "example": 15420,
+            "minimum": 0
+          },
+          "last_used_at": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ],
+            "nullable": true,
+            "description": "Last time the API key was used",
+            "example": "2025-12-05T09:30:00Z"
+          },
+          "expires_at": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ],
+            "nullable": true,
+            "description": "Expiration date of the API key",
+            "example": "2026-12-05T00:00:00Z"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "updated_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "CreateApiKeyRequest": {
+        "type": "object",
+        "description": "Request body for creating a new API key",
+        "required": ["name", "permissions"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Human-readable name for the API key",
+            "example": "Production API Key",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "permissions": {
+            "type": "array",
+            "description": "List of permissions to grant to this API key",
+            "items": {
+              "type": "string",
+              "enum": ["read", "write", "delete", "admin"]
+            },
+            "example": ["read", "write"],
+            "minItems": 1
+          },
+          "rate_limit": {
+            "type": "integer",
+            "description": "Maximum requests per minute (optional, defaults to 100)",
+            "example": 1000,
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Expiration date for the API key (optional)",
+            "example": "2026-12-05T00:00:00Z"
+          }
+        }
+      },
+      "CreateApiKeyResponse": {
+        "type": "object",
+        "description": "Response when creating a new API key",
+        "required": ["id", "name", "key", "key_prefix", "permissions", "rate_limit", "created_at", "warning"],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name for the API key",
+            "example": "Production API Key"
+          },
+          "key": {
+            "type": "string",
+            "description": "Full API key value (only shown once during creation)",
+            "example": "pk_live_1234567890abcdef1234567890abcdef",
+            "pattern": "^pk_(live|test)_[a-f0-9]{32}$"
+          },
+          "key_prefix": {
+            "type": "string",
+            "description": "First 8 characters of the API key for identification",
+            "example": "pk_live_"
+          },
+          "permissions": {
+            "type": "array",
+            "description": "List of permissions granted to this API key",
+            "items": {
+              "type": "string"
+            },
+            "example": ["read", "write"]
+          },
+          "rate_limit": {
+            "type": "integer",
+            "description": "Maximum requests per minute",
+            "example": 1000
+          },
+          "expires_at": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ],
+            "nullable": true,
+            "description": "Expiration date of the API key",
+            "example": "2026-12-05T00:00:00Z"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "warning": {
+            "type": "string",
+            "description": "Warning message about storing the API key securely",
+            "example": "This is the only time the full API key will be displayed. Please store it securely."
+          }
+        }
+      },
+      "RevokeApiKeyResponse": {
+        "type": "object",
+        "description": "Response when revoking an API key",
+        "required": ["id", "status", "message", "revoked_at"],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApiKeyStatus"
+          },
+          "message": {
+            "type": "string",
+            "description": "Confirmation message",
+            "example": "API key revoked successfully"
+          },
+          "revoked_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "ApiKeyUsageMetric": {
+        "type": "object",
+        "description": "Daily usage metric for an API key",
+        "required": ["date", "requests", "successful_requests", "failed_requests"],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date of the metric",
+            "example": "2025-12-05"
+          },
+          "requests": {
+            "type": "integer",
+            "description": "Total number of requests",
+            "example": 1250,
+            "minimum": 0
+          },
+          "successful_requests": {
+            "type": "integer",
+            "description": "Number of successful requests (2xx status)",
+            "example": 1200,
+            "minimum": 0
+          },
+          "failed_requests": {
+            "type": "integer",
+            "description": "Number of failed requests (4xx, 5xx status)",
+            "example": 50,
+            "minimum": 0
+          },
+          "rate_limit_hits": {
+            "type": "integer",
+            "description": "Number of times rate limit was hit",
+            "example": 5,
+            "minimum": 0
+          }
+        }
+      },
+      "ApiKeyUsageResponse": {
+        "type": "object",
+        "description": "Usage statistics for an API key with daily breakdown",
+        "required": ["api_key_id", "total_requests", "successful_requests", "failed_requests", "daily_usage"],
+        "properties": {
+          "api_key_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "api_key_name": {
+            "type": "string",
+            "description": "Name of the API key",
+            "example": "Production API Key"
+          },
+          "total_requests": {
+            "type": "integer",
+            "description": "Total number of requests made with this key",
+            "example": 15420,
+            "minimum": 0
+          },
+          "successful_requests": {
+            "type": "integer",
+            "description": "Total successful requests (2xx status)",
+            "example": 14850,
+            "minimum": 0
+          },
+          "failed_requests": {
+            "type": "integer",
+            "description": "Total failed requests (4xx, 5xx status)",
+            "example": 570,
+            "minimum": 0
+          },
+          "rate_limit_hits": {
+            "type": "integer",
+            "description": "Total times rate limit was hit",
+            "example": 45,
+            "minimum": 0
+          },
+          "last_used_at": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ],
+            "nullable": true,
+            "description": "Last time the API key was used",
+            "example": "2025-12-05T09:30:00Z"
+          },
+          "daily_usage": {
+            "type": "array",
+            "description": "Daily breakdown of API key usage",
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyUsageMetric"
+            }
+          }
+        }
+      },
+      "StorageUsageResponse": {
+        "type": "object",
+        "description": "Storage usage information with tier breakdown",
+        "required": ["total_storage_bytes", "total_storage_gb", "storage_limit_gb", "file_count", "tier_breakdown"],
+        "properties": {
+          "total_storage_bytes": {
+            "type": "integer",
+            "description": "Total storage used in bytes",
+            "example": 53687091200,
+            "minimum": 0
+          },
+          "total_storage_gb": {
+            "type": "number",
+            "format": "float",
+            "description": "Total storage used in GB",
+            "example": 50.0,
+            "minimum": 0
+          },
+          "storage_limit_gb": {
+            "type": "number",
+            "format": "float",
+            "description": "Storage limit in GB",
+            "example": 500.0,
+            "minimum": 0
+          },
+          "storage_used_percentage": {
+            "type": "number",
+            "format": "float",
+            "description": "Percentage of storage limit used",
+            "example": 10.0,
+            "minimum": 0,
+            "maximum": 100
+          },
+          "file_count": {
+            "type": "integer",
+            "description": "Total number of files stored",
+            "example": 1250,
+            "minimum": 0
+          },
+          "tier_breakdown": {
+            "type": "object",
+            "description": "Storage breakdown by tier",
+            "required": ["hot", "warm", "archive"],
+            "properties": {
+              "hot": {
+                "type": "object",
+                "description": "Hot tier storage (immediate access)",
+                "required": ["storage_gb", "file_count"],
+                "properties": {
+                  "storage_gb": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "Storage used in hot tier (GB)",
+                    "example": 25.0,
+                    "minimum": 0
+                  },
+                  "file_count": {
+                    "type": "integer",
+                    "description": "Number of files in hot tier",
+                    "example": 500,
+                    "minimum": 0
+                  }
+                }
+              },
+              "warm": {
+                "type": "object",
+                "description": "Warm tier storage (cost-optimized)",
+                "required": ["storage_gb", "file_count"],
+                "properties": {
+                  "storage_gb": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "Storage used in warm tier (GB)",
+                    "example": 20.0,
+                    "minimum": 0
+                  },
+                  "file_count": {
+                    "type": "integer",
+                    "description": "Number of files in warm tier",
+                    "example": 600,
+                    "minimum": 0
+                  }
+                }
+              },
+              "archive": {
+                "type": "object",
+                "description": "Archive tier storage (long-term)",
+                "required": ["storage_gb", "file_count"],
+                "properties": {
+                  "storage_gb": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "Storage used in archive tier (GB)",
+                    "example": 5.0,
+                    "minimum": 0
+                  },
+                  "file_count": {
+                    "type": "integer",
+                    "description": "Number of files in archive tier",
+                    "example": 150,
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          },
+          "last_updated_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "StorageFile": {
+        "type": "object",
+        "description": "Storage file metadata",
+        "required": ["id", "filename", "file_size_bytes", "file_size_mb", "tier", "created_at"],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "filename": {
+            "type": "string",
+            "description": "Name of the file",
+            "example": "dataset_770e8400_images.zip"
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Full path to the file in storage",
+            "example": "datasets/770e8400-e29b-41d4-a716-446655440002/dataset_770e8400_images.zip"
+          },
+          "file_size_bytes": {
+            "type": "integer",
+            "description": "File size in bytes",
+            "example": 52428800,
+            "minimum": 0
+          },
+          "file_size_mb": {
+            "type": "number",
+            "format": "float",
+            "description": "File size in MB",
+            "example": 50.0,
+            "minimum": 0
+          },
+          "tier": {
+            "$ref": "#/components/schemas/StorageTier"
+          },
+          "content_type": {
+            "type": "string",
+            "description": "MIME type of the file",
+            "example": "application/zip"
+          },
+          "download_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Temporary download URL (expires in 1 hour)",
+            "example": "https://storage.pixcrawler.com/datasets/770e8400/dataset.zip?token=abc123&expires=1733400000"
+          },
+          "job_id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UUID"
+              }
+            ],
+            "nullable": true,
+            "description": "Associated crawl job ID",
+            "example": "770e8400-e29b-41d4-a716-446655440002"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "last_accessed_at": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Timestamp"
+              }
+            ],
+            "nullable": true,
+            "description": "Last time the file was accessed",
+            "example": "2025-12-05T09:15:00Z"
+          }
+        }
+      },
+      "CleanupStorageRequest": {
+        "type": "object",
+        "description": "Request body for initiating storage cleanup",
+        "properties": {
+          "older_than_days": {
+            "type": "integer",
+            "description": "Delete files older than this many days (optional, defaults to 30)",
+            "example": 30,
+            "minimum": 1,
+            "maximum": 365
+          },
+          "tier": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StorageTier"
+              }
+            ],
+            "nullable": true,
+            "description": "Specific tier to clean up (optional, cleans all tiers if not specified)",
+            "example": "warm"
+          }
+        }
+      },
+      "CleanupStorageResponse": {
+        "type": "object",
+        "description": "Response when initiating storage cleanup",
+        "required": ["deleted_count", "freed_space_bytes", "freed_space_gb", "message"],
+        "properties": {
+          "deleted_count": {
+            "type": "integer",
+            "description": "Number of files deleted",
+            "example": 45,
+            "minimum": 0
+          },
+          "freed_space_bytes": {
+            "type": "integer",
+            "description": "Space freed in bytes",
+            "example": 2147483648,
+            "minimum": 0
+          },
+          "freed_space_gb": {
+            "type": "number",
+            "format": "float",
+            "description": "Space freed in GB",
+            "example": 2.0,
+            "minimum": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Confirmation message",
+            "example": "Storage cleanup completed successfully. Deleted 45 files and freed 2.0 GB."
+          },
+          "completed_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "PresignedUrlResponse": {
+        "type": "object",
+        "description": "Response with presigned URL for file download",
+        "required": ["url", "expires_at", "expires_in_seconds"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Presigned URL for secure file download",
+            "example": "https://storage.pixcrawler.com/datasets/770e8400/dataset.zip?token=abc123def456&expires=1733400000"
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Path to the file in storage",
+            "example": "datasets/770e8400-e29b-41d4-a716-446655440002/dataset_770e8400_images.zip"
+          },
+          "expires_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "expires_in_seconds": {
+            "type": "integer",
+            "description": "Number of seconds until the URL expires",
+            "example": 3600,
+            "minimum": 1
+          },
+          "file_size_bytes": {
+            "type": "integer",
+            "description": "Size of the file in bytes",
+            "example": 52428800,
+            "minimum": 0
+          },
+          "content_type": {
+            "type": "string",
+            "description": "MIME type of the file",
+            "example": "application/zip"
+          }
+        }
+      },
+      "ActivityLog": {
+        "type": "object",
+        "description": "Activity log entry with user action details",
+        "required": ["id", "user_id", "action", "resource_type", "resource_id", "created_at"],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "user_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "action": {
+            "$ref": "#/components/schemas/ActivityAction"
+          },
+          "resource_type": {
+            "$ref": "#/components/schemas/ResourceType"
+          },
+          "resource_id": {
+            "$ref": "#/components/schemas/UUID"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional metadata about the action",
+            "properties": {
+              "keywords": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "example": ["laptop", "computer"]
+              },
+              "max_images": {
+                "type": "integer",
+                "example": 1000
+              },
+              "status_change": {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "example": "pending"
+                  },
+                  "to": {
+                    "type": "string",
+                    "example": "running"
+                  }
+                }
+              }
+            },
+            "example": {
+              "keywords": ["laptop", "computer"],
+              "max_images": 1000
+            }
+          },
+          "ip_address": {
+            "type": "string",
+            "description": "IP address of the user",
+            "example": "192.168.1.100"
+          },
+          "user_agent": {
+            "type": "string",
+            "description": "User agent string",
+            "example": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+          },
+          "created_at": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "HealthCheckResponse": {
+        "type": "object",
+        "description": "Basic health check response",
+        "required": ["status", "timestamp", "version"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["healthy", "degraded", "unhealthy"],
+            "description": "Overall system health status",
+            "example": "healthy"
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "version": {
+            "type": "string",
+            "description": "API version",
+            "example": "1.0.0"
+          },
+          "uptime_seconds": {
+            "type": "integer",
+            "description": "System uptime in seconds",
+            "example": 86400,
+            "minimum": 0
+          }
+        }
+      },
+      "ServiceHealth": {
+        "type": "object",
+        "description": "Health status of a specific service",
+        "required": ["status", "message"],
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ServiceStatus"
+          },
+          "message": {
+            "type": "string",
+            "description": "Detailed status message",
+            "example": "Database connection successful"
+          },
+          "response_time_ms": {
+            "type": "number",
+            "format": "float",
+            "description": "Response time in milliseconds",
+            "example": 15.5,
+            "minimum": 0
+          },
+          "details": {
+            "type": "object",
+            "description": "Additional service-specific details",
+            "properties": {
+              "connection_pool_size": {
+                "type": "integer",
+                "example": 10
+              },
+              "active_connections": {
+                "type": "integer",
+                "example": 3
+              },
+              "workers": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "example": ["worker1@hostname", "worker2@hostname"]
+              }
+            }
+          }
+        }
+      },
+      "DetailedHealthCheckResponse": {
+        "type": "object",
+        "description": "Detailed health check response with service-level status",
+        "required": ["status", "timestamp", "version", "services"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["healthy", "degraded", "unhealthy"],
+            "description": "Overall system health status",
+            "example": "healthy"
+          },
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "version": {
+            "type": "string",
+            "description": "API version",
+            "example": "1.0.0"
+          },
+          "uptime_seconds": {
+            "type": "integer",
+            "description": "System uptime in seconds",
+            "example": 86400,
+            "minimum": 0
+          },
+          "services": {
+            "type": "object",
+            "description": "Health status of individual services",
+            "required": ["database", "redis", "celery"],
+            "properties": {
+              "database": {
+                "$ref": "#/components/schemas/ServiceHealth"
+              },
+              "redis": {
+                "$ref": "#/components/schemas/ServiceHealth"
+              },
+              "celery": {
+                "$ref": "#/components/schemas/ServiceHealth"
+              },
+              "storage": {
+                "$ref": "#/components/schemas/ServiceHealth"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/jobs/": {
+      "post": {
+        "tags": ["Crawl Jobs"],
+        "summary": "Create a new crawl job",
+        "description": "Creates a new image crawl job with specified keywords and configuration. The job will be created in 'pending' status and must be started separately.",
+        "operationId": "createCrawlJob",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCrawlJobRequest"
+              },
+              "example": {
+                "project_id": "550e8400-e29b-41d4-a716-446655440000",
+                "name": "Laptop Product Images",
+                "keywords": ["laptop", "computer", "notebook"],
+                "max_images": 1000,
+                "engines": ["google", "bing", "duckduckgo"],
+                "quality_filters": {
+                  "min_resolution": [224, 224],
+                  "formats": ["jpg", "png", "webp"]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Crawl job created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CrawlJob"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "id": "770e8400-e29b-41d4-a716-446655440002",
+                    "project_id": "550e8400-e29b-41d4-a716-446655440000",
+                    "name": "Laptop Product Images",
+                    "keywords": ["laptop", "computer", "notebook"],
+                    "max_images": 1000,
+                    "engines": ["google", "bing", "duckduckgo"],
+                    "status": "pending",
+                    "progress": 0,
+                    "total_chunks": 10,
+                    "active_chunks": 0,
+                    "completed_chunks": 0,
+                    "failed_chunks": 0,
+                    "images_downloaded": 0,
+                    "images_validated": 0,
+                    "images_failed": 0,
+                    "task_ids": [],
+                    "quality_filters": {
+                      "min_resolution": [224, 224],
+                      "formats": ["jpg", "png", "webp"]
+                    },
+                    "created_at": "2025-12-05T10:00:00Z",
+                    "updated_at": "2025-12-05T10:00:00Z",
+                    "started_at": null,
+                    "completed_at": null
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}": {
+      "get": {
+        "tags": ["Crawl Jobs"],
+        "summary": "Get crawl job details",
+        "description": "Retrieves detailed information about a specific crawl job including current status, progress, and chunk tracking metrics.",
+        "operationId": "getCrawlJob",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "description": "UUID of the crawl job",
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Crawl job details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CrawlJob"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "id": "770e8400-e29b-41d4-a716-446655440002",
+                    "project_id": "550e8400-e29b-41d4-a716-446655440000",
+                    "name": "Laptop Product Images",
+                    "keywords": ["laptop", "computer", "notebook"],
+                    "max_images": 1000,
+                    "engines": ["google", "bing", "duckduckgo"],
+                    "status": "running",
+                    "progress": 45,
+                    "total_chunks": 10,
+                    "active_chunks": 3,
+                    "completed_chunks": 4,
+                    "failed_chunks": 1,
+                    "images_downloaded": 450,
+                    "images_validated": 420,
+                    "images_failed": 30,
+                    "task_ids": ["task_770e8400_0", "task_770e8400_1", "task_770e8400_2"],
+                    "quality_filters": {
+                      "min_resolution": [224, 224],
+                      "formats": ["jpg", "png", "webp"]
+                    },
+                    "created_at": "2025-12-05T10:00:00Z",
+                    "updated_at": "2025-12-05T10:15:00Z",
+                    "started_at": "2025-12-05T10:05:00Z",
+                    "completed_at": null
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/start": {
+      "post": {
+        "tags": ["Crawl Jobs"],
+        "summary": "Start a crawl job",
+        "description": "Starts execution of a pending crawl job by dispatching Celery tasks. Returns task IDs for tracking.",
+        "operationId": "startCrawlJob",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "description": "UUID of the crawl job to start",
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Crawl job started successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/StartJobResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "task_ids": ["task_770e8400_0", "task_770e8400_1", "task_770e8400_2"],
+                    "message": "Crawl job started successfully with 3 tasks"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/cancel": {
+      "post": {
+        "tags": ["Crawl Jobs"],
+        "summary": "Cancel a crawl job",
+        "description": "Cancels a running crawl job by revoking all active Celery tasks. Returns the number of tasks that were revoked.",
+        "operationId": "cancelCrawlJob",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "description": "UUID of the crawl job to cancel",
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Crawl job cancelled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CancelJobResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "revoked_count": 2,
+                    "status": "cancelled",
+                    "message": "Crawl job cancelled successfully. 2 tasks revoked."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/retry": {
+      "post": {
+        "tags": ["Crawl Jobs"],
+        "summary": "Retry a failed crawl job",
+        "description": "Retries a failed crawl job by resetting its state and dispatching new Celery tasks. Only failed jobs can be retried.",
+        "operationId": "retryCrawlJob",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "description": "UUID of the failed crawl job to retry",
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Crawl job retry initiated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RetryJobResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "task_ids": ["task_770e8400_retry_0", "task_770e8400_retry_1"],
+                    "status": "pending",
+                    "message": "Crawl job retry initiated with 2 new tasks"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/progress": {
+      "get": {
+        "tags": ["Crawl Jobs"],
+        "summary": "Get crawl job progress",
+        "description": "Retrieves detailed progress metrics for a crawl job including chunk status, image counts, and estimated completion time.",
+        "operationId": "getCrawlJobProgress",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "description": "UUID of the crawl job",
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job progress retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/JobProgressResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "job_id": "770e8400-e29b-41d4-a716-446655440002",
+                    "status": "running",
+                    "progress": 45,
+                    "total_chunks": 10,
+                    "active_chunks": 3,
+                    "completed_chunks": 4,
+                    "failed_chunks": 1,
+                    "images_downloaded": 450,
+                    "images_validated": 420,
+                    "images_failed": 30,
+                    "estimated_completion": "2025-12-05T11:30:00Z"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/validation/analyze/": {
+      "post": {
+        "tags": ["Validation"],
+        "summary": "Analyze a single image",
+        "description": "Analyzes a single image and returns validation results including format, dimensions, duplicate detection, and quality metrics.",
+        "operationId": "analyzeImage",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzeImageRequest"
+              },
+              "example": {
+                "image_url": "https://example.com/images/laptop.jpg"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Image analyzed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ImageValidationResult"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "is_valid": true,
+                    "is_duplicate": false,
+                    "dimensions": {
+                      "width": 1920,
+                      "height": 1080
+                    },
+                    "format": "jpg",
+                    "file_size": 245678,
+                    "hash": "a1b2c3d4e5f6g7h8",
+                    "validation_errors": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/validation/batch/": {
+      "post": {
+        "tags": ["Validation"],
+        "summary": "Create batch validation",
+        "description": "Creates a batch validation job for multiple images. Returns a batch ID for tracking the validation progress.",
+        "operationId": "createBatchValidation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBatchValidationRequest"
+              },
+              "example": {
+                "image_ids": [
+                  "880e8400-e29b-41d4-a716-446655440010",
+                  "880e8400-e29b-41d4-a716-446655440011",
+                  "880e8400-e29b-41d4-a716-446655440012"
+                ],
+                "validation_level": "medium"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Batch validation created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/BatchValidationResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "batch_id": "990e8400-e29b-41d4-a716-446655440020",
+                    "status": "pending",
+                    "images_count": 100,
+                    "validation_level": "medium",
+                    "created_at": "2025-12-05T10:30:00Z"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/validation/job/{job_id}/": {
+      "post": {
+        "tags": ["Validation"],
+        "summary": "Validate job images",
+        "description": "Initiates validation for all images in a crawl job. Returns Celery task IDs for tracking the validation progress.",
+        "operationId": "validateJobImages",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "description": "UUID of the crawl job",
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateJobRequest"
+              },
+              "example": {
+                "validation_level": "medium"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Job validation started successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ValidateJobResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "task_ids": ["validation_task_770e8400_0", "validation_task_770e8400_1"],
+                    "images_count": 450,
+                    "validation_level": "medium",
+                    "message": "Validation started for 450 images at medium level"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/validation/results/{job_id}/": {
+      "get": {
+        "tags": ["Validation"],
+        "summary": "Get validation results",
+        "description": "Retrieves aggregated validation results for a crawl job including counts of valid, invalid, and duplicate images.",
+        "operationId": "getValidationResults",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "description": "UUID of the crawl job",
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validation results retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ValidationResultsResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "job_id": "770e8400-e29b-41d4-a716-446655440002",
+                    "total_images": 450,
+                    "valid_images": 420,
+                    "invalid_images": 30,
+                    "duplicate_images": 15,
+                    "validation_errors": {
+                      "format_errors": 5,
+                      "resolution_errors": 10,
+                      "corrupted_files": 15
+                    },
+                    "completed_at": "2025-12-05T11:00:00Z"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/validation/stats/{dataset_id}/": {
+      "get": {
+        "tags": ["Validation"],
+        "summary": "Get dataset validation stats",
+        "description": "Retrieves comprehensive validation statistics for a dataset including coverage, quality score, and error breakdowns.",
+        "operationId": "getDatasetValidationStats",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "path",
+            "required": true,
+            "description": "UUID of the dataset",
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dataset validation stats retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DatasetValidationStatsResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "dataset_id": "aa0e8400-e29b-41d4-a716-446655440030",
+                    "total_images": 5000,
+                    "validated_images": 4850,
+                    "validation_coverage": 97.0,
+                    "valid_images": 4500,
+                    "invalid_images": 350,
+                    "duplicate_images": 200,
+                    "quality_score": 92.8,
+                    "last_validated_at": "2025-12-05T12:00:00Z"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/validation/level/": {
+      "put": {
+        "tags": ["Validation"],
+        "summary": "Update validation level",
+        "description": "Updates the default validation level for future validation operations. Returns confirmation with the new level.",
+        "operationId": "updateValidationLevel",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateValidationLevelRequest"
+              },
+              "example": {
+                "level": "medium"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validation level updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UpdateValidationLevelResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "level": "medium",
+                    "previous_level": "fast",
+                    "message": "Validation level updated to medium successfully",
+                    "updated_at": "2025-12-05T10:45:00Z"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/credits/balance": {
+      "get": {
+        "tags": ["Credits & Billing"],
+        "summary": "Get credit balance",
+        "description": "Retrieves the current credit balance, monthly usage, and auto-refill settings for the authenticated user.",
+        "operationId": "getCreditBalance",
+        "responses": {
+          "200": {
+            "description": "Credit balance retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CreditBalance"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "current_balance": 1500,
+                    "monthly_usage": 2500,
+                    "monthly_limit": 10000,
+                    "auto_refill_enabled": true,
+                    "refill_threshold": 500,
+                    "refill_amount": 1000,
+                    "average_daily_usage": 83.33,
+                    "estimated_days_remaining": 18
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/credits/transactions": {
+      "get": {
+        "tags": ["Credits & Billing"],
+        "summary": "List credit transactions",
+        "description": "Retrieves a paginated list of credit transactions including purchases, usage, refunds, and bonuses.",
+        "operationId": "listCreditTransactions",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "description": "Filter by transaction type",
+            "schema": {
+              "$ref": "#/components/schemas/TransactionType"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "description": "Filter transactions from this date (ISO 8601)",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2025-12-01"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "description": "Filter transactions until this date (ISO 8601)",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2025-12-05"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page number (1-indexed)",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Number of items per page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Credit transactions retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CreditTransaction"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                  }
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "bb0e8400-e29b-41d4-a716-446655440040",
+                      "type": "purchase",
+                      "amount": 1000,
+                      "balance_after": 2500,
+                      "status": "completed",
+                      "description": "Credit purchase - 1000 credits",
+                      "metadata": {
+                        "payment_method": "lemonsqueezy",
+                        "order_id": "order_abc123"
+                      },
+                      "created_at": "2025-12-05T09:00:00Z"
+                    },
+                    {
+                      "id": "bb0e8400-e29b-41d4-a716-446655440041",
+                      "type": "usage",
+                      "amount": -125,
+                      "balance_after": 2375,
+                      "status": "completed",
+                      "description": "Image processing - Job #770e8400",
+                      "metadata": {
+                        "job_id": "770e8400-e29b-41d4-a716-446655440002"
+                      },
+                      "created_at": "2025-12-05T10:30:00Z"
+                    },
+                    {
+                      "id": "bb0e8400-e29b-41d4-a716-446655440042",
+                      "type": "bonus",
+                      "amount": 500,
+                      "balance_after": 2875,
+                      "status": "completed",
+                      "description": "Welcome bonus - New user promotion",
+                      "metadata": {},
+                      "created_at": "2025-12-01T08:00:00Z"
+                    }
+                  ],
+                  "meta": {
+                    "total": 45,
+                    "page": 1,
+                    "limit": 20,
+                    "pages": 3
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/credits/purchase": {
+      "post": {
+        "tags": ["Credits & Billing"],
+        "summary": "Purchase credits",
+        "description": "Purchases credits using the specified payment method. Returns transaction details and updated balance.",
+        "operationId": "purchaseCredits",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseCreditsRequest"
+              },
+              "example": {
+                "amount": 1000,
+                "payment_method": "lemonsqueezy",
+                "payment_token": "order_abc123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Credits purchased successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PurchaseCreditsResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "transaction_id": "bb0e8400-e29b-41d4-a716-446655440040",
+                    "amount": 1000,
+                    "new_balance": 2500,
+                    "status": "completed",
+                    "payment_method": "lemonsqueezy",
+                    "order_id": "order_abc123",
+                    "created_at": "2025-12-05T09:00:00Z"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/credits/usage": {
+      "get": {
+        "tags": ["Credits & Billing"],
+        "summary": "Get usage metrics",
+        "description": "Retrieves usage metrics with daily breakdown for the specified date range. Includes credits used, images processed, storage, API calls, and bandwidth.",
+        "operationId": "getUsageMetrics",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "description": "Start date for metrics (ISO 8601, defaults to 30 days ago)",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2025-12-01"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "description": "End date for metrics (ISO 8601, defaults to today)",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2025-12-05"
+            }
+          },
+          {
+            "name": "granularity",
+            "in": "query",
+            "required": false,
+            "description": "Granularity of metrics",
+            "schema": {
+              "type": "string",
+              "enum": ["daily", "weekly", "monthly"],
+              "default": "daily",
+              "example": "daily"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usage metrics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UsageMetricsResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "start_date": "2025-12-01",
+                    "end_date": "2025-12-05",
+                    "total_credits_used": 625,
+                    "total_images_processed": 1250,
+                    "total_storage_used_gb": 12.5,
+                    "total_api_calls": 750,
+                    "total_bandwidth_used_gb": 6.0,
+                    "daily_metrics": [
+                      {
+                        "date": "2025-12-01",
+                        "images_processed": 200,
+                        "credits_used": 100,
+                        "storage_used_gb": 2.0,
+                        "api_calls": 120,
+                        "bandwidth_used_gb": 1.0
+                      },
+                      {
+                        "date": "2025-12-02",
+                        "images_processed": 250,
+                        "credits_used": 125,
+                        "storage_used_gb": 2.5,
+                        "api_calls": 150,
+                        "bandwidth_used_gb": 1.2
+                      },
+                      {
+                        "date": "2025-12-03",
+                        "images_processed": 300,
+                        "credits_used": 150,
+                        "storage_used_gb": 3.0,
+                        "api_calls": 180,
+                        "bandwidth_used_gb": 1.5
+                      },
+                      {
+                        "date": "2025-12-04",
+                        "images_processed": 250,
+                        "credits_used": 125,
+                        "storage_used_gb": 2.5,
+                        "api_calls": 150,
+                        "bandwidth_used_gb": 1.2
+                      },
+                      {
+                        "date": "2025-12-05",
+                        "images_processed": 250,
+                        "credits_used": 125,
+                        "storage_used_gb": 2.5,
+                        "api_calls": 150,
+                        "bandwidth_used_gb": 1.1
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api-keys/": {
+      "get": {
+        "tags": ["API Keys"],
+        "summary": "List API keys",
+        "description": "Retrieves a list of all API keys for the authenticated user with usage statistics. The full key value is never returned, only the key prefix for identification.",
+        "operationId": "listApiKeys",
+        "responses": {
+          "200": {
+            "description": "API keys retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApiKey"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "cc0e8400-e29b-41d4-a716-446655440050",
+                      "name": "Production API Key",
+                      "key_prefix": "pk_live_",
+                      "status": "active",
+                      "permissions": ["read", "write"],
+                      "rate_limit": 1000,
+                      "usage_count": 15420,
+                      "last_used_at": "2025-12-05T09:30:00Z",
+                      "expires_at": "2026-12-05T00:00:00Z",
+                      "created_at": "2025-11-01T10:00:00Z",
+                      "updated_at": "2025-12-05T09:30:00Z"
+                    },
+                    {
+                      "id": "cc0e8400-e29b-41d4-a716-446655440051",
+                      "name": "Development API Key",
+                      "key_prefix": "pk_test_",
+                      "status": "active",
+                      "permissions": ["read"],
+                      "rate_limit": 100,
+                      "usage_count": 2340,
+                      "last_used_at": "2025-12-04T15:20:00Z",
+                      "expires_at": null,
+                      "created_at": "2025-10-15T14:30:00Z",
+                      "updated_at": "2025-12-04T15:20:00Z"
+                    },
+                    {
+                      "id": "cc0e8400-e29b-41d4-a716-446655440052",
+                      "name": "Legacy API Key",
+                      "key_prefix": "pk_live_",
+                      "status": "revoked",
+                      "permissions": ["read", "write", "delete"],
+                      "rate_limit": 500,
+                      "usage_count": 45678,
+                      "last_used_at": "2025-11-20T08:15:00Z",
+                      "expires_at": null,
+                      "created_at": "2025-01-10T09:00:00Z",
+                      "updated_at": "2025-11-25T10:00:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["API Keys"],
+        "summary": "Create API key",
+        "description": "Creates a new API key with specified permissions and rate limit. The full API key value is only returned once during creation and must be stored securely by the client.",
+        "operationId": "createApiKey",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyRequest"
+              },
+              "example": {
+                "name": "Production API Key",
+                "permissions": ["read", "write"],
+                "rate_limit": 1000,
+                "expires_at": "2026-12-05T00:00:00Z"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "API key created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CreateApiKeyResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "id": "cc0e8400-e29b-41d4-a716-446655440050",
+                    "name": "Production API Key",
+                    "key": "pk_live_1234567890abcdef1234567890abcdef",
+                    "key_prefix": "pk_live_",
+                    "permissions": ["read", "write"],
+                    "rate_limit": 1000,
+                    "expires_at": "2026-12-05T00:00:00Z",
+                    "created_at": "2025-12-05T10:00:00Z",
+                    "warning": "This is the only time the full API key will be displayed. Please store it securely."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api-keys/{key_id}": {
+      "delete": {
+        "tags": ["API Keys"],
+        "summary": "Revoke API key",
+        "description": "Revokes an API key, immediately preventing it from being used for authentication. This action cannot be undone.",
+        "operationId": "revokeApiKey",
+        "parameters": [
+          {
+            "name": "key_id",
+            "in": "path",
+            "required": true,
+            "description": "UUID of the API key to revoke",
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API key revoked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/RevokeApiKeyResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "id": "cc0e8400-e29b-41d4-a716-446655440050",
+                    "status": "revoked",
+                    "message": "API key revoked successfully",
+                    "revoked_at": "2025-12-05T10:30:00Z"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api-keys/{key_id}/usage": {
+      "get": {
+        "tags": ["API Keys"],
+        "summary": "Get API key usage",
+        "description": "Retrieves detailed usage statistics for a specific API key including total requests, success/failure rates, rate limit hits, and daily breakdown.",
+        "operationId": "getApiKeyUsage",
+        "parameters": [
+          {
+            "name": "key_id",
+            "in": "path",
+            "required": true,
+            "description": "UUID of the API key",
+            "schema": {
+              "$ref": "#/components/schemas/UUID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API key usage retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ApiKeyUsageResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "api_key_id": "cc0e8400-e29b-41d4-a716-446655440050",
+                    "api_key_name": "Production API Key",
+                    "total_requests": 15420,
+                    "successful_requests": 14850,
+                    "failed_requests": 570,
+                    "rate_limit_hits": 45,
+                    "last_used_at": "2025-12-05T09:30:00Z",
+                    "daily_usage": [
+                      {
+                        "date": "2025-12-01",
+                        "requests": 3000,
+                        "successful_requests": 2900,
+                        "failed_requests": 100,
+                        "rate_limit_hits": 8
+                      },
+                      {
+                        "date": "2025-12-02",
+                        "requests": 3200,
+                        "successful_requests": 3080,
+                        "failed_requests": 120,
+                        "rate_limit_hits": 10
+                      },
+                      {
+                        "date": "2025-12-03",
+                        "requests": 3100,
+                        "successful_requests": 2990,
+                        "failed_requests": 110,
+                        "rate_limit_hits": 9
+                      },
+                      {
+                        "date": "2025-12-04",
+                        "requests": 3050,
+                        "successful_requests": 2940,
+                        "failed_requests": 110,
+                        "rate_limit_hits": 9
+                      },
+                      {
+                        "date": "2025-12-05",
+                        "requests": 3070,
+                        "successful_requests": 2940,
+                        "failed_requests": 130,
+                        "rate_limit_hits": 9
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/storage/usage/": {
+      "get": {
+        "tags": ["Storage"],
+        "summary": "Get storage usage",
+        "description": "Retrieves comprehensive storage usage information including total storage, limits, file counts, and breakdown by storage tier (hot, warm, archive).",
+        "operationId": "getStorageUsage",
+        "responses": {
+          "200": {
+            "description": "Storage usage retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/StorageUsageResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "total_storage_bytes": 53687091200,
+                    "total_storage_gb": 50.0,
+                    "storage_limit_gb": 500.0,
+                    "storage_used_percentage": 10.0,
+                    "file_count": 1250,
+                    "tier_breakdown": {
+                      "hot": {
+                        "storage_gb": 25.0,
+                        "file_count": 500
+                      },
+                      "warm": {
+                        "storage_gb": 20.0,
+                        "file_count": 600
+                      },
+                      "archive": {
+                        "storage_gb": 5.0,
+                        "file_count": 150
+                      }
+                    },
+                    "last_updated_at": "2025-12-05T10:00:00Z"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/storage/files/": {
+      "get": {
+        "tags": ["Storage"],
+        "summary": "List storage files",
+        "description": "Retrieves a paginated list of files in storage with metadata including size, tier, and temporary download URLs.",
+        "operationId": "listStorageFiles",
+        "parameters": [
+          {
+            "name": "tier",
+            "in": "query",
+            "required": false,
+            "description": "Filter by storage tier",
+            "schema": {
+              "$ref": "#/components/schemas/StorageTier"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page number (1-indexed)",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Number of items per page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Storage files retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/StorageFile"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                  }
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "dd0e8400-e29b-41d4-a716-446655440060",
+                      "filename": "dataset_770e8400_images.zip",
+                      "file_path": "datasets/770e8400-e29b-41d4-a716-446655440002/dataset_770e8400_images.zip",
+                      "file_size_bytes": 52428800,
+                      "file_size_mb": 50.0,
+                      "tier": "hot",
+                      "content_type": "application/zip",
+                      "download_url": "https://storage.pixcrawler.com/datasets/770e8400/dataset.zip?token=abc123&expires=1733400000",
+                      "job_id": "770e8400-e29b-41d4-a716-446655440002",
+                      "created_at": "2025-12-05T10:00:00Z",
+                      "last_accessed_at": "2025-12-05T09:15:00Z"
+                    },
+                    {
+                      "id": "dd0e8400-e29b-41d4-a716-446655440061",
+                      "filename": "dataset_880e8400_images.7z",
+                      "file_path": "datasets/880e8400-e29b-41d4-a716-446655440003/dataset_880e8400_images.7z",
+                      "file_size_bytes": 31457280,
+                      "file_size_mb": 30.0,
+                      "tier": "warm",
+                      "content_type": "application/x-7z-compressed",
+                      "download_url": "https://storage.pixcrawler.com/datasets/880e8400/dataset.7z?token=def456&expires=1733400000",
+                      "job_id": "880e8400-e29b-41d4-a716-446655440003",
+                      "created_at": "2025-12-04T14:30:00Z",
+                      "last_accessed_at": "2025-12-04T16:00:00Z"
+                    },
+                    {
+                      "id": "dd0e8400-e29b-41d4-a716-446655440062",
+                      "filename": "dataset_990e8400_images.zip",
+                      "file_path": "datasets/990e8400-e29b-41d4-a716-446655440004/dataset_990e8400_images.zip",
+                      "file_size_bytes": 104857600,
+                      "file_size_mb": 100.0,
+                      "tier": "hot",
+                      "content_type": "application/zip",
+                      "download_url": "https://storage.pixcrawler.com/datasets/990e8400/dataset.zip?token=ghi789&expires=1733400000",
+                      "job_id": "990e8400-e29b-41d4-a716-446655440004",
+                      "created_at": "2025-12-03T11:20:00Z",
+                      "last_accessed_at": "2025-12-05T08:30:00Z"
+                    }
+                  ],
+                  "meta": {
+                    "total": 1250,
+                    "page": 1,
+                    "limit": 20,
+                    "pages": 63
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/storage/cleanup/": {
+      "post": {
+        "tags": ["Storage"],
+        "summary": "Initiate storage cleanup",
+        "description": "Initiates cleanup of old files in storage. Deletes files older than the specified number of days and returns the count of deleted files and space freed.",
+        "operationId": "cleanupStorage",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CleanupStorageRequest"
+              },
+              "example": {
+                "older_than_days": 30,
+                "tier": "warm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Storage cleanup completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CleanupStorageResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "deleted_count": 45,
+                    "freed_space_bytes": 2147483648,
+                    "freed_space_gb": 2.0,
+                    "message": "Storage cleanup completed successfully. Deleted 45 files and freed 2.0 GB.",
+                    "completed_at": "2025-12-05T10:30:00Z"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/storage/presigned-url/": {
+      "get": {
+        "tags": ["Storage"],
+        "summary": "Generate presigned URL",
+        "description": "Generates a temporary presigned URL for secure file download. The URL expires after the specified duration (default 1 hour).",
+        "operationId": "generatePresignedUrl",
+        "parameters": [
+          {
+            "name": "file_path",
+            "in": "query",
+            "required": true,
+            "description": "Path to the file in storage",
+            "schema": {
+              "type": "string",
+              "example": "datasets/770e8400-e29b-41d4-a716-446655440002/dataset_770e8400_images.zip"
+            }
+          },
+          {
+            "name": "expires_in",
+            "in": "query",
+            "required": false,
+            "description": "Number of seconds until the URL expires (default 3600, max 86400)",
+            "schema": {
+              "type": "integer",
+              "minimum": 60,
+              "maximum": 86400,
+              "default": 3600,
+              "example": 3600
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Presigned URL generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PresignedUrlResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "url": "https://storage.pixcrawler.com/datasets/770e8400/dataset.zip?token=abc123def456&expires=1733400000",
+                    "file_path": "datasets/770e8400-e29b-41d4-a716-446655440002/dataset_770e8400_images.zip",
+                    "expires_at": "2025-12-05T11:00:00Z",
+                    "expires_in_seconds": 3600,
+                    "file_size_bytes": 52428800,
+                    "content_type": "application/zip"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activity/": {
+      "get": {
+        "tags": ["Activity Logs"],
+        "summary": "List activity logs",
+        "description": "Retrieves a paginated list of activity logs for the authenticated user. Activity logs track all user actions including resource creation, updates, deletions, and access.",
+        "operationId": "listActivityLogs",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "description": "Filter by action type",
+            "schema": {
+              "$ref": "#/components/schemas/ActivityAction"
+            }
+          },
+          {
+            "name": "resource_type",
+            "in": "query",
+            "required": false,
+            "description": "Filter by resource type",
+            "schema": {
+              "$ref": "#/components/schemas/ResourceType"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "description": "Filter logs from this date (ISO 8601 format)",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2025-12-01"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "description": "Filter logs until this date (ISO 8601 format)",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2025-12-05"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page number (1-indexed)",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Number of items per page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity logs retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ActivityLog"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                  }
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "990e8400-e29b-41d4-a716-446655440020",
+                      "user_id": "660e8400-e29b-41d4-a716-446655440001",
+                      "action": "create",
+                      "resource_type": "crawl_job",
+                      "resource_id": "770e8400-e29b-41d4-a716-446655440002",
+                      "metadata": {
+                        "keywords": ["laptop", "computer", "notebook"],
+                        "max_images": 1000
+                      },
+                      "ip_address": "192.168.1.100",
+                      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                      "created_at": "2025-12-05T10:00:00Z"
+                    },
+                    {
+                      "id": "990e8400-e29b-41d4-a716-446655440021",
+                      "user_id": "660e8400-e29b-41d4-a716-446655440001",
+                      "action": "update",
+                      "resource_type": "crawl_job",
+                      "resource_id": "770e8400-e29b-41d4-a716-446655440002",
+                      "metadata": {
+                        "status_change": {
+                          "from": "pending",
+                          "to": "running"
+                        }
+                      },
+                      "ip_address": "192.168.1.100",
+                      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                      "created_at": "2025-12-05T10:05:00Z"
+                    },
+                    {
+                      "id": "990e8400-e29b-41d4-a716-446655440022",
+                      "user_id": "660e8400-e29b-41d4-a716-446655440001",
+                      "action": "view",
+                      "resource_type": "dataset",
+                      "resource_id": "880e8400-e29b-41d4-a716-446655440010",
+                      "metadata": {},
+                      "ip_address": "192.168.1.100",
+                      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                      "created_at": "2025-12-05T10:15:00Z"
+                    },
+                    {
+                      "id": "990e8400-e29b-41d4-a716-446655440023",
+                      "user_id": "660e8400-e29b-41d4-a716-446655440001",
+                      "action": "download",
+                      "resource_type": "dataset",
+                      "resource_id": "880e8400-e29b-41d4-a716-446655440010",
+                      "metadata": {
+                        "file_size_mb": 50.0,
+                        "format": "zip"
+                      },
+                      "ip_address": "192.168.1.100",
+                      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                      "created_at": "2025-12-05T10:20:00Z"
+                    },
+                    {
+                      "id": "990e8400-e29b-41d4-a716-446655440024",
+                      "user_id": "660e8400-e29b-41d4-a716-446655440001",
+                      "action": "create",
+                      "resource_type": "api_key",
+                      "resource_id": "aa0e8400-e29b-41d4-a716-446655440030",
+                      "metadata": {
+                        "name": "Production API Key",
+                        "permissions": ["read", "write"]
+                      },
+                      "ip_address": "192.168.1.100",
+                      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                      "created_at": "2025-12-05T10:30:00Z"
+                    }
+                  ],
+                  "meta": {
+                    "total": 150,
+                    "page": 1,
+                    "limit": 20,
+                    "pages": 8
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/": {
+      "get": {
+        "tags": ["Health Checks"],
+        "summary": "Basic health check",
+        "description": "Returns basic system health status including overall status, timestamp, version, and uptime. This endpoint is suitable for load balancer health checks and basic monitoring.",
+        "operationId": "basicHealthCheck",
+        "responses": {
+          "200": {
+            "description": "System is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/HealthCheckResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "status": "healthy",
+                    "timestamp": "2025-12-05T10:00:00Z",
+                    "version": "1.0.0",
+                    "uptime_seconds": 86400
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/detailed": {
+      "get": {
+        "tags": ["Health Checks"],
+        "summary": "Detailed health check",
+        "description": "Returns comprehensive system health status including service-level health for database, Redis, Celery workers, and storage. This endpoint provides detailed diagnostics for monitoring and troubleshooting.",
+        "operationId": "detailedHealthCheck",
+        "responses": {
+          "200": {
+            "description": "Detailed system health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DetailedHealthCheckResponse"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "status": "healthy",
+                    "timestamp": "2025-12-05T10:00:00Z",
+                    "version": "1.0.0",
+                    "uptime_seconds": 86400,
+                    "services": {
+                      "database": {
+                        "status": "healthy",
+                        "message": "Database connection successful",
+                        "response_time_ms": 15.5,
+                        "details": {
+                          "connection_pool_size": 10,
+                          "active_connections": 3
+                        }
+                      },
+                      "redis": {
+                        "status": "healthy",
+                        "message": "Redis connection successful",
+                        "response_time_ms": 2.3,
+                        "details": {
+                          "connection_pool_size": 5,
+                          "active_connections": 2
+                        }
+                      },
+                      "celery": {
+                        "status": "healthy",
+                        "message": "2 worker(s) active",
+                        "response_time_ms": 5.8,
+                        "details": {
+                          "workers": ["worker1@hostname", "worker2@hostname"]
+                        }
+                      },
+                      "storage": {
+                        "status": "healthy",
+                        "message": "Storage connection successful",
+                        "response_time_ms": 25.2,
+                        "details": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Crawl Jobs",
+      "description": "Endpoints for managing image crawl jobs"
+    },
+    {
+      "name": "Validation",
+      "description": "Endpoints for image validation operations"
+    },
+    {
+      "name": "Credits & Billing",
+      "description": "Endpoints for credit management and billing"
+    },
+    {
+      "name": "API Keys",
+      "description": "Endpoints for API key management"
+    },
+    {
+      "name": "Storage",
+      "description": "Endpoints for storage management"
+    },
+    {
+      "name": "Activity Logs",
+      "description": "Endpoints for activity logging"
+    },
+    {
+      "name": "Health Checks",
+      "description": "Endpoints for system health monitoring"
+    }
+  ]
+}

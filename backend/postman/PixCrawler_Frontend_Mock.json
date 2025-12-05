@@ -1,0 +1,1447 @@
+{
+  "info": {
+    "_postman_id": "pixcrawler-frontend-mock-v1",
+    "name": "PixCrawler Frontend Mock",
+    "description": "Mock API collection for PixCrawler frontend development. This collection provides realistic mock responses for all backend endpoints, enabling frontend development without running the Python backend. Use with Prism mock server at http://localhost:4010/api/v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4010/api/v1",
+      "type": "string",
+      "description": "Base URL for the Prism mock server"
+    }
+  ],
+  "item": [
+    {
+      "name": "Crawl Jobs",
+      "description": "Endpoints for managing image crawl jobs, including creation, status tracking, and control operations (start, cancel, retry). Crawl jobs orchestrate the process of discovering and downloading images from multiple search engines.",
+      "item": [
+        {
+          "name": "Create Crawl Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"name\": \"Laptop Product Images\",\n  \"keywords\": [\"laptop\", \"computer\", \"notebook\"],\n  \"max_images\": 1000,\n  \"engines\": [\"google\", \"bing\", \"duckduckgo\"],\n  \"quality_filters\": {\n    \"min_resolution\": [224, 224],\n    \"formats\": [\"jpg\", \"png\", \"webp\"]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs/",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", ""]
+            },
+            "description": "Creates a new image crawl job with specified keywords and configuration. The job will be created in 'pending' status and must be started separately."
+          },
+          "response": [
+            {
+              "name": "Success - Job Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"project_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"name\": \"Laptop Product Images\",\n  \"keywords\": [\"laptop\", \"computer\", \"notebook\"],\n  \"max_images\": 1000,\n  \"engines\": [\"google\", \"bing\", \"duckduckgo\"],\n  \"quality_filters\": {\n    \"min_resolution\": [224, 224],\n    \"formats\": [\"jpg\", \"png\", \"webp\"]\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/jobs/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["jobs", ""]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": \"770e8400-e29b-41d4-a716-446655440002\",\n    \"project_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Laptop Product Images\",\n    \"keywords\": [\"laptop\", \"computer\", \"notebook\"],\n    \"max_images\": 1000,\n    \"engines\": [\"google\", \"bing\", \"duckduckgo\"],\n    \"status\": \"pending\",\n    \"progress\": 0,\n    \"total_chunks\": 10,\n    \"active_chunks\": 0,\n    \"completed_chunks\": 0,\n    \"failed_chunks\": 0,\n    \"images_downloaded\": 0,\n    \"images_validated\": 0,\n    \"images_failed\": 0,\n    \"task_ids\": [],\n    \"quality_filters\": {\n      \"min_resolution\": [224, 224],\n      \"formats\": [\"jpg\", \"png\", \"webp\"]\n    },\n    \"created_at\": \"2025-12-05T10:00:00Z\",\n    \"updated_at\": \"2025-12-05T10:00:00Z\",\n    \"started_at\": null,\n    \"completed_at\": null\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Job Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/jobs/770e8400-e29b-41d4-a716-446655440002",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "770e8400-e29b-41d4-a716-446655440002"]
+            },
+            "description": "Retrieves detailed information about a specific crawl job including current status, progress, and chunk tracking metrics."
+          },
+          "response": [
+            {
+              "name": "Success - Job Details",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/jobs/770e8400-e29b-41d4-a716-446655440002",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["jobs", "770e8400-e29b-41d4-a716-446655440002"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": \"770e8400-e29b-41d4-a716-446655440002\",\n    \"project_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Laptop Product Images\",\n    \"keywords\": [\"laptop\", \"computer\", \"notebook\"],\n    \"max_images\": 1000,\n    \"engines\": [\"google\", \"bing\", \"duckduckgo\"],\n    \"status\": \"running\",\n    \"progress\": 45,\n    \"total_chunks\": 10,\n    \"active_chunks\": 3,\n    \"completed_chunks\": 4,\n    \"failed_chunks\": 1,\n    \"images_downloaded\": 450,\n    \"images_validated\": 420,\n    \"images_failed\": 30,\n    \"task_ids\": [\"task_770e8400_0\", \"task_770e8400_1\", \"task_770e8400_2\"],\n    \"quality_filters\": {\n      \"min_resolution\": [224, 224],\n      \"formats\": [\"jpg\", \"png\", \"webp\"]\n    },\n    \"created_at\": \"2025-12-05T10:00:00Z\",\n    \"updated_at\": \"2025-12-05T10:15:00Z\",\n    \"started_at\": \"2025-12-05T10:05:00Z\",\n    \"completed_at\": null\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Start Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs/770e8400-e29b-41d4-a716-446655440002/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "770e8400-e29b-41d4-a716-446655440002", "start"]
+            },
+            "description": "Starts execution of a pending crawl job by dispatching Celery tasks. Returns task IDs for tracking."
+          },
+          "response": [
+            {
+              "name": "Success - Job Started",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/jobs/770e8400-e29b-41d4-a716-446655440002/start",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["jobs", "770e8400-e29b-41d4-a716-446655440002", "start"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"task_ids\": [\"task_770e8400_0\", \"task_770e8400_1\", \"task_770e8400_2\"],\n    \"message\": \"Crawl job started successfully with 3 tasks\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Cancel Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs/770e8400-e29b-41d4-a716-446655440002/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "770e8400-e29b-41d4-a716-446655440002", "cancel"]
+            },
+            "description": "Cancels a running crawl job by revoking all active Celery tasks. Returns the number of tasks that were revoked."
+          },
+          "response": [
+            {
+              "name": "Success - Job Cancelled",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/jobs/770e8400-e29b-41d4-a716-446655440002/cancel",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["jobs", "770e8400-e29b-41d4-a716-446655440002", "cancel"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"revoked_count\": 2,\n    \"status\": \"cancelled\",\n    \"message\": \"Crawl job cancelled successfully. 2 tasks revoked.\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Retry Failed Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs/770e8400-e29b-41d4-a716-446655440002/retry",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "770e8400-e29b-41d4-a716-446655440002", "retry"]
+            },
+            "description": "Retries a failed crawl job by resetting its state and dispatching new Celery tasks. Only failed jobs can be retried."
+          },
+          "response": [
+            {
+              "name": "Success - Job Retry Initiated",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": ""
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/jobs/770e8400-e29b-41d4-a716-446655440002/retry",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["jobs", "770e8400-e29b-41d4-a716-446655440002", "retry"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"task_ids\": [\"task_770e8400_retry_0\", \"task_770e8400_retry_1\"],\n    \"status\": \"pending\",\n    \"message\": \"Crawl job retry initiated with 2 new tasks\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Job Progress",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/jobs/770e8400-e29b-41d4-a716-446655440002/progress",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "770e8400-e29b-41d4-a716-446655440002", "progress"]
+            },
+            "description": "Retrieves detailed progress metrics for a crawl job including chunk status, image counts, and estimated completion time."
+          },
+          "response": [
+            {
+              "name": "Success - Job Progress",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/jobs/770e8400-e29b-41d4-a716-446655440002/progress",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["jobs", "770e8400-e29b-41d4-a716-446655440002", "progress"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"job_id\": \"770e8400-e29b-41d4-a716-446655440002\",\n    \"status\": \"running\",\n    \"progress\": 45,\n    \"total_chunks\": 10,\n    \"active_chunks\": 3,\n    \"completed_chunks\": 4,\n    \"failed_chunks\": 1,\n    \"images_downloaded\": 450,\n    \"images_validated\": 420,\n    \"images_failed\": 30,\n    \"estimated_completion\": \"2025-12-05T11:30:00Z\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Validation",
+      "description": "Endpoints for image validation operations, including single image analysis, batch validation, and validation statistics. Validation ensures image quality, detects duplicates, and verifies format compliance.",
+      "item": [
+        {
+          "name": "Analyze Single Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"image_url\": \"https://example.com/images/laptop.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/validation/analyze/",
+              "host": ["{{baseUrl}}"],
+              "path": ["validation", "analyze", ""]
+            },
+            "description": "Analyzes a single image and returns validation results including format, dimensions, duplicate detection, and quality metrics."
+          },
+          "response": [
+            {
+              "name": "Success - Image Analyzed",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"image_url\": \"https://example.com/images/laptop.jpg\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/validation/analyze/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["validation", "analyze", ""]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"is_valid\": true,\n    \"is_duplicate\": false,\n    \"dimensions\": {\n      \"width\": 1920,\n      \"height\": 1080\n    },\n    \"format\": \"jpg\",\n    \"file_size\": 245678,\n    \"hash\": \"a1b2c3d4e5f6g7h8\",\n    \"validation_errors\": []\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Batch Validation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"image_ids\": [\n    \"880e8400-e29b-41d4-a716-446655440010\",\n    \"880e8400-e29b-41d4-a716-446655440011\",\n    \"880e8400-e29b-41d4-a716-446655440012\"\n  ],\n  \"validation_level\": \"medium\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/validation/batch/",
+              "host": ["{{baseUrl}}"],
+              "path": ["validation", "batch", ""]
+            },
+            "description": "Creates a batch validation job for multiple images. Returns a batch ID for tracking the validation progress."
+          },
+          "response": [
+            {
+              "name": "Success - Batch Validation Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"image_ids\": [\n    \"880e8400-e29b-41d4-a716-446655440010\",\n    \"880e8400-e29b-41d4-a716-446655440011\",\n    \"880e8400-e29b-41d4-a716-446655440012\"\n  ],\n  \"validation_level\": \"medium\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/validation/batch/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["validation", "batch", ""]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"batch_id\": \"990e8400-e29b-41d4-a716-446655440020\",\n    \"status\": \"pending\",\n    \"images_count\": 100,\n    \"validation_level\": \"medium\",\n    \"created_at\": \"2025-12-05T10:30:00Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Validate Job Images",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"validation_level\": \"medium\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/validation/job/770e8400-e29b-41d4-a716-446655440002/",
+              "host": ["{{baseUrl}}"],
+              "path": ["validation", "job", "770e8400-e29b-41d4-a716-446655440002", ""]
+            },
+            "description": "Initiates validation for all images in a crawl job. Returns Celery task IDs for tracking the validation progress."
+          },
+          "response": [
+            {
+              "name": "Success - Job Validation Started",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"validation_level\": \"medium\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/validation/job/770e8400-e29b-41d4-a716-446655440002/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["validation", "job", "770e8400-e29b-41d4-a716-446655440002", ""]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"task_ids\": [\"validation_task_770e8400_0\", \"validation_task_770e8400_1\"],\n    \"images_count\": 450,\n    \"validation_level\": \"medium\",\n    \"message\": \"Validation started for 450 images at medium level\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Validation Results",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/validation/results/770e8400-e29b-41d4-a716-446655440002/",
+              "host": ["{{baseUrl}}"],
+              "path": ["validation", "results", "770e8400-e29b-41d4-a716-446655440002", ""]
+            },
+            "description": "Retrieves aggregated validation results for a crawl job including counts of valid, invalid, and duplicate images."
+          },
+          "response": [
+            {
+              "name": "Success - Validation Results",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/validation/results/770e8400-e29b-41d4-a716-446655440002/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["validation", "results", "770e8400-e29b-41d4-a716-446655440002", ""]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"job_id\": \"770e8400-e29b-41d4-a716-446655440002\",\n    \"total_images\": 450,\n    \"valid_images\": 420,\n    \"invalid_images\": 30,\n    \"duplicate_images\": 15,\n    \"validation_errors\": {\n      \"format_errors\": 5,\n      \"resolution_errors\": 10,\n      \"corrupted_files\": 15\n    },\n    \"completed_at\": \"2025-12-05T11:00:00Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Dataset Validation Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/validation/stats/aa0e8400-e29b-41d4-a716-446655440030/",
+              "host": ["{{baseUrl}}"],
+              "path": ["validation", "stats", "aa0e8400-e29b-41d4-a716-446655440030", ""]
+            },
+            "description": "Retrieves comprehensive validation statistics for a dataset including coverage, quality score, and error breakdowns."
+          },
+          "response": [
+            {
+              "name": "Success - Dataset Validation Stats",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/validation/stats/aa0e8400-e29b-41d4-a716-446655440030/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["validation", "stats", "aa0e8400-e29b-41d4-a716-446655440030", ""]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"dataset_id\": \"aa0e8400-e29b-41d4-a716-446655440030\",\n    \"total_images\": 5000,\n    \"validated_images\": 4850,\n    \"validation_coverage\": 97.0,\n    \"valid_images\": 4500,\n    \"invalid_images\": 350,\n    \"duplicate_images\": 200,\n    \"quality_score\": 92.8,\n    \"last_validated_at\": \"2025-12-05T12:00:00Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Validation Level",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"level\": \"medium\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/validation/level/",
+              "host": ["{{baseUrl}}"],
+              "path": ["validation", "level", ""]
+            },
+            "description": "Updates the default validation level for future validation operations. Returns confirmation with the new level."
+          },
+          "response": [
+            {
+              "name": "Success - Validation Level Updated",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"level\": \"medium\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/validation/level/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["validation", "level", ""]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"level\": \"medium\",\n    \"previous_level\": \"fast\",\n    \"message\": \"Validation level updated to medium successfully\",\n    \"updated_at\": \"2025-12-05T10:45:00Z\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Credits & Billing",
+      "description": "Endpoints for managing user credits, viewing transaction history, purchasing credits, and tracking usage metrics. The credit system enables pay-per-use billing for image processing operations.",
+      "item": [
+        {
+          "name": "Get Credit Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/credits/balance",
+              "host": ["{{baseUrl}}"],
+              "path": ["credits", "balance"]
+            },
+            "description": "Retrieves the current credit balance, monthly usage, and auto-refill settings for the authenticated user."
+          },
+          "response": [
+            {
+              "name": "Success - Credit Balance",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/credits/balance",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["credits", "balance"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"current_balance\": 1500,\n    \"monthly_usage\": 2500,\n    \"monthly_limit\": 10000,\n    \"auto_refill_enabled\": true,\n    \"refill_threshold\": 500,\n    \"refill_amount\": 1000,\n    \"average_daily_usage\": 83.33,\n    \"estimated_days_remaining\": 18\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Credit Transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/credits/transactions?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["credits", "transactions"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "purchase",
+                  "description": "Filter by transaction type (purchase, usage, refund, bonus)",
+                  "disabled": true
+                },
+                {
+                  "key": "start_date",
+                  "value": "2025-12-01",
+                  "description": "Filter transactions from this date (ISO 8601)",
+                  "disabled": true
+                },
+                {
+                  "key": "end_date",
+                  "value": "2025-12-05",
+                  "description": "Filter transactions until this date (ISO 8601)",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (1-indexed)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of items per page"
+                }
+              ]
+            },
+            "description": "Retrieves a paginated list of credit transactions including purchases, usage, refunds, and bonuses."
+          },
+          "response": [
+            {
+              "name": "Success - Transaction List",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/credits/transactions?page=1&limit=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["credits", "transactions"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"bb0e8400-e29b-41d4-a716-446655440040\",\n      \"type\": \"purchase\",\n      \"amount\": 1000,\n      \"balance_after\": 2500,\n      \"status\": \"completed\",\n      \"description\": \"Credit purchase - 1000 credits\",\n      \"metadata\": {\n        \"payment_method\": \"lemonsqueezy\",\n        \"order_id\": \"order_abc123\"\n      },\n      \"created_at\": \"2025-12-05T09:00:00Z\"\n    },\n    {\n      \"id\": \"bb0e8400-e29b-41d4-a716-446655440041\",\n      \"type\": \"usage\",\n      \"amount\": -125,\n      \"balance_after\": 2375,\n      \"status\": \"completed\",\n      \"description\": \"Image processing - Job #770e8400\",\n      \"metadata\": {\n        \"job_id\": \"770e8400-e29b-41d4-a716-446655440002\"\n      },\n      \"created_at\": \"2025-12-05T10:30:00Z\"\n    },\n    {\n      \"id\": \"bb0e8400-e29b-41d4-a716-446655440042\",\n      \"type\": \"bonus\",\n      \"amount\": 500,\n      \"balance_after\": 2875,\n      \"status\": \"completed\",\n      \"description\": \"Welcome bonus - New user promotion\",\n      \"metadata\": {},\n      \"created_at\": \"2025-12-01T08:00:00Z\"\n    }\n  ],\n  \"meta\": {\n    \"total\": 45,\n    \"page\": 1,\n    \"limit\": 20,\n    \"pages\": 3\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Purchase Credits",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1000,\n  \"payment_method\": \"lemonsqueezy\",\n  \"payment_token\": \"order_abc123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/credits/purchase",
+              "host": ["{{baseUrl}}"],
+              "path": ["credits", "purchase"]
+            },
+            "description": "Purchases credits using the specified payment method. Returns transaction details and updated balance."
+          },
+          "response": [
+            {
+              "name": "Success - Credits Purchased",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 1000,\n  \"payment_method\": \"lemonsqueezy\",\n  \"payment_token\": \"order_abc123\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/credits/purchase",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["credits", "purchase"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"transaction_id\": \"bb0e8400-e29b-41d4-a716-446655440040\",\n    \"amount\": 1000,\n    \"new_balance\": 2500,\n    \"status\": \"completed\",\n    \"payment_method\": \"lemonsqueezy\",\n    \"order_id\": \"order_abc123\",\n    \"created_at\": \"2025-12-05T09:00:00Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Usage Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/credits/usage?start_date=2025-12-01&end_date=2025-12-05&granularity=daily",
+              "host": ["{{baseUrl}}"],
+              "path": ["credits", "usage"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2025-12-01",
+                  "description": "Start date for metrics (ISO 8601, defaults to 30 days ago)"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2025-12-05",
+                  "description": "End date for metrics (ISO 8601, defaults to today)"
+                },
+                {
+                  "key": "granularity",
+                  "value": "daily",
+                  "description": "Granularity of metrics (daily, weekly, monthly)"
+                }
+              ]
+            },
+            "description": "Retrieves usage metrics with daily breakdown for the specified date range. Includes credits used, images processed, storage, API calls, and bandwidth."
+          },
+          "response": [
+            {
+              "name": "Success - Usage Metrics",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/credits/usage?start_date=2025-12-01&end_date=2025-12-05&granularity=daily",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["credits", "usage"],
+                  "query": [
+                    {
+                      "key": "start_date",
+                      "value": "2025-12-01"
+                    },
+                    {
+                      "key": "end_date",
+                      "value": "2025-12-05"
+                    },
+                    {
+                      "key": "granularity",
+                      "value": "daily"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"start_date\": \"2025-12-01\",\n    \"end_date\": \"2025-12-05\",\n    \"total_credits_used\": 625,\n    \"total_images_processed\": 1250,\n    \"total_storage_used_gb\": 12.5,\n    \"total_api_calls\": 750,\n    \"total_bandwidth_used_gb\": 6.0,\n    \"daily_metrics\": [\n      {\n        \"date\": \"2025-12-01\",\n        \"images_processed\": 200,\n        \"credits_used\": 100,\n        \"storage_used_gb\": 2.0,\n        \"api_calls\": 120,\n        \"bandwidth_used_gb\": 1.0\n      },\n      {\n        \"date\": \"2025-12-02\",\n        \"images_processed\": 250,\n        \"credits_used\": 125,\n        \"storage_used_gb\": 2.5,\n        \"api_calls\": 150,\n        \"bandwidth_used_gb\": 1.2\n      },\n      {\n        \"date\": \"2025-12-03\",\n        \"images_processed\": 300,\n        \"credits_used\": 150,\n        \"storage_used_gb\": 3.0,\n        \"api_calls\": 180,\n        \"bandwidth_used_gb\": 1.5\n      },\n      {\n        \"date\": \"2025-12-04\",\n        \"images_processed\": 250,\n        \"credits_used\": 125,\n        \"storage_used_gb\": 2.5,\n        \"api_calls\": 150,\n        \"bandwidth_used_gb\": 1.2\n      },\n      {\n        \"date\": \"2025-12-05\",\n        \"images_processed\": 250,\n        \"credits_used\": 125,\n        \"storage_used_gb\": 2.5,\n        \"api_calls\": 150,\n        \"bandwidth_used_gb\": 1.1\n      }\n    ]\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "API Keys",
+      "description": "Endpoints for managing API keys for programmatic access. API keys enable secure, rate-limited access to the PixCrawler API with configurable permissions and usage tracking.",
+      "item": [
+        {
+          "name": "List API Keys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api-keys/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys", ""]
+            },
+            "description": "Retrieves a list of all API keys for the authenticated user with usage statistics. The full key value is never returned, only the key prefix for identification."
+          },
+          "response": [
+            {
+              "name": "Success - API Keys List",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api-keys/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api-keys", ""]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"cc0e8400-e29b-41d4-a716-446655440050\",\n      \"name\": \"Production API Key\",\n      \"key_prefix\": \"pk_live_\",\n      \"status\": \"active\",\n      \"permissions\": [\"read\", \"write\"],\n      \"rate_limit\": 1000,\n      \"usage_count\": 15420,\n      \"last_used_at\": \"2025-12-05T09:30:00Z\",\n      \"expires_at\": \"2026-12-05T00:00:00Z\",\n      \"created_at\": \"2025-11-01T10:00:00Z\",\n      \"updated_at\": \"2025-12-05T09:30:00Z\"\n    },\n    {\n      \"id\": \"cc0e8400-e29b-41d4-a716-446655440051\",\n      \"name\": \"Development API Key\",\n      \"key_prefix\": \"pk_test_\",\n      \"status\": \"active\",\n      \"permissions\": [\"read\"],\n      \"rate_limit\": 100,\n      \"usage_count\": 2340,\n      \"last_used_at\": \"2025-12-04T15:20:00Z\",\n      \"expires_at\": null,\n      \"created_at\": \"2025-10-15T14:30:00Z\",\n      \"updated_at\": \"2025-12-04T15:20:00Z\"\n    },\n    {\n      \"id\": \"cc0e8400-e29b-41d4-a716-446655440052\",\n      \"name\": \"Legacy API Key\",\n      \"key_prefix\": \"pk_live_\",\n      \"status\": \"revoked\",\n      \"permissions\": [\"read\", \"write\", \"delete\"],\n      \"rate_limit\": 500,\n      \"usage_count\": 45678,\n      \"last_used_at\": \"2025-11-20T08:15:00Z\",\n      \"expires_at\": null,\n      \"created_at\": \"2025-01-10T09:00:00Z\",\n      \"updated_at\": \"2025-11-25T10:00:00Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Production API Key\",\n  \"permissions\": [\"read\", \"write\"],\n  \"rate_limit\": 1000,\n  \"expires_at\": \"2026-12-05T00:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api-keys/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys", ""]
+            },
+            "description": "Creates a new API key with specified permissions and rate limit. The full API key value is only returned once during creation and must be stored securely by the client."
+          },
+          "response": [
+            {
+              "name": "Success - API Key Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Production API Key\",\n  \"permissions\": [\"read\", \"write\"],\n  \"rate_limit\": 1000,\n  \"expires_at\": \"2026-12-05T00:00:00Z\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api-keys/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api-keys", ""]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": \"cc0e8400-e29b-41d4-a716-446655440050\",\n    \"name\": \"Production API Key\",\n    \"key\": \"pk_live_1234567890abcdef1234567890abcdef\",\n    \"key_prefix\": \"pk_live_\",\n    \"permissions\": [\"read\", \"write\"],\n    \"rate_limit\": 1000,\n    \"expires_at\": \"2026-12-05T00:00:00Z\",\n    \"created_at\": \"2025-12-05T10:00:00Z\",\n    \"warning\": \"This is the only time the full API key will be displayed. Please store it securely.\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Revoke API Key",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api-keys/cc0e8400-e29b-41d4-a716-446655440050",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys", "cc0e8400-e29b-41d4-a716-446655440050"]
+            },
+            "description": "Revokes an API key, immediately preventing it from being used for authentication. This action cannot be undone."
+          },
+          "response": [
+            {
+              "name": "Success - API Key Revoked",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api-keys/cc0e8400-e29b-41d4-a716-446655440050",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api-keys", "cc0e8400-e29b-41d4-a716-446655440050"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"id\": \"cc0e8400-e29b-41d4-a716-446655440050\",\n    \"status\": \"revoked\",\n    \"message\": \"API key revoked successfully\",\n    \"revoked_at\": \"2025-12-05T10:30:00Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get API Key Usage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api-keys/cc0e8400-e29b-41d4-a716-446655440050/usage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api-keys", "cc0e8400-e29b-41d4-a716-446655440050", "usage"]
+            },
+            "description": "Retrieves detailed usage statistics for a specific API key including total requests, success/failure rates, rate limit hits, and daily breakdown."
+          },
+          "response": [
+            {
+              "name": "Success - API Key Usage",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api-keys/cc0e8400-e29b-41d4-a716-446655440050/usage",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api-keys", "cc0e8400-e29b-41d4-a716-446655440050", "usage"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"api_key_id\": \"cc0e8400-e29b-41d4-a716-446655440050\",\n    \"api_key_name\": \"Production API Key\",\n    \"total_requests\": 15420,\n    \"successful_requests\": 14850,\n    \"failed_requests\": 570,\n    \"rate_limit_hits\": 45,\n    \"last_used_at\": \"2025-12-05T09:30:00Z\",\n    \"daily_usage\": [\n      {\n        \"date\": \"2025-12-01\",\n        \"requests\": 3000,\n        \"successful_requests\": 2900,\n        \"failed_requests\": 100,\n        \"rate_limit_hits\": 8\n      },\n      {\n        \"date\": \"2025-12-02\",\n        \"requests\": 3200,\n        \"successful_requests\": 3080,\n        \"failed_requests\": 120,\n        \"rate_limit_hits\": 10\n      },\n      {\n        \"date\": \"2025-12-03\",\n        \"requests\": 3100,\n        \"successful_requests\": 2990,\n        \"failed_requests\": 110,\n        \"rate_limit_hits\": 9\n      },\n      {\n        \"date\": \"2025-12-04\",\n        \"requests\": 3050,\n        \"successful_requests\": 2940,\n        \"failed_requests\": 110,\n        \"rate_limit_hits\": 9\n      },\n      {\n        \"date\": \"2025-12-05\",\n        \"requests\": 3070,\n        \"successful_requests\": 2940,\n        \"failed_requests\": 130,\n        \"rate_limit_hits\": 9\n      }\n    ]\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Storage",
+      "description": "Endpoints for managing storage operations, including usage tracking, file listing, cleanup operations, and presigned URL generation for secure downloads. Storage is organized into hot, warm, and archive tiers.",
+      "item": [
+        {
+          "name": "Get Storage Usage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/storage/usage/",
+              "host": ["{{baseUrl}}"],
+              "path": ["storage", "usage", ""]
+            },
+            "description": "Retrieves comprehensive storage usage information including total storage, limits, file counts, and breakdown by storage tier (hot, warm, archive)."
+          },
+          "response": [
+            {
+              "name": "Success - Storage Usage",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/storage/usage/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["storage", "usage", ""]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"total_storage_bytes\": 53687091200,\n    \"total_storage_gb\": 50.0,\n    \"storage_limit_gb\": 500.0,\n    \"storage_used_percentage\": 10.0,\n    \"file_count\": 1250,\n    \"tier_breakdown\": {\n      \"hot\": {\n        \"storage_gb\": 25.0,\n        \"file_count\": 500\n      },\n      \"warm\": {\n        \"storage_gb\": 20.0,\n        \"file_count\": 600\n      },\n      \"archive\": {\n        \"storage_gb\": 5.0,\n        \"file_count\": 150\n      }\n    },\n    \"last_updated_at\": \"2025-12-05T10:00:00Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Storage Files",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/storage/files/?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["storage", "files", ""],
+              "query": [
+                {
+                  "key": "tier",
+                  "value": "hot",
+                  "description": "Filter by storage tier (hot, warm, archive)",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (1-indexed)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of items per page"
+                }
+              ]
+            },
+            "description": "Retrieves a paginated list of files in storage with metadata including size, tier, and temporary download URLs."
+          },
+          "response": [
+            {
+              "name": "Success - Storage Files List",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/storage/files/?page=1&limit=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["storage", "files", ""],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"dd0e8400-e29b-41d4-a716-446655440060\",\n      \"filename\": \"dataset_770e8400_images.zip\",\n      \"file_path\": \"datasets/770e8400-e29b-41d4-a716-446655440002/dataset_770e8400_images.zip\",\n      \"file_size_bytes\": 52428800,\n      \"file_size_mb\": 50.0,\n      \"tier\": \"hot\",\n      \"content_type\": \"application/zip\",\n      \"download_url\": \"https://storage.pixcrawler.com/datasets/770e8400/dataset.zip?token=abc123&expires=1733400000\",\n      \"job_id\": \"770e8400-e29b-41d4-a716-446655440002\",\n      \"created_at\": \"2025-12-05T10:00:00Z\",\n      \"last_accessed_at\": \"2025-12-05T09:15:00Z\"\n    },\n    {\n      \"id\": \"dd0e8400-e29b-41d4-a716-446655440061\",\n      \"filename\": \"dataset_880e8400_images.7z\",\n      \"file_path\": \"datasets/880e8400-e29b-41d4-a716-446655440003/dataset_880e8400_images.7z\",\n      \"file_size_bytes\": 31457280,\n      \"file_size_mb\": 30.0,\n      \"tier\": \"warm\",\n      \"content_type\": \"application/x-7z-compressed\",\n      \"download_url\": \"https://storage.pixcrawler.com/datasets/880e8400/dataset.7z?token=def456&expires=1733400000\",\n      \"job_id\": \"880e8400-e29b-41d4-a716-446655440003\",\n      \"created_at\": \"2025-12-04T14:30:00Z\",\n      \"last_accessed_at\": \"2025-12-04T16:00:00Z\"\n    },\n    {\n      \"id\": \"dd0e8400-e29b-41d4-a716-446655440062\",\n      \"filename\": \"dataset_990e8400_images.zip\",\n      \"file_path\": \"datasets/990e8400-e29b-41d4-a716-446655440004/dataset_990e8400_images.zip\",\n      \"file_size_bytes\": 104857600,\n      \"file_size_mb\": 100.0,\n      \"tier\": \"hot\",\n      \"content_type\": \"application/zip\",\n      \"download_url\": \"https://storage.pixcrawler.com/datasets/990e8400/dataset.zip?token=ghi789&expires=1733400000\",\n      \"job_id\": \"990e8400-e29b-41d4-a716-446655440004\",\n      \"created_at\": \"2025-12-03T11:20:00Z\",\n      \"last_accessed_at\": \"2025-12-05T08:30:00Z\"\n    }\n  ],\n  \"meta\": {\n    \"total\": 1250,\n    \"page\": 1,\n    \"limit\": 20,\n    \"pages\": 63\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Initiate Storage Cleanup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"older_than_days\": 30,\n  \"tier\": \"warm\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/storage/cleanup/",
+              "host": ["{{baseUrl}}"],
+              "path": ["storage", "cleanup", ""]
+            },
+            "description": "Initiates cleanup of old files in storage. Deletes files older than the specified number of days and returns the count of deleted files and space freed."
+          },
+          "response": [
+            {
+              "name": "Success - Storage Cleanup Completed",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"older_than_days\": 30,\n  \"tier\": \"warm\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/storage/cleanup/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["storage", "cleanup", ""]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"deleted_count\": 45,\n    \"freed_space_bytes\": 2147483648,\n    \"freed_space_gb\": 2.0,\n    \"message\": \"Storage cleanup completed successfully. Deleted 45 files and freed 2.0 GB.\",\n    \"completed_at\": \"2025-12-05T10:30:00Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Generate Presigned URL",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/storage/presigned-url/?file_path=datasets/770e8400-e29b-41d4-a716-446655440002/dataset_770e8400_images.zip&expires_in=3600",
+              "host": ["{{baseUrl}}"],
+              "path": ["storage", "presigned-url", ""],
+              "query": [
+                {
+                  "key": "file_path",
+                  "value": "datasets/770e8400-e29b-41d4-a716-446655440002/dataset_770e8400_images.zip",
+                  "description": "Path to the file in storage"
+                },
+                {
+                  "key": "expires_in",
+                  "value": "3600",
+                  "description": "Number of seconds until the URL expires (default 3600, max 86400)"
+                }
+              ]
+            },
+            "description": "Generates a temporary presigned URL for secure file download. The URL expires after the specified duration (default 1 hour)."
+          },
+          "response": [
+            {
+              "name": "Success - Presigned URL Generated",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/storage/presigned-url/?file_path=datasets/770e8400-e29b-41d4-a716-446655440002/dataset_770e8400_images.zip&expires_in=3600",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["storage", "presigned-url", ""],
+                  "query": [
+                    {
+                      "key": "file_path",
+                      "value": "datasets/770e8400-e29b-41d4-a716-446655440002/dataset_770e8400_images.zip"
+                    },
+                    {
+                      "key": "expires_in",
+                      "value": "3600"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"url\": \"https://storage.pixcrawler.com/datasets/770e8400/dataset.zip?token=abc123def456&expires=1733400000\",\n    \"file_path\": \"datasets/770e8400-e29b-41d4-a716-446655440002/dataset_770e8400_images.zip\",\n    \"expires_at\": \"2025-12-05T11:00:00Z\",\n    \"expires_in_seconds\": 3600\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Activity Logs",
+      "description": "Endpoints for viewing user activity logs and audit trails. Activity logs track all user actions including resource creation, updates, deletions, and access patterns.",
+      "item": [
+        {
+          "name": "List Activity Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/activity/?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["activity", ""],
+              "query": [
+                {
+                  "key": "action",
+                  "value": "create",
+                  "description": "Filter by action type (create, update, delete, view, download, export)",
+                  "disabled": true
+                },
+                {
+                  "key": "resource_type",
+                  "value": "crawl_job",
+                  "description": "Filter by resource type (project, crawl_job, image, dataset, api_key, credit_transaction)",
+                  "disabled": true
+                },
+                {
+                  "key": "start_date",
+                  "value": "2025-12-01",
+                  "description": "Filter logs from this date (ISO 8601 format)",
+                  "disabled": true
+                },
+                {
+                  "key": "end_date",
+                  "value": "2025-12-05",
+                  "description": "Filter logs until this date (ISO 8601 format)",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (1-indexed)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of items per page"
+                }
+              ]
+            },
+            "description": "Retrieves a paginated list of activity logs for the authenticated user. Activity logs track all user actions including resource creation, updates, deletions, and access."
+          },
+          "response": [
+            {
+              "name": "Success - Activity Logs",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/activity/?page=1&limit=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["activity", ""],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"990e8400-e29b-41d4-a716-446655440020\",\n      \"user_id\": \"660e8400-e29b-41d4-a716-446655440001\",\n      \"action\": \"create\",\n      \"resource_type\": \"crawl_job\",\n      \"resource_id\": \"770e8400-e29b-41d4-a716-446655440002\",\n      \"metadata\": {\n        \"keywords\": [\"laptop\", \"computer\", \"notebook\"],\n        \"max_images\": 1000\n      },\n      \"ip_address\": \"192.168.1.100\",\n      \"user_agent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\",\n      \"created_at\": \"2025-12-05T10:00:00Z\"\n    },\n    {\n      \"id\": \"990e8400-e29b-41d4-a716-446655440021\",\n      \"user_id\": \"660e8400-e29b-41d4-a716-446655440001\",\n      \"action\": \"update\",\n      \"resource_type\": \"crawl_job\",\n      \"resource_id\": \"770e8400-e29b-41d4-a716-446655440002\",\n      \"metadata\": {\n        \"status_change\": {\n          \"from\": \"pending\",\n          \"to\": \"running\"\n        }\n      },\n      \"ip_address\": \"192.168.1.100\",\n      \"user_agent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\",\n      \"created_at\": \"2025-12-05T10:05:00Z\"\n    },\n    {\n      \"id\": \"990e8400-e29b-41d4-a716-446655440022\",\n      \"user_id\": \"660e8400-e29b-41d4-a716-446655440001\",\n      \"action\": \"view\",\n      \"resource_type\": \"dataset\",\n      \"resource_id\": \"880e8400-e29b-41d4-a716-446655440010\",\n      \"metadata\": {},\n      \"ip_address\": \"192.168.1.100\",\n      \"user_agent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\",\n      \"created_at\": \"2025-12-05T10:15:00Z\"\n    },\n    {\n      \"id\": \"990e8400-e29b-41d4-a716-446655440023\",\n      \"user_id\": \"660e8400-e29b-41d4-a716-446655440001\",\n      \"action\": \"download\",\n      \"resource_type\": \"dataset\",\n      \"resource_id\": \"880e8400-e29b-41d4-a716-446655440010\",\n      \"metadata\": {\n        \"file_size_mb\": 50.0,\n        \"format\": \"zip\"\n      },\n      \"ip_address\": \"192.168.1.100\",\n      \"user_agent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\",\n      \"created_at\": \"2025-12-05T10:20:00Z\"\n    },\n    {\n      \"id\": \"990e8400-e29b-41d4-a716-446655440024\",\n      \"user_id\": \"660e8400-e29b-41d4-a716-446655440001\",\n      \"action\": \"create\",\n      \"resource_type\": \"api_key\",\n      \"resource_id\": \"aa0e8400-e29b-41d4-a716-446655440030\",\n      \"metadata\": {\n        \"name\": \"Production API Key\",\n        \"permissions\": [\"read\", \"write\"]\n      },\n      \"ip_address\": \"192.168.1.100\",\n      \"user_agent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\",\n      \"created_at\": \"2025-12-05T10:30:00Z\"\n    }\n  ],\n  \"meta\": {\n    \"total\": 150,\n    \"page\": 1,\n    \"limit\": 20,\n    \"pages\": 8\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Health Checks",
+      "description": "Endpoints for checking system health and service status. Health checks provide information about database connectivity, Redis status, Celery workers, and overall system availability.",
+      "item": [
+        {
+          "name": "Basic Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", ""]
+            },
+            "description": "Returns basic system health status including overall status, timestamp, version, and uptime. This endpoint is suitable for load balancer health checks and basic monitoring."
+          },
+          "response": [
+            {
+              "name": "Success - System Healthy",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/health/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["health", ""]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"status\": \"healthy\",\n    \"timestamp\": \"2025-12-05T10:00:00Z\",\n    \"version\": \"1.0.0\",\n    \"uptime_seconds\": 86400\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Detailed Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/detailed",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "detailed"]
+            },
+            "description": "Returns comprehensive system health status including service-level health for database, Redis, Celery workers, and storage. This endpoint provides detailed diagnostics for monitoring and troubleshooting."
+          },
+          "response": [
+            {
+              "name": "Success - Detailed Health Status",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/health/detailed",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["health", "detailed"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"status\": \"healthy\",\n    \"timestamp\": \"2025-12-05T10:00:00Z\",\n    \"version\": \"1.0.0\",\n    \"uptime_seconds\": 86400,\n    \"services\": {\n      \"database\": {\n        \"status\": \"healthy\",\n        \"message\": \"Database connection successful\",\n        \"response_time_ms\": 15.5,\n        \"details\": {\n          \"connection_pool_size\": 10,\n          \"active_connections\": 3\n        }\n      },\n      \"redis\": {\n        \"status\": \"healthy\",\n        \"message\": \"Redis connection successful\",\n        \"response_time_ms\": 2.3,\n        \"details\": {\n          \"connection_pool_size\": 5,\n          \"active_connections\": 2\n        }\n      },\n      \"celery\": {\n        \"status\": \"healthy\",\n        \"message\": \"2 worker(s) active\",\n        \"response_time_ms\": 5.8,\n        \"details\": {\n          \"workers\": [\"worker1@hostname\", \"worker2@hostname\"]\n        }\n      },\n      \"storage\": {\n        \"status\": \"healthy\",\n        \"message\": \"Storage connection successful\",\n        \"response_time_ms\": 25.2,\n        \"details\": {}\n      }\n    }\n  }\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
