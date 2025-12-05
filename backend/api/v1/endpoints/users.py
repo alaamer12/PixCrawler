@@ -272,8 +272,37 @@ async def delete_user(
     Raises:
         HTTPException: If user not found (404), access denied (403), or deletion fails (500)
     """
-    # TODO: Implement user deletion logic
+    # TODO: Implement usSupabase Auth (using admin API)
+    4. Cascade delete will handle related records via database constraints
+    5. Return 204 No Content on success
+
+    **Cascade Deletion:**
+    The following will be automatically deleted:
+    - User profile (profiles table)
+    - Projects (projects table)
+    - Crawl jobs (crawl_jobs table)
+    - Images (images table)
+    - Activity logs (activity_logs table)
+    - API keys (api_keys table)
+    - Notifications (notifications table)
+
+    Args:
+        user_id: User UUID from path parameter
+        auth_service: Supabase authentication service
+
+    Raises:
+        HTTPException:
+            - 401: Not authenticated
+            - 403: Access denied (non-admin user)
+            - 404: User not found
+            - 500: Deletion failed
+    """
+    # TODO: Implement admin authorization check
+    # TODO: Implement user deletion using Supabase Admin API
+    # Example implementation:
+    # await auth_service.supabase.auth.admin.delete_user(str(user_id))
+    
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="User deletion not implemented yet"
+        detail="User deletion endpoint not yet implemented. Requires admin authorization and Supabase Admin API integration."
     )
