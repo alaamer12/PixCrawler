@@ -56,7 +56,9 @@ class TestCancelJobService:
         """Test successfully cancelling a running job."""
         # Setup
         service.get_job = AsyncMock(return_value=mock_job)
-        service.update_job_status = AsyncMock(return_value=mock_job)
+        cancelled_job = AsyncMock()
+        cancelled_job.status = "cancelled"
+        service.update_job_status = AsyncMock(return_value=cancelled_job)
         service._revoke_celery_tasks = AsyncMock()
         service._cleanup_job_storage = AsyncMock()
 
@@ -68,7 +70,11 @@ class TestCancelJobService:
             )
 
         # Assert
-        assert result == mock_job
+        assert isinstance(result, dict)
+        assert result["job_id"] == 1
+        assert result["status"] == "cancelled"
+        assert result["revoked_tasks"] == 3
+        assert "message" in result
         service._revoke_celery_tasks.assert_called_once_with(
             ["task-1", "task-2", "task-3"],
             terminate=True
@@ -84,7 +90,9 @@ class TestCancelJobService:
         mock_job.status = "pending"
         mock_job.task_ids = []  # No tasks yet
         service.get_job = AsyncMock(return_value=mock_job)
-        service.update_job_status = AsyncMock(return_value=mock_job)
+        cancelled_job = AsyncMock()
+        cancelled_job.status = "cancelled"
+        service.update_job_status = AsyncMock(return_value=cancelled_job)
         service._revoke_celery_tasks = AsyncMock()
         service._cleanup_job_storage = AsyncMock()
 
@@ -134,7 +142,9 @@ class TestCancelJobService:
         """Test that storage cleanup failure doesn't prevent cancellation."""
         # Setup
         service.get_job = AsyncMock(return_value=mock_job)
-        service.update_job_status = AsyncMock(return_value=mock_job)
+        cancelled_job = AsyncMock()
+        cancelled_job.status = "cancelled"
+        service.update_job_status = AsyncMock(return_value=cancelled_job)
         service._revoke_celery_tasks = AsyncMock()
         service._cleanup_job_storage = AsyncMock(side_effect=Exception("Storage error"))
 
@@ -143,7 +153,10 @@ class TestCancelJobService:
             result = await service.cancel_job(job_id=1)
 
         # Assert - job should still be cancelled
-        assert result == mock_job
+        assert isinstance(result, dict)
+        assert result["job_id"] == 1
+        assert result["status"] == "cancelled"
+        assert result["revoked_tasks"] == 3
         service.update_job_status.assert_called_once()
 
     @pytest.mark.asyncio

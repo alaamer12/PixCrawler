@@ -9,6 +9,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 
 from backend.api.types import CurrentUser, DBSession, ValidationServiceDep
+from backend.core.exceptions import NotFoundError
 from backend.api.v1.response_models import get_common_responses
 from backend.schemas.validation import (
     ValidationAnalyzeRequest,
@@ -17,6 +18,8 @@ from backend.schemas.validation import (
     ValidationJobResponse,
     ValidationLevelUpdateRequest,
     ValidationLevelUpdateResponse,
+    ValidationRequest,
+    ValidationResponse,
     ValidationResultsResponse,
     ValidationStatsResponse,
 )
@@ -163,6 +166,79 @@ async def create_batch_validation(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create batch validation job: {str(e)}"
+        )
+
+
+@router.post(
+    "/job/{job_id}/",
+    response_model=ValidationResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Validate Job Images",
+    description="Validate all images in a crawl job.",
+    response_description="Validation job started with task IDs",
+    operation_id="validateJobImages",
+    responses={
+        200: {
+            "description": "Validation started successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "job_id": 123,
+                        "images_count": 100,
+                        "validation_level": "standard",
+                        "task_ids": ["task_123_0", "task_123_1"],
+                        "message": "Validation started for 100 images"
+                    }
+                }
+            }
+        },
+        **get_common_responses(401, 403, 404, 422, 500)
+    }
+)
+async def validate_job_images(
+    job_id: int,
+    request: ValidationRequest,
+    current_user: CurrentUser,
+    service: ValidationServiceDep,
+) -> ValidationResponse:
+    """
+    Validate all images in a crawl job.
+
+    Retrieves all images for the specified job and dispatches validation
+    tasks via Celery based on the requested validation level.
+
+    **Authentication Required:** Bearer token
+
+    Args:
+        job_id: ID of the crawl job
+        request: Validation request with level
+        current_user: Current authenticated user
+        service: Validation service
+
+    Returns:
+        Validation job information with task IDs
+
+    Raises:
+        HTTPException: If job not found, no images, or validation fails
+    """
+    try:
+        result = await service.validate_job_images(
+            job_id=job_id,
+            validation_level=request.level,
+            user_id=current_user["user_id"]
+        )
+
+        return ValidationResponse(**result)
+
+    except NotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to start validation: {str(e)}"
         )
 
 

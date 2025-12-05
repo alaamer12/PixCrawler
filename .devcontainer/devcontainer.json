@@ -1,0 +1,187 @@
+{
+    "name": "PixCrawler Development",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/workspace",
+    // Configure tool-specific properties
+    "customizations": {
+        "vscode": {
+            // VS Code extensions 
+            "extensions": [
+                // Python extensions
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.black-formatter",
+                "charliermarsh.ruff",
+                "ms-python.mypy-type-checker",
+                // FastAPI & API tools
+                "rangav.vscode-thunder-client",
+                // Frontend extensions (Next.js/TypeScript)
+                "bradlc.vscode-tailwindcss",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "oven.bun-vscode",
+                // Database extensions
+                "ckolkman.vscode-postgres",
+                "mtxr.sqltools",
+                "mtxr.sqltools-driver-pg",
+                // General development
+                "eamodio.gitlens",
+                "usernamehw.errorlens",
+                "gruntfuggly.todo-tree",
+                "streetsidesoftware.code-spell-checker",
+                "EditorConfig.EditorConfig",
+                // Docker
+                "ms-azuretools.vscode-docker",
+                // YAML/TOML
+                "redhat.vscode-yaml",
+                "tamasfe.even-better-toml"
+            ],
+            // VS Code settings
+            "settings": {
+                // Python settings
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.linting.enabled": true,
+                "python.linting.pylintEnabled": false,
+                "python.linting.mypyEnabled": true,
+                "python.formatting.provider": "none",
+                "[python]": {
+                    "editor.defaultFormatter": "ms-python.black-formatter",
+                    "editor.formatOnSave": true,
+                    "editor.codeActionsOnSave": {
+                        "source.organizeImports": "explicit"
+                    }
+                },
+                "ruff.enable": true,
+                "ruff.organizeImports": true,
+                // TypeScript/JavaScript settings
+                "[typescript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode",
+                    "editor.formatOnSave": true
+                },
+                "[typescriptreact]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode",
+                    "editor.formatOnSave": true
+                },
+                "[javascript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode",
+                    "editor.formatOnSave": true
+                },
+                "[json]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                },
+                // Tailwind CSS
+                "tailwindCSS.experimental.classRegex": [
+                    [
+                        "cva\\(([^)]*)\\)",
+                        "[\"'`]([^\"'`]*).*?[\"'`]"
+                    ],
+                    [
+                        "cn\\(([^)]*)\\)",
+                        "(?:'|\"|`)([^']*)(?:'|\"|`)"
+                    ]
+                ],
+                // Editor settings
+                "editor.rulers": [
+                    88,
+                    120
+                ],
+                "editor.formatOnSave": true,
+                "files.trimTrailingWhitespace": true,
+                "files.insertFinalNewline": true,
+                // Git
+                "git.autofetch": true,
+                // Files to exclude from explorer
+                "files.exclude": {
+                    "**/__pycache__": true,
+                    "**/*.pyc": true,
+                    "**/.pytest_cache": true,
+                    "**/.mypy_cache": true,
+                    "**/.ruff_cache": true,
+                    "**/node_modules": true,
+                    "**/.next": true
+                },
+                // cSpell configuration - ignore technical terms
+                "cSpell.words": [
+                    "charliermarsh",
+                    "mypy",
+                    "rangav",
+                    "bradlc",
+                    "dbaeumer",
+                    "esbenp",
+                    "ckolkman",
+                    "mtxr",
+                    "eamodio",
+                    "usernamehw",
+                    "gruntfuggly",
+                    "tamasfe",
+                    "pylance",
+                    "tailwindcss",
+                    "gitlens",
+                    "sqltools",
+                    "redhat",
+                    "azuretools"
+                ]
+            }
+        }
+    },
+    // Forward ports for development
+    "forwardPorts": [
+        8000, // FastAPI backend
+        3000, // Next.js frontend
+        5432, // PostgreSQL
+        6379, // Redis
+        5555 // Celery Flower
+    ],
+    "portsAttributes": {
+        "8000": {
+            "label": "FastAPI Backend",
+            "onAutoForward": "notify"
+        },
+        "3000": {
+            "label": "Next.js Frontend",
+            "onAutoForward": "openBrowser"
+        },
+        "5432": {
+            "label": "PostgreSQL",
+            "onAutoForward": "silent"
+        },
+        "6379": {
+            "label": "Redis",
+            "onAutoForward": "silent"
+        },
+        "5555": {
+            "label": "Celery Flower",
+            "onAutoForward": "notify"
+        }
+    },
+    // Features to add to the dev container
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "20"
+        },
+        "ghcr.io/devcontainers/features/git:1": {
+            "version": "latest"
+        },
+        "ghcr.io/devcontainers/features/github-cli:1": {
+            "version": "latest"
+        }
+    },
+    // Install dependencies after container creation
+    "postCreateCommand": "uv sync && cd frontend && bun install",
+    // Run services on container start
+    "postStartCommand": "echo 'PixCrawler dev container ready! 🚀'",
+    // Set environment variables
+    "remoteEnv": {
+        "PYTHONUNBUFFERED": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+    },
+    // Use 'postAttachCommand' to run commands after attaching
+    "postAttachCommand": {
+        "backend-info": "echo '📦 Backend: http://localhost:8000'",
+        "frontend-info": "echo '🎨 Frontend: http://localhost:3000'",
+        "docs-info": "echo '📚 API Docs: http://localhost:8000/docs'"
+    },
+    // Uncomment to connect as a non-root user
+    "remoteUser": "root"
+}
