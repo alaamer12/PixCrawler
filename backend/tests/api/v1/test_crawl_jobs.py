@@ -57,6 +57,10 @@ def sample_crawl_job(mock_user):
         total_images=500,
         downloaded_images=500,
         valid_images=475,
+        total_chunks=10,
+        active_chunks=2,
+        completed_chunks=7,
+        failed_chunks=1,
         created_at=datetime(2024, 1, 1, 10, 0, 0),
         updated_at=datetime(2024, 1, 1, 10, 30, 0),
         started_at=datetime(2024, 1, 1, 10, 5, 0),
@@ -233,6 +237,89 @@ class TestGetCrawlJob:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
+class TestStartCrawlJob:
+    """Tests for POST /api/v1/crawl-jobs/{job_id}/start endpoint."""
+
+    def test_start_crawl_job_success(self, client, override_dependencies, sample_crawl_job):
+        """Test successful job start."""
+        mock_service, mock_user, mock_session = override_dependencies
+        sample_crawl_job.status = "pending"
+        
+        # Mock start_job to return expected result
+        mock_service.start_job.return_value = {
+            "job_id": 1,
+            "status": "running",
+            "task_ids": ["task-uuid-1", "task-uuid-2", "task-uuid-3"],
+            "total_chunks": 6,
+            "message": "Job started with 6 tasks"
+        }
+
+        response = client.post("/api/v1/crawl-jobs/1/start")
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["job_id"] == 1
+        assert data["status"] == "running"
+        assert "task_ids" in data
+        assert len(data["task_ids"]) == 3
+        assert data["total_chunks"] == 6
+        assert "message" in data
+
+        # Verify service was called
+        mock_service.start_job.assert_called_once_with(
+            job_id=1,
+            user_id=mock_user["user_id"]
+        )
+
+    def test_start_crawl_job_wrong_status(self, client, override_dependencies):
+        """Test starting a job that's not pending fails."""
+        mock_service, mock_user, mock_session = override_dependencies
+        
+        from backend.core.exceptions import ValidationError
+        mock_service.start_job.side_effect = ValidationError(
+            "Cannot start job with status 'running'. Only pending jobs can be started."
+        )
+
+        response = client.post("/api/v1/crawl-jobs/1/start")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        data = response.json()
+        assert "cannot start" in data["detail"].lower()
+
+    def test_start_crawl_job_not_found(self, client, override_dependencies):
+        """Test starting a non-existent job."""
+        mock_service, mock_user, mock_session = override_dependencies
+        
+        from backend.core.exceptions import NotFoundError
+        mock_service.start_job.side_effect = NotFoundError("Crawl job not found: 999")
+
+        response = client.post("/api/v1/crawl-jobs/999/start")
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_start_crawl_job_response_model(self, client, override_dependencies):
+        """Test response model structure."""
+        mock_service, mock_user, mock_session = override_dependencies
+        
+        mock_service.start_job.return_value = {
+            "job_id": 1,
+            "status": "running",
+            "task_ids": ["task-1", "task-2"],
+            "total_chunks": 4,
+            "message": "Job started with 4 tasks"
+        }
+
+        response = client.post("/api/v1/crawl-jobs/1/start")
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        # Verify required fields
+        required_fields = ["job_id", "status", "task_ids", "total_chunks", "message"]
+        for field in required_fields:
+            assert field in data
+
+
 class TestCancelCrawlJob:
     """Tests for POST /api/v1/crawl-jobs/{job_id}/cancel endpoint."""
 
@@ -241,11 +328,22 @@ class TestCancelCrawlJob:
         mock_service, mock_user, mock_session = override_dependencies
         sample_crawl_job.status = "running"
         mock_service.get_job.return_value = sample_crawl_job
+        
+        # Mock the cancel_job method to return the expected dictionary
+        mock_service.cancel_job.return_value = {
+            "job_id": 1,
+            "status": "cancelled",
+            "revoked_tasks": 5,
+            "message": "Job cancelled successfully. 5 task(s) revoked."
+        }
 
         response = client.post("/api/v1/crawl-jobs/1/cancel")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        assert data["job_id"] == 1
+        assert data["status"] == "cancelled"
+        assert data["revoked_tasks"] == 5
         assert "message" in data
         assert "cancelled" in data["message"].lower()
 
@@ -352,22 +450,23 @@ class TestGetCrawlJobProgress:
     def test_get_job_progress_success(self, client, override_dependencies, sample_crawl_job, mock_user):
         """Test successful progress retrieval."""
         mock_service, user, mock_session = override_dependencies
-        mock_service.get_job.return_value = sample_crawl_job
-
-        # Mock ownership check
-        mock_result = MagicMock()
-        mock_result.scalar_one_or_none.return_value = uuid.UUID(mock_user["user_id"])
-        mock_session.execute.return_value = mock_result
+        mock_service.get_job_with_ownership_check.return_value = sample_crawl_job
 
         response = client.get("/api/v1/crawl-jobs/1/progress")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        assert data["job_id"] == 1
         assert data["status"] == "running"
         assert data["progress"] == 50
-        assert data["total_images"] == 500
+        assert data["total_chunks"] == 10
+        assert data["active_chunks"] == 2
+        assert data["completed_chunks"] == 7
+        assert data["failed_chunks"] == 1
         assert data["downloaded_images"] == 500
-        assert data["valid_images"] == 475
+        assert data["estimated_completion"] is None
+        assert "started_at" in data
+        assert "updated_at" in data
 
 
 class TestOpenAPISchema:
@@ -384,6 +483,7 @@ class TestOpenAPISchema:
         # Check endpoints exist
         assert "/api/v1/crawl-jobs/" in paths
         assert "/api/v1/crawl-jobs/{job_id}" in paths
+        assert "/api/v1/crawl-jobs/{job_id}/start" in paths
         assert "/api/v1/crawl-jobs/{job_id}/cancel" in paths
         assert "/api/v1/crawl-jobs/{job_id}/retry" in paths
         assert "/api/v1/crawl-jobs/{job_id}/logs" in paths
@@ -399,5 +499,6 @@ class TestOpenAPISchema:
         assert paths["/api/v1/crawl-jobs/"]["get"]["operationId"] == "listCrawlJobs"
         assert paths["/api/v1/crawl-jobs/"]["post"]["operationId"] == "createCrawlJob"
         assert paths["/api/v1/crawl-jobs/{job_id}"]["get"]["operationId"] == "getCrawlJob"
+        assert paths["/api/v1/crawl-jobs/{job_id}/start"]["post"]["operationId"] == "startCrawlJob"
         assert paths["/api/v1/crawl-jobs/{job_id}/cancel"]["post"]["operationId"] == "cancelCrawlJob"
         assert paths["/api/v1/crawl-jobs/{job_id}/retry"]["post"]["operationId"] == "retryCrawlJob"

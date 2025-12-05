@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import redis.asyncio as redis
 
 from backend.core.config import get_settings
-from backend.database.connection import get_db
+from backend.database.connection import get_session as get_db
 from backend.schemas.base import HealthCheck
 from celery_core.app import celery_app
 from utility.logging_config import get_logger
@@ -22,7 +22,7 @@ router = APIRouter(
     tags=["Health"],
 )
 
-
+ 
 async def check_database_health(db: AsyncSession) -> Dict[str, Any]:
     """
     Check database connection health.

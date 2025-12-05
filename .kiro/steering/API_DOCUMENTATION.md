@@ -2,6 +2,10 @@
 
 This document provides comprehensive documentation for the PixCrawler REST API, including authentication, endpoints, request/response formats, rate limiting, and error handling.
 
+## Additional Documentation
+
+- **[Celery Integration API](../backend/docs/CELERY_INTEGRATION_API.md)**: Detailed examples for Celery-integrated endpoints (start/stop jobs, progress tracking, validation)
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -468,6 +472,37 @@ Authorization: Bearer <token>
   "estimated_completion": "2025-11-30T13:00:00Z"
 }
 ```
+
+### Validation
+
+#### Validate Job Images
+```http
+POST /api/v1/validation/job/{job_id}/
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "level": "medium"
+}
+```
+
+**Validation Levels:**
+- `fast`: Quick validation (1000/min rate limit)
+- `medium`: Standard validation (500/min rate limit) - Default
+- `slow`: Thorough validation (100/min rate limit)
+
+**Response**:
+```json
+{
+  "job_id": 123,
+  "images_count": 100,
+  "validation_level": "medium",
+  "task_ids": ["task_123_0", "task_123_1"],
+  "message": "Validation started for 100 images"
+}
+```
+
+**Note**: For detailed examples and Celery integration documentation, see [Celery Integration API](../backend/docs/CELERY_INTEGRATION_API.md).
 
 ### Images
 

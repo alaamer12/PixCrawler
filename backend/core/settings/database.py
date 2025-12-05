@@ -18,7 +18,7 @@ class DatabaseSettings(BaseSettings):
     
     model_config = SettingsConfigDict(
         env_prefix="DATABASE_",
-        env_file=".env",
+        env_file=[".env", "backend/.env"],  # Try root first, then backend directory
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",

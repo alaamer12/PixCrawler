@@ -232,3 +232,101 @@ class CrawlJobRepository(BaseRepository[CrawlJob]):
             update_data['progress'] = progress
         
         return await self.update(job, **update_data)
+    
+    async def add_task_id(self, job_id: int, task_id: str) -> Optional[CrawlJob]:
+        """
+        Add a Celery task ID to the job's task_ids array.
+        
+        This method appends a task ID to the JSONB task_ids array field.
+        The service layer is responsible for ensuring task IDs are valid
+        and properly tracked.
+        
+        Args:
+            job_id: Job ID
+            task_id: Celery task ID to add
+        
+        Returns:
+            Updated job or None if not found
+        """
+        job = await self.get_by_id(job_id)
+        if not job:
+            return None
+        
+        # Get current task_ids or initialize empty list
+        task_ids = job.task_ids if job.task_ids else []
+        
+        # Append new task_id if not already present
+        if task_id not in task_ids:
+            task_ids.append(task_id)
+        
+        return await self.update(job, task_ids=task_ids)
+    
+    async def mark_completed(self, job_id: int) -> Optional[CrawlJob]:
+        """
+        Mark a job as completed.
+        
+        Convenience method that sets status to 'completed', progress to 100,
+        and sets the completed_at timestamp.
+        
+        Args:
+            job_id: Job ID
+        
+        Returns:
+            Updated job or None if not found
+        """
+        return await self.update_status(
+            job_id=job_id,
+            status='completed',
+            completed_at=datetime.utcnow(),
+            progress=100
+        )
+    
+    async def mark_failed(self, job_id: int, error: str) -> Optional[CrawlJob]:
+        """
+        Mark a job as failed with error message.
+        
+        Convenience method that sets status to 'failed' and sets the 
+        completed_at timestamp. The error message is logged but not stored
+        in the database as there is no error field in the schema.
+        
+        Note: Error details are maintained in Celery task results and logs.
+        The service layer should log the error message before calling this method.
+        
+        Args:
+            job_id: Job ID
+            error: Error message describing the failure (for logging only)
+        
+        Returns:
+            Updated job or None if not found
+        """
+        job = await self.get_by_id(job_id)
+        if not job:
+            return None
+        
+        # Note: error parameter is kept for API compatibility but not stored
+        # The service layer should log errors before calling this method
+        return await self.update(
+            job,
+            status='failed',
+            completed_at=datetime.utcnow()
+        )
+    
+    async def get_active_tasks(self, job_id: int) -> List[str]:
+        """
+        Get list of active Celery task IDs for a job.
+        
+        Retrieves the task_ids array from the job record. The service layer
+        is responsible for determining which tasks are actually still active
+        in Celery.
+        
+        Args:
+            job_id: Job ID
+        
+        Returns:
+            List of Celery task IDs (empty list if job not found or no tasks)
+        """
+        job = await self.get_by_id(job_id)
+        if not job or not job.task_ids:
+            return []
+        
+        return job.task_ids if isinstance(job.task_ids, list) else []
