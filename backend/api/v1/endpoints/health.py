@@ -22,7 +22,7 @@ router = APIRouter(
     tags=["Health"],
 )
 
-
+ 
 async def check_database_health(db: AsyncSession) -> Dict[str, Any]:
     """
     Check database connection health.

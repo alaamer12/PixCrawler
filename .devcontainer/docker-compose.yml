@@ -1,0 +1,75 @@
+version: '3.8'
+   
+services:  
+  # Development container
+  app: 
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pixcrawler-devcontainer
+    volumes:
+      - ../:/workspace:cached
+      - ~/.ssh:/root/.ssh:ro # SSH keys for git
+    command: sleep infinity
+    network_mode: host
+    depends_on:
+      - db                                 
+      - redis
+    environment:
+      # Database
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/pixcrawler
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_KEY: ${SUPABASE_KEY:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+
+      # Redis
+      REDIS_URL: redis://localhost:6379/0
+
+      # FastAPI
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      ENVIRONMENT: development
+
+      # Python
+      PYTHONUNBUFFERED: 1
+      PYTHONDONTWRITEBYTECODE: 1
+
+  # PostgreSQL database
+  db:
+    image: postgres:16-alpine
+    container_name: pixcrawler-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: pixcrawler
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis cache
+  redis:
+    image: redis:7-alpine
+    container_name: pixcrawler-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  postgres-data:
+    name: pixcrawler-postgres-data
+  redis-data:
+    name: pixcrawler-redis-data
