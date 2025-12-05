@@ -42,7 +42,7 @@ Issues = "https://github.com/pixcrawler/pixcrawler/issues"
 
 
 [tool.uv.workspace]
-members = ["backend", "builder", "utility", "celery_core", "validator"]
+members = ["backend", "builder", "utility", "celery_core", "validator", "sdk"]
 
 [tool.uv.sources]
 pixcrawler-backend = { workspace = true }
@@ -50,6 +50,7 @@ pixcrawler-builder = { workspace = true }
 pixcrawler-utility = { workspace = true }
 pixcrawler-celery-core = { workspace = true }
 pixcrawler-validator = { workspace = true }
+pixcrawler-sdk = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/"]
@@ -156,11 +157,22 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "--cov=backend",
+    "--cov=builder",
+    "--cov=utility",
+    "--cov=celery_core",
+    "--cov=validator",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
 ]
-testpaths = ["tests", "backend/tests", "builder/tests"]
+testpaths = [
+    "tests",
+    "backend/tests",
+    "builder/tests",
+    "utility/tests",
+    "celery_core/tests",
+    "validator/tests",
+]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
@@ -169,7 +181,7 @@ markers = [
 
 # Coverage configuration
 [tool.coverage.run]
-source = ["backend"]
+source = ["backend", "builder", "utility", "celery_core", "validator"]
 omit = [
     "*/tests/*",
     "*/test_*.py",
@@ -196,4 +208,5 @@ dev = [
     "pytest>=8.4.1",
     "pytest-asyncio>=1.2.0",
     "pytest-cov>=7.0.0",
+    "pixcrawler-sdk",
 ]
