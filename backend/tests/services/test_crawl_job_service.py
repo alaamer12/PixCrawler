@@ -364,10 +364,12 @@ async def test_update_job_status_with_error(
     sample_crawl_job
 ):
     """Test status update with error message."""
+    # Note: CrawlJob model doesn't have an 'error' field, 
+    # but the service passes it to the repository update method.
+    # The repository is mocked, so we just verify the service behavior.
     updated_job = copy_model(
         sample_crawl_job,
-        status="failed",
-        error="Test error"
+        status="failed"
     )
     mock_crawl_job_repo.update.return_value = updated_job
     
@@ -379,7 +381,7 @@ async def test_update_job_status_with_error(
         )
     
     assert result.status == "failed"
-    # Verify error and completed_at were set
+    # Verify error and completed_at were passed to repository
     call_args = mock_crawl_job_repo.update.call_args
     assert call_args[1]['error'] == "Test error"
     assert 'completed_at' in call_args[1]
@@ -537,11 +539,17 @@ async def test_cancel_job_invalid_status(
     mock_crawl_job_repo,
     sample_crawl_job
 ):
-    """Test cancelling job with invalid status."""
+    """Test cancelling job with completed status returns idempotent success."""
+    # The cancel_job method uses idempotent design - completed jobs return
+    # success without side effects instead of raising ValidationError
     sample_crawl_job.status = "completed"
     mock_crawl_job_repo.get_by_id.return_value = sample_crawl_job
     
-    with pytest.raises(ValidationError) as exc:
-        await crawl_job_service.cancel_job(1)
+    result = await crawl_job_service.cancel_job(1)
     
-    assert "cannot cancel" in str(exc.value).lower()
+    # Should return idempotent response, not raise
+    assert isinstance(result, dict)
+    assert result["job_id"] == 1
+    assert result["status"] == "completed"
+    assert result["revoked_tasks"] == 0
+    assert "idempotent" in result["message"].lower()

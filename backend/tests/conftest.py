@@ -97,6 +97,29 @@ def client(app: FastAPI) -> Generator[TestClient, None, None]:
         yield test_client
 
 
+@pytest.fixture(autouse=True)
+def reset_app_state(app: FastAPI) -> Generator[None, None, None]:
+    """
+    Reset FastAPI app state before and after each test.
+    
+    This fixture automatically runs for every test to prevent
+    test pollution from dependency overrides leaking between tests.
+    
+    Args:
+        app: FastAPI application fixture
+        
+    Yields:
+        None - cleanup happens after test completes
+    """
+    # Clear any existing dependency overrides before test
+    app.dependency_overrides = {}
+    
+    yield
+    
+    # Clear dependency overrides after test
+    app.dependency_overrides = {}
+
+
 @pytest.fixture(scope="function")
 def mock_supabase_client() -> MagicMock:
     """
