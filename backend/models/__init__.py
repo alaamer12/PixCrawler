@@ -28,6 +28,7 @@ from .api_keys import APIKey
 from .chunks import JobChunk
 from .credits import CreditAccount, CreditTransaction
 from .dataset import Dataset
+from .dataset_version import DatasetVersion
 from .notifications import Notification, NotificationPreference
 from .usage import UsageMetric
 from .metrics import ProcessingMetric, ResourceMetric, QueueMetric
@@ -48,6 +49,7 @@ __all__ = [
     'Image',
     'ActivityLog',
     'Dataset',
+    'DatasetVersion',
     # Chunk models
     'JobChunk',
     # Workflow models

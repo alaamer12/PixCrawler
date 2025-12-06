@@ -28,6 +28,7 @@ from uuid import UUID
 from pydantic import Field, HttpUrl, field_validator, model_validator
 
 from .base import BaseSchema, TimestampMixin
+from .dataset_version import DatasetVersionResponse
 
 __all__ = [
     'DatasetStatus',
@@ -37,7 +38,8 @@ __all__ = [
     'DatasetUpdate',
     'DatasetResponse',
     'DatasetListResponse',
-    'DatasetStats'
+    'DatasetStats',
+    'DatasetVersionResponse'
 ]
 
 
@@ -205,11 +207,29 @@ class DatasetUpdate(BaseSchema):
         description="Updated dataset description",
         examples=["Updated description for the dataset", None]
     )
+    keywords: Optional[List[str]] = Field(
+        None,
+        min_items=1,
+        max_items=50,
+        description="Updated search keywords",
+    )
+    search_engines: Optional[List[SearchEngine]] = Field(
+        None,
+        min_items=1,
+        max_items=4,
+        description="Updated search engines",
+    )
+    max_images: Optional[int] = Field(
+        None,
+        ge=1,
+        le=10000,
+        description="Updated maximum number of images",
+    )
 
     @model_validator(mode='after')
     def validate_at_least_one_field(self) -> 'DatasetUpdate':
         """Ensure at least one field is provided for update."""
-        if self.name is None and self.description is None:
+        if not any([self.name, self.description, self.keywords, self.search_engines, self.max_images]):
             raise ValueError("At least one field must be provided for update")
         return self
 

@@ -75,6 +75,46 @@ export const images = pgTable('images', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+// Datasets table (sync with backend models)
+export const datasets = pgTable('datasets', {
+  id: serial('id').primaryKey(),
+  userId: uuid('user_id').notNull().references(() => profiles.id, { onDelete: 'cascade' }),
+  crawlJobId: integer('crawl_job_id').references(() => crawlJobs.id, { onDelete: 'set null' }),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: text('description'),
+  keywords: jsonb('keywords').notNull(),
+  searchEngines: jsonb('search_engines').notNull(),
+  maxImages: integer('max_images').notNull().default(100),
+  status: varchar('status', { length: 20 }).notNull().default('pending'),
+  progress: integer('progress').notNull().default(0),
+  imagesCollected: integer('images_collected').notNull().default(0),
+  downloadUrl: text('download_url'),
+  errorMessage: text('error_message'),
+  storageTier: varchar('storage_tier', { length: 20 }).notNull().default('hot'),
+  archivedAt: timestamp('archived_at', { withTimezone: true }),
+  lastAccessedAt: timestamp('last_accessed_at', { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Dataset Versions table for history tracking
+export const datasetVersions = pgTable('dataset_versions', {
+  id: serial('id').primaryKey(),
+  datasetId: integer('dataset_id').notNull().references(() => datasets.id, { onDelete: 'cascade' }),
+  versionNumber: integer('version_number').notNull(),
+  keywords: jsonb('keywords').notNull(),
+  searchEngines: jsonb('search_engines').notNull(),
+  maxImages: integer('max_images').notNull(),
+  crawlJobId: integer('crawl_job_id').references(() => crawlJobs.id, { onDelete: 'set null' }),
+  changeSummary: text('change_summary'),
+  createdBy: uuid('created_by').references(() => profiles.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => {
+  return {
+    datasetVersionIdx: index('ix_dataset_versions_dataset_version').on(table.datasetId, table.versionNumber),
+  };
+});
+
 // Activity logs for tracking user actions
 export const activityLogs = pgTable('activity_logs', {
   id: serial('id').primaryKey(),
@@ -264,6 +304,39 @@ export const crawlJobsRelations = relations(crawlJobs, ({ one, many }) => ({
     references: [projects.id],
   }),
   images: many(images),
+  dataset: one(datasets, {
+    fields: [crawlJobs.id],
+    references: [datasets.crawlJobId],
+    relationName: 'crawlJobDataset'
+  }),
+}));
+
+export const datasetsRelations = relations(datasets, ({ one, many }) => ({
+  user: one(profiles, {
+    fields: [datasets.userId],
+    references: [profiles.id],
+  }),
+  crawlJob: one(crawlJobs, {
+    fields: [datasets.crawlJobId],
+    references: [crawlJobs.id],
+    relationName: 'crawlJobDataset'
+  }),
+  versions: many(datasetVersions),
+}));
+
+export const datasetVersionsRelations = relations(datasetVersions, ({ one }) => ({
+  dataset: one(datasets, {
+    fields: [datasetVersions.datasetId],
+    references: [datasets.id],
+  }),
+  crawlJob: one(crawlJobs, {
+    fields: [datasetVersions.crawlJobId],
+    references: [crawlJobs.id],
+  }),
+  creator: one(profiles, {
+    fields: [datasetVersions.createdBy],
+    references: [profiles.id],
+  }),
 }));
 
 export const imagesRelations = relations(images, ({ one }) => ({

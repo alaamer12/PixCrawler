@@ -20,7 +20,7 @@ from uuid import UUID
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models import Dataset
+from backend.models import Dataset, DatasetVersion
 from .base import BaseRepository
 
 __all__ = ['DatasetRepository']
@@ -199,3 +199,60 @@ class DatasetRepository(BaseRepository[Dataset]):
         
         result = await self.session.execute(query)
         return list(result.scalars().all())
+
+    async def create_version(self, version_data: dict) -> DatasetVersion:
+        """
+        Create a new dataset version.
+        
+        Args:
+            version_data: Dictionary containing version data
+            
+        Returns:
+            Created DatasetVersion instance
+        """
+        version = DatasetVersion(**version_data)
+        self.session.add(version)
+        await self.session.commit()
+        await self.session.refresh(version)
+        return version
+
+    async def get_versions(self, dataset_id: int) -> List[DatasetVersion]:
+        """
+        Get all versions for a dataset.
+        
+        Args:
+            dataset_id: Dataset ID
+            
+        Returns:
+            List of dataset versions ordered by version number (desc)
+        """
+        result = await self.session.execute(
+            select(DatasetVersion)
+            .where(DatasetVersion.dataset_id == dataset_id)
+            .order_by(DatasetVersion.version_number.desc())
+        )
+        return list(result.scalars().all())
+
+    async def get_version_by_number(
+        self, 
+        dataset_id: int, 
+        version_number: int
+    ) -> Optional[DatasetVersion]:
+        """
+        Get specific version of a dataset.
+        
+        Args:
+            dataset_id: Dataset ID
+            version_number: Version number
+            
+        Returns:
+            DatasetVersion instance or None
+        """
+        result = await self.session.execute(
+            select(DatasetVersion)
+            .where(
+                DatasetVersion.dataset_id == dataset_id,
+                DatasetVersion.version_number == version_number
+            )
+        )
+        return result.scalar_one_or_none()
