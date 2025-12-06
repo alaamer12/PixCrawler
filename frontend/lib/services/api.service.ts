@@ -81,7 +81,7 @@ export class ApiService extends BaseService {
         }
 
         const response = await fetch(url, config)
-        
+
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}))
             throw new ServiceError(
@@ -275,6 +275,33 @@ export class ApiService extends BaseService {
                 {
                     method: 'POST',
                     body: JSON.stringify(data),
+                }
+            )
+            return response.dataset
+        })
+    }
+
+    /**
+     * Get dataset versions
+     */
+    async getDatasetVersions(datasetId: string): Promise<ServiceResponse<any[]>> {
+        return this.executeRequest(async () => {
+            const response = await this.fetch<any[]>(
+                `/datasets/${datasetId}/versions`
+            )
+            return response
+        })
+    }
+
+    /**
+     * Rollback dataset
+     */
+    async rollbackDataset(datasetId: string, versionNumber: number): Promise<ServiceResponse<any>> {
+        return this.executeRequest(async () => {
+            const response = await this.fetch<{ dataset: any }>(
+                `/datasets/${datasetId}/rollback?version_number=${versionNumber}`,
+                {
+                    method: 'POST',
                 }
             )
             return response.dataset

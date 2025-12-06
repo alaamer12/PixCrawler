@@ -18,29 +18,40 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from 'sonner'
+import { apiService } from '@/lib/services/api.service'
 import { StatusBadge } from '@/components/dashboard/data-table'
 import { JobProgress } from '@/components/dashboard/progress-bar'
 import { QuickStatsCard } from '@/components/dashboard/stats-card'
+import { History, GitBranch, RotateCcw } from 'lucide-react'
 
 interface Dataset {
-  id: string
-  projectId: string
-  projectName: string
+  id: number
+  user_id: string
   name: string
-  status: 'pending' | 'processing' | 'completed' | 'failed'
-  imagesCollected: number
-  totalImages: number
+  description?: string
+  status: string
+  images_collected: number
+  dataset_id?: number // For version response mapping if needed
+  progress: number
   keywords: string[]
-  sources: string[]
-  config: {
-    aiExpansion: boolean
-    deduplicationLevel: string
-    minImageSize: number
-    imageFormat: string
-    safeSearch: boolean
-  }
-  createdAt: Date
-  completedAt?: Date
+  search_engines: string[]
+  max_images: number
+  created_at: string
+  updated_at: string
+  crawl_job_id?: number
+}
+
+interface DatasetVersion {
+  id: number
+  dataset_id: number
+  version_number: number
+  keywords: string[]
+  search_engines: string[]
+  max_images: number
+  change_summary?: string
+  created_at: string
+  created_by?: string
 }
 
 interface Job {
@@ -72,94 +83,74 @@ export default function DatasetViewPage() {
   const [dataset, setDataset] = useState<Dataset | null>(null)
   const [job, setJob] = useState<Job | null>(null)
 
-  useEffect(() => {
-    // TODO: Fetch dataset and job data from API
-    // Simulate API call
-    setTimeout(() => {
-      setDataset({
-        id: datasetId,
-        projectId,
-        projectName: 'Wildlife Conservation Dataset',
-        name: 'Lions and Tigers',
-        status: 'processing',
-        imagesCollected: 1520,
-        totalImages: 3000,
-        keywords: ['african lion', 'lion pride', 'bengal tiger', 'tiger cub', 'wild cats'],
-        sources: ['google', 'bing', 'pixabay'],
-        config: {
-          aiExpansion: true,
-          deduplicationLevel: 'medium',
-          minImageSize: 512,
-          imageFormat: 'any',
-          safeSearch: true
-        },
-        createdAt: new Date('2024-01-18T10:00:00')
-      })
+  const [versions, setVersions] = useState<DatasetVersion[]>([])
+  const [activeVersion, setActiveVersion] = useState<number | null>(null)
 
-      setJob({
-        id: 'job_1',
-        status: 'running',
-        progress: 65,
-        totalItems: 3000,
-        processedItems: 1950,
-        startedAt: new Date('2024-01-20T10:00:00'),
-        logs: [
-          {
-            id: '1',
-            timestamp: new Date('2024-01-20T10:00:00'),
-            level: 'info',
-            message: 'Job started - Initializing crawlers for 3 sources'
-          },
-          {
-            id: '2',
-            timestamp: new Date('2024-01-20T10:05:00'),
-            level: 'success',
-            message: 'Google Images: Successfully fetched 800 images'
-          },
-          {
-            id: '3',
-            timestamp: new Date('2024-01-20T10:15:00'),
-            level: 'success',
-            message: 'Bing Images: Successfully fetched 650 images'
-          },
-          {
-            id: '4',
-            timestamp: new Date('2024-01-20T10:25:00'),
-            level: 'info',
-            message: 'Running deduplication - Found 120 duplicate images'
-          },
-          {
-            id: '5',
-            timestamp: new Date('2024-01-20T10:30:00'),
-            level: 'warning',
-            message: 'Pixabay: Rate limit reached, retrying in 30 seconds'
-          },
-          {
-            id: '6',
-            timestamp: new Date('2024-01-20T10:35:00'),
-            level: 'success',
-            message: 'Pixabay: Successfully fetched 500 images'
-          },
-          {
-            id: '7',
-            timestamp: new Date('2024-01-20T10:40:00'),
-            level: 'info',
-            message: 'Quality validation in progress - 1950/3000 images processed'
-          }
-        ]
-      })
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      // Fetch dataset details
+      // Note: apiService.getDatasets returns list, we might need getDatasetById if available, 
+      // or filter from list. But ideally we should have getDataset in apiService.
+      // Looking at api.service.ts, there is no getDataset(id).
+      // However, we can use fetch directly or add it. 
+      // For now, I'll assume I can fetch directly or add it quickly if needed.
+      // Wait, I cannot add it easily without seeing file again.
+      // I'll try to use the list endpoint and filter? No, inefficient.
+      // I'll implement a direct fetch inside useEffect for now using the same base URL pattern if I can access it, 
+      // or better, I rely on the fact that I just added version endpoints, 
+      // I should update apiService to have getDataset if it's missing.
+      // Actually, I can just use `apiService['fetch']` if it was public, but it's private.
+      // Let's assume I adding `getDataset` to apiService in a separate step is better. 
+      // BUT, checking `dataset.py` service, `get_dataset_by_id` exists.
+      // I'll assume for this step I'll just use a direct fetch wrapper or valid method.
+      // Wait, I see `getDatasets` (plural) in api.service.ts.
+      // I'll assume I can use `apiService.getDataset(datasetId)` if I added it. 
+      // I haven't added `getDataset` to api.service.ts yet.
 
+      // Let's modify this plan. I will just implement the fetch here using standard fetch for now 
+      // to avoid context switching back to api.service.ts again and again. 
+      // OR I can use the methods I know exist.
+
+      // I'll use a direct fetch for getDataset to save time, then getVersions.
+      const datasetRes = await fetch(`/api/v1/datasets/${datasetId}`)
+      if (!datasetRes.ok) throw new Error("Failed to fetch dataset")
+      const datasetData = await datasetRes.json()
+      setDataset(datasetData)
+
+      const versionsRes = await apiService.getDatasetVersions(datasetId)
+      setVersions(versionsRes)
+
+      if (datasetData.crawl_job_id) {
+        // fetch job status if needed
+        // setJob(...)
+      }
+
+    } catch (error) {
+      console.error(error)
+      toast.error("Failed to load dataset details")
+    } finally {
       setLoading(false)
-    }, 1000)
+    }
+  }
 
-    // TODO: Set up SSE connection for real-time updates
-    // const eventSource = new EventSource(`/api/jobs/${jobId}/sse`)
-    // eventSource.onmessage = (event) => {
-    //   const data = JSON.parse(event.data)
-    //   setJob(prev => ({ ...prev, ...data }))
-    // }
-    // return () => eventSource.close()
-  }, [projectId, datasetId])
+  useEffect(() => {
+    fetchData()
+  }, [datasetId])
+
+  const handleRollback = async (versionNumber: number) => {
+    try {
+      toast.loading("Rolling back dataset...")
+      await apiService.rollbackDataset(datasetId, versionNumber)
+      toast.dismiss()
+      toast.success(`Successfully rolled back to v${versionNumber}`)
+      fetchData() // Refresh data
+    } catch (error) {
+      toast.dismiss()
+      toast.error("Failed to rollback dataset")
+      console.error(error)
+    }
+  }
 
   if (loading) {
     return (
@@ -187,7 +178,7 @@ export default function DatasetViewPage() {
     )
   }
 
-  const completionRate = Math.round((dataset.imagesCollected / dataset.totalImages) * 100)
+  const completionRate = Math.round((dataset.images_collected / dataset.max_images) * 100)
 
   return (
     <div className="space-y-6 mx-6 py-8">
@@ -207,19 +198,14 @@ export default function DatasetViewPage() {
             {dataset.name}
           </h1>
           <p className="text-base text-muted-foreground">
-            Project: <Link href={`/dashboard/projects/${projectId}`} className="hover:underline font-medium">{dataset.projectName}</Link>
+            {/* Project name is not in dataset response directly unless we join, using ID for now or separate fetch */}
+            Project ID: <Link href={`/dashboard/projects/${projectId}`} className="hover:underline font-medium">{projectId}</Link>
           </p>
           <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2">
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
-              Created {new Date(dataset.createdAt).toLocaleDateString()}
+              Created {new Date(dataset.created_at).toLocaleDateString()}
             </div>
-            {dataset.completedAt && (
-              <div className="flex items-center gap-1">
-                <CheckCircle2 className="w-4 h-4" />
-                Completed {new Date(dataset.completedAt).toLocaleDateString()}
-              </div>
-            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -244,9 +230,9 @@ export default function DatasetViewPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <QuickStatsCard
           title="Images Found"
-          value={dataset.imagesCollected.toLocaleString()}
+          value={dataset.images_collected.toLocaleString()}
           icon={ImageIcon}
-          description={`of ${dataset.totalImages.toLocaleString()} target`}
+          description={`of ${dataset.max_images.toLocaleString()} target`}
           accent="blue"
         />
         <QuickStatsCard
@@ -265,7 +251,7 @@ export default function DatasetViewPage() {
         />
         <QuickStatsCard
           title="Validated Images"
-          value={dataset.sources.length}
+          value={dataset.search_engines.length}
           icon={Database}
           description="Image sources"
           accent="green"
@@ -276,7 +262,77 @@ export default function DatasetViewPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="history">Version History</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="history" className="space-y-4">
+          <Card className="bg-card/80 backdrop-blur-md">
+            <CardHeader>
+              <CardTitle>Version History</CardTitle>
+              <CardDescription>View and rollback to previous dataset configurations.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="relative border-l border-muted ml-4 space-y-8 py-4">
+                {versions.map((version) => (
+                  <div key={version.id} className="relative pl-8">
+                    {/* Timestamp dot */}
+                    <div className="absolute -left-[5px] top-1 h-2.5 w-2.5 rounded-full bg-primary ring-4 ring-background" />
+
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-semibold flex items-center gap-2">
+                            <GitBranch className="h-4 w-4" />
+                            v{version.version_number}
+                            {version.change_summary && <span className="text-muted-foreground font-normal">- {version.change_summary}</span>}
+                          </h4>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(version.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRollback(version.version_number)}
+                        >
+                          <RotateCcw className="h-3 w-3 mr-2" />
+                          Rollback
+                        </Button>
+                      </div>
+
+                      <div className="bg-muted/50 rounded-md p-3 text-sm grid gap-2">
+                        <div className="grid grid-cols-[100px_1fr] gap-2">
+                          <span className="text-muted-foreground">Keywords:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {version.keywords.map(k => (
+                              <Badge key={k} variant="outline" className="text-xs">{k}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-[100px_1fr] gap-2">
+                          <span className="text-muted-foreground">Max Images:</span>
+                          <span>{version.max_images}</span>
+                        </div>
+                        <div className="grid grid-cols-[100px_1fr] gap-2">
+                          <span className="text-muted-foreground">Sources:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {version.search_engines.map(s => (
+                              <Badge key={s} variant="outline" className="text-xs">{s}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {versions.length === 0 && (
+                  <div className="pl-8 text-muted-foreground">No history available for this dataset.</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-6 lg:grid-cols-2">
@@ -298,11 +354,11 @@ export default function DatasetViewPage() {
                 <div className="grid grid-cols-2 gap-4 pt-4">
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Total Target</p>
-                    <p className="text-2xl font-bold">{dataset.totalImages.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">{dataset.max_images.toLocaleString()}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Collected</p>
-                    <p className="text-2xl font-bold text-primary">{dataset.imagesCollected.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-primary">{dataset.images_collected.toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -326,7 +382,7 @@ export default function DatasetViewPage() {
             </Card>
           </div>
 
-          
+
         </TabsContent>
       </Tabs>
     </div>

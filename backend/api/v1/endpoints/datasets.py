@@ -8,7 +8,10 @@ from fastapi_pagination import Page
 
 from backend.api.types import CurrentUser, DBSession, DatasetID, DatasetServiceDep
 from backend.api.v1.response_models import get_common_responses
-from backend.schemas.dataset import DatasetCreate, DatasetResponse, DatasetStats, DatasetUpdate
+from backend.schemas.dataset import (
+    DatasetCreate, DatasetResponse, DatasetStats, DatasetUpdate,
+    DatasetVersionResponse
+)
 
 router = APIRouter(
     tags=["Datasets"],
@@ -531,3 +534,103 @@ async def cancel_dataset(
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get(
+    "/{dataset_id}/versions",
+    response_model=list[DatasetVersionResponse],
+    summary="Get Dataset Versions",
+    description="Get full version history of a dataset.",
+    response_description="List of dataset versions",
+    operation_id="getDatasetVersions",
+    responses=get_common_responses(401, 404, 500)
+)
+async def get_dataset_versions(
+    dataset_id: DatasetID,
+    current_user: CurrentUser,
+    dataset_service: DatasetServiceDep,
+) -> list[DatasetVersionResponse]:
+    """
+    Get dataset versions.
+    
+    Args:
+        dataset_id: Dataset ID
+        current_user: Current user
+        dataset_service: Dataset service
+        
+    Returns:
+        List of versions
+    """
+    return await dataset_service.get_dataset_versions(dataset_id, current_user["user_id"])
+
+
+@router.get(
+    "/{dataset_id}/versions/{version_number}",
+    response_model=DatasetVersionResponse,
+    summary="Get Dataset Version",
+    description="Get details of a specific dataset version.",
+    response_description="Dataset version details",
+    operation_id="getDatasetVersion",
+    responses=get_common_responses(401, 404, 500)
+)
+async def get_dataset_version(
+    dataset_id: DatasetID,
+    version_number: int,
+    current_user: CurrentUser,
+    dataset_service: DatasetServiceDep,
+) -> DatasetVersionResponse:
+    """
+    Get specific dataset version.
+    
+    Args:
+        dataset_id: Dataset ID
+        version_number: Version number
+        current_user: Current user
+        dataset_service: Dataset service
+        
+    Returns:
+        Version details
+    """
+    try:
+        return await dataset_service.get_dataset_version(dataset_id, version_number, current_user["user_id"])
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/{dataset_id}/rollback",
+    response_model=DatasetResponse,
+    summary="Rollback Dataset",
+    description="Rollback dataset to a previous version configuration.",
+    response_description="Updated dataset (new version created)",
+    operation_id="rollbackDataset",
+    responses=get_common_responses(401, 404, 500)
+)
+async def rollback_dataset(
+    dataset_id: DatasetID,
+    version_number: int,
+    current_user: CurrentUser,
+    dataset_service: DatasetServiceDep,
+) -> DatasetResponse:
+    """
+    Rollback dataset.
+    
+    Args:
+        dataset_id: Dataset ID
+        version_number: Target version number
+        current_user: Current user
+        dataset_service: Dataset service
+        
+    Returns:
+        New dataset state
+    """
+    try:
+        return await dataset_service.rollback_dataset(dataset_id, version_number, current_user["user_id"])
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

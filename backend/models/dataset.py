@@ -26,6 +26,9 @@ from sqlalchemy import UUID as SQLAlchemyUUID
 
 from .base import Base, TimestampMixin
 
+if False:  # TYPE_CHECKING
+    from .dataset_version import DatasetVersion
+
 __all__ = ['Dataset']
 
 
@@ -137,6 +140,13 @@ class Dataset(Base, TimestampMixin):
         "CrawlJob",
         foreign_keys=[crawl_job_id],
         lazy="joined",
+    )
+    versions: Mapped[list["DatasetVersion"]] = relationship(
+        "DatasetVersion",
+        back_populates="dataset",
+        cascade="all, delete-orphan",
+        lazy="select",
+        order_by="desc(DatasetVersion.version_number)"
     )
     
     # Indexes and constraints
