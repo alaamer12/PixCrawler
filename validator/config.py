@@ -75,8 +75,7 @@ class ValidatorConfig(BaseSettings):
         case_sensitive=False,
         extra="ignore",
         validate_default=True,
-        str_strip_whitespace=True,
-        use_enum_values=True
+        str_strip_whitespace=True
     )
 
     # Validation behavior
@@ -103,6 +102,12 @@ class ValidatorConfig(BaseSettings):
         le=1048576,  # 1MB max
         description="Minimum file size in bytes",
         examples=[512, 1024, 2048]
+    )
+
+    supported_extensions: Tuple[str, ...] = Field(
+        default=('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif'),
+        description="Supported image extensions",
+        examples=[('.jpg', '.png')]
     )
 
     # Image dimension constraints
@@ -169,7 +174,12 @@ class ValidatorConfig(BaseSettings):
 
             # Check if path is reasonable (not root, not system directories)
             path_str = str(v).lower()
-            forbidden_paths = ['/', '\\', 'c:\\', '/usr', '/bin', '/etc', '/var', '/sys']
+            forbidden_paths = ['c:\\windows', 'c:\\program files', 'c:\\program files (x86)', '/usr', '/bin', '/etc', '/var', '/sys']
+            
+            # Check for exact root match or system directories
+            if path_str in ['/', '\\', 'c:\\']:
+                 raise ValueError(f"Quarantine directory cannot be root: {v}")
+                 
             if any(path_str.startswith(fp) for fp in forbidden_paths):
                 raise ValueError(f"Quarantine directory cannot be in system path: {v}")
 

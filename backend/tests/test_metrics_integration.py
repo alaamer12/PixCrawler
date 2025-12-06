@@ -9,9 +9,12 @@ sys.modules["sse_starlette.sse"] = mock_sse
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
+from datetime import datetime
 from backend.main import app
 from backend.services.crawl_job import execute_crawl_job
 from backend.models import CrawlJob
+from backend.schemas.metrics import MetricsSummary
+from backend.api.dependencies import get_current_user
 import uuid
 
 client = TestClient(app)
@@ -20,20 +23,27 @@ client = TestClient(app)
 async def test_metrics_endpoint():
     """Test that the metrics endpoint returns 200 and correct structure."""
     # Mock the service method to return empty metrics
-    with patch("backend.api.v1.endpoints.metrics.MetricsService.get_aggregated_metrics", new_callable=AsyncMock) as mock_get:
-        mock_get.return_value = {
-            "processing": {"total_jobs": 10, "success_rate": 0.9},
-            "resources": {"cpu_usage": 45.5, "memory_usage": 1024},
-            "queues": {"pending_jobs": 2}
-        }
+    # We patch the service class method directly
+    with patch("backend.services.metrics.MetricsService.get_metrics_summary", new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = MetricsSummary(
+            start_time=datetime.utcnow(),
+            end_time=datetime.utcnow(),
+            processing_stats=[],
+            total_jobs=10,
+            successful_jobs=9,
+            failed_jobs=1
+        )
 
-        response = client.get("/api/v1/metrics/dashboard")
-        assert response.status_code == 200
-        data = response.json()
-        assert "processing" in data
-        assert "resources" in data
-        assert "queues" in data
-        assert data["processing"]["total_jobs"] == 10
+        app.dependency_overrides[get_current_user] = lambda: {"user_id": str(uuid.uuid4())}
+        try:
+            response = client.get("/api/v1/metrics/summary")
+            assert response.status_code == 200
+            data = response.json()
+            assert "processing_stats" in data
+            assert "total_jobs" in data
+            assert data["total_jobs"] == 10
+        finally:
+            app.dependency_overrides = {}
 
 @pytest.mark.asyncio
 async def test_metrics_middleware():
@@ -42,7 +52,7 @@ async def test_metrics_middleware():
         response = client.get("/api/v1/health")
         # The health endpoint might not exist, but 404 is also fine for middleware testing
         # Assuming there is a health endpoint or just checking any endpoint
-
+        
         # Check if logger was called with "Request metrics"
         # We need to ensure the middleware is actually running.
         # Since we can't easily check logs in unit tests without capturing,
@@ -60,28 +70,29 @@ async def test_execute_crawl_job_metrics_integration():
     mock_job.id = 123
     mock_job.keywords = {"keywords": ["test"]}
     mock_job.max_images = 10
-
+    
     mock_job_service.get_job.return_value = mock_job
 
-    # Mock MetricsService
-    with patch("backend.services.crawl_job.MetricsService") as MockMetricsService, \
-         patch("backend.services.crawl_job.Builder") as MockBuilder, \
-         patch("backend.services.crawl_job.run_sync", new_callable=AsyncMock) as mock_run_sync, \
-         patch("backend.services.crawl_job.run_in_threadpool", new_callable=AsyncMock) as mock_run_in_threadpool:
-
+    # Mock MetricsService and Builder
+    # Patch where they are defined/imported
+    with patch("backend.services.metrics.MetricsService") as MockMetricsService, \
+         patch("builder.Builder") as MockBuilder, \
+         patch("backend.core.async_helpers.run_sync", new_callable=AsyncMock) as mock_run_sync, \
+         patch("backend.core.async_helpers.run_in_threadpool", new_callable=AsyncMock) as mock_run_in_threadpool:
+        
         mock_metrics_service = MockMetricsService.return_value
         mock_metrics_service.start_processing_metric = AsyncMock()
         mock_metrics_service.complete_processing_metric = AsyncMock()
         mock_metrics_service.collect_resource_metrics = AsyncMock()
-
+        
         # Mock Builder
         mock_builder = MockBuilder.return_value
         mock_run_sync.return_value = mock_builder
-
+        
         # Mock generator for batches
         async def async_gen():
             yield [{"original_url": "http://example.com/1.jpg", "is_valid": True}]
-
+            
         mock_run_in_threadpool.side_effect = [
             async_gen(), # generate_async_batches
             [{"original_url": "http://example.com/1.jpg", "is_valid": True}], # next(async_gen)
@@ -94,9 +105,9 @@ async def test_execute_crawl_job_metrics_integration():
             job_id=123,
             user_id="123e4567-e89b-12d3-a456-426614174000",
             job_service=mock_job_service,
-            session=mock_session
+            # session=mock_session # execute_crawl_job creates its own session
         )
-
+        
         # Verify metrics calls
         # 1. Start job metric
         mock_metrics_service.start_processing_metric.assert_any_call(
@@ -104,17 +115,13 @@ async def test_execute_crawl_job_metrics_integration():
             job_id=123,
             user_id=uuid.UUID("123e4567-e89b-12d3-a456-426614174000")
         )
-
+        
         # 2. Start batch metric
         mock_metrics_service.start_processing_metric.assert_any_call(
             operation_type="batch_processing",
             job_id=123,
             user_id=uuid.UUID("123e4567-e89b-12d3-a456-426614174000")
         )
-
+        
         # 3. Complete batch metric
         assert mock_metrics_service.complete_processing_metric.call_count >= 2 # Batch + Job
-
-        # 4. Complete job metric
-        # We can't easily distinguish the calls without inspecting arguments closely,
-        # but we know it should be called for the job completion.

@@ -63,10 +63,11 @@ class TestCancelJobService:
         service._cleanup_job_storage = AsyncMock()
 
         # Execute
-        result = await service.cancel_job(
-            job_id=1,
-            user_id="user-123"
-        )
+        with patch('backend.services.crawl_job.get_supabase_client', return_value=None):
+            result = await service.cancel_job(
+                job_id=1,
+                user_id="a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+            )
 
         # Assert
         assert isinstance(result, dict)
@@ -96,15 +97,16 @@ class TestCancelJobService:
         service._cleanup_job_storage = AsyncMock()
 
         # Execute
-        result = await service.cancel_job(job_id=1)
+        with patch('backend.services.crawl_job.get_supabase_client', return_value=None):
+            result = await service.cancel_job(job_id=1)
 
-        # Assert
+        # Assert - cancel_job returns a dict, not a CrawlJob
         assert isinstance(result, dict)
         assert result["job_id"] == 1
         assert result["status"] == "cancelled"
-        assert result["revoked_tasks"] == 0  # No tasks to revoke
+        assert result["revoked_tasks"] == 0  # No tasks for pending job
         assert "message" in result
-        service._revoke_celery_tasks.assert_called_once_with([], terminate=True)
+        service._revoke_celery_tasks.assert_not_called()
         service._cleanup_job_storage.assert_called_once_with(1)
 
     @pytest.mark.asyncio
@@ -119,25 +121,41 @@ class TestCancelJobService:
 
     @pytest.mark.asyncio
     async def test_cancel_job_invalid_status_completed(self, service, mock_job):
-        """Test cancelling a completed job (should fail)."""
+        """Test cancelling a completed job returns idempotent success."""
+        # The implementation uses idempotent design - completed jobs return success
+        # without side effects instead of raising an error
         # Setup
         mock_job.status = "completed"
         service.get_job = AsyncMock(return_value=mock_job)
 
-        # Execute & Assert
-        with pytest.raises(ValidationError, match="Cannot cancel job with status"):
-            await service.cancel_job(job_id=1)
+        # Execute - should return idempotent response, not raise
+        result = await service.cancel_job(job_id=1)
+        
+        # Assert - idempotent response for terminal states
+        assert isinstance(result, dict)
+        assert result["job_id"] == 1
+        assert result["status"] == "completed"
+        assert result["revoked_tasks"] == 0
+        assert "idempotent" in result["message"].lower()
 
     @pytest.mark.asyncio
     async def test_cancel_job_invalid_status_failed(self, service, mock_job):
-        """Test cancelling a failed job (should fail)."""
+        """Test cancelling a failed job returns idempotent success."""
+        # The implementation uses idempotent design - failed jobs return success
+        # without side effects instead of raising an error
         # Setup
         mock_job.status = "failed"
         service.get_job = AsyncMock(return_value=mock_job)
 
-        # Execute & Assert
-        with pytest.raises(ValidationError, match="Cannot cancel job with status"):
-            await service.cancel_job(job_id=1)
+        # Execute - should return idempotent response, not raise
+        result = await service.cancel_job(job_id=1)
+        
+        # Assert - idempotent response for terminal states
+        assert isinstance(result, dict)
+        assert result["job_id"] == 1
+        assert result["status"] == "failed"
+        assert result["revoked_tasks"] == 0
+        assert "idempotent" in result["message"].lower()
 
     @pytest.mark.asyncio
     async def test_cancel_job_storage_cleanup_fails_gracefully(self, service, mock_job):
@@ -151,7 +169,8 @@ class TestCancelJobService:
         service._cleanup_job_storage = AsyncMock(side_effect=Exception("Storage error"))
 
         # Execute - should not raise exception
-        result = await service.cancel_job(job_id=1)
+        with patch('backend.services.crawl_job.get_supabase_client', return_value=None):
+            result = await service.cancel_job(job_id=1)
 
         # Assert - job should still be cancelled
         assert isinstance(result, dict)
@@ -209,7 +228,7 @@ class TestCancelJobService:
     @pytest.mark.asyncio
     async def test_cleanup_job_storage(self, service):
         """Test storage cleanup."""
-        with patch('backend.services.crawl_job.get_storage_provider') as mock_get_storage:
+        with patch('backend.storage.factory.get_storage_provider') as mock_get_storage:
             mock_storage = Mock()
             mock_storage.list_files.return_value = [
                 "job_1/image1.jpg",
@@ -228,7 +247,7 @@ class TestCancelJobService:
     @pytest.mark.asyncio
     async def test_cleanup_job_storage_no_files(self, service):
         """Test storage cleanup when no files exist."""
-        with patch('backend.services.crawl_job.get_storage_provider') as mock_get_storage:
+        with patch('backend.storage.factory.get_storage_provider') as mock_get_storage:
             mock_storage = Mock()
             mock_storage.list_files.return_value = []
             mock_get_storage.return_value = mock_storage

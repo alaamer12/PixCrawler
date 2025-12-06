@@ -51,6 +51,7 @@ def sample_crawl_job(mock_user):
         id=1,
         project_id=project_id,
         name="Test Crawl Job",
+        keywords={"keywords": ["cats", "dogs"]},  # CrawlJob stores as JSONB dict
         max_images=1000,
         status="running",
         progress=50,
@@ -68,10 +69,39 @@ def sample_crawl_job(mock_user):
     )
 
 
+
+@pytest.fixture(autouse=True)
+def mock_rate_limiter():
+    """Mock rate limiter globally for all tests in this module.
+    
+    FastAPILimiter requires Redis initialization. We patch the RateLimiter
+    class __call__ method to bypass this check entirely.
+    """
+    original_call = None
+    
+    # Get the original __call__ method
+    from fastapi_limiter.depends import RateLimiter
+    original_call = RateLimiter.__call__
+    
+    # Create a patched __call__ that does nothing
+    async def patched_call(self, request, response):
+        return None  # Allow request through
+    
+    # Monkey-patch the class method
+    RateLimiter.__call__ = patched_call
+    
+    yield
+    
+    # Restore original
+    if original_call:
+        RateLimiter.__call__ = original_call
+
+
 @pytest.fixture
-def override_dependencies(app, mock_crawl_job_service, mock_user):
+def override_dependencies(app, mock_crawl_job_service, mock_user, sample_crawl_job):
     """Override FastAPI dependencies for testing."""
     from backend.api.dependencies import get_current_user, get_session, get_crawl_job_service
+    from backend.schemas.crawl_jobs import CrawlJobResponse
 
     # Mock database session
     mock_session = AsyncMock()
@@ -80,13 +110,35 @@ def override_dependencies(app, mock_crawl_job_service, mock_user):
     app.dependency_overrides[get_current_user] = lambda: mock_user
     app.dependency_overrides[get_session] = lambda: mock_session
 
+    # Configure to_response to return proper CrawlJobResponse-compatible dict
+    mock_crawl_job_service.to_response.return_value = CrawlJobResponse(
+        id=sample_crawl_job.id,
+        project_id=sample_crawl_job.project_id,
+        name=sample_crawl_job.name,
+        keywords={"keywords": ["test"]},
+        max_images=sample_crawl_job.max_images,
+        status=sample_crawl_job.status,
+        progress=sample_crawl_job.progress,
+        total_images=sample_crawl_job.total_images,
+        downloaded_images=sample_crawl_job.downloaded_images,
+        valid_images=sample_crawl_job.valid_images,
+        total_chunks=sample_crawl_job.total_chunks,
+        active_chunks=sample_crawl_job.active_chunks,
+        completed_chunks=sample_crawl_job.completed_chunks,
+        failed_chunks=sample_crawl_job.failed_chunks,
+        created_at=sample_crawl_job.created_at,
+        updated_at=sample_crawl_job.updated_at,
+        started_at=sample_crawl_job.started_at,
+        completed_at=sample_crawl_job.completed_at
+    )
+
     yield mock_crawl_job_service, mock_user, mock_session
 
     app.dependency_overrides = {}
 
 
 class TestListCrawlJobs:
-    """Tests for GET /api/v1/crawl-jobs/ endpoint."""
+    """Tests for GET /api/v1/jobs/ endpoint."""
 
     def test_list_crawl_jobs_success(self, client, override_dependencies, sample_crawl_job):
         """Test successful crawl jobs listing."""
@@ -101,7 +153,7 @@ class TestListCrawlJobs:
                 "size": 50
             }
 
-            response = client.get("/api/v1/crawl-jobs/")
+            response = client.get("/api/v1/jobs/")
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -114,7 +166,7 @@ class TestListCrawlJobs:
         with patch('backend.api.v1.endpoints.crawl_jobs.paginate') as mock_paginate:
             mock_paginate.return_value = {"items": [], "total": 0, "page": 2, "size": 25}
 
-            response = client.get("/api/v1/crawl-jobs/?page=2&size=25")
+            response = client.get("/api/v1/jobs/?page=2&size=25")
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -126,7 +178,7 @@ class TestListCrawlJobs:
         with patch('backend.api.v1.endpoints.crawl_jobs.paginate') as mock_paginate:
             mock_paginate.return_value = {"items": [sample_crawl_job], "total": 1}
 
-            response = client.get("/api/v1/crawl-jobs/")
+            response = client.get("/api/v1/jobs/")
 
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
@@ -137,7 +189,7 @@ class TestListCrawlJobs:
 
 
 class TestCreateCrawlJob:
-    """Tests for POST /api/v1/crawl-jobs/ endpoint."""
+    """Tests for POST /api/v1/jobs/ endpoint."""
 
     def test_create_crawl_job_success(self, client, override_dependencies, sample_crawl_job):
         """Test successful crawl job creation."""
@@ -151,7 +203,7 @@ class TestCreateCrawlJob:
             "max_images": 1000
         }
 
-        response = client.post("/api/v1/crawl-jobs/", json=job_data)
+        response = client.post("/api/v1/jobs/", json=job_data)
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
@@ -165,7 +217,7 @@ class TestCreateCrawlJob:
     def test_create_crawl_job_validation(self, client, override_dependencies):
         """Test request validation."""
         # Missing required fields
-        response = client.post("/api/v1/crawl-jobs/", json={})
+        response = client.post("/api/v1/jobs/", json={})
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
@@ -181,7 +233,7 @@ class TestCreateCrawlJob:
             "max_images": 100
         }
 
-        response = client.post("/api/v1/crawl-jobs/", json=job_data)
+        response = client.post("/api/v1/jobs/", json=job_data)
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
@@ -193,7 +245,7 @@ class TestCreateCrawlJob:
 
 
 class TestGetCrawlJob:
-    """Tests for GET /api/v1/crawl-jobs/{job_id} endpoint."""
+    """Tests for GET /api/v1/jobs/{job_id} endpoint."""
 
     def test_get_crawl_job_success(self, client, override_dependencies, sample_crawl_job, mock_user):
         """Test successful crawl job retrieval."""
@@ -205,7 +257,7 @@ class TestGetCrawlJob:
         mock_result.scalar_one_or_none.return_value = uuid.UUID(mock_user["user_id"])
         mock_session.execute.return_value = mock_result
 
-        response = client.get("/api/v1/crawl-jobs/1")
+        response = client.get("/api/v1/jobs/1")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -218,7 +270,7 @@ class TestGetCrawlJob:
         mock_service, mock_user, mock_session = override_dependencies
         mock_service.get_job.return_value = None
 
-        response = client.get("/api/v1/crawl-jobs/999")
+        response = client.get("/api/v1/jobs/999")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -232,13 +284,13 @@ class TestGetCrawlJob:
         mock_result.scalar_one_or_none.return_value = uuid4()  # Different user
         mock_session.execute.return_value = mock_result
 
-        response = client.get("/api/v1/crawl-jobs/1")
+        response = client.get("/api/v1/jobs/1")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 class TestStartCrawlJob:
-    """Tests for POST /api/v1/crawl-jobs/{job_id}/start endpoint."""
+    """Tests for POST /api/v1/jobs/{job_id}/start endpoint."""
 
     def test_start_crawl_job_success(self, client, override_dependencies, sample_crawl_job):
         """Test successful job start."""
@@ -254,7 +306,7 @@ class TestStartCrawlJob:
             "message": "Job started with 6 tasks"
         }
 
-        response = client.post("/api/v1/crawl-jobs/1/start")
+        response = client.post("/api/v1/jobs/1/start")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -280,7 +332,7 @@ class TestStartCrawlJob:
             "Cannot start job with status 'running'. Only pending jobs can be started."
         )
 
-        response = client.post("/api/v1/crawl-jobs/1/start")
+        response = client.post("/api/v1/jobs/1/start")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
@@ -293,7 +345,7 @@ class TestStartCrawlJob:
         from backend.core.exceptions import NotFoundError
         mock_service.start_job.side_effect = NotFoundError("Crawl job not found: 999")
 
-        response = client.post("/api/v1/crawl-jobs/999/start")
+        response = client.post("/api/v1/jobs/999/start")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -309,7 +361,7 @@ class TestStartCrawlJob:
             "message": "Job started with 4 tasks"
         }
 
-        response = client.post("/api/v1/crawl-jobs/1/start")
+        response = client.post("/api/v1/jobs/1/start")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -321,7 +373,7 @@ class TestStartCrawlJob:
 
 
 class TestCancelCrawlJob:
-    """Tests for POST /api/v1/crawl-jobs/{job_id}/cancel endpoint."""
+    """Tests for POST /api/v1/jobs/{job_id}/cancel endpoint."""
 
     def test_cancel_crawl_job_success(self, client, override_dependencies, sample_crawl_job):
         """Test successful job cancellation."""
@@ -337,7 +389,7 @@ class TestCancelCrawlJob:
             "message": "Job cancelled successfully. 5 task(s) revoked."
         }
 
-        response = client.post("/api/v1/crawl-jobs/1/cancel")
+        response = client.post("/api/v1/jobs/1/cancel")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -353,7 +405,7 @@ class TestCancelCrawlJob:
         sample_crawl_job.status = "completed"
         mock_service.get_job.return_value = sample_crawl_job
 
-        response = client.post("/api/v1/crawl-jobs/1/cancel")
+        response = client.post("/api/v1/jobs/1/cancel")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
@@ -364,13 +416,13 @@ class TestCancelCrawlJob:
         mock_service, mock_user, mock_session = override_dependencies
         mock_service.get_job.return_value = None
 
-        response = client.post("/api/v1/crawl-jobs/999/cancel")
+        response = client.post("/api/v1/jobs/999/cancel")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 class TestRetryCrawlJob:
-    """Tests for POST /api/v1/crawl-jobs/{job_id}/retry endpoint."""
+    """Tests for POST /api/v1/jobs/{job_id}/retry endpoint."""
 
     def test_retry_crawl_job_success(self, client, override_dependencies, sample_crawl_job, mock_user):
         """Test successful job retry."""
@@ -383,7 +435,7 @@ class TestRetryCrawlJob:
         mock_result.scalar_one_or_none.return_value = uuid.UUID(mock_user["user_id"])
         mock_session.execute.return_value = mock_result
 
-        response = client.post("/api/v1/crawl-jobs/1/retry")
+        response = client.post("/api/v1/jobs/1/retry")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -401,13 +453,13 @@ class TestRetryCrawlJob:
         mock_result.scalar_one_or_none.return_value = uuid.UUID(mock_user["user_id"])
         mock_session.execute.return_value = mock_result
 
-        response = client.post("/api/v1/crawl-jobs/1/retry")
+        response = client.post("/api/v1/jobs/1/retry")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 class TestGetCrawlJobLogs:
-    """Tests for GET /api/v1/crawl-jobs/{job_id}/logs endpoint."""
+    """Tests for GET /api/v1/jobs/{job_id}/logs endpoint."""
 
     def test_get_job_logs_success(self, client, override_dependencies, sample_crawl_job, mock_user):
         """Test successful log retrieval."""
@@ -435,7 +487,7 @@ class TestGetCrawlJobLogs:
 
         mock_session.execute.side_effect = [mock_result, mock_logs_result]
 
-        response = client.get("/api/v1/crawl-jobs/1/logs")
+        response = client.get("/api/v1/jobs/1/logs")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -445,14 +497,14 @@ class TestGetCrawlJobLogs:
 
 
 class TestGetCrawlJobProgress:
-    """Tests for GET /api/v1/crawl-jobs/{job_id}/progress endpoint."""
+    """Tests for GET /api/v1/jobs/{job_id}/progress endpoint."""
 
     def test_get_job_progress_success(self, client, override_dependencies, sample_crawl_job, mock_user):
         """Test successful progress retrieval."""
         mock_service, user, mock_session = override_dependencies
         mock_service.get_job_with_ownership_check.return_value = sample_crawl_job
 
-        response = client.get("/api/v1/crawl-jobs/1/progress")
+        response = client.get("/api/v1/jobs/1/progress")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -481,13 +533,13 @@ class TestOpenAPISchema:
         paths = openapi_schema.get("paths", {})
 
         # Check endpoints exist
-        assert "/api/v1/crawl-jobs/" in paths
-        assert "/api/v1/crawl-jobs/{job_id}" in paths
-        assert "/api/v1/crawl-jobs/{job_id}/start" in paths
-        assert "/api/v1/crawl-jobs/{job_id}/cancel" in paths
-        assert "/api/v1/crawl-jobs/{job_id}/retry" in paths
-        assert "/api/v1/crawl-jobs/{job_id}/logs" in paths
-        assert "/api/v1/crawl-jobs/{job_id}/progress" in paths
+        assert "/api/v1/jobs/" in paths
+        assert "/api/v1/jobs/{job_id}" in paths
+        assert "/api/v1/jobs/{job_id}/start" in paths
+        assert "/api/v1/jobs/{job_id}/cancel" in paths
+        assert "/api/v1/jobs/{job_id}/retry" in paths
+        assert "/api/v1/jobs/{job_id}/logs" in paths
+        assert "/api/v1/jobs/{job_id}/progress" in paths
 
     def test_crawl_jobs_endpoints_have_operation_ids(self, client):
         """Test that all endpoints have operation IDs."""
@@ -496,9 +548,9 @@ class TestOpenAPISchema:
         paths = openapi_schema.get("paths", {})
 
         # Check operation IDs
-        assert paths["/api/v1/crawl-jobs/"]["get"]["operationId"] == "listCrawlJobs"
-        assert paths["/api/v1/crawl-jobs/"]["post"]["operationId"] == "createCrawlJob"
-        assert paths["/api/v1/crawl-jobs/{job_id}"]["get"]["operationId"] == "getCrawlJob"
-        assert paths["/api/v1/crawl-jobs/{job_id}/start"]["post"]["operationId"] == "startCrawlJob"
-        assert paths["/api/v1/crawl-jobs/{job_id}/cancel"]["post"]["operationId"] == "cancelCrawlJob"
-        assert paths["/api/v1/crawl-jobs/{job_id}/retry"]["post"]["operationId"] == "retryCrawlJob"
+        assert paths["/api/v1/jobs/"]["get"]["operationId"] == "listCrawlJobs"
+        assert paths["/api/v1/jobs/"]["post"]["operationId"] == "createCrawlJob"
+        assert paths["/api/v1/jobs/{job_id}"]["get"]["operationId"] == "getCrawlJob"
+        assert paths["/api/v1/jobs/{job_id}/start"]["post"]["operationId"] == "startCrawlJob"
+        assert paths["/api/v1/jobs/{job_id}/cancel"]["post"]["operationId"] == "cancelCrawlJob"
+        assert paths["/api/v1/jobs/{job_id}/retry"]["post"]["operationId"] == "retryCrawlJob"

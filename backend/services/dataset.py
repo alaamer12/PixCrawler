@@ -93,7 +93,10 @@ class DatasetService(BaseService):
             status=dataset.status,
             images_collected=0,
             created_at=dataset.created_at,
-            updated_at=dataset.updated_at
+            updated_at=dataset.updated_at,
+            keywords=dataset_create.keywords,
+            max_images=dataset_create.max_images,
+            search_engines=dataset_create.search_engines
         )
 
     async def get_dataset_by_id(self, dataset_id: int, user_id: Optional[int] = None) -> DatasetResponse:
@@ -136,6 +139,12 @@ class DatasetService(BaseService):
                         {"status": DatasetStatus(crawl_job.status.upper())}
                     )
         
+        # Update last_accessed_at
+        await self.dataset_repo.update(
+            dataset_id,
+            {"last_accessed_at": datetime.now()}
+        )
+        
         return DatasetResponse(
             id=dataset.id,
             user_id=dataset.user_id,
@@ -145,7 +154,10 @@ class DatasetService(BaseService):
             progress=min(progress, 100.0),  # Cap at 100%
             images_collected=images_collected,
             created_at=dataset.created_at,
-            updated_at=dataset.updated_at
+            updated_at=dataset.updated_at,
+            keywords=dataset.keywords,
+            max_images=dataset.max_images,
+            search_engines=dataset.search_engines
         )
         
     async def update_dataset(

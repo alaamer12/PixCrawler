@@ -26,7 +26,7 @@ def notification_service(mock_repo):
 @pytest.mark.asyncio
 async def test_get_notifications(notification_service, mock_repo):
     user_id = uuid4()
-    mock_notifications = [Notification(id=1, user_id=user_id, title="Test")]
+    mock_notifications = [Notification(id=1, user_id=user_id, title="Test", message="Test message", type_="info")]
     mock_repo.get_by_user.return_value = mock_notifications
 
     result = await notification_service.get_notifications(user_id)
@@ -44,7 +44,10 @@ async def test_create_notification(notification_service, mock_repo):
         message="Message", 
         type="info"
     )
-    mock_notification = Notification(id=1, **notification_in.model_dump())
+    # Convert type to type_ for model
+    data = notification_in.model_dump()
+    data['type_'] = data.pop('type')
+    mock_notification = Notification(id=1, **data)
     mock_repo.create.return_value = mock_notification
 
     result = await notification_service.create_notification(notification_in)
@@ -84,7 +87,7 @@ async def test_mark_as_read_forbidden(notification_service, mock_repo):
     other_user_id = uuid4()
     notification_id = 1
     mock_repo.mark_as_read.return_value = False
-    mock_repo.get.return_value = Notification(id=notification_id, user_id=other_user_id)
+    mock_repo.get.return_value = Notification(id=notification_id, user_id=other_user_id, title="Test", message="Test", type_="info")
 
     with pytest.raises(HTTPException) as exc:
         await notification_service.mark_as_read(notification_id, user_id)
