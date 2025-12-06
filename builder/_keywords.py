@@ -300,8 +300,8 @@ class AlternativeKeyTermGenerator:
         """
         Initialize the generator with configuration keywords.
         """
-            # Fall back to predefined
-            self.generation_strategy = "predefined"
+        # Fall back to predefined
+        self.generation_strategy = "predefined"
 
         self.category_functions = self._get_categories()
 
