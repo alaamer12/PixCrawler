@@ -36,74 +36,11 @@ from .workflow import WorkflowStatus, TaskStatus, WorkflowState, WorkflowTask
 # Import core models from database.models (synchronized with Drizzle schema)
 from backend.database.models import Profile, Project, CrawlJob, Image, ActivityLog
 
-# Import for mixins
-from datetime import datetime
-from typing import Optional
-from uuid import UUID
-
-from sqlalchemy import DateTime, Integer, String, Text, func, UUID as SQLAlchemyUUID, CheckConstraint, Index, ForeignKey
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column, declared_attr, relationship
-
-
-class ChunkTrackingMixin:
-    """
-    Mixin for hybrid chunk tracking in processing jobs.
-
-    Provides fields and methods for tracking Celery task chunks
-    without needing a separate chunk table.
-
-    Attributes:
-        total_chunks: Total number of processing chunks
-        active_chunks: Currently processing chunks
-        completed_chunks: Successfully completed chunks
-        failed_chunks: Failed chunks
-        task_ids: List of Celery task IDs for status queries
-    """
-
-    @declared_attr
-    def total_chunks(cls) -> Mapped[int]:
-        return mapped_column(Integer, nullable=False, default=0)
-
-    @declared_attr
-    def active_chunks(cls) -> Mapped[int]:
-        return mapped_column(Integer, nullable=False, default=0)
-
-    @declared_attr
-    def completed_chunks(cls) -> Mapped[int]:
-        return mapped_column(Integer, nullable=False, default=0)
-
-    @declared_attr
-    def failed_chunks(cls) -> Mapped[int]:
-        return mapped_column(Integer, nullable=False, default=0)
-
-    @declared_attr
-    def task_ids(cls) -> Mapped[list]:
-        return mapped_column(JSONB, nullable=False, default=list)
-
-    @property
-    def chunk_progress(self) -> float:
-        """Calculate chunk completion progress (0-100)."""
-        if self.total_chunks == 0:
-            return 0.0
-        return (self.completed_chunks / self.total_chunks) * 100
-
-    @property
-    def is_processing(self) -> bool:
-        """Check if job has active chunks."""
-        return self.active_chunks > 0
-
-    @property
-    def all_chunks_completed(self) -> bool:
-        """Check if all chunks are completed."""
-        return self.total_chunks > 0 and self.completed_chunks == self.total_chunks
-
 
 __all__ = [
     # Base classes
     'Base',
     'TimestampMixin',
-    'ChunkTrackingMixin',
     # Core models (from database.models - synchronized with Drizzle)
     'Profile',
     'Project',

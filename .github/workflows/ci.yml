@@ -13,6 +13,31 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
 
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: pixcrawler_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: ${{ secrets.TEST_POSTGRES_PASSWORD || 'test_password_123' }}
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:latest
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
     steps:
     - uses: actions/checkout@v4
 
@@ -28,6 +53,50 @@ jobs:
       run: |
         uv sync
         uv add pre-commit pytest
+
+    - name: Setup test environment
+      run: |
+        cat > .env.test << EOF
+        # Environment Configuration
+        PIXCRAWLER_ENVIRONMENT=testing
+        PIXCRAWLER_DEVELOPMENT_MODE=false
+        PIXCRAWLER_DEBUG=false
+        PIXCRAWLER_LOG_LEVEL=INFO
+        
+        # Database Configuration
+        DATABASE_URL=postgresql://test_user:${{ secrets.TEST_POSTGRES_PASSWORD || 'test_password_123' }}@localhost:5432/pixcrawler_test
+        DATABASE_POOL_SIZE=5
+        DATABASE_MAX_OVERFLOW=10
+        
+        # Supabase Configuration
+        SUPABASE_URL=${{ secrets.TEST_SUPABASE_URL || 'https://test-project.supabase.co' }}
+        SUPABASE_SERVICE_ROLE_KEY=${{ secrets.TEST_SUPABASE_SERVICE_KEY || 'test_service_key_placeholder_minimum_50_chars_required' }}
+        SUPABASE_ANON_KEY=${{ secrets.TEST_SUPABASE_ANON_KEY || 'test_anon_key_placeholder_minimum_50_chars_required_for_validation' }}
+        
+        # Redis Configuration
+        REDIS_URL=redis://localhost:6379/0
+        REDIS_EXPIRE_SECONDS=3600
+        
+        # Security Configuration
+        SECURITY_SECRET_KEY=test-ci-secret-key-for-github-actions-testing-only-minimum-32-characters
+        SECURITY_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
+        SECURITY_JWT_EXPIRE_MINUTES=60
+        
+        # Storage Configuration
+        STORAGE_PROVIDER=local
+        STORAGE_LOCAL_ROOT=./test_storage
+        STORAGE_LOCAL_BASE_URL=http://localhost:8000/storage
+        
+        # Rate Limiting Configuration
+        RATE_LIMIT_ENABLED=false
+        RATE_LIMIT_PER_MINUTE=60
+        
+        # Celery Configuration
+        CELERY_BROKER_URL=redis://localhost:6379/1
+        CELERY_RESULT_BACKEND=redis://localhost:6379/1
+        CELERY_TASK_ALWAYS_EAGER=true
+        EOF
+        echo "✓ Created .env.test for CI/CD testing"
 
     - name: Run pre-commit hooks
       run: |

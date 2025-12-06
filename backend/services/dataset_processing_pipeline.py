@@ -135,7 +135,7 @@ class DatasetProcessingPipeline(BaseService):
         self.metrics = PipelineMetrics()
         validator_config = ValidatorConfig(
             check_mode=self.config.validation_mode,
-            duplicate_action=DuplicateAction.REMOVE if self.config.enable_deduplication else DuplicateAction.REPORT,
+            duplicate_action=DuplicateAction.REMOVE if self.config.enable_deduplication else DuplicateAction.REPORT_ONLY,
         )
         self.check_manager = CheckManager(validator_config)
         self.label_generator = LabelGenerator() if self.config.enable_labeling else None

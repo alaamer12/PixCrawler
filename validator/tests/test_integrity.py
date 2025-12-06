@@ -230,28 +230,25 @@ class TestCheckManager:
     
     def test_quarantine_workflow(self, temp_dataset_dir):
         """Test quarantine functionality."""
-        quarantine_dir = Path('tests/tmp_quarantine')
-        try:
-            config = ValidatorConfig(
-                duplicate_action=DuplicateAction.QUARANTINE,
-                quarantine_dir=quarantine_dir,
-                min_file_size_bytes=1
-            )
-            
-            img = Image.new('RGB', (100, 100), color='green')
-            original = os.path.join(temp_dataset_dir, 'original.jpg')
-            img.save(original, 'JPEG')
-            shutil.copy(original, os.path.join(temp_dataset_dir, 'duplicate.jpg'))
-            
-            manager = CheckManager(config)
-            assert os.path.exists(quarantine_dir)
-            
-            result = manager.check_duplicates(temp_dataset_dir)
-            assert result.duplicates_found == 1
-            assert result.duplicates_removed == 1
-        finally:
-            if quarantine_dir.exists():
-                shutil.rmtree(quarantine_dir, ignore_errors=True)
+        quarantine_dir = Path(temp_dataset_dir) / 'quarantine'
+        
+        config = ValidatorConfig(
+            duplicate_action=DuplicateAction.QUARANTINE,
+            quarantine_dir=quarantine_dir,
+            min_file_size_bytes=1
+        )
+        
+        img = Image.new('RGB', (100, 100), color='green')
+        original = os.path.join(temp_dataset_dir, 'original.jpg')
+        img.save(original, 'JPEG')
+        shutil.copy(original, os.path.join(temp_dataset_dir, 'duplicate.jpg'))
+        
+        manager = CheckManager(config)
+        assert quarantine_dir.exists()
+        
+        result = manager.check_duplicates(temp_dataset_dir)
+        assert result.duplicates_found == 1
+        assert result.duplicates_removed == 1
     
     @pytest.mark.parametrize("mode,has_error,expected_valid", [
         ("strict", True, None),

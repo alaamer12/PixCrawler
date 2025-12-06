@@ -222,6 +222,11 @@ async def get_project(
         HTTPException: 500 if database query fails
     """
     project = await service.get_project(project_id, current_user["user_id"])
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
     return ProjectResponse.model_validate(project)
 
 
@@ -280,6 +285,11 @@ async def update_project(
         HTTPException: 500 if update fails
     """
     project = await service.update_project(project_id, project_in, current_user["user_id"])
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
     return ProjectResponse.model_validate(project)
 
 
@@ -330,5 +340,10 @@ async def delete_project(
         HTTPException: 404 if project not found or access denied
         HTTPException: 500 if deletion fails
     """
-    await service.delete_project(project_id, current_user["user_id"])
+    success = await service.delete_project(project_id, current_user["user_id"])
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
     return {"data": None}

@@ -157,8 +157,8 @@ def has_async_session_import(file_path: Path) -> bool:
         if stripped.startswith("def ") or stripped.startswith("async def "):
             in_function = True
         
-        # Exit TYPE_CHECKING block (simple heuristic)
-        if in_type_checking and stripped and not stripped.startswith((" ", "\t", "#")):
+        # Exit TYPE_CHECKING block (simple heuristic: check if line is not indented)
+        if in_type_checking and stripped and not (line.startswith(" ") or line.startswith("\t")):
             in_type_checking = False
             in_function = False
         
