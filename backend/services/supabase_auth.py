@@ -26,7 +26,7 @@ import jwt
 from supabase import create_client, Client
 
 from backend.core.config import get_settings
-from backend.core.exceptions import AuthenticationError, NotFoundError, RateLimitError
+from backend.core.exceptions import AuthenticationError, NotFoundError, RateLimitError, RateLimitExceeded
 from .base import BaseService
 
 __all__ = [
@@ -53,8 +53,8 @@ class SupabaseAuthService(BaseService):
         super().__init__()
         self.settings = get_settings()
         self.supabase: Client = create_client(
-            self.settings.supabase_url,
-            self.settings.supabase_service_role_key
+            self.settings.supabase.url,
+            self.settings.supabase.service_role_key
         )
         
     def _get_tier_limits(self, tier: str) -> Dict[str, Any]:
