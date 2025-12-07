@@ -75,7 +75,7 @@ def create_archive_enabled_provider(settings: StorageSettings):
         raise
 
 
-def _handle_local() -> LocalStorageProvider:
+def _handle_local(settings: StorageSettings) -> LocalStorageProvider:
     # Create local storage provider
     try:
 
@@ -90,7 +90,7 @@ def _handle_local() -> LocalStorageProvider:
         logger.error(f"Failed to import local storage provider: {e}")
         raise ValueError(f"Local storage provider not available: {e}")
 
-def _handle_azure() -> Union[AzureBlobStorageProvider, AzureBlobArchiveProvider]:
+def _handle_azure(settings: StorageSettings) -> Union[AzureBlobStorageProvider, AzureBlobArchiveProvider]:
     # Create Azure storage provider with archive support
     if not settings.azure_connection_string:
         raise ValueError("Azure connection string is required for Azure provider")
@@ -153,10 +153,10 @@ def create_storage_provider(settings: StorageSettings):
     provider_type = settings.storage_provider.lower()
 
     if provider_type == "local":
-        _handle_local()
+        return _handle_local(settings)
 
     elif provider_type == "azure":
-        _handle_azure()
+        return _handle_azure(settings)
 
     else:
         raise ValueError(

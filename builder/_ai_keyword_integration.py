@@ -16,7 +16,7 @@ Status: NOT IMPLEMENTED - All methods raise NotImplementedError with TODO commen
 from typing import List, Dict, Optional
 from abc import ABC, abstractmethod
 
-from _constants import logger
+from ._constants import logger
 
 
 class AIKeywordSelector:

@@ -150,11 +150,13 @@ class TestMarkAsRead:
         mock_service, mock_user = override_dependencies
         mock_service.mark_as_read.return_value = True
 
-        response = client.patch("/api/v1/notifications/1")
+        response = client.patch("/api/v1/notifications/1", json={"is_read": True})
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["message"] == "Notification marked as read"
+        assert "data" in data
+        assert data["data"]["id"] == 1
+        assert data["data"]["is_read"] is True
         
         # Verify service was called
         mock_service.mark_as_read.assert_called_once()
@@ -164,7 +166,7 @@ class TestMarkAsRead:
         mock_service, mock_user = override_dependencies
         mock_service.mark_as_read.return_value = False
 
-        response = client.patch("/api/v1/notifications/999")
+        response = client.patch("/api/v1/notifications/999", json={"is_read": True})
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -173,14 +175,15 @@ class TestMarkAsRead:
         mock_service, mock_user = override_dependencies
         mock_service.mark_as_read.return_value = True
 
-        response = client.patch("/api/v1/notifications/1")
+        response = client.patch("/api/v1/notifications/1", json={"is_read": True})
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         
         # Verify structure
-        assert "message" in data
-        assert isinstance(data["message"], str)
+        assert "data" in data
+        assert "id" in data["data"]
+        assert "is_read" in data["data"]
 
 
 class TestMarkAllRead:
@@ -195,7 +198,9 @@ class TestMarkAllRead:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["message"] == "5 notifications marked as read"
+        assert "data" in data
+        assert data["data"]["success"] is True
+        assert data["data"]["count"] == 5
         
         # Verify service was called
         mock_service.mark_all_as_read.assert_called_once()
@@ -209,7 +214,9 @@ class TestMarkAllRead:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["message"] == "0 notifications marked as read"
+        assert "data" in data
+        assert data["data"]["success"] is True
+        assert data["data"]["count"] == 0
 
     def test_mark_all_read_response_model(self, client, override_dependencies):
         """Test response model structure."""
@@ -222,8 +229,9 @@ class TestMarkAllRead:
         data = response.json()
         
         # Verify structure
-        assert "message" in data
-        assert isinstance(data["message"], str)
+        assert "data" in data
+        assert "success" in data["data"]
+        assert "count" in data["data"]
 
 
 class TestOpenAPISchema:
@@ -285,7 +293,7 @@ class TestIntegrationFlow:
         assert len(notifications["data"]) == 1
 
         # Step 2: Mark one as read
-        response2 = client.patch("/api/v1/notifications/1")
+        response2 = client.patch("/api/v1/notifications/1", json={"is_read": True})
         assert response2.status_code == status.HTTP_200_OK
 
         # Step 3: Mark all as read

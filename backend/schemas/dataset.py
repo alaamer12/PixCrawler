@@ -23,6 +23,7 @@ Features:
 
 from enum import Enum
 from typing import Optional, List
+from uuid import UUID
 
 from pydantic import Field, HttpUrl, field_validator, model_validator
 
@@ -236,11 +237,10 @@ class DatasetResponse(DatasetBase, TimestampMixin):
         description="Dataset ID",
         examples=[1, 42, 1337]
     )
-    user_id: int = Field(
+    user_id: UUID = Field(
         ..., 
-        gt=0,
         description="Owner user ID",
-        examples=[1, 123, 456]
+        examples=["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"]
     )
     status: DatasetStatus = Field(
         ..., 

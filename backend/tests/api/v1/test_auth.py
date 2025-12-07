@@ -49,9 +49,10 @@ def mock_user():
 @pytest.fixture
 def override_dependencies(app, mock_auth_service, mock_user):
     """Override FastAPI dependencies for testing."""
-    from backend.api.dependencies import get_current_user, get_supabase_auth_service
+    from backend.api.dependencies import get_current_user, get_supabase_auth_service, get_auth_service
 
     app.dependency_overrides[get_supabase_auth_service] = lambda: mock_auth_service
+    app.dependency_overrides[get_auth_service] = lambda: mock_auth_service
     app.dependency_overrides[get_current_user] = lambda: mock_user
 
     yield mock_auth_service, mock_user
@@ -144,9 +145,8 @@ class TestSyncUserProfile:
         """Test profile creation when profile doesn't exist."""
         mock_service, mock_user = override_dependencies
 
-        # Mock get_user_profile to raise exception (profile doesn't exist)
-        mock_service.get_user_profile.side_effect = Exception("Profile not found")
-        mock_service.create_user_profile.return_value = None
+        # Mock sync_profile to return 'created'
+        mock_service.sync_profile.return_value = "created"
 
         response = client.post("/api/v1/auth/sync-profile")
 
@@ -155,16 +155,15 @@ class TestSyncUserProfile:
         assert "message" in data
         assert "created" in data["message"].lower()
 
-        # Verify create was called
-        mock_service.create_user_profile.assert_called_once()
+        # Verify sync_profile was called
+        mock_service.sync_profile.assert_called_once()
 
     def test_sync_profile_update_existing(self, client, override_dependencies):
         """Test profile update when profile exists."""
         mock_service, mock_user = override_dependencies
 
-        # Mock get_user_profile to return existing profile
-        mock_service.get_user_profile.return_value = {"id": mock_user["user_id"]}
-        mock_service.update_user_profile.return_value = None
+        # Mock sync_profile to return 'updated'
+        mock_service.sync_profile.return_value = "updated"
 
         response = client.post("/api/v1/auth/sync-profile")
 
@@ -173,13 +172,15 @@ class TestSyncUserProfile:
         assert "message" in data
         assert "updated" in data["message"].lower()
 
-        # Verify update was called
-        mock_service.update_user_profile.assert_called_once()
+        # Verify sync_profile was called
+        mock_service.sync_profile.assert_called_once()
 
     def test_sync_profile_response_model(self, client, override_dependencies):
         """Test response model structure matches ProfileSyncResponse schema."""
         mock_service, mock_user = override_dependencies
-        mock_service.get_user_profile.return_value = {"id": mock_user["user_id"]}
+        
+        # Mock sync_profile to return 'created'
+        mock_service.sync_profile.return_value = "created"
 
         response = client.post("/api/v1/auth/sync-profile")
 
@@ -269,6 +270,8 @@ class TestIntegrationFlow:
         assert verification["valid"] is True
 
         # Step 3: Sync profile
+        mock_service.sync_profile.return_value = "updated"
+        
         response3 = client.post("/api/v1/auth/sync-profile")
         assert response3.status_code == status.HTTP_200_OK
         sync_result = response3.json()

@@ -1,0 +1,72 @@
+{
+    "project": {
+        "name": "pixcrawler",
+        "description": "PixCrawler - Automated Image Dataset Builder SaaS"
+    },
+    "azure": {
+        "resourceGroup": "pixcrawler-rg",
+        "location": "eastus",
+        "containerRegistry": {
+            "name": "pixcrawlerregistry",
+            "sku": "Basic",
+            "adminEnabled": true
+        },
+        "environment": {
+            "name": "pixcrawler-env",
+            "type": "container-apps"
+        }
+    },
+    "apps": {
+        "backend": {
+            "name": "pixcrawler-backend",
+            "image": "pixcrawler-backend:latest",
+            "port": 8000,
+            "cpu": 1.0,
+            "memory": "2.0Gi",
+            "minReplicas": 1,
+            "maxReplicas": 3,
+            "ingress": "external",
+            "dockerfile": "Dockerfile",
+            "dockerTarget": "runtime",
+            "buildContext": ".",
+            "healthCheck": "/health"
+        },
+        "frontend": {
+            "name": "pixcrawler-frontend",
+            "image": "pixcrawler-frontend:latest",
+            "port": 3000,
+            "cpu": 0.5,
+            "memory": "1.0Gi",
+            "minReplicas": 1,
+            "maxReplicas": 3,
+            "ingress": "external",
+            "dockerfile": "frontend/Dockerfile",
+            "buildContext": "./frontend"
+        }
+    },
+    "images": {
+        "backend": {
+            "repository": "pixcrawler-backend",
+            "tag": "latest",
+            "fullName": "${REGISTRY_SERVER}/pixcrawler-backend:latest"
+        },
+        "frontend": {
+            "repository": "pixcrawler-frontend",
+            "tag": "latest",
+            "fullName": "${REGISTRY_SERVER}/pixcrawler-frontend:latest"
+        }
+    },
+    "deployment": {
+        "strategy": "rolling",
+        "timeout": 600,
+        "envFile": ".env.example.azure"
+    },
+    "notes": [
+        "This configuration file serves as a reference for Azure deployment settings",
+        "The deploy-azure.sh script currently uses hardcoded variables and does not read from this file",
+        "Future versions may sync deployment parameters directly from this configuration",
+        "All values match the variables defined in deploy-azure.sh",
+        "To deploy: Run './deploy-azure.sh' after ensuring Azure CLI is installed and you're logged in",
+        "Required: Update environment variables via Azure Portal after initial deployment"
+    ]
+}

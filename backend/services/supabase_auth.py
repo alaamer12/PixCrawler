@@ -26,7 +26,8 @@ import jwt
 from supabase import create_client, Client
 
 from backend.core.config import get_settings
-from backend.core.exceptions import AuthenticationError, NotFoundError, RateLimitError, RateLimitExceeded
+from backend.core.exceptions import AuthenticationError, NotFoundError
+from backend.services.crawl_job import RateLimitExceeded
 from .base import BaseService
 
 __all__ = [
@@ -222,6 +223,74 @@ class SupabaseAuthService(BaseService):
 
         except Exception as e:
             self.logger.error(f"Failed to update user profile: {str(e)}")
+            raise
+
+
+    async def sync_profile(
+        self,
+        user_id: str,
+        email: str,
+        user_metadata: Dict[str, Any]
+    ) -> str:
+        """
+        Synchronize user profile between Supabase Auth and profiles table.
+        
+        Creates a new profile if one doesn't exist, otherwise updates the existing one.
+        This method is called by the auth endpoint to ensure profile data is in sync
+        with Supabase Auth after login or OAuth authentication.
+        
+        Args:
+            user_id: Supabase user ID
+            email: User email address
+            user_metadata: User metadata from Supabase Auth (contains full_name, avatar_url, etc.)
+        
+        Returns:
+            Action performed: 'created' or 'updated'
+        
+        Raises:
+            Exception: If sync operation fails
+        """
+        try:
+            # Try to get existing profile
+            try:
+                existing_profile = await self.get_user_profile(user_id)
+                
+                #  Profile exists - update it
+                update_data = {
+                    "email": email,
+                    "full_name": user_metadata.get("full_name", ""),
+                    "avatar_url": user_metadata.get("avatar_url"),
+                    "updated_at": datetime.utcnow().isoformat()
+                }
+                
+                # Remove None values
+                update_data = {k: v for k, v in update_data.items() if v is not None}
+                
+                await self.update_user_profile(user_id, update_data)
+                self.log_operation("sync_profile_update", user_id=user_id)
+                return "updated"
+                
+            except NotFoundError:
+                # Profile doesn't exist - create it
+                profile_data = {
+                    "id": user_id,
+                    "email": email,
+                    "full_name": user_metadata.get("full_name", ""),
+                    "avatar_url": user_metadata.get("avatar_url"),
+                    "user_tier": "FREE",  # Default tier for new users
+                    "created_at": datetime.utcnow().isoformat(),
+                    "updated_at": datetime.utcnow().isoformat()
+                }
+                
+                # Remove None values
+                profile_data = {k: v for k, v in profile_data.items() if v is not None}
+                
+                await self.create_user_profile(profile_data)
+                self.log_operation("sync_profile_create", user_id=user_id)
+                return "created"
+                
+        except Exception as e:
+            self.logger.error(f"Profile sync failed: {str(e)}")
             raise
 
     async def get_user_tier(self, user_id: str) -> str:
@@ -479,45 +548,40 @@ class SupabaseAuthService(BaseService):
                 if not await self.check_limit(user_id, 'concurrent_jobs'):
                     raise RateLimitExceeded(
                         tier=tier,
-                        current_usage=usage['concurrent_jobs'],
-                        limit=limits['max_concurrent_jobs'],
-                        message=f"Maximum concurrent jobs limit ({limits['max_concurrent_jobs']}) reached for {tier} tier"
+                        active_jobs=usage['concurrent_jobs'],
+                        limit=limits['max_concurrent_jobs']
                     )
                 
                 # Check daily job limit
                 if not await self.check_limit(user_id, 'jobs_today'):
                     raise RateLimitExceeded(
                         tier=tier,
-                        current_usage=usage['jobs_today'],
-                        limit=limits['max_jobs_per_day'],
-                        message=f"Daily job limit ({limits['max_jobs_per_day']}) reached for {tier} tier"
+                        active_jobs=usage['jobs_today'],
+                        limit=limits['max_jobs_per_day']
                     )
                 
                 # Check images per job limit if provided
                 if 'image_count' in kwargs and kwargs['image_count'] > limits['max_images_per_job']:
                     raise RateLimitExceeded(
                         tier=tier,
-                        current_usage=kwargs['image_count'],
-                        limit=limits['max_images_per_job'],
-                        message=f"Maximum images per job ({limits['max_images_per_job']}) exceeded for {tier} tier"
+                        active_jobs=kwargs['image_count'],
+                        limit=limits['max_images_per_job']
                     )
             
             elif request_type == 'create_project':
                 if usage['total_projects'] >= limits['max_projects']:
                     raise RateLimitExceeded(
                         tier=tier,
-                        current_usage=usage['total_projects'],
-                        limit=limits['max_projects'],
-                        message=f"Maximum projects limit ({limits['max_projects']}) reached for {tier} tier"
+                        active_jobs=usage['total_projects'],
+                        limit=limits['max_projects']
                     )
             
             elif request_type == 'add_team_member':
                 if usage['team_members'] >= limits['max_team_members']:
                     raise RateLimitExceeded(
                         tier=tier,
-                        current_usage=usage['team_members'],
-                        limit=limits['max_team_members'],
-                        message=f"Maximum team members limit ({limits['max_team_members']}) reached for {tier} tier"
+                        active_jobs=usage['team_members'],
+                        limit=limits['max_team_members']
                     )
             
             return True

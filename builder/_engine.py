@@ -25,7 +25,7 @@ from typing import List, Dict, Any, Union, Type
 
 from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler
 
-from _search_engines import SearchEngineConfig, VariationResult, EngineResult, \
+from ._search_engines import SearchEngineConfig, VariationResult, EngineResult, \
     download_google_images, download_bing_images, download_baidu_images
 from builder._config import get_engines
 from builder._constants import logger
