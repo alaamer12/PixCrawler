@@ -69,3 +69,22 @@ class UserRepository(BaseRepository[Profile]):
             select(Profile).where(Profile.email == email)
         )
         return result.scalar_one_or_none()
+    
+    async def list_users(self, offset: int = 0, limit: int = 100) -> list[Profile]:
+        """
+        List users with pagination.
+        
+        Args:
+            offset: Number of records to skip
+            limit: Maximum number of records to return
+        
+        Returns:
+            List of Profile objects
+        """
+        result = await self.session.execute(
+            select(Profile)
+            .offset(offset)
+            .limit(limit)
+            .order_by(Profile.created_at.desc())
+        )
+        return list(result.scalars().all())
