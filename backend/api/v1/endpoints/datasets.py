@@ -120,8 +120,18 @@ async def list_datasets(
     Returns:
         Paginated list of datasets
     """
-    # TODO: Implement list_datasets in DatasetService with pagination
-    raise HTTPException(status_code=501, detail="List datasets not implemented yet")
+    try:
+        datasets = await dataset_service.list_datasets(
+            user_id=current_user.id,
+            skip=0,
+            limit=100
+        )
+        return datasets
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to list datasets: {str(e)}"
+        )
 
 
 @router.get(
@@ -370,8 +380,17 @@ async def start_build_job(
     Raises:
         HTTPException: If dataset not found, build start fails, or rate limit exceeded
     """
-    # TODO: Implement start_build_job in DatasetService
-    raise HTTPException(status_code=501, detail="Start build job not implemented yet")
+    try:
+        dataset = await dataset_service.start_build_job(dataset_id, current_user.id)
+        return dataset
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start build job: {str(e)}")
 
 
 @router.get(
@@ -419,8 +438,15 @@ async def get_dataset_status(
     Raises:
         HTTPException: If dataset not found or access denied
     """
-    # TODO: Implement get_build_status in DatasetService
-    raise HTTPException(status_code=501, detail="Get build status not implemented yet")
+    try:
+        status = await dataset_service.get_build_status(dataset_id, current_user.id)
+        return status
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get build status: {str(e)}")
 
 
 @router.post(
@@ -466,8 +492,17 @@ async def generate_download_link(
     Raises:
         HTTPException: If dataset not found, not completed, or link generation fails
     """
-    # TODO: Implement generate_download_link in DatasetService
-    raise HTTPException(status_code=501, detail="Generate download link not implemented yet")
+    try:
+        link_info = await dataset_service.generate_download_link(dataset_id, current_user.id)
+        return link_info
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate download link: {str(e)}")
 
 
 @router.post(

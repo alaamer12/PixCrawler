@@ -12,7 +12,8 @@ This implementation plan organizes all audit tasks into 6 main groups with hiera
   - Review all .env and .env.example files for consistency
   - Ensure root .env manages global context only (PIXCRAWLER_*, LEMONSQUEEZY_*)
   - Verify backend .env has all required variables with proper prefixes (STORAGE_, CELERY_, DATABASE_)
-  - Document all environment variables
+  - Update them and fix and ensure consitency
+  - Document all environment variables with comments in .env.example.*
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
 - [ ] 1.3 Install production dependencies
@@ -27,12 +28,14 @@ This implementation plan organizes all audit tasks into 6 main groups with hiera
   - Either implement the functionality or remove the comment
   - Search for placeholder implementations (pass, NotImplementedError, raise NotImplementedError)
   - Resolve or remove all placeholders
+  - Search about any TODO statement
+  - Handle the TODO statements professional whether it is backend or frontend
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
 ---
 
 ## 2. Celery Integration Audit and Fixes
-
+- Reivew the documentations at #docs directory and retry documentation
 - [ ] 2.1 Audit Celery task definitions
   - Review all tasks in builder/tasks.py, validator/tasks.py, backend/tasks/
   - Ensure all tasks are registered in celery_core
@@ -76,7 +79,7 @@ This implementation plan organizes all audit tasks into 6 main groups with hiera
 - [ ] 3.1 Document API authentication requirements
   - Review all endpoints in backend/api/v1/endpoints/
   - Add authorization requirements to docstrings (e.g., "Requires: Authenticated user", "Requires: Superuser")
-  - Add OpenAPI tags for endpoint grouping (auth, users, projects, jobs, datasets, storage, validation)
+  - Add OpenAPI tags for endpoint grouping (auth, users, projects, jobs, datasets, storage, validation), knowing that multip tages is acceptable
   - Document superuser-only endpoints clearly
   - Add request/response examples to OpenAPI schema
   - _Requirements: 2.1, 2.2, 2.3, 2.4_

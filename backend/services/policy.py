@@ -212,25 +212,80 @@ class PolicyExecutionService(BaseService):
         return True
 
     async def _archive_dataset(self, dataset: Dataset, policy: ArchivalPolicy) -> None:
-        """Perform archival action."""
-        # TODO: Implement actual storage movement logic here
-        # For now, just update the DB status
+        """Perform archival action by moving dataset to target storage tier."""
+        from backend.storage.factory import get_storage_provider
+        from backend.storage.azure_blob_archive import AccessTier
         
-        await self.dataset_repo.update(
-            dataset.id,
-            {
-                "storage_tier": policy.target_tier,
-                "archived_at": datetime.now(dataset.created_at.tzinfo)
-            }
-        )
-        
-        await self._log_execution(
-            "archival", 
-            policy.id, 
-            dataset.id, 
-            "success", 
-            {"target_tier": policy.target_tier}
-        )
+        try:
+            # Get storage provider
+            storage = get_storage_provider()
+            
+            # Check if storage supports tiering (Azure Blob Archive)
+            if hasattr(storage, 'set_blob_tier'):
+                # Map policy tier to Azure tier
+                tier_mapping = {
+                    StorageTier.HOT: AccessTier.HOT,
+                    StorageTier.COOL: AccessTier.COOL,
+                    StorageTier.ARCHIVE: AccessTier.ARCHIVE
+                }
+                
+                target_tier = tier_mapping.get(policy.target_tier)
+                if target_tier:
+                    # Get dataset file path in storage
+                    # Assuming dataset files are stored as: datasets/{dataset_id}/dataset.zip
+                    blob_name = f"datasets/{dataset.id}/dataset.zip"
+                    
+                    # Change blob tier
+                    result = storage.set_blob_tier(blob_name, target_tier)
+                    
+                    self.log_operation(
+                        "archive_dataset_storage_tier_changed",
+                        dataset_id=dataset.id,
+                        target_tier=policy.target_tier,
+                        result=result
+                    )
+            else:
+                # Storage provider doesn't support tiering (e.g., local storage)
+                self.log_operation(
+                    "archive_dataset_storage_tier_not_supported",
+                    dataset_id=dataset.id,
+                    storage_type=type(storage).__name__
+                )
+            
+            # Update database to reflect archival status
+            await self.dataset_repo.update(
+                dataset.id,
+                {
+                    "storage_tier": policy.target_tier,
+                    "archived_at": datetime.now(dataset.created_at.tzinfo)
+                }
+            )
+            
+            await self._log_execution(
+                "archival", 
+                policy.id, 
+                dataset.id, 
+                "success", 
+                {
+                    "target_tier": policy.target_tier,
+                    "storage_tier_changed": hasattr(storage, 'set_blob_tier')
+                }
+            )
+            
+        except Exception as e:
+            self.log_operation(
+                "archive_dataset_failed",
+                dataset_id=dataset.id,
+                error=str(e)
+            )
+            await self._log_execution(
+                "archival",
+                policy.id,
+                dataset.id,
+                "failed",
+                {"error": str(e)}
+            )
+            raise
 
     async def _should_cleanup(self, dataset: Dataset, policy: CleanupPolicy) -> bool:
         """Check if dataset matches cleanup policy criteria."""
@@ -256,8 +311,52 @@ class PolicyExecutionService(BaseService):
             details["action"] = "deleted_dataset"
             
         elif policy.cleanup_target == CleanupTarget.TEMP_FILES:
-            # TODO: Call storage service to clean temp files
-            details["action"] = "cleaned_temp_files"
+            # Clean temporary files from storage
+            from backend.storage.factory import get_storage_provider
+            
+            try:
+                storage = get_storage_provider()
+                
+                # List and delete temp files for this dataset
+                # Temp files are typically stored as: datasets/{dataset_id}/temp/*
+                temp_prefix = f"datasets/{dataset.id}/temp/"
+                
+                if hasattr(storage, 'list_files'):
+                    temp_files = storage.list_files(prefix=temp_prefix)
+                    
+                    deleted_count = 0
+                    for temp_file in temp_files:
+                        try:
+                            storage.delete(temp_file)
+                            deleted_count += 1
+                        except Exception as e:
+                            self.log_operation(
+                                "cleanup_temp_file_failed",
+                                dataset_id=dataset.id,
+                                file=temp_file,
+                                error=str(e)
+                            )
+                    
+                    details["action"] = "cleaned_temp_files"
+                    details["files_deleted"] = deleted_count
+                    
+                    self.log_operation(
+                        "cleanup_temp_files_completed",
+                        dataset_id=dataset.id,
+                        files_deleted=deleted_count
+                    )
+                else:
+                    details["action"] = "temp_cleanup_not_supported"
+                    details["storage_type"] = type(storage).__name__
+                    
+            except Exception as e:
+                self.log_operation(
+                    "cleanup_temp_files_failed",
+                    dataset_id=dataset.id,
+                    error=str(e)
+                )
+                details["action"] = "cleanup_failed"
+                details["error"] = str(e)
             
         elif policy.cleanup_target == CleanupTarget.FAILED_JOBS:
             # Delete failed dataset

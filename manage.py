@@ -15,16 +15,13 @@ Commands:
     clean_db                     Clean orphaned types and recreate database
     verify_setup                 Verify complete setup is working
     stamp_alembic                Stamp Alembic to current version
-    create_factory_mfg           Create factory-generated manufacturing data (configurable)
-    delete_factory_mfg           Delete factory-generated manufacturing data
-    create_factory_customers     Create factory-generated customer data
-    delete_factory_customers     Delete factory-generated customer data
     check_db                     Check database connection and schema
     tables                       Display table information with pandas
     start                        Start the server (auto-detects gunicorn/uvicorn)
     stop                         Stop a running server by port
     curl                         Check server status, view logs, or make HTTP requests
     clean                        Stop all servers and clean up project directory
+    openapi                      Generate OpenAPI schema JSON file from running server
 
 Examples:
     python manage.py createsuperuser
@@ -38,10 +35,6 @@ Examples:
     python manage.py clean_db
     python manage.py verify_setup
     python manage.py stamp_alembic
-    python manage.py create_factory_mfg --depth 3 --leaves 4
-    python manage.py delete_factory_mfg --force
-    python manage.py create_factory_customers --count 20
-    python manage.py delete_factory_customers --force
     python manage.py check_db
     python manage.py tables --schema public
     python manage.py start
@@ -55,6 +48,9 @@ Examples:
     python manage.py curl --lines 50
     python manage.py clean
     python manage.py clean --force
+    python manage.py openapi
+    python manage.py openapi --host 0.0.0.0 --port 8080
+    python manage.py openapi --output api_schema.json
 """
 
 import argparse
@@ -555,8 +551,8 @@ async def seed_data_command(args: argparse.Namespace):
             print(f"   Admin: admin@example.com / Admin123!")
             print(f"   User: user@example.com / User123!")
             
-            # TODO: Add more sample data (manufacturing types, templates, etc.)
-            # This can be expanded based on project needs
+            # Note: Additional sample data (projects, crawl jobs, etc.) can be added
+            # through the API or frontend interface as needed
             
             print("\n✅ Sample data seeded successfully!")
         except Exception as e:
@@ -782,314 +778,6 @@ async def stamp_alembic_command(args: argparse.Namespace):
         print("❌ Error stamping Alembic:")
         print(result.stderr)
         sys.exit(1)
-
-
-async def create_factory_mfg_command(args: argparse.Namespace):
-    """Create factory-generated manufacturing data with configurable parameters."""
-    from _manager_utils import create_factory_manufacturing_data
-    
-    console.print(Panel.fit(
-        "[bold cyan]Create Factory Manufacturing Data[/bold cyan]",
-        border_style="cyan"
-    ))
-    console.print()
-    
-    depth = args.depth if hasattr(args, 'depth') and args.depth else 3
-    leaves = args.leaves if hasattr(args, 'leaves') and args.leaves else 3
-    
-    # Configuration table
-    config_table = Table(show_header=False, box=box.SIMPLE)
-    config_table.add_row("[cyan]Max Depth:[/cyan]", f"[yellow]{depth}[/yellow] levels")
-    config_table.add_row("[cyan]Root Categories:[/cyan]", f"[yellow]{leaves}[/yellow]")
-    console.print(config_table)
-    console.print()
-    
-    engine = get_engine()
-    session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    
-    try:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console
-        ) as progress:
-            task = progress.add_task("[cyan]Generating factory data...", total=None)
-            
-            async with session_maker() as session:
-                result = await create_factory_manufacturing_data(
-                    session,
-                    depth=depth,
-                    root_leaves=leaves,
-                )
-            
-            progress.update(task, description="[green]✓ Factory data created")
-        
-        # Summary table
-        summary_table = Table(title="[bold green]✓ Manufacturing Data Created[/bold green]", box=box.ROUNDED)
-        summary_table.add_column("Property", style="cyan", no_wrap=True)
-        summary_table.add_column("Value", style="white")
-        
-        summary_table.add_row("Manufacturing Type", result['manufacturing_type_name'])
-        summary_table.add_row("ID", str(result['manufacturing_type_id']))
-        summary_table.add_row("Base Price", f"${result['base_price']:.2f}")
-        summary_table.add_row("Base Weight", f"{result['base_weight']:.2f} kg")
-        summary_table.add_row("Total Nodes", f"{result['total_nodes']:,}")
-        summary_table.add_row("Max Depth", str(result['max_depth']))
-        summary_table.add_row("Root Categories", str(result['root_leaves']))
-        
-        console.print()
-        console.print(summary_table)
-        
-        # Nodes by depth
-        depth_table = Table(title="[bold]Nodes by Depth[/bold]", box=box.SIMPLE)
-        depth_table.add_column("Level", justify="center", style="cyan")
-        depth_table.add_column("Count", justify="right", style="yellow")
-        
-        for depth_level, count in sorted(result['nodes_by_depth'].items()):
-            depth_table.add_row(f"Level {depth_level}", str(count))
-        
-        console.print()
-        console.print(depth_table)
-        
-        # Nodes by type
-        type_table = Table(title="[bold]Nodes by Type[/bold]", box=box.SIMPLE)
-        type_table.add_column("Type", style="cyan")
-        type_table.add_column("Count", justify="right", style="yellow")
-        
-        for node_type, count in result['nodes_by_type'].items():
-            type_table.add_row(node_type.capitalize(), str(count))
-        
-        console.print()
-        console.print(type_table)
-        
-        if result.get('deepest_path'):
-            console.print()
-            console.print(f"[dim]Deepest Path:[/dim] [cyan]{result['deepest_path']}[/cyan]")
-        
-        # Next steps
-        console.print()
-        console.print(Panel(
-            "[cyan]•[/cyan] View in admin dashboard: [link]http://127.0.0.1:8000/api/v1/admin/dashboard[/link]\n"
-            "[cyan]•[/cyan] Create configurations using this manufacturing type\n"
-            "[cyan]•[/cyan] Delete with: [yellow]python manage.py delete_factory_mfg --force[/yellow]",
-            title="[bold]Next Steps[/bold]",
-            border_style="dim"
-        ))
-        
-    except Exception as e:
-        console.print(f"\n[bold red]✗ Error:[/bold red] {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-    finally:
-        await engine.dispose()
-
-
-async def delete_factory_mfg_command(args: argparse.Namespace):
-    """Delete factory-generated manufacturing data."""
-    from _manager_utils import delete_factory_manufacturing_data
-    
-    console.print(Panel.fit(
-        "[bold red]Delete Factory Manufacturing Data[/bold red]",
-        border_style="red"
-    ))
-    console.print()
-    
-    # Confirm deletion unless --force is used
-    if not args.force:
-        console.print("[yellow]⚠ Warning:[/yellow] This will delete all 'Factory %' manufacturing types and their nodes.")
-        if not Confirm.ask("[red]Continue with deletion?[/red]", default=False):
-            console.print("[dim]Deletion cancelled[/dim]")
-            sys.exit(0)
-        console.print()
-    
-    engine = get_engine()
-    session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    
-    try:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console
-        ) as progress:
-            task = progress.add_task("[red]Deleting factory data...", total=None)
-            
-            async with session_maker() as session:
-                result = await delete_factory_manufacturing_data(session)
-            
-            progress.update(task, description="[green]✓ Deletion complete")
-        
-        if result['deleted']:
-            # Deletion summary table
-            summary_table = Table(title="[bold green]✓ Deletion Complete[/bold green]", box=box.ROUNDED)
-            summary_table.add_column("Metric", style="cyan")
-            summary_table.add_column("Count", justify="right", style="yellow")
-            
-            summary_table.add_row("Manufacturing Types", str(result['deleted_types']))
-            summary_table.add_row("Total Nodes", f"{result['deleted_nodes']:,}")
-            
-            console.print()
-            console.print(summary_table)
-            
-            # Details table
-            if result['types']:
-                console.print()
-                details_table = Table(title="[bold]Deleted Types[/bold]", box=box.SIMPLE)
-                details_table.add_column("Name", style="cyan")
-                details_table.add_column("ID", justify="right", style="dim")
-                details_table.add_column("Nodes", justify="right", style="yellow")
-                
-                for type_info in result['types']:
-                    details_table.add_row(
-                        type_info['name'],
-                        str(type_info['id']),
-                        str(type_info['nodes'])
-                    )
-                
-                console.print(details_table)
-        else:
-            console.print(f"\n[dim]{result['message']}[/dim]")
-            
-    except Exception as e:
-        console.print(f"\n[bold red]✗ Error:[/bold red] {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-    finally:
-        await engine.dispose()
-
-
-async def create_factory_customers_command(args: argparse.Namespace):
-    """Create factory-generated customer data."""
-    from _manager_utils import create_factory_customers
-    
-    console.print(Panel.fit(
-        "[bold cyan]Create Factory Customer Data[/bold cyan]",
-        border_style="cyan"
-    ))
-    console.print()
-    
-    count = args.count if hasattr(args, 'count') and args.count else 10
-    
-    console.print(f"[cyan]Number of Customers:[/cyan] [yellow]{count}[/yellow]")
-    console.print()
-    
-    engine = get_engine()
-    session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    
-    try:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console
-        ) as progress:
-            task = progress.add_task("[cyan]Generating customer data...", total=None)
-            
-            async with session_maker() as session:
-                result = await create_factory_customers(session, count=count)
-            
-            progress.update(task, description="[green]✓ Customer data created")
-        
-        # Summary table
-        summary_table = Table(title="[bold green]✓ Customer Data Created[/bold green]", box=box.ROUNDED)
-        summary_table.add_column("Customer Type", style="cyan")
-        summary_table.add_column("Count", justify="right", style="yellow")
-        
-        for customer_type, type_count in result['customers_by_type'].items():
-            summary_table.add_row(customer_type.capitalize(), str(type_count))
-        
-        summary_table.add_row("[bold]Total[/bold]", f"[bold]{result['total_customers']}[/bold]")
-        
-        console.print()
-        console.print(summary_table)
-        
-        # Sample emails
-        if result['sample_emails']:
-            console.print()
-            email_table = Table(title="[bold]Sample Emails[/bold]", box=box.SIMPLE, show_header=False)
-            email_table.add_column("Email", style="cyan")
-            
-            for email in result['sample_emails']:
-                email_table.add_row(email)
-            
-            console.print(email_table)
-        
-        # Next steps
-        console.print()
-        console.print(Panel(
-            "[cyan]•[/cyan] View customers in admin panel\n"
-            "[cyan]•[/cyan] Create configurations for these customers\n"
-            "[cyan]•[/cyan] Delete with: [yellow]python manage.py delete_factory_customers --force[/yellow]",
-            title="[bold]Next Steps[/bold]",
-            border_style="dim"
-        ))
-        
-    except Exception as e:
-        console.print(f"\n[bold red]✗ Error:[/bold red] {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-    finally:
-        await engine.dispose()
-
-
-async def delete_factory_customers_command(args: argparse.Namespace):
-    """Delete factory-generated customer data."""
-    from _manager_utils import delete_factory_customers
-    
-    console.print(Panel.fit(
-        "[bold red]Delete Factory Customer Data[/bold red]",
-        border_style="red"
-    ))
-    console.print()
-    
-    # Confirm deletion unless --force is used
-    if not args.force:
-        console.print("[yellow]⚠ Warning:[/yellow] This will delete all factory-generated customers.")
-        if not Confirm.ask("[red]Continue with deletion?[/red]", default=False):
-            console.print("[dim]Deletion cancelled[/dim]")
-            sys.exit(0)
-        console.print()
-    
-    engine = get_engine()
-    session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    
-    try:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console
-        ) as progress:
-            task = progress.add_task("[red]Deleting customer data...", total=None)
-            
-            async with session_maker() as session:
-                result = await delete_factory_customers(session)
-            
-            progress.update(task, description="[green]✓ Deletion complete")
-        
-        if result['deleted']:
-            # Deletion summary table
-            summary_table = Table(title="[bold green]✓ Deletion Complete[/bold green]", box=box.ROUNDED)
-            summary_table.add_column("Customer Type", style="cyan")
-            summary_table.add_column("Deleted", justify="right", style="yellow")
-            
-            for customer_type, count in result['deleted_by_type'].items():
-                summary_table.add_row(customer_type.capitalize(), str(count))
-            
-            summary_table.add_row("[bold]Total[/bold]", f"[bold]{result['deleted_customers']}[/bold]")
-            
-            console.print()
-            console.print(summary_table)
-        else:
-            console.print(f"\n[dim]{result['message']}[/dim]")
-            
-    except Exception as e:
-        console.print(f"\n[bold red]✗ Error:[/bold red] {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-    finally:
-        await engine.dispose()
 
 
 async def check_db_command(args: argparse.Namespace):
@@ -2269,6 +1957,117 @@ def curl_command(args: argparse.Namespace):
             sys.exit(1)
 
 
+def openapi_command(args: argparse.Namespace):
+    """Generate OpenAPI schema JSON file from running server.
+    
+    This command fetches the OpenAPI schema from a running server and saves it to a file.
+    
+    Configuration Priority: argv > .env > defaults
+    
+    Args:
+        args: Command line arguments
+            - host: Server host (default: 127.0.0.1)
+            - port: Server port (default: 8000)
+            - output: Output file path (default: openapi_schema.json)
+    
+    Examples:
+        python manage.py openapi
+        python manage.py openapi --host 0.0.0.0 --port 8080
+        python manage.py openapi --output api_schema.json
+    """
+    import json
+    import os
+    from dotenv import load_dotenv
+    
+    console.print(Panel.fit(
+        "[bold cyan]Generate OpenAPI Schema[/bold cyan]",
+        border_style="cyan"
+    ))
+    console.print()
+    
+    # Load .env file if it exists
+    env_file = Path(__file__).parent / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
+    
+    # Priority: argv > .env > defaults
+    host = args.host if hasattr(args, 'host') and args.host else None
+    if host is None:
+        host = os.getenv('HOST', '127.0.0.1')
+    
+    port = args.port if hasattr(args, 'port') and args.port else None
+    if port is None:
+        port = int(os.getenv('PORT', 8000))
+    
+    output = args.output if hasattr(args, 'output') and args.output else None
+    if output is None:
+        output = os.getenv('OPENAPI_OUTPUT', 'openapi_schema.json')
+    
+    # Build URL
+    url = f"http://{host}:{port}/openapi.json"
+    
+    console.print(f"[cyan]Fetching OpenAPI schema from:[/cyan] {url}")
+    console.print(f"[cyan]Output file:[/cyan] {output}")
+    console.print()
+    
+    try:
+        import requests
+        
+        # Fetch OpenAPI schema
+        console.print("[cyan]Fetching schema...[/cyan]")
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        # Parse JSON
+        schema = response.json()
+        
+        # Save to file
+        console.print(f"[cyan]Writing to {output}...[/cyan]")
+        with open(output, 'w', encoding='utf-8') as f:
+            json.dump(schema, f, ensure_ascii=False, indent=2)
+        
+        # Get file size
+        file_size = os.path.getsize(output)
+        file_size_kb = file_size / 1024
+        
+        # Success message
+        console.print()
+        console.print(Panel(
+            f"[green]✓ OpenAPI schema generated successfully![/green]\n\n"
+            f"[cyan]File:[/cyan] {output}\n"
+            f"[cyan]Size:[/cyan] {file_size_kb:.2f} KB\n"
+            f"[cyan]Endpoints:[/cyan] {len(schema.get('paths', {}))}",
+            border_style="green"
+        ))
+        
+    except ImportError:
+        console.print("[red]✗ Error: 'requests' library not installed[/red]")
+        console.print("[dim]Install with: pip install requests[/dim]")
+        sys.exit(1)
+    except requests.exceptions.ConnectionError:
+        console.print(f"[red]✗ Error: Could not connect to server at {url}[/red]")
+        console.print()
+        console.print("[yellow]Make sure the server is running:[/yellow]")
+        console.print(f"[dim]  python manage.py start --host {host} --port {port}[/dim]")
+        console.print(f"[dim]  python manage.py curl --poke[/dim]")
+        sys.exit(1)
+    except requests.exceptions.Timeout:
+        console.print(f"[red]✗ Error: Request timed out[/red]")
+        console.print("[dim]Server may be slow to respond[/dim]")
+        sys.exit(1)
+    except requests.exceptions.HTTPError as e:
+        console.print(f"[red]✗ HTTP Error: {e}[/red]")
+        console.print(f"[dim]Status code: {response.status_code}[/dim]")
+        sys.exit(1)
+    except json.JSONDecodeError:
+        console.print("[red]✗ Error: Invalid JSON response from server[/red]")
+        console.print("[dim]Server may not be returning valid OpenAPI schema[/dim]")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]✗ Error: {e}[/red]")
+        sys.exit(1)
+
+
 # Command registry mapping command names to functions
 COMMAND_REGISTRY: dict[str, Callable[[argparse.Namespace], None]] = {
     "createsuperuser": lambda args: asyncio.run(create_superuser()),
@@ -2282,16 +2081,13 @@ COMMAND_REGISTRY: dict[str, Callable[[argparse.Namespace], None]] = {
     "clean_db": lambda args: asyncio.run(clean_db_types_command(args)),
     "verify_setup": lambda args: sys.exit(asyncio.run(verify_setup_command(args))),
     "stamp_alembic": lambda args: asyncio.run(stamp_alembic_command(args)),
-    "create_factory_mfg": lambda args: asyncio.run(create_factory_mfg_command(args)),
-    "delete_factory_mfg": lambda args: asyncio.run(delete_factory_mfg_command(args)),
-    "create_factory_customers": lambda args: asyncio.run(create_factory_customers_command(args)),
-    "delete_factory_customers": lambda args: asyncio.run(delete_factory_customers_command(args)),
     "check_db": lambda args: asyncio.run(check_db_command(args)),
     "tables": lambda args: asyncio.run(tables_command(args)),
     "start": lambda args: start_server_command(args),
     "stop": lambda args: stop_command(args),
     "curl": lambda args: curl_command(args),
     "clean": lambda args: clean_command(args),
+    "openapi": lambda args: openapi_command(args),
 }
 
 
@@ -2319,27 +2115,6 @@ def main():
         "--force",
         action="store_true",
         help="Skip confirmation prompts for destructive operations",
-    )
-    
-    parser.add_argument(
-        "--depth",
-        type=int,
-        default=3,
-        help="Maximum depth for factory manufacturing data (default: 3)",
-    )
-    
-    parser.add_argument(
-        "--leaves",
-        type=int,
-        default=3,
-        help="Number of root categories for factory manufacturing data (default: 3)",
-    )
-    
-    parser.add_argument(
-        "--count",
-        type=int,
-        default=10,
-        help="Number of items to create (for factory customers, default: 10)",
     )
     
     parser.add_argument(
@@ -2409,6 +2184,13 @@ def main():
         "--lines",
         type=int,
         help="Number of log lines to show (curl command, default: 50)",
+    )
+    
+    # OpenAPI command arguments
+    parser.add_argument(
+        "--output",
+        type=str,
+        help="Output file path for OpenAPI schema (openapi command, default: openapi_schema.json)",
     )
     
     args = parser.parse_args()

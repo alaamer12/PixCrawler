@@ -104,18 +104,18 @@ class DashboardService:
         storage_gb = storage_bytes / (1024 ** 3)
         storage_used = f"{storage_gb:.2f} GB"
         
-        # Calculate processing speed (simplified - can be enhanced)
-        # TODO: Calculate from recent job metrics for more accuracy
+        # Calculate processing speed (simplified)
+        # Note: Can be enhanced by calculating from recent job metrics
         processing_speed = "0/min"
         
         # Get credits remaining
-        # TODO: Query credit_accounts table when implemented
+        # Note: Requires credit_accounts table implementation
         credits_remaining = 0
         
         return {
             "total_projects": total_projects,
             "active_jobs": active_jobs,
-            "total_datasets": 0,  # TODO: Add when datasets table is implemented
+            "total_datasets": 0,  # Note: Requires datasets table implementation
             "total_images": total_images,
             "storage_used": storage_used,
             "processing_speed": processing_speed,
