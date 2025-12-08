@@ -1,3 +1,6 @@
+ALWAYS USE .venv, ie. `.venv\scripts\python <command>`
+
+
 # PixCrawler Technology Stack
 
 ## Build System & Package Management

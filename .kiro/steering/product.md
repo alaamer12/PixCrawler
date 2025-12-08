@@ -1,3 +1,6 @@
+ALWAYS USE .venv, ie. `.venv\scripts\python <command>`
+
+
 # PixCrawler Product Overview
 
 PixCrawler is an automated image dataset builder SaaS platform designed for machine learning, research, and data science projects. The platform transforms keywords into organized, validated, and ready-to-use image collections.

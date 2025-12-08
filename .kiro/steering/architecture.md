@@ -3,6 +3,8 @@ trigger: model_decision
 description: Architecture decisions and patterns for PixCrawler, including shared database approach, authentication strategy, and deployment architecture.
 ---
 
+ALWAYS USE .venv, ie. `.venv\scripts\python <command>`
+
 # PixCrawler Architecture
 
 ## Architecture Decision: Shared Database Approach
