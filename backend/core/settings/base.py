@@ -11,6 +11,7 @@ from .redis import RedisSettings
 from .security import SecuritySettings
 from .storage import StorageSettings
 from .supabase import SupabaseSettings
+from .azure import AzureSettings
 
 __all__ = ["CommonSettings"]
 
@@ -72,3 +73,4 @@ class CommonSettings(BaseSettings):
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
+    azure: AzureSettings = Field(default_factory=AzureSettings)

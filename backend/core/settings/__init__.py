@@ -11,6 +11,8 @@ Example environment variables:
     DATABASE_URL=postgresql://...
     REDIS_EXPIRE_SECONDS=7200
     SECURITY_ALLOWED_ORIGINS=http://localhost:3000,https://app.com
+    AZURE_BLOB_CONNECTION_STRING=DefaultEndpointsProtocol=https;...
+    AZURE_MONITOR_CONNECTION_STRING=InstrumentationKey=...
 """
 
 from .base import CommonSettings
@@ -21,6 +23,15 @@ from .security import SecuritySettings
 from .supabase import SupabaseSettings
 from .rate_limit import RateLimitSettings
 from .storage import StorageSettings
+from .azure import (
+    AzureSettings,
+    AzureBlobSettings,
+    AzureAppServiceSettings,
+    AzureStaticWebAppSettings,
+    AzureMonitorSettings,
+    AccessTier,
+    RehydratePriority,
+)
 from .environments import DevSettings, ProdSettings, TestSettings, Settings, get_settings
 
 __all__ = [
@@ -33,6 +44,14 @@ __all__ = [
     "SupabaseSettings",
     "RateLimitSettings",
     "StorageSettings",
+    # Azure settings
+    "AzureSettings",
+    "AzureBlobSettings",
+    "AzureAppServiceSettings",
+    "AzureStaticWebAppSettings",
+    "AzureMonitorSettings",
+    "AccessTier",
+    "RehydratePriority",
     # Environment-based settings
     "DevSettings",
     "ProdSettings",
