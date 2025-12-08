@@ -3,8 +3,9 @@ Celery tasks for dataset lifecycle policies.
 """
 
 import asyncio
-from celery import shared_task
-from loguru import logger
+from celery_core.app import get_celery_app
+from celery_core.base import BaseTask
+from utility.logging_config import get_logger
 
 from backend.database.connection import AsyncSessionLocal
 from backend.repositories.dataset_repository import DatasetRepository
@@ -15,9 +16,27 @@ from backend.repositories.policy_repository import (
 )
 from backend.services.policy import PolicyExecutionService
 
+logger = get_logger(__name__)
+app = get_celery_app()
 
-@shared_task(name="tasks.policy.execute_archival_policies")
-def execute_archival_policies():
+
+@app.task(
+    bind=True,
+    base=BaseTask,
+    name="backend.tasks.policy.execute_archival_policies",
+    # Result Storage
+    ignore_result=False,
+    acks_late=True,
+    track_started=True,
+    # Time Limits
+    soft_time_limit=1800,
+    time_limit=3600,
+    # Rate Limiting (once per hour)
+    rate_limit="1/h",
+    # Serialization
+    serializer="json",
+)
+def execute_archival_policies(self):
     """
     Periodic task to execute archival policies.
     """
@@ -50,8 +69,23 @@ def execute_archival_policies():
         raise
 
 
-@shared_task(name="tasks.policy.execute_cleanup_policies")
-def execute_cleanup_policies():
+@app.task(
+    bind=True,
+    base=BaseTask,
+    name="backend.tasks.policy.execute_cleanup_policies",
+    # Result Storage
+    ignore_result=False,
+    acks_late=True,
+    track_started=True,
+    # Time Limits
+    soft_time_limit=1800,
+    time_limit=3600,
+    # Rate Limiting (once per hour)
+    rate_limit="1/h",
+    # Serialization
+    serializer="json",
+)
+def execute_cleanup_policies(self):
     """
     Periodic task to execute cleanup policies.
     """

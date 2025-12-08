@@ -27,7 +27,7 @@ from builder._config import get_engines
 from builder._downloader import ImageDownloader
 from builder._generator import LabelGenerator
 from builder._exceptions import PermanentError
-from _keywords import KeywordManagement
+from builder._keywords import KeywordManagement
 from builder._predefined_variations import get_search_variations
 from builder._search_engines import (
     SearchEngineConfig,
