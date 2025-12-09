@@ -1,22 +1,22 @@
-"""Management CLI for the application.
+"""Management CLI for PixCrawler.
 
 Usage:
-    python manage.py <command> [options]
+    .venv\scripts\python manage.py <command> [options]
 
 Commands:
-    createsuperuser              Create a new superuser account
-    promote <username>           Promote an existing user to superuser
-    create_tables                Create all database tables with LTREE extension
+    createsuperuser              Create a new superuser account (via Supabase)
+    promote <email>              Promote an existing user to admin
+    create_tables                Create all database tables
     drop_tables                  Drop all database tables (requires confirmation)
     reset_db                     Drop and recreate all tables (requires confirmation)
-    reset_password <username>    Reset password for a user
+    reset_password <email>       Reset password for a user (via Supabase)
     check_env                    Validate environment configuration
     seed_data                    Create sample data for development
     clean_db                     Clean orphaned types and recreate database
     verify_setup                 Verify complete setup is working
-    stamp_alembic                Stamp Alembic to current version
+    stamp_alembic                Database migrations info (uses Drizzle)
     check_db                     Check database connection and schema
-    tables                       Display table information with pandas
+    tables                       Display table information
     start                        Start the server (auto-detects gunicorn/uvicorn)
     stop                         Stop a running server by port
     curl                         Check server status, view logs, or make HTTP requests
@@ -24,33 +24,33 @@ Commands:
     openapi                      Generate OpenAPI schema JSON file from running server
 
 Examples:
-    python manage.py createsuperuser
-    python manage.py promote john_doe
-    python manage.py create_tables
-    python manage.py drop_tables --force
-    python manage.py reset_db
-    python manage.py reset_password admin
-    python manage.py check_env
-    python manage.py seed_data
-    python manage.py clean_db
-    python manage.py verify_setup
-    python manage.py stamp_alembic
-    python manage.py check_db
-    python manage.py tables --schema public
-    python manage.py start
-    python manage.py start --use uvicorn
-    python manage.py start --use gunicorn --host 0.0.0.0 --port 8080
-    python manage.py stop
-    python manage.py stop --port 8000
-    python manage.py curl --poke
-    python manage.py curl --port 8000 --poke
-    python manage.py curl --url http://127.0.0.1:8000/api/v1/users
-    python manage.py curl --lines 50
-    python manage.py clean
-    python manage.py clean --force
-    python manage.py openapi
-    python manage.py openapi --host 0.0.0.0 --port 8080
-    python manage.py openapi --output api_schema.json
+    .venv\scripts\python manage.py createsuperuser
+    .venv\scripts\python manage.py promote user@example.com
+    .venv\scripts\python manage.py create_tables
+    .venv\scripts\python manage.py drop_tables --force
+    .venv\scripts\python manage.py reset_db
+    .venv\scripts\python manage.py reset_password user@example.com
+    .venv\scripts\python manage.py check_env
+    .venv\scripts\python manage.py seed_data
+    .venv\scripts\python manage.py clean_db
+    .venv\scripts\python manage.py verify_setup
+    .venv\scripts\python manage.py stamp_alembic
+    .venv\scripts\python manage.py check_db
+    .venv\scripts\python manage.py tables
+    .venv\scripts\python manage.py start
+    .venv\scripts\python manage.py start --use uvicorn
+    .venv\scripts\python manage.py start --use gunicorn --host 0.0.0.0 --port 8080
+    .venv\scripts\python manage.py stop
+    .venv\scripts\python manage.py stop --port 8000
+    .venv\scripts\python manage.py curl --poke
+    .venv\scripts\python manage.py curl --port 8000 --poke
+    .venv\scripts\python manage.py curl --url http://127.0.0.1:8000/api/v1/health
+    .venv\scripts\python manage.py curl --lines 50
+    .venv\scripts\python manage.py clean
+    .venv\scripts\python manage.py clean --force
+    .venv\scripts\python manage.py openapi
+    .venv\scripts\python manage.py openapi --host 0.0.0.0 --port 8080
+    .venv\scripts\python manage.py openapi --output api_schema.json
 """
 
 import argparse
@@ -68,11 +68,10 @@ if sys.platform == "win32":
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.core.config import get_settings
-from app.core.security import get_password_hash
-from app.database.base import Base
-from app.database.connection import get_engine
-from app.models.user import User
+from backend.core.settings import get_settings
+from backend.models.base import Base
+from backend.database.connection import engine as get_engine
+from backend.database.models import Profile
 
 # Rich imports for beautiful terminal output
 from rich.console import Console
@@ -179,12 +178,10 @@ async def create_superuser():
     console.print()
 
     email = Prompt.ask("[cyan]Email[/cyan]").strip()
-    username = Prompt.ask("[cyan]Username[/cyan]").strip()
     full_name = Prompt.ask("[cyan]Full name[/cyan] (optional)", default="").strip()
-    password = Prompt.ask("[cyan]Password[/cyan]", password=True).strip()
 
-    if not all([email, username, password]):
-        console.print("\n[bold red]✗ Error:[/bold red] Email, username, and password are required!")
+    if not email:
+        console.print("\n[bold red]✗ Error:[/bold red] Email is required!")
         sys.exit(1)
 
     engine = get_engine()
@@ -197,44 +194,29 @@ async def create_superuser():
                 TextColumn("[progress.description]{task.description}"),
                 console=console
             ) as progress:
-                task = progress.add_task("[cyan]Creating superuser...", total=None)
+                task = progress.add_task("[cyan]Checking user...", total=None)
                 
                 # Check if user exists
                 result = await session.execute(
-                    select(User).where((User.email == email) | (User.username == username))
+                    select(Profile).where(Profile.email == email)
                 )
                 if result.scalar_one_or_none():
                     console.print("\n[bold red]✗ Error:[/bold red] User already exists!")
                     sys.exit(1)
-
-                # Create superuser
-                superuser = User(
-                    email=email,
-                    username=username,
-                    full_name=full_name or username,
-                    hashed_password=get_password_hash(password),
-                    is_active=True,
-                    is_superuser=True,
-                )
-
-                session.add(superuser)
-                await session.commit()
-                await session.refresh(superuser)
                 
                 progress.update(task, completed=True)
 
-            # Success panel
-            success_table = Table(show_header=False, box=box.SIMPLE)
-            success_table.add_row("[cyan]Email:[/cyan]", f"[white]{superuser.email}[/white]")
-            success_table.add_row("[cyan]Username:[/cyan]", f"[white]{superuser.username}[/white]")
-            success_table.add_row("[cyan]Full Name:[/cyan]", f"[white]{superuser.full_name}[/white]")
-            
+            # Note about Supabase Auth
             console.print()
-            console.print(Panel(
-                success_table,
-                title="[bold green]✓ Superuser Created Successfully[/bold green]",
-                border_style="green"
-            ))
+            console.print("[yellow]⚠ Note:[/yellow] PixCrawler uses Supabase Auth for user management")
+            console.print()
+            console.print("[cyan]To create a superuser:[/cyan]")
+            console.print("1. Create user in Supabase Dashboard (Authentication > Users)")
+            console.print(f"   Email: {email}")
+            console.print("2. After user signs up, update their role:")
+            console.print(f"   UPDATE profiles SET role='admin' WHERE email='{email}';")
+            console.print()
+            console.print("[dim]Users are automatically created in profiles table via Supabase trigger[/dim]")
 
         except Exception as e:
             await session.rollback()
@@ -246,59 +228,54 @@ async def create_superuser():
     await engine.dispose()
 
 
-async def promote_user(username: str):
-    """Promote an existing user to superuser."""
+async def promote_user(email: str):
+    """Promote an existing user to admin."""
     engine = get_engine()
 
     async with engine.begin() as conn:
         # First check if user exists and their current status
         check_result = await conn.execute(
-            text("SELECT id, email, username, is_superuser FROM users WHERE username = :username"),
-            {"username": username},
+            text("SELECT id, email, full_name, role FROM profiles WHERE email = :email"),
+            {"email": email},
         )
         existing_user = check_result.fetchone()
 
         if not existing_user:
-            print(f"❌ User '{username}' not found!")
+            print(f"❌ User '{email}' not found!")
             sys.exit(1)
 
-        if existing_user.is_superuser:
-            print(f"⚠️  User '{username}' is already a superuser!")
+        if existing_user.role == 'admin':
+            print(f"⚠️  User '{email}' is already an admin!")
             print(f"   ID: {existing_user.id}")
-            print(f"   Email: {existing_user.email}")
+            print(f"   Full Name: {existing_user.full_name}")
             return
 
-        # Promote to superuser
+        # Promote to admin
         result = await conn.execute(
             text(
-                "UPDATE users SET is_superuser = true "
-                "WHERE username = :username "
-                "RETURNING id, email, username, is_superuser"
+                "UPDATE profiles SET role = 'admin' "
+                "WHERE email = :email "
+                "RETURNING id, email, full_name, role"
             ),
-            {"username": username},
+            {"email": email},
         )
         user = result.fetchone()
 
-        print(f"✅ User '{username}' promoted to superuser!")
+        print(f"✅ User '{email}' promoted to admin!")
         print(f"   ID: {user.id}")
-        print(f"   Email: {user.email}")
+        print(f"   Full Name: {user.full_name}")
 
     await engine.dispose()
 
 
 async def create_tables(args: argparse.Namespace):
-    """Create all database tables with LTREE extension."""
+    """Create all database tables."""
     print("=== Creating Database Tables ===\n")
     
     engine = get_engine()
     
     try:
         async with engine.begin() as conn:
-            # Create LTREE extension
-            print("Creating LTREE extension...")
-            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS ltree"))
-            print("✅ LTREE extension created")
-            
             # Create all tables
             print("Creating tables...")
             await conn.run_sync(Base.metadata.create_all)
@@ -366,11 +343,6 @@ async def reset_db(args: argparse.Namespace):
             await conn.run_sync(Base.metadata.drop_all)
             print("✅ All tables dropped")
             
-            # Create LTREE extension
-            print("Creating LTREE extension...")
-            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS ltree"))
-            print("✅ LTREE extension created")
-            
             # Create all tables
             print("Creating tables...")
             await conn.run_sync(Base.metadata.create_all)
@@ -388,46 +360,19 @@ async def reset_password_command(args: argparse.Namespace):
     """Reset password for a user."""
     print("=== Reset User Password ===\n")
     
-    username = args.username
+    email = args.username  # Keep arg name for compatibility but use as email
     
-    # Prompt for new password
-    new_password = input("New password: ").strip()
-    if not new_password:
-        print("❌ Error: Password cannot be empty!")
-        sys.exit(1)
+    print("⚠️  Note: PixCrawler uses Supabase Auth for password management")
+    print()
+    print("To reset a user's password:")
+    print("1. Go to Supabase Dashboard > Authentication > Users")
+    print(f"2. Find user: {email}")
+    print("3. Click 'Send password recovery email' or 'Reset password'")
+    print()
+    print("Alternatively, use Supabase Admin API:")
+    print(f"   supabase.auth.admin.update_user_by_id(user_id, {{password: 'new_password'}})")
     
-    confirm_password = input("Confirm password: ").strip()
-    if new_password != confirm_password:
-        print("❌ Error: Passwords do not match!")
-        sys.exit(1)
-    
-    engine = get_engine()
-    session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    
-    async with session_maker() as session:
-        try:
-            # Find user
-            result = await session.execute(select(User).where(User.username == username))
-            user = result.scalar_one_or_none()
-            
-            if not user:
-                print(f"❌ Error: User '{username}' not found!")
-                sys.exit(1)
-            
-            # Update password
-            user.hashed_password = get_password_hash(new_password)
-            await session.commit()
-            
-            print(f"✅ Password reset successfully for user '{username}'!")
-            print(f"   Email: {user.email}")
-        except Exception as e:
-            await session.rollback()
-            print(f"❌ Error resetting password: {e}")
-            sys.exit(1)
-        finally:
-            await session.close()
-    
-    await engine.dispose()
+    await asyncio.sleep(0)  # Keep async signature
 
 
 async def check_env_command(args: argparse.Namespace):
@@ -441,9 +386,10 @@ async def check_env_command(args: argparse.Namespace):
     print("Checking environment variables...")
     
     required_vars = {
-        "DATABASE_URL": settings.database.url,
-        "SECRET_KEY": settings.security.secret_key.get_secret_value() if settings.security.secret_key else None,
-        "ALGORITHM": settings.security.algorithm,
+        "DATABASE_URL": settings.database.url if hasattr(settings, 'database') else None,
+        "SUPABASE_URL": settings.supabase.url if hasattr(settings, 'supabase') else None,
+        "SUPABASE_SERVICE_ROLE_KEY": "***" if hasattr(settings, 'supabase') and settings.supabase.service_role_key else None,
+        "REDIS_URL": settings.redis.url if hasattr(settings, 'redis') else None,
     }
     
     for var_name, var_value in required_vars.items():
@@ -456,13 +402,16 @@ async def check_env_command(args: argparse.Namespace):
     # Check database connectivity
     print("\nChecking database connectivity...")
     try:
-        engine = get_engine()
+        engine = get_engine
         async with engine.begin() as conn:
             await conn.execute(text("SELECT 1"))
         print(f"✅ Database connection successful")
-        print(f"   Provider: {settings.database.provider}")
-        print(f"   Host: {settings.database.host}")
-        print(f"   Database: {settings.database.name}")
+        if hasattr(settings.database, 'provider'):
+            print(f"   Provider: {settings.database.provider}")
+        if hasattr(settings.database, 'host'):
+            print(f"   Host: {settings.database.host}")
+        if hasattr(settings.database, 'name'):
+            print(f"   Database: {settings.database.name}")
         await engine.dispose()
     except Exception as e:
         print(f"❌ Database connection failed: {e}")
@@ -509,60 +458,21 @@ async def seed_data_command(args: argparse.Namespace):
     """Create sample data for development."""
     print("=== Seeding Sample Data ===\n")
     
-    engine = get_engine()
-    session_maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    print("⚠️  Note: PixCrawler uses Supabase Auth for user management")
+    print()
+    print("To create sample data:")
+    print("1. Create test users in Supabase Dashboard (Authentication > Users)")
+    print("2. Users will automatically get profiles via Supabase trigger")
+    print("3. Use the frontend or API to create projects and crawl jobs")
+    print()
+    print("Example API calls:")
+    print("  POST /api/v1/projects - Create a project")
+    print("  POST /api/v1/jobs - Create a crawl job")
+    print()
+    print("Or use the frontend seed script:")
+    print("  cd frontend && bun run db:seed")
     
-    async with session_maker() as session:
-        try:
-            # Check if data already exists
-            result = await session.execute(select(User).limit(1))
-            if result.scalar_one_or_none():
-                print("⚠️  Database already contains data.")
-                response = input("Do you want to continue? (yes/no): ").strip().lower()
-                if response != "yes":
-                    print("Operation cancelled.")
-                    return
-            
-            # Create sample users
-            print("Creating sample users...")
-            
-            admin_user = User(
-                email="admin@example.com",
-                username="admin",
-                full_name="Admin User",
-                hashed_password=get_password_hash("Admin123!"),
-                is_active=True,
-                is_superuser=True,
-            )
-            
-            regular_user = User(
-                email="user@example.com",
-                username="user",
-                full_name="Regular User",
-                hashed_password=get_password_hash("User123!"),
-                is_active=True,
-                is_superuser=False,
-            )
-            
-            session.add_all([admin_user, regular_user])
-            await session.commit()
-            
-            print("✅ Sample users created:")
-            print(f"   Admin: admin@example.com / Admin123!")
-            print(f"   User: user@example.com / User123!")
-            
-            # Note: Additional sample data (projects, crawl jobs, etc.) can be added
-            # through the API or frontend interface as needed
-            
-            print("\n✅ Sample data seeded successfully!")
-        except Exception as e:
-            await session.rollback()
-            print(f"❌ Error seeding data: {e}")
-            sys.exit(1)
-        finally:
-            await session.close()
-    
-    await engine.dispose()
+    await asyncio.sleep(0)  # Keep async signature
 
 
 def get_python_executable() -> str:
@@ -602,12 +512,6 @@ async def clean_db_types_command(args: argparse.Namespace):
                 JOIN pg_namespace n ON t.typnamespace = n.oid
                 WHERE n.nspname = 'public' 
                 AND t.typtype = 'c'
-                AND typname IN (
-                    'users', 'sessions', 'customers', 'manufacturing_types',
-                    'attribute_nodes', 'configurations', 'configuration_selections',
-                    'configuration_templates', 'template_selections',
-                    'quotes', 'orders', 'order_items'
-                )
             """))
             
             types_to_drop = [row[0] for row in result]
@@ -623,21 +527,15 @@ async def clean_db_types_command(args: argparse.Namespace):
             else:
                 print("No orphaned types found")
             
-            print("\nStep 3: Creating LTREE extension...")
-            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS ltree"))
-            print("✅ LTREE extension created")
-            
-            print("\nStep 4: Creating all tables...")
+            print("\nStep 3: Creating all tables...")
             await conn.run_sync(Base.metadata.create_all)
             print("✅ All tables created")
             
         print("\n" + "="*50)
         print("✅ Database cleaned and recreated!")
         print("\nNext steps:")
-        print("1. Stamp alembic to current version:")
-        print("   python manage.py stamp_alembic")
-        print("\n2. Seed initial data:")
-        print("   python manage.py seed_data")
+        print("1. Create users in Supabase Dashboard")
+        print("2. Use frontend or API to create sample data")
         
     except Exception as e:
         print(f"\n❌ Error: {e}")
@@ -651,7 +549,7 @@ async def clean_db_types_command(args: argparse.Namespace):
 async def verify_setup_command(args: argparse.Namespace):
     """Verify complete setup is working."""
     print("="*60)
-    print("WINDX APPLICATION SETUP VERIFICATION")
+    print("PIXCRAWLER APPLICATION SETUP VERIFICATION")
     print("="*60)
     
     engine = get_engine()
@@ -659,28 +557,17 @@ async def verify_setup_command(args: argparse.Namespace):
     
     try:
         async with engine.begin() as conn:
-            # 1. Check LTREE extension
-            print("\n1. Checking LTREE extension...")
-            result = await conn.execute(
-                text("SELECT 1 FROM pg_extension WHERE extname = 'ltree'")
-            )
-            if result.scalar():
-                print("   ✅ LTREE extension installed")
-            else:
-                print("   ❌ LTREE extension missing")
-                all_ok = False
-            
-            # 2. Check all tables exist
-            print("\n2. Checking database tables...")
+            # 1. Check all tables exist
+            print("\n1. Checking database tables...")
             result = await conn.execute(
                 text("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename")
             )
             tables = [row[0] for row in result]
             expected_tables = [
-                'alembic_version', 'attribute_nodes', 'configuration_selections',
-                'configuration_templates', 'configurations', 'customers',
-                'manufacturing_types', 'order_items', 'orders', 'quotes',
-                'sessions', 'template_selections', 'users'
+                'profiles', 'projects', 'crawl_jobs', 'images',
+                'activity_logs', 'api_keys', 'credit_accounts',
+                'credit_transactions', 'notifications',
+                'notification_preferences', 'usage_metrics'
             ]
             
             missing = set(expected_tables) - set(tables)
@@ -690,44 +577,37 @@ async def verify_setup_command(args: argparse.Namespace):
             else:
                 print(f"   ✅ All {len(expected_tables)} tables exist")
             
+            # 2. Check profiles
+            print("\n2. Checking user profiles...")
+            result = await conn.execute(text("SELECT COUNT(*) FROM profiles"))
+            profile_count = result.scalar()
+            print(f"   ✅ Total profiles: {profile_count}")
+            
             # 3. Check admin user
-            print("\n3. Checking admin user...")
+            print("\n3. Checking admin users...")
             result = await conn.execute(
-                text("SELECT username, email, is_superuser, is_active FROM users WHERE username = 'admin'")
+                text("SELECT email, full_name, role FROM profiles WHERE role = 'admin'")
             )
-            admin = result.fetchone()
-            if admin:
-                print(f"   ✅ Admin user found")
-                print(f"      Username: {admin[0]}")
-                print(f"      Email: {admin[1]}")
-                print(f"      Superuser: {admin[2]}")
-                print(f"      Active: {admin[3]}")
-                
-                if not admin[2]:
-                    print("   ❌ Admin user is not a superuser!")
-                    all_ok = False
-                if not admin[3]:
-                    print("   ❌ Admin user is not active!")
-                    all_ok = False
+            admins = result.fetchall()
+            if admins:
+                print(f"   ✅ Found {len(admins)} admin(s)")
+                for admin in admins:
+                    print(f"      Email: {admin[0]}, Name: {admin[1]}")
             else:
-                print("   ⚠️  Admin user not found (run: python manage.py seed_data)")
+                print("   ⚠️  No admin users found")
+                print("      Create one in Supabase Dashboard and update role")
             
-            # 4. Check Alembic version
-            print("\n4. Checking Alembic migrations...")
-            result = await conn.execute(
-                text("SELECT version_num FROM alembic_version")
-            )
-            version = result.scalar()
-            if version:
-                print(f"   ✅ Alembic version: {version}")
-            else:
-                print("   ⚠️  No Alembic version found (run: python manage.py stamp_alembic)")
+            # 4. Check projects
+            print("\n4. Checking projects...")
+            result = await conn.execute(text("SELECT COUNT(*) FROM projects"))
+            project_count = result.scalar()
+            print(f"   ✅ Total projects: {project_count}")
             
-            # 5. Check user count
-            print("\n5. Checking user accounts...")
-            result = await conn.execute(text("SELECT COUNT(*) FROM users"))
-            user_count = result.scalar()
-            print(f"   ✅ Total users: {user_count}")
+            # 5. Check crawl jobs
+            print("\n5. Checking crawl jobs...")
+            result = await conn.execute(text("SELECT COUNT(*) FROM crawl_jobs"))
+            job_count = result.scalar()
+            print(f"   ✅ Total crawl jobs: {job_count}")
             
         print("\n" + "="*60)
         if all_ok:
@@ -735,13 +615,11 @@ async def verify_setup_command(args: argparse.Namespace):
             print("="*60)
             print("\nYou can now:")
             print("1. Start the server:")
-            print(f"   {get_python_executable()} -m uvicorn main:app --reload")
-            print("\n2. Login to admin panel:")
-            print("   http://127.0.0.1:8000/api/v1/admin/login")
-            print("   Username: admin")
-            print("   Password: Admin123!")
-            print("\n3. View API docs:")
+            print(f"   {get_python_executable()} manage.py start")
+            print("\n2. View API docs:")
             print("   http://127.0.0.1:8000/docs")
+            print("\n3. Check health:")
+            print("   http://127.0.0.1:8000/health")
             return 0
         else:
             print("⚠️  SOME CHECKS FAILED OR INCOMPLETE")
@@ -759,25 +637,24 @@ async def verify_setup_command(args: argparse.Namespace):
 
 
 async def stamp_alembic_command(args: argparse.Namespace):
-    """Stamp Alembic to current version without running migrations."""
-    print("=== Stamping Alembic Version ===\n")
+    """Run database migrations (Drizzle)."""
+    print("=== Database Migrations ===\n")
     
-    import subprocess
+    print("⚠️  Note: PixCrawler uses Drizzle ORM for migrations (frontend)")
+    print()
+    print("To run migrations:")
+    print("1. Generate migration:")
+    print("   cd frontend && bun run db:generate")
+    print()
+    print("2. Apply migration:")
+    print("   cd frontend && bun run db:migrate")
+    print()
+    print("3. View database:")
+    print("   cd frontend && bun run db:studio")
+    print()
+    print("Backend SQLAlchemy models are synchronized with Drizzle schema.")
     
-    python_exe = get_python_executable()
-    result = subprocess.run(
-        [python_exe, "-m", "alembic", "stamp", "head"],
-        capture_output=True,
-        text=True
-    )
-    
-    if result.returncode == 0:
-        print("✅ Alembic stamped to head version")
-        print(result.stdout)
-    else:
-        print("❌ Error stamping Alembic:")
-        print(result.stderr)
-        sys.exit(1)
+    await asyncio.sleep(0)  # Keep async signature
 
 
 async def check_db_command(args: argparse.Namespace):
@@ -1121,7 +998,7 @@ def start_server_command(args: argparse.Namespace):
         # Gunicorn command
         cmd = [
             python_exe, "-m", "gunicorn",
-            "main:app",
+            "backend.main:app",
             "--bind", f"{host}:{port}",
             "--worker-class", "uvicorn.workers.UvicornWorker",
         ]
@@ -1141,7 +1018,7 @@ def start_server_command(args: argparse.Namespace):
         # Uvicorn command
         cmd = [
             python_exe, "-m", "uvicorn",
-            "main:app",
+            "backend.main:app",
             "--host", host,
             "--port", str(port),
         ]
@@ -2108,7 +1985,7 @@ def main():
     parser.add_argument(
         "username",
         nargs="?",
-        help="Username (for promote and reset_password commands)",
+        help="Email address (for promote and reset_password commands)",
     )
     
     parser.add_argument(
