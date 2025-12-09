@@ -83,10 +83,10 @@ class DatasetService(BaseService):
             "max_images": dataset_create.max_images,
             "status": "pending",
         }
-        crawl_job = await self.crawl_job_repo.create(crawl_job_data)
+        crawl_job = await self.crawl_job_repo.create(**crawl_job_data)
         
         dataset_data["crawl_job_id"] = crawl_job.id
-        dataset = await self.dataset_repo.create(dataset_data)
+        dataset = await self.dataset_repo.create(**dataset_data)
         
         return DatasetResponse(
             id=dataset.id,
@@ -211,14 +211,14 @@ class DatasetService(BaseService):
                 # Update dataset status based on crawl job status
                 if dataset.status != crawl_job.status and crawl_job.status in ["completed", "failed", "cancelled"]:
                     dataset = await self.dataset_repo.update(
-                        dataset_id,
-                        {"status": DatasetStatus(crawl_job.status.upper())}
+                        dataset,
+                        status=DatasetStatus(crawl_job.status.upper())
                     )
         
         # Update last_accessed_at
         await self.dataset_repo.update(
-            dataset_id,
-            {"last_accessed_at": datetime.now()}
+            dataset,
+            last_accessed_at=datetime.now()
         )
         
         return DatasetResponse(
@@ -275,7 +275,7 @@ class DatasetService(BaseService):
         update_data = dataset_update.model_dump(exclude_unset=True)
         
         # Update dataset
-        updated_dataset = await self.dataset_repo.update(dataset_id, update_data)
+        updated_dataset = await self.dataset_repo.update(dataset, **update_data)
         
         return await self.get_dataset_by_id(updated_dataset.id, user_id)
 
@@ -303,10 +303,12 @@ class DatasetService(BaseService):
             
         # Cancel any running crawl job
         if dataset.crawl_job_id:
-            await self.crawl_job_repo.update(
-                dataset.crawl_job_id,
-                {"status": CrawlJobStatus.CANCELLED}
-            )
+            crawl_job = await self.crawl_job_repo.get_by_id(dataset.crawl_job_id)
+            if crawl_job:
+                await self.crawl_job_repo.update(
+                    crawl_job,
+                    status=CrawlJobStatus.CANCELLED
+                )
             
         # Delete dataset (cascade will handle related data)
         await self.dataset_repo.delete(dataset_id)
@@ -342,15 +344,17 @@ class DatasetService(BaseService):
             
         # Cancel associated crawl job if exists
         if dataset.crawl_job_id:
-            await self.crawl_job_repo.update(
-                dataset.crawl_job_id,
-                {"status": CrawlJobStatus.CANCELLED}
-            )
+            crawl_job = await self.crawl_job_repo.get_by_id(dataset.crawl_job_id)
+            if crawl_job:
+                await self.crawl_job_repo.update(
+                    crawl_job,
+                    status=CrawlJobStatus.CANCELLED
+                )
             
         # Update dataset status
         updated_dataset = await self.dataset_repo.update(
-            dataset_id,
-            {"status": DatasetStatus.CANCELLED}
+            dataset,
+            status=DatasetStatus.CANCELLED
         )
         
         return await self.get_dataset_by_id(updated_dataset.id, user_id)
@@ -455,16 +459,18 @@ class DatasetService(BaseService):
             
         # Update dataset status to processing
         await self.dataset_repo.update(
-            dataset_id,
-            {"status": DatasetStatus.PROCESSING}
+            dataset,
+            status=DatasetStatus.PROCESSING
         )
         
         # Start associated crawl job if exists
         if dataset.crawl_job_id:
-            await self.crawl_job_repo.update(
-                dataset.crawl_job_id,
-                {"status": CrawlJobStatus.RUNNING}
-            )
+            crawl_job = await self.crawl_job_repo.get_by_id(dataset.crawl_job_id)
+            if crawl_job:
+                await self.crawl_job_repo.update(
+                    crawl_job,
+                    status=CrawlJobStatus.RUNNING
+                )
             
             # TODO: Dispatch Celery task here
             # from builder.tasks import process_crawl_job_task

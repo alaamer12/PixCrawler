@@ -59,7 +59,7 @@ class ProjectService:
         Raises:
             HTTPException: If project not found or access denied
         """
-        project = await self.repository.get(project_id)
+        project = await self.repository.get_by_id(project_id)
 
         if not project:
             raise HTTPException(
@@ -89,7 +89,7 @@ class ProjectService:
         project_data = project_in.model_dump()
         project_data["user_id"] = user_id
 
-        return await self.repository.create(project_data)
+        return await self.repository.create(**project_data)
 
     async def update_project(
         self,
@@ -117,7 +117,7 @@ class ProjectService:
         if not update_data:
             return project
 
-        return await self.repository.update(project_id, update_data)
+        return await self.repository.update(project, **update_data)
 
     async def delete_project(self, project_id: int, user_id: UUID) -> bool:
         """

@@ -37,6 +37,7 @@ from backend.api.dependencies import (
     get_resource_monitor,
     get_metrics_service,
     get_dashboard_service,
+    get_policy_service,
 )
 from backend.services.crawl_job import CrawlJobService
 from backend.services.dataset import DatasetService
@@ -47,6 +48,7 @@ from backend.services.validation import ValidationService
 from backend.services.resource_monitor import ResourceMonitor
 from backend.services.metrics import MetricsService
 from backend.services.dashboard import DashboardService
+from backend.services.policy import PolicyService
 
 __all__ = [
     # Auth & Session
@@ -62,6 +64,7 @@ __all__ = [
     'ResourceMonitorDep',
     'MetricsServiceDep',
     'DashboardServiceDep',
+    'PolicyServiceDep',
     # Path Parameters
     'UserID',
     'DatasetID',
@@ -272,6 +275,24 @@ Usage:
         service: DashboardServiceDep
     ):
         return await service.get_dashboard_stats(...)
+"""
+
+PolicyServiceDep = Annotated[
+    PolicyService,
+    Depends(get_policy_service)
+]
+"""
+Policy service dependency.
+
+Automatically injects PolicyService for dataset lifecycle policy management.
+
+Usage:
+    @router.post("/policies/archival")
+    async def create_archival_policy(
+        policy_data: ArchivalPolicyCreate,
+        service: PolicyServiceDep
+    ):
+        return await service.create_archival_policy(policy_data)
 """
 
 

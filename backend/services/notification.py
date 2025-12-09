@@ -93,7 +93,7 @@ class NotificationService:
         Returns:
             Created notification
         """
-        return await self.repository.create(notification_in.model_dump())
+        return await self.repository.create(**notification_in.model_dump())
 
     async def mark_as_read(self, notification_id: int, user_id: UUID) -> bool:
         """
@@ -113,7 +113,7 @@ class NotificationService:
 
         if not updated:
             # Check if it exists but belongs to another user or doesn't exist
-            notification = await self.repository.get(notification_id)
+            notification = await self.repository.get_by_id(notification_id)
             if not notification:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
