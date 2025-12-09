@@ -27,7 +27,7 @@ ALWAYS COMPLETE FULL PHASE TASKS, not one of them
 
 
 
-- [ ] 1.5 Fix api_keys.py endpoint imports
+- [x] 1.5 Fix api_keys.py endpoint imports
   - Add `from fastapi import status as http_status`
   - Replace status code references
 
@@ -43,7 +43,7 @@ ALWAYS COMPLETE FULL PHASE TASKS, not one of them
   - Keep CrawlJobStatus enum import unchanged
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 1.7 Fix remaining endpoint files (datasets, exports, health, notifications, projects, storage, users, validation)
+- [x] 1.7 Fix remaining endpoint files (datasets, exports, health, notifications, projects, storage, users, validation)
   - Update all endpoint files with http_status alias
 
 
@@ -56,12 +56,12 @@ ALWAYS COMPLETE FULL PHASE TASKS, not one of them
   - **Property 1: HTTP Status Import Consistency**
   - **Validates: Requirements 1.2, 1.4**
 
-- [ ] 1.9 Update Dataset model indexes
+- [x] 1.9 Update Dataset model indexes
   - Change Index("ix_datasets_user_id", "user_id") to Index("ix_datasets_user_id", user_id)
   - Update all other index definitions
   - _Requirements: 4.1, 4.2_
 
-- [ ] 1.10 Verify other models have correct index syntax
+- [x] 1.10 Verify other models have correct index syntax
   - Check CrawlJob, Project, Notification models
   - Fix any string-based index definitions
   - _Requirements: 4.1, 4.4_
@@ -105,7 +105,7 @@ ALWAYS COMPLETE FULL PHASE TASKS, not one of them
 
 
 
-- [ ] 2.4 Fix dataset service repository calls
+- [x] 2.4 Fix dataset service repository calls
   - Fix create() calls: await repo.create(**data)
   - Fix update() calls: await repo.update(instance, **updates)
   - Fix get() calls: await repo.get_by_id(id)
@@ -122,7 +122,7 @@ ALWAYS COMPLETE FULL PHASE TASKS, not one of them
 
 
 
-- [ ] 2.6 Fix project service repository calls
+- [x] 2.6 Fix project service repository calls
   - Fix create() calls to use **kwargs
   - Fix update() calls to pass instance
 
@@ -130,12 +130,12 @@ ALWAYS COMPLETE FULL PHASE TASKS, not one of them
   - Fix get() calls to use get_by_id()
   - _Requirements: 2.1, 2.2, 2.3_
 
-- [ ] 2.7 Fix user service repository calls
+- [x] 2.7 Fix user service repository calls
   - Fix update() calls to pass instance first
   - Ensure get_by_uuid() is used for UUID lookups
   - _Requirements: 2.2, 2.3_
 
-- [ ] 2.8 Fix validation service repository calls
+- [x] 2.8 Fix validation service repository calls
   - Fix any incorrect repository method calls
   - _Requirements: 2.1, 2.2, 2.3_
 
@@ -159,7 +159,7 @@ ALWAYS COMPLETE FULL PHASE TASKS, not one of them
 
   - **Validates: Requirements 2.3**
 
-- [ ] 2.12 Fix missing user_id parameters
+- [x] 2.12 Fix missing user_id parameters
   - Find all get_job_with_ownership_check calls
 
 
@@ -167,7 +167,7 @@ ALWAYS COMPLETE FULL PHASE TASKS, not one of them
   - _Requirements: 8.1_
 
 
-- [ ] 2.13 Fix missing category_name in validator calls
+- [x] 2.13 Fix missing category_name in validator calls
   - Find all validator.check_integrity calls
   - Add category_name parameter
   - _Requirements: 8.2_
@@ -178,11 +178,23 @@ ALWAYS COMPLETE FULL PHASE TASKS, not one of them
   - **Property 9: Required Parameter Completeness**
   - **Validates: Requirements 8.1, 8.2**
 
-- [ ] 3. Phase 3: Crawl Job Service Refactoring & Type Safety
+- [x] 3. Phase 3: Crawl Job Service Refactoring & Type Safety
+
+
+
+
+
   - Refactor crawl_job service to use builder package
   - Fix type conversion and enum handling issues
   - Fix ActivityLog model and timestamp access
   - _Requirements: 3.1, 3.3, 3.4, 9.1, 9.2, 9.3, 9.4, 10.1, 10.2, 10.3, 10.4_
+
+
+
+
+
+
+
 
 
 
@@ -201,6 +213,8 @@ ALWAYS COMPLETE FULL PHASE TASKS, not one of them
   - Remove duplicate code
 
 
+
+
   - _Requirements: 3.1, 3.3_
 
 - [ ] 3.3 Update crawl_job service tests
@@ -214,14 +228,22 @@ ALWAYS COMPLETE FULL PHASE TASKS, not one of them
 
 
 
+
+
 - [ ] 3.5 Create type conversion utility functions
   - Implement uuid_to_int() helper
+
+
   - Implement ensure_enum() helper
+
+
 
 
   - _Requirements: 9.1, 9.2_
 
-- [ ] 3.6 Fix UUID to int conversions in services
+- [x] 3.6 Fix UUID to int conversions in services
+
+
   - Add explicit conversions where UUID passed to int parameter
   - Use uuid_to_int() utility
   - _Requirements: 9.1_
@@ -233,8 +255,12 @@ ALWAYS COMPLETE FULL PHASE TASKS, not one of them
 
 - [ ] 3.8 Fix model attribute name errors
   - Change properties.metadata_ to properties.metadata
+
+
   - Fix other attribute name issues
   - _Requirements: 9.3_
+
+
 
 - [ ]* 3.9 Write property test for type conversion explicitness
   - **Property 10: Type Conversion Explicitness**

@@ -475,9 +475,10 @@ class AzureBlobArchiveProvider:
 
             # Start rehydration
             standard_tier = self._tier_to_standard_blob_tier(target_tier)
+            # ✅ CORRECT - Pass enum object directly, not .value
             blob_client.set_standard_blob_tier(
                 standard_tier,
-                rehydrate_priority=priority
+                rehydrate_priority=priority  # Enum object, not priority.value
             )
 
             logger.info(

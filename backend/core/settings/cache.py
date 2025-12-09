@@ -1,6 +1,8 @@
 """Cache configuration settings."""
 
-from pydantic import Field, field_validator
+import os
+import warnings
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = ["CacheSettings"]
@@ -11,18 +13,28 @@ class CacheSettings(BaseSettings):
     Redis cache configuration.
     
     Environment variables:
-        CACHE_ENABLED: Enable caching
-        CACHE_REDIS_HOST: Redis host address
+        CACHE_ENABLED: Enable caching (required in production)
+        CACHE_REDIS_HOST: Redis host address (required in production)
         CACHE_REDIS_PORT: Redis port number
         CACHE_REDIS_PASSWORD: Redis password (optional)
         CACHE_REDIS_DB: Redis database number
         CACHE_PREFIX: Key prefix for cache entries
         CACHE_DEFAULT_TTL: Default time-to-live in seconds
+        ENVIRONMENT: Application environment (development/production)
+    
+    Production Requirements:
+        - CACHE_ENABLED must be True
+        - CACHE_REDIS_HOST must not be localhost
+        - Caching is mandatory for performance
+    
+    Development Behavior:
+        - Defaults to localhost with warning
+        - Caching can be disabled for testing
     """
     
     model_config = SettingsConfigDict(
         env_prefix="CACHE_",
-        env_file=".env",
+        env_file=[".env", "backend/.env"],
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -79,6 +91,42 @@ class CacheSettings(BaseSettings):
         if not v.endswith(":"):
             return f"{v}:"
         return v
+    
+    @model_validator(mode='after')
+    def validate_production_config(self) -> 'CacheSettings':
+        """Enforce cache configuration in production, warn in development."""
+        # Get environment from environment variable
+        environment = os.getenv('ENVIRONMENT', 'development').lower()
+        is_production = environment in ('production', 'prod')
+        is_azure = bool(os.getenv('WEBSITE_INSTANCE_ID'))  # Azure App Service indicator
+        
+        is_localhost = self.redis_host in ('localhost', '127.0.0.1')
+        
+        if is_production or is_azure:
+            # PRODUCTION: Enforce proper configuration
+            if not self.enabled:
+                raise ValueError(
+                    "Caching must be enabled in production for performance. "
+                    "Set CACHE_ENABLED=true in environment variables."
+                )
+            if is_localhost:
+                raise ValueError(
+                    "Cache cannot use localhost Redis in production. "
+                    f"Current host: {self.redis_host}. "
+                    "Set CACHE_REDIS_HOST to a proper Redis server address."
+                )
+        else:
+            # DEVELOPMENT: Warn about localhost configuration
+            if is_localhost:
+                warnings.warn(
+                    "⚠️  Using localhost Redis for caching (localhost:6379). "
+                    "This is OK for local development. "
+                    "For production, set CACHE_REDIS_HOST environment variable.",
+                    UserWarning,
+                    stacklevel=2
+                )
+        
+        return self
     
     def get_redis_url(self) -> str:
         """

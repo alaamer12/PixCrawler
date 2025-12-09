@@ -6,7 +6,7 @@ image dataset generation jobs and their metadata.
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
@@ -24,8 +24,10 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import UUID as SQLAlchemyUUID
 
-from database.models import Profile, CrawlJob
 from .base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from database.models import Profile, CrawlJob
 
 __all__ = ['Dataset']
 

@@ -1,7 +1,9 @@
 """Rate limiting configuration settings."""
 
+import os
 import re
-from pydantic import Field, field_validator
+import warnings
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = ["RateLimitSettings"]
@@ -12,8 +14,8 @@ class RateLimitSettings(BaseSettings):
     API rate limiting configuration with Redis backend.
     
     Environment variables:
-        LIMITER_ENABLED: Enable rate limiting
-        LIMITER_REDIS_HOST: Redis host address
+        LIMITER_ENABLED: Enable rate limiting (required in production)
+        LIMITER_REDIS_HOST: Redis host address (required in production)
         LIMITER_REDIS_PORT: Redis port number
         LIMITER_REDIS_PASSWORD: Redis password (optional)
         LIMITER_REDIS_DB: Redis database number
@@ -24,6 +26,16 @@ class RateLimitSettings(BaseSettings):
         RATE_LIMIT_CREATE_CRAWL_JOB: Crawl job creation limit (legacy)
         RATE_LIMIT_RETRY_JOB: Job retry limit (legacy)
         RATE_LIMIT_BUILD_JOB: Build job start limit (legacy)
+        ENVIRONMENT: Application environment (development/production)
+    
+    Production Requirements:
+        - LIMITER_ENABLED must be True
+        - LIMITER_REDIS_HOST must not be localhost
+        - Rate limiting is mandatory for API protection
+    
+    Development Behavior:
+        - Defaults to localhost with warning
+        - Rate limiting can be disabled for testing
     
     Note:
         Uses LIMITER_ prefix for Redis configuration to avoid conflicts with CACHE_.
@@ -32,7 +44,7 @@ class RateLimitSettings(BaseSettings):
     
     model_config = SettingsConfigDict(
         env_prefix="LIMITER_",
-        env_file=".env",
+        env_file=[".env", "backend/.env"],
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -145,6 +157,42 @@ class RateLimitSettings(BaseSettings):
             raise ValueError(f"Seconds must be at least 1, got: {seconds}")
         
         return v
+    
+    @model_validator(mode='after')
+    def validate_production_config(self) -> 'RateLimitSettings':
+        """Enforce rate limiting configuration in production, warn in development."""
+        # Get environment from environment variable
+        environment = os.getenv('ENVIRONMENT', 'development').lower()
+        is_production = environment in ('production', 'prod')
+        is_azure = bool(os.getenv('WEBSITE_INSTANCE_ID'))  # Azure App Service indicator
+        
+        is_localhost = self.redis_host in ('localhost', '127.0.0.1')
+        
+        if is_production or is_azure:
+            # PRODUCTION: Enforce proper configuration
+            if not self.enabled:
+                raise ValueError(
+                    "Rate limiting must be enabled in production for API protection. "
+                    "Set LIMITER_ENABLED=true in environment variables."
+                )
+            if is_localhost:
+                raise ValueError(
+                    "Rate limiter cannot use localhost Redis in production. "
+                    f"Current host: {self.redis_host}. "
+                    "Set LIMITER_REDIS_HOST to a proper Redis server address."
+                )
+        else:
+            # DEVELOPMENT: Warn about localhost configuration
+            if is_localhost:
+                warnings.warn(
+                    "⚠️  Using localhost Redis for rate limiting (localhost:6379). "
+                    "This is OK for local development. "
+                    "For production, set LIMITER_REDIS_HOST environment variable.",
+                    UserWarning,
+                    stacklevel=2
+                )
+        
+        return self
     
     def get_redis_url(self) -> str:
         """

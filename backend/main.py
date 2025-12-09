@@ -235,6 +235,97 @@ async def cleanup_resources(cache_conn: redis.Redis | None, limiter_conn: redis.
         logger.error(f"ERROR: Error closing Redis connections: {e}")
 
 
+def log_configuration_status(settings) -> None:
+    """
+    Log configuration status on startup.
+    
+    Shows which services are configured and provides warnings/errors
+    for production requirements.
+    
+    Args:
+        settings: Application settings
+    """
+    import os
+    
+    is_production = settings.environment in ('production', 'prod')
+    is_azure = bool(os.getenv('WEBSITE_INSTANCE_ID'))
+    
+    logger.info("=" * 70)
+    logger.info("CONFIGURATION STATUS")
+    logger.info("=" * 70)
+    logger.info(f"Environment: {settings.environment}")
+    logger.info(f"Debug Mode: {settings.debug}")
+    logger.info(f"Running on Azure: {is_azure}")
+    logger.info("-" * 70)
+    
+    # Redis/Cache status
+    cache_host = settings.cache.redis_host
+    cache_enabled = settings.cache.enabled
+    cache_localhost = cache_host in ('localhost', '127.0.0.1')
+    
+    logger.info(f"Cache: {'Enabled' if cache_enabled else 'Disabled'}")
+    logger.info(f"  Redis Host: {cache_host}")
+    if is_production and cache_localhost:
+        logger.error("  ❌ ERROR: Cache using localhost in production!")
+    elif cache_localhost:
+        logger.warning("  ⚠️  WARNING: Cache using localhost (OK for development)")
+    else:
+        logger.info("  ✅ Cache properly configured")
+    
+    # Rate Limiter status
+    limiter_host = settings.rate_limit.redis_host
+    limiter_enabled = settings.rate_limit.enabled
+    limiter_localhost = limiter_host in ('localhost', '127.0.0.1')
+    
+    logger.info(f"Rate Limiter: {'Enabled' if limiter_enabled else 'Disabled'}")
+    logger.info(f"  Redis Host: {limiter_host}")
+    if is_production and not limiter_enabled:
+        logger.error("  ❌ ERROR: Rate limiting disabled in production!")
+    elif is_production and limiter_localhost:
+        logger.error("  ❌ ERROR: Rate limiter using localhost in production!")
+    elif limiter_localhost:
+        logger.warning("  ⚠️  WARNING: Rate limiter using localhost (OK for development)")
+    else:
+        logger.info("  ✅ Rate limiter properly configured")
+    
+    # Celery status
+    celery_broker = settings.celery.broker_url
+    celery_localhost = 'localhost' in celery_broker or '127.0.0.1' in celery_broker
+    
+    logger.info(f"Celery Broker: {celery_broker[:50]}...")
+    if is_production and celery_localhost:
+        logger.error("  ❌ ERROR: Celery using localhost in production!")
+    elif celery_localhost:
+        logger.warning("  ⚠️  WARNING: Celery using localhost (OK for development)")
+    else:
+        logger.info("  ✅ Celery properly configured")
+    
+    # Azure Storage status
+    storage_provider = os.getenv('STORAGE_PROVIDER', 'local').lower()
+    logger.info(f"Storage Provider: {storage_provider}")
+    
+    if storage_provider == 'azure':
+        has_azure_config = (
+            settings.azure.blob.connection_string is not None or
+            (settings.azure.blob.account_name is not None and settings.azure.blob.account_key is not None)
+        )
+        if is_production and not has_azure_config:
+            logger.error("  ❌ ERROR: Azure storage not configured in production!")
+        elif has_azure_config:
+            logger.info("  ✅ Azure Blob Storage configured")
+        else:
+            logger.warning("  ⚠️  WARNING: Azure storage not configured")
+    
+    logger.info("=" * 70)
+    
+    if is_production:
+        logger.info("🚀 PRODUCTION MODE: All services must be properly configured")
+    else:
+        logger.info("🔧 DEVELOPMENT MODE: Localhost services are acceptable")
+    
+    logger.info("=" * 70)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
@@ -253,6 +344,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     
     logger.info("Starting PixCrawler API...")
     logger.info(f"Environment: {settings.environment}")
+    
+    # Log configuration status
+    log_configuration_status(settings)
     
     # Initialize cache connection
     cache_conn = await initialize_cache(settings)

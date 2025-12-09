@@ -188,22 +188,45 @@ class AzureBlobSettings(BaseSettings):
     
     @model_validator(mode='after')
     def validate_connection_config(self) -> 'AzureBlobSettings':
-        """Validate that either connection string or account name/key is provided."""
+        """Validate Azure Blob Storage configuration based on environment."""
+        import os
         import warnings
+        
+        # Get environment from environment variable
+        environment = os.getenv('ENVIRONMENT', 'development').lower()
+        is_production = environment in ('production', 'prod')
+        is_azure = bool(os.getenv('WEBSITE_INSTANCE_ID'))  # Azure App Service indicator
+        storage_provider = os.getenv('STORAGE_PROVIDER', 'local').lower()
         
         has_connection_string = self.connection_string is not None
         has_account_credentials = self.account_name is not None and self.account_key is not None
+        is_configured = has_connection_string or has_account_credentials
         
-        if not has_connection_string and not has_account_credentials:
-            warnings.warn(
-                "Azure Blob Storage not configured: Either connection_string or both "
-                "account_name and account_key must be provided. "
-                "Azure storage features will be disabled. "
-                "Set AZURE_BLOB_CONNECTION_STRING or AZURE_BLOB_ACCOUNT_NAME/AZURE_BLOB_ACCOUNT_KEY "
-                "environment variables to enable Azure storage.",
-                UserWarning,
-                stacklevel=2
-            )
+        # Check if Azure storage is being used
+        using_azure_storage = storage_provider == 'azure'
+        
+        if (is_production or is_azure) and using_azure_storage:
+            # PRODUCTION with Azure storage: Enforce proper configuration
+            if not is_configured:
+                raise ValueError(
+                    "Azure Blob Storage configuration required in production when STORAGE_PROVIDER=azure. "
+                    "Either AZURE_BLOB_CONNECTION_STRING or both AZURE_BLOB_ACCOUNT_NAME and "
+                    "AZURE_BLOB_ACCOUNT_KEY environment variables must be set. "
+                    "Get these from Azure Portal → Storage Account → Access Keys."
+                )
+        elif not is_configured:
+            # DEVELOPMENT or non-Azure storage: Warn about missing configuration
+            if using_azure_storage:
+                warnings.warn(
+                    "⚠️  Azure Blob Storage not configured but STORAGE_PROVIDER=azure. "
+                    "Either connection_string or both account_name and account_key must be provided. "
+                    "Azure storage features will be disabled. "
+                    "Set AZURE_BLOB_CONNECTION_STRING or AZURE_BLOB_ACCOUNT_NAME/AZURE_BLOB_ACCOUNT_KEY "
+                    "environment variables to enable Azure storage.",
+                    UserWarning,
+                    stacklevel=2
+                )
+            # If not using Azure storage, no warning needed
         
         return self
     
