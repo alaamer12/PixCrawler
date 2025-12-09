@@ -107,9 +107,9 @@ class WorkflowState(Base, TimestampMixin):
 
     # Indexes
     __table_args__ = (
-        Index("ix_workflow_states_job_id", "job_id"),
-        Index("ix_workflow_states_status", "status"),
-        Index("ix_workflow_states_job_status", "job_id", "status"),
+        Index("ix_workflow_states_job_id", job_id),
+        Index("ix_workflow_states_status", status),
+        Index("ix_workflow_states_job_status", job_id, status),
         Index("ix_workflow_states_created_at", "created_at"),
     )
 
@@ -193,10 +193,10 @@ class WorkflowTask(Base, TimestampMixin):
 
     # Indexes
     __table_args__ = (
-        Index("ix_workflow_tasks_workflow_id", "workflow_id"),
-        Index("ix_workflow_tasks_status", "status"),
-        Index("ix_workflow_tasks_celery_task_id", "celery_task_id"),
-        Index("ix_workflow_tasks_workflow_status", "workflow_id", "status"),
+        Index("ix_workflow_tasks_workflow_id", workflow_id),
+        Index("ix_workflow_tasks_status", status),
+        Index("ix_workflow_tasks_celery_task_id", celery_task_id),
+        Index("ix_workflow_tasks_workflow_status", workflow_id, status),
         Index("ix_workflow_tasks_created_at", "created_at"),
     )
 

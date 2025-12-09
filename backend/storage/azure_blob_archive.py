@@ -477,7 +477,7 @@ class AzureBlobArchiveProvider:
             standard_tier = self._tier_to_standard_blob_tier(target_tier)
             blob_client.set_standard_blob_tier(
                 standard_tier,
-                rehydrate_priority=priority.value
+                rehydrate_priority=priority
             )
 
             logger.info(
@@ -554,7 +554,7 @@ class AzureBlobArchiveProvider:
                 priority = rehydrate_priority or RehydratePriority.STANDARD
                 blob_client.set_standard_blob_tier(
                     standard_tier,
-                    rehydrate_priority=priority.value
+                    rehydrate_priority=priority
                 )
                 logger.info(
                     f"Started rehydration of blob '{blob_name}' from Archive to '{tier.value}'"
@@ -606,7 +606,7 @@ class AzureBlobArchiveProvider:
                 "content_type": properties.content_settings.content_type,
                 "last_modified": properties.last_modified.isoformat(),
                 "etag": properties.etag,
-                "metadata": properties.metadata_
+                "metadata": properties.metadata
             }
 
         except FileNotFoundError:

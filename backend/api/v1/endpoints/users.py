@@ -32,7 +32,7 @@ References:
     - backend/api/v1/endpoints/auth.py: Auth endpoints
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status as http_status
 from fastapi_pagination import Page
 
 from backend.api.types import (
@@ -55,7 +55,7 @@ router = APIRouter(
 @router.post(
     "/",
     response_model=UserResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=http_status.HTTP_201_CREATED,
     summary="Register New User",
     description="Register a new user account via Supabase Auth. Public endpoint - no authentication required.",
     response_description="Newly created user account details",
@@ -136,7 +136,7 @@ async def create_user(
 
         if not response.user:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create user account"
             )
 
@@ -172,7 +172,7 @@ async def create_user(
         # Handle case where Supabase client is not properly initialized
         auth_service.logger.error(f"Supabase client error: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Authentication service not properly configured"
         )
     except Exception as e:
@@ -181,11 +181,11 @@ async def create_user(
         error_msg = str(e).lower()
         if "already" in error_msg or "duplicate" in error_msg or "exists" in error_msg:
             raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
+                status_code=http_status.HTTP_409_CONFLICT,
                 detail="Email already registered"
             )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to register user: {str(e)}"
         )
 
@@ -256,7 +256,7 @@ async def list_users(
 
     if user_role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required to list users"
         )
 
@@ -266,7 +266,7 @@ async def list_users(
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to list users: {str(e)}"
         )
 
@@ -328,7 +328,7 @@ async def get_user(
 
     if user_role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required to view user details"
         )
 
@@ -338,7 +338,7 @@ async def get_user(
 
         if not profile:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=http_status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
 
@@ -356,7 +356,7 @@ async def get_user(
     except Exception as e:
         auth_service.logger.error(f"Failed to retrieve user {user_id}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve user: {str(e)}"
         )
 
@@ -420,7 +420,7 @@ async def update_user(
 
     if user_role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required to update users"
         )
 
@@ -434,7 +434,7 @@ async def update_user(
 
         if not update_data:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="No fields to update"
             )
 
@@ -464,14 +464,14 @@ async def update_user(
     except Exception as e:
         auth_service.logger.error(f"Failed to update user {user_id}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update user: {str(e)}"
         )
 
 
 @router.delete(
     "/{user_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=http_status.HTTP_204_NO_CONTENT,
     summary="Delete User (Admin)",
     description="Permanently delete a user account and all associated data using Supabase Admin API.",
     response_description="User deleted successfully (no content)",
@@ -522,14 +522,14 @@ async def delete_user(
     
     if user_role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required to delete users"
         )
     
     # Prevent self-deletion
     if current_user["user_id"] == str(user_id):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Cannot delete your own account"
         )
     
@@ -547,6 +547,6 @@ async def delete_user(
     except Exception as e:
         auth_service.logger.error(f"Failed to delete user {user_id}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete user: {str(e)}"
         )

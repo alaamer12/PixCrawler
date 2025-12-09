@@ -4,7 +4,7 @@ Project API endpoints.
 This module provides the API endpoints for Project management.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status as http_status
 
 from api.dependencies import get_project_service
 from backend.api.types import CurrentUser
@@ -92,7 +92,7 @@ async def list_projects(
 @router.post(
     "/",
     response_model=ProjectResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=http_status.HTTP_201_CREATED,
     summary="Create Project",
     description="Create a new project for organizing crawl jobs and datasets.",
     response_description="Created project with initial configuration",
@@ -200,7 +200,7 @@ async def get_project(
     project = await service.get_project(project_id, current_user["user_id"])
     if not project:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="Project not found"
         )
     return ProjectResponse.model_validate(project)
@@ -263,7 +263,7 @@ async def update_project(
     project = await service.update_project(project_id, project_in, current_user["user_id"])
     if not project:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="Project not found"
         )
     return ProjectResponse.model_validate(project)
@@ -271,7 +271,7 @@ async def update_project(
 
 @router.delete(
     "/{project_id}",
-    status_code=status.HTTP_200_OK,
+    status_code=http_status.HTTP_200_OK,
     summary="Delete Project",
     description="Permanently delete a project and all associated crawl jobs.",
     response_description="Deletion confirmation",
@@ -319,7 +319,7 @@ async def delete_project(
     success = await service.delete_project(project_id, current_user["user_id"])
     if not success:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="Project not found"
         )
     return {"data": None}

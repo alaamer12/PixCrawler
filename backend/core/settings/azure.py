@@ -189,12 +189,20 @@ class AzureBlobSettings(BaseSettings):
     @model_validator(mode='after')
     def validate_connection_config(self) -> 'AzureBlobSettings':
         """Validate that either connection string or account name/key is provided."""
+        import warnings
+        
         has_connection_string = self.connection_string is not None
         has_account_credentials = self.account_name is not None and self.account_key is not None
         
         if not has_connection_string and not has_account_credentials:
-            raise ValueError(
-                "Either connection_string or both account_name and account_key must be provided"
+            warnings.warn(
+                "Azure Blob Storage not configured: Either connection_string or both "
+                "account_name and account_key must be provided. "
+                "Azure storage features will be disabled. "
+                "Set AZURE_BLOB_CONNECTION_STRING or AZURE_BLOB_ACCOUNT_NAME/AZURE_BLOB_ACCOUNT_KEY "
+                "environment variables to enable Azure storage.",
+                UserWarning,
+                stacklevel=2
             )
         
         return self

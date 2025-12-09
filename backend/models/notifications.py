@@ -160,13 +160,13 @@ class Notification(Base):
             "category IN ('crawl_job', 'payment', 'system', 'security', 'dataset', 'project') OR category IS NULL",
             name="ck_notifications_category_valid",
         ),
-        Index("ix_notifications_user_id", "user_id"),
-        Index("ix_notifications_is_read", "is_read"),
-        Index("ix_notifications_type", "type"),
-        Index("ix_notifications_category", "category"),
+        Index("ix_notifications_user_id", user_id),
+        Index("ix_notifications_is_read", is_read),
+        Index("ix_notifications_type", type),
+        Index("ix_notifications_category", category),
         Index("ix_notifications_created_at", "created_at", postgresql_using="btree", postgresql_ops={"created_at": "DESC"}),
-        Index("ix_notifications_user_unread", "user_id", "is_read", postgresql_where="is_read = false"),
-        Index("ix_notifications_user_created", "user_id", "created_at"),
+        Index("ix_notifications_user_unread", user_id, is_read, postgresql_where="is_read = false"),
+        Index("ix_notifications_user_created", user_id, "created_at"),
     )
     
     @property
@@ -311,5 +311,5 @@ class NotificationPreference(Base, TimestampMixin):
             "digest_frequency IN ('realtime', 'daily', 'weekly', 'never')",
             name="ck_notification_preferences_digest_frequency_valid",
         ),
-        Index("ix_notification_preferences_user_id", "user_id"),
+        Index("ix_notification_preferences_user_id", user_id),
     )

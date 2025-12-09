@@ -83,7 +83,7 @@ class ArchivalPolicy(Base, TimestampMixin):
 
     # Indexes
     __table_args__ = (
-        Index("ix_archival_policies_is_active", "is_active"),
+        Index("ix_archival_policies_is_active", is_active),
     )
 
 
@@ -139,7 +139,7 @@ class CleanupPolicy(Base, TimestampMixin):
 
     # Indexes
     __table_args__ = (
-        Index("ix_cleanup_policies_is_active", "is_active"),
+        Index("ix_cleanup_policies_is_active", is_active),
     )
 
 
@@ -203,6 +203,6 @@ class PolicyExecutionLog(Base):
 
     # Indexes
     __table_args__ = (
-        Index("ix_policy_logs_executed_at", "executed_at"),
-        Index("ix_policy_logs_type_status", "policy_type", "status"),
+        Index("ix_policy_logs_executed_at", executed_at),
+        Index("ix_policy_logs_type_status", policy_type, status),
     )

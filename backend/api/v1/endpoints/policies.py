@@ -4,7 +4,7 @@ API endpoints for dataset lifecycle policies.
 
 from typing import List, Dict, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status as http_status, BackgroundTasks
 
 from backend.api.dependencies import get_current_user as get_current_active_user
 from backend.schemas.policy import (
@@ -25,7 +25,7 @@ router = APIRouter(tags=["Policies"])
 @router.post(
     "/archival",
     response_model=ArchivalPolicyResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=http_status.HTTP_201_CREATED,
     summary="Create archival policy"
 )
 async def create_archival_policy(
@@ -89,7 +89,7 @@ async def update_archival_policy(
 
 @router.delete(
     "/archival/{policy_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=http_status.HTTP_204_NO_CONTENT,
     summary="Delete archival policy"
 )
 async def delete_archival_policy(
@@ -108,7 +108,7 @@ async def delete_archival_policy(
 @router.post(
     "/cleanup",
     response_model=CleanupPolicyResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=http_status.HTTP_201_CREATED,
     summary="Create cleanup policy"
 )
 async def create_cleanup_policy(
@@ -172,7 +172,7 @@ async def update_cleanup_policy(
 
 @router.delete(
     "/cleanup/{policy_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=http_status.HTTP_204_NO_CONTENT,
     summary="Delete cleanup policy"
 )
 async def delete_cleanup_policy(
@@ -190,7 +190,7 @@ async def delete_cleanup_policy(
 
 @router.post(
     "/execute/archival",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=http_status.HTTP_202_ACCEPTED,
     summary="Trigger archival policy execution"
 )
 async def trigger_archival_execution(
@@ -208,7 +208,7 @@ async def trigger_archival_execution(
 
 @router.post(
     "/execute/cleanup",
-    status_code=status.HTTP_202_ACCEPTED,
+    status_code=http_status.HTTP_202_ACCEPTED,
     summary="Trigger cleanup policy execution"
 )
 async def trigger_cleanup_execution(

@@ -8,7 +8,7 @@ including balance checking, transaction history, and usage metrics.
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status as http_status
 
 from api.dependencies import get_credit_service
 from backend.api.types import CurrentUser
@@ -97,7 +97,7 @@ async def get_credit_balance(
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve credit balance: {str(e)}"
         )
 
@@ -199,7 +199,7 @@ async def get_credit_transactions(
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve transactions: {str(e)}"
         )
 
@@ -207,7 +207,7 @@ async def get_credit_transactions(
 @router.post(
     "/purchase",
     response_model=CreditTransactionResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=http_status.HTTP_201_CREATED,
     summary="Purchase Credits",
     description="Purchase credits via payment integration (Lemon Squeezy). This endpoint creates a transaction record.",
     response_description="Created transaction record",
@@ -288,12 +288,12 @@ async def purchase_credits(
 
     except ValidationError as e:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e)
         )
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to purchase credits: {str(e)}"
         )
 
@@ -366,6 +366,6 @@ async def get_credit_usage(
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve usage metrics: {str(e)}"
         )

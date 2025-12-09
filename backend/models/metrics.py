@@ -165,13 +165,13 @@ class ProcessingMetric(Base):
         CheckConstraint("images_succeeded >= 0", name="ck_processing_metrics_images_succeeded_positive"),
         CheckConstraint("images_failed >= 0", name="ck_processing_metrics_images_failed_positive"),
         CheckConstraint("duration_ms >= 0", name="ck_processing_metrics_duration_positive"),
-        Index("ix_processing_metrics_job_id", "job_id"),
-        Index("ix_processing_metrics_user_id", "user_id"),
-        Index("ix_processing_metrics_operation_type", "operation_type"),
-        Index("ix_processing_metrics_status", "status"),
-        Index("ix_processing_metrics_started_at", "started_at"),
+        Index("ix_processing_metrics_job_id", job_id),
+        Index("ix_processing_metrics_user_id", user_id),
+        Index("ix_processing_metrics_operation_type", operation_type),
+        Index("ix_processing_metrics_status", status),
+        Index("ix_processing_metrics_started_at", started_at),
         Index("ix_processing_metrics_created_at", "created_at"),
-        Index("ix_processing_metrics_operation_status", "operation_type", "status"),
+        Index("ix_processing_metrics_operation_status", operation_type, status),
     )
     
     @property
@@ -275,11 +275,11 @@ class ResourceMetric(Base):
     # Constraints
     __table_args__ = (
         CheckConstraint("value >= 0", name="ck_resource_metrics_value_positive"),
-        Index("ix_resource_metrics_job_id", "job_id"),
-        Index("ix_resource_metrics_metric_type", "metric_type"),
-        Index("ix_resource_metrics_timestamp", "timestamp"),
-        Index("ix_resource_metrics_hostname", "hostname"),
-        Index("ix_resource_metrics_type_timestamp", "metric_type", "timestamp"),
+        Index("ix_resource_metrics_job_id", job_id),
+        Index("ix_resource_metrics_metric_type", metric_type),
+        Index("ix_resource_metrics_timestamp", timestamp),
+        Index("ix_resource_metrics_hostname", hostname),
+        Index("ix_resource_metrics_type_timestamp", metric_type, timestamp),
     )
 
 
@@ -398,9 +398,9 @@ class QueueMetric(Base):
         CheckConstraint("failed_tasks >= 0", name="ck_queue_metrics_failed_positive"),
         CheckConstraint("worker_count >= 0", name="ck_queue_metrics_workers_positive"),
         CheckConstraint("avg_wait_time_ms >= 0", name="ck_queue_metrics_wait_time_positive"),
-        Index("ix_queue_metrics_queue_name", "queue_name"),
-        Index("ix_queue_metrics_timestamp", "timestamp"),
-        Index("ix_queue_metrics_queue_timestamp", "queue_name", "timestamp"),
+        Index("ix_queue_metrics_queue_name", queue_name),
+        Index("ix_queue_metrics_timestamp", timestamp),
+        Index("ix_queue_metrics_queue_timestamp", queue_name, timestamp),
     )
     
     @property

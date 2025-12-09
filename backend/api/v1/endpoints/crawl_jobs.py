@@ -7,7 +7,8 @@ including creation, status monitoring, and execution control.
 
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import status as http_status
 from fastapi_limiter.depends import RateLimiter
 from fastapi_pagination import Page
 
@@ -84,7 +85,7 @@ async def list_crawl_jobs(
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to list crawl jobs: {str(e)}",
         )
 
@@ -92,7 +93,7 @@ async def list_crawl_jobs(
 @router.post(
     "/",
     response_model=CrawlJobResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=http_status.HTTP_201_CREATED,
     summary="Create Crawl Job",
     description="Create a new image crawling job and start execution in background.",
     response_description="Created crawl job with initial status",
@@ -161,7 +162,7 @@ async def create_crawl_job(
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create crawl job: {str(e)}"
         )
 
@@ -226,7 +227,7 @@ async def get_crawl_job(
 
         if not job:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=http_status.HTTP_404_NOT_FOUND,
                 detail="Crawl job not found"
             )
 
@@ -237,7 +238,7 @@ async def get_crawl_job(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve crawl job: {str(e)}"
         )
 
@@ -320,19 +321,19 @@ async def start_crawl_job(
     except ValidationError as e:
         # Job status doesn't allow starting
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
     except NotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="Crawl job not found"
         )
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to start crawl job: {str(e)}"
         )
 
@@ -411,19 +412,19 @@ async def cancel_crawl_job(
     except ValidationError as e:
         # Job status doesn't allow cancellation
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
     except NotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="Crawl job not found"
         )
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to cancel crawl job: {str(e)}"
         )
 
@@ -505,19 +506,19 @@ async def retry_crawl_job(
 
     except ValidationError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
     except NotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="Crawl job not found"
         )
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retry crawl job: {str(e)}"
         )
 
@@ -587,14 +588,14 @@ async def get_crawl_job_logs(
 
     except NotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="Crawl job not found"
         )
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve crawl job logs: {str(e)}"
         )
 
@@ -663,7 +664,7 @@ async def get_crawl_job_progress(
 
         if not job:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=http_status.HTTP_404_NOT_FOUND,
                 detail="Crawl job not found"
             )
 
@@ -685,6 +686,6 @@ async def get_crawl_job_progress(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve crawl job progress: {str(e)}"
         )

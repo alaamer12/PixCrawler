@@ -145,7 +145,7 @@ class CreditAccount(Base, TimestampMixin):
         CheckConstraint("refill_threshold > 0", name="ck_credit_accounts_refill_threshold_positive"),
         CheckConstraint("refill_amount > 0", name="ck_credit_accounts_refill_amount_positive"),
         CheckConstraint("monthly_limit > 0", name="ck_credit_accounts_monthly_limit_positive"),
-        Index("ix_credit_accounts_user_id", "user_id"),
+        Index("ix_credit_accounts_user_id", user_id),
     )
 
 
@@ -256,10 +256,10 @@ class CreditTransaction(Base):
             name="ck_credit_transactions_status_valid",
         ),
         CheckConstraint("balance_after >= 0", name="ck_credit_transactions_balance_positive"),
-        Index("ix_credit_transactions_account_id", "account_id"),
-        Index("ix_credit_transactions_user_id", "user_id"),
-        Index("ix_credit_transactions_type", "type"),
-        Index("ix_credit_transactions_status", "status"),
+        Index("ix_credit_transactions_account_id", account_id),
+        Index("ix_credit_transactions_user_id", user_id),
+        Index("ix_credit_transactions_type", type),
+        Index("ix_credit_transactions_status", status),
         Index("ix_credit_transactions_created_at", "created_at"),
-        Index("ix_credit_transactions_user_created", "user_id", "created_at"),
+        Index("ix_credit_transactions_user_created", user_id, "created_at"),
     )

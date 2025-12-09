@@ -18,7 +18,7 @@ Note: Authentication flow:
 5. Backend verifies tokens using get_current_user dependency
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status as http_status
 
 from backend.api.types import CurrentUser, SupabaseAuthServiceDep
 from backend.api.v1.response_models import get_common_responses
@@ -118,7 +118,7 @@ async def login(
         # Check if login was successful
         if not response.session:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
+                status_code=http_status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
             )
 
@@ -152,7 +152,7 @@ async def login(
     except Exception as e:
         auth_service.logger.error(f"Login failed: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=http_status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
 
@@ -219,7 +219,7 @@ async def get_current_user_profile(
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve user profile"
         )
 
@@ -346,6 +346,6 @@ async def sync_user_profile(
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to sync user profile"
         )

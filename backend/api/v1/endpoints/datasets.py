@@ -2,7 +2,7 @@
 Dataset management endpoints.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status as http_status
 from fastapi_limiter.depends import RateLimiter
 from fastapi_pagination import Page
 
@@ -20,7 +20,7 @@ router = APIRouter(
 @router.post(
     "/",
     response_model=DatasetResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=http_status.HTTP_201_CREATED,
     summary="Create Dataset",
     description="Create a new dataset with configuration for image collection.",
     response_description="Created dataset with initial configuration",
@@ -67,7 +67,11 @@ async def create_dataset(
         HTTPException: If dataset creation fails or rate limit exceeded
     """
     try:
-        dataset = await dataset_service.create_dataset(dataset_create, current_user["user_id"])
+        dataset = await dataset_service.create_dataset(
+            dataset_create, 
+            current_user["user_id"],
+            project_id=dataset_create.project_id
+        )
         return dataset
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -229,7 +233,7 @@ async def get_dataset(
     dataset = await dataset_service.get_dataset_by_id(dataset_id, current_user["user_id"])
     if dataset is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
+            status_code=http_status.HTTP_404_NOT_FOUND, detail="Dataset not found")
     return dataset
 
 
@@ -283,16 +287,16 @@ async def update_dataset(
         dataset = await dataset_service.update_dataset(dataset_id, dataset_update, current_user["user_id"])
         if dataset is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
+                status_code=http_status.HTTP_404_NOT_FOUND, detail="Dataset not found")
         return dataset
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+            status_code=http_status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.delete(
     "/{dataset_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
+    status_code=http_status.HTTP_204_NO_CONTENT,
     summary="Delete Dataset",
     description="Permanently delete a dataset and all associated images.",
     response_description="Dataset deleted successfully (no content)",
@@ -328,10 +332,10 @@ async def delete_dataset(
         result = await dataset_service.delete_dataset(dataset_id, current_user["user_id"])
         if result is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
+                status_code=http_status.HTTP_404_NOT_FOUND, detail="Dataset not found")
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+            status_code=http_status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.post(
@@ -562,8 +566,8 @@ async def cancel_dataset(
         dataset = await dataset_service.cancel_dataset(dataset_id, current_user["user_id"])
         if dataset is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found")
+                status_code=http_status.HTTP_404_NOT_FOUND, detail="Dataset not found")
         return dataset
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+            status_code=http_status.HTTP_400_BAD_REQUEST, detail=str(e))

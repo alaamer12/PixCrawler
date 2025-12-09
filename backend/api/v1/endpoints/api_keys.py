@@ -8,7 +8,8 @@ including creation, listing, revocation, and usage tracking.
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import status as http_status
 
 from api.dependencies import get_api_key_service
 from backend.api.types import CurrentUser
@@ -129,7 +130,7 @@ async def list_api_keys(
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve API keys: {str(e)}"
         )
 
@@ -137,7 +138,7 @@ async def list_api_keys(
 @router.post(
     "/",
     response_model=APIKeyCreateResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=http_status.HTTP_201_CREATED,
     summary="Create API Key",
     description="Create a new API key for programmatic access with specified permissions and rate limits.",
     response_description="Created API key with full key value (shown only once)",
@@ -228,19 +229,19 @@ async def create_api_key(
 
     except ValidationError as e:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e)
         )
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create API key: {str(e)}"
         )
 
 
 @router.delete(
     "/{key_id}",
-    status_code=status.HTTP_200_OK,
+    status_code=http_status.HTTP_200_OK,
     summary="Revoke API Key",
     description="Revoke an API key to permanently disable it. This action cannot be undone.",
     response_description="Revocation confirmation",
@@ -301,12 +302,12 @@ async def revoke_api_key(
 
     except NotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="API key not found"
         )
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to revoke API key: {str(e)}"
         )
 
@@ -382,11 +383,11 @@ async def get_api_key_usage(
 
     except NotFoundError:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="API key not found"
         )
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve usage statistics: {str(e)}"
         )

@@ -7,7 +7,9 @@ ALWAYS CHECK CURRENT PROJECT SITUATION BEFORE PROCEEDING
 ALWAYS use edit_file tool to edit tasks when finishing
 ALWAYS COMPLETE FULL PHASE TASKS, not one of them
 
-- [-] 1. Phase 1: Testing Infrastructure & Critical Import Fixes
+- [x] 1. Phase 1: Testing Infrastructure & Critical Import Fixes
+
+
 
 
 
@@ -24,13 +26,18 @@ ALWAYS COMPLETE FULL PHASE TASKS, not one of them
   - **Validates: Requirements 13.2**
 
 
+
 - [ ] 1.5 Fix api_keys.py endpoint imports
   - Add `from fastapi import status as http_status`
   - Replace status code references
+
+
   - Keep APIKeyStatus enum import unchanged
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 1.6 Fix crawl_jobs.py endpoint imports
+- [x] 1.6 Fix crawl_jobs.py endpoint imports
+
+
   - Add `from fastapi import status as http_status`
   - Replace status code references
   - Keep CrawlJobStatus enum import unchanged
@@ -38,8 +45,12 @@ ALWAYS COMPLETE FULL PHASE TASKS, not one of them
 
 - [ ] 1.7 Fix remaining endpoint files (datasets, exports, health, notifications, projects, storage, users, validation)
   - Update all endpoint files with http_status alias
+
+
   - Ensure consistent import pattern across all files
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
+
+
 
 - [ ]* 1.8 Write property test for HTTP status import consistency
   - **Property 1: HTTP Status Import Consistency**

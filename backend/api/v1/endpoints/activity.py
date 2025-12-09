@@ -8,7 +8,7 @@ including listing and filtering user activity logs.
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status as http_status
 
 from api.dependencies import get_activity_service
 from backend.api.types import CurrentUser
@@ -143,6 +143,6 @@ async def list_activity_logs(
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve activity logs: {str(e)}"
         )

@@ -44,21 +44,68 @@ class DatasetService(BaseService):
         """Get crawl job repository."""
         return self._crawl_job_repo
 
-    async def create_dataset(self, dataset_create: DatasetCreate, user_id: int) -> DatasetResponse:
+    async def create_dataset(
+        self, 
+        dataset_create: DatasetCreate, 
+        user_id: int,
+        project_id: Optional[int] = None
+    ) -> DatasetResponse:
         """
         Create a new dataset generation job.
 
         Args:
             dataset_create: Dataset creation data
             user_id: Owner user ID
+            project_id: Optional project ID. If not provided, uses user's default project.
 
         Returns:
             Created dataset information
 
         Raises:
             ValidationError: If dataset data is invalid
+            NotFoundError: If specified project not found
         """
         self.log_operation("create_dataset", name=dataset_create.name, user_id=user_id)
+        
+        # Get or create default project if project_id not provided
+        if project_id is None:
+            # Get user's default project or create one
+            from backend.repositories import ProjectRepository
+            project_repo = ProjectRepository(self.dataset_repo.session)
+            
+            # Try to get user's first project
+            from sqlalchemy import select
+            from backend.database.models import Project
+            result = await self.dataset_repo.session.execute(
+                select(Project)
+                .where(Project.user_id == user_id)
+                .order_by(Project.created_at.asc())
+                .limit(1)
+            )
+            default_project = result.scalar_one_or_none()
+            
+            if not default_project:
+                # Create a default project for the user
+                default_project = await project_repo.create(
+                    name="Default Project",
+                    description="Auto-created default project",
+                    user_id=user_id,
+                    status="active"
+                )
+                self.logger.info(f"Created default project {default_project.id} for user {user_id}")
+            
+            project_id = default_project.id
+        else:
+            # Verify project exists and belongs to user
+            from backend.repositories import ProjectRepository
+            project_repo = ProjectRepository(self.dataset_repo.session)
+            project = await project_repo.get_by_id(project_id)
+            
+            if not project:
+                raise NotFoundError(f"Project {project_id} not found")
+            
+            if project.user_id != user_id:
+                raise PermissionError(f"Project {project_id} does not belong to user {user_id}")
 
         # Create dataset record
         dataset_data = {
@@ -74,10 +121,8 @@ class DatasetService(BaseService):
         # Create crawl job for the dataset
         # Note: CrawlJob model doesn't have sources field, only keywords
         # Search engines are stored in the Dataset model
-        # Note: project_id should be passed from the authenticated user's context
-        # For now, using a default project_id of 1 (should be updated when user context is available)
         crawl_job_data = {
-            "project_id": 1,  # Default project - should be passed from user context
+            "project_id": project_id,  # Use resolved project_id
             "name": f"{dataset_create.name} - Crawl Job",
             "keywords": {"keywords": dataset_create.keywords},  # CrawlJob expects JSONB format
             "max_images": dataset_create.max_images,

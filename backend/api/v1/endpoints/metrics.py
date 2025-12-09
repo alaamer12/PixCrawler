@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Query, HTTPException, status as http_status
 
 from backend.api.dependencies import get_current_user
 from backend.api.types import MetricsServiceDep
@@ -78,7 +78,7 @@ async def get_processing_metrics(
         return metrics
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve processing metrics: {str(e)}"
         )
 
@@ -130,7 +130,7 @@ async def get_resource_metrics(
         return metrics
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve resource metrics: {str(e)}"
         )
 
@@ -140,7 +140,7 @@ async def get_resource_metrics(
     response_model=List[ResourceMetricResponse],
     summary="Collect current resource metrics",
     description="Trigger collection of current system resource metrics",
-    status_code=status.HTTP_201_CREATED
+    status_code=http_status.HTTP_201_CREATED
 )
 async def collect_resource_metrics(
     service: MetricsServiceDep,
@@ -161,7 +161,7 @@ async def collect_resource_metrics(
         return metrics
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to collect resource metrics: {str(e)}"
         )
 
@@ -202,7 +202,7 @@ async def get_queue_metrics(
         return metrics
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve queue metrics: {str(e)}"
         )
 
@@ -228,7 +228,7 @@ async def get_latest_queue_status(
         metric = await service.get_latest_queue_status(queue_name)
         if not metric:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=http_status.HTTP_404_NOT_FOUND,
                 detail=f"No metrics found for queue: {queue_name}"
             )
         return metric
@@ -236,7 +236,7 @@ async def get_latest_queue_status(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve queue status: {str(e)}"
         )
 
@@ -283,6 +283,6 @@ async def get_metrics_summary(
         return summary
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve metrics summary: {str(e)}"
         )

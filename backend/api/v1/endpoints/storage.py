@@ -6,7 +6,7 @@ Handles storage operations including usage stats, file info, and cleanup
 from datetime import datetime
 from typing import Dict, Optional, Union
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status as http_status
 
 from backend.api.types import StorageServiceDep, CurrentUser
 from backend.api.v1.response_models import get_common_responses
@@ -249,6 +249,6 @@ async def get_presigned_url(
         return await service.generate_presigned_url_with_expiration(path, expires_in)
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate presigned URL: {str(e)}"
         )
