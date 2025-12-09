@@ -155,7 +155,7 @@ class UsageMetric(Base):
         CheckConstraint("api_calls_limit > 0", name="ck_usage_metrics_api_calls_limit_positive"),
         CheckConstraint("bandwidth_used_gb >= 0", name="ck_usage_metrics_bandwidth_used_positive"),
         CheckConstraint("bandwidth_limit_gb > 0", name="ck_usage_metrics_bandwidth_limit_positive"),
-        Index("ix_usage_metrics_user_id", user_id),
-        Index("ix_usage_metrics_metric_date", metric_date),
-        Index("ix_usage_metrics_user_date", user_id, metric_date),
+        Index("ix_usage_metrics_user_id", "user_id"),
+        Index("ix_usage_metrics_metric_date", "metric_date"),
+        Index("ix_usage_metrics_user_date", "user_id", "metric_date"),
     )

@@ -543,7 +543,7 @@ class Image(Base):
     # Indexes
     __table_args__ = (
         Index("ix_images_crawl_job_id", "crawl_job_id"),
-        Index("ix_images_created_at", "created_at"),
+        Index("ix_images_downloaded_at", "downloaded_at"),
         Index("ix_images_hash", "hash"),  # Column name in database
     )
 

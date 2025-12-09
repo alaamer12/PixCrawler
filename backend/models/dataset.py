@@ -142,9 +142,9 @@ class Dataset(Base, TimestampMixin):
 
     # Indexes and constraints
     __table_args__ = (
-        Index("ix_datasets_user_id", user_id),
-        Index("ix_datasets_status", status),
-        Index("ix_datasets_user_status", user_id, status),
+        Index("ix_datasets_user_id", "user_id"),
+        Index("ix_datasets_status", "status"),
+        Index("ix_datasets_user_status", "user_id", "status"),
         Index("ix_datasets_created_at", "created_at"),  # created_at from TimestampMixin
         CheckConstraint(
             "progress >= 0 AND progress <= 100",
