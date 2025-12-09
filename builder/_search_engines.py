@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Tuple, Optional, List, Type, Any, Final
 
 import requests
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 from icrawler.builtin import GoogleImageCrawler, BingImageCrawler, BaiduImageCrawler
 

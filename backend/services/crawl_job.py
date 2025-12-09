@@ -30,6 +30,7 @@ import time
 import uuid
 from datetime import datetime
 from typing import Dict, Any, List, Optional, AsyncGenerator
+from uuid import UUID
 
 from celery_core.app import celery_app
 

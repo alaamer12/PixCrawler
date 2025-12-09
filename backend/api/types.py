@@ -34,7 +34,6 @@ from backend.api.dependencies import (
     get_user_service,
     get_storage_service,
     get_auth_service,
-    get_resource_monitor,
     get_metrics_service,
     get_dashboard_service,
     get_policy_service,
@@ -46,7 +45,6 @@ from backend.services.storage import StorageService
 from backend.services.supabase_auth import SupabaseAuthService
 from backend.services.user import UserService
 from backend.services.validation import ValidationService
-from backend.services.resource_monitor import ResourceMonitor
 from backend.services.metrics import MetricsService
 from backend.services.dashboard import DashboardService
 from backend.services.policy import PolicyService
@@ -63,7 +61,6 @@ __all__ = [
     'UserServiceDep',
     'StorageServiceDep',
     'SupabaseAuthServiceDep',
-    'ResourceMonitorDep',
     'MetricsServiceDep',
     'DashboardServiceDep',
     'PolicyServiceDep',
@@ -245,22 +242,7 @@ Usage:
         return await auth_service.sync_user_profile(...)
 """
 
-ResourceMonitorDep = Annotated[
-    ResourceMonitor,
-    Depends(get_resource_monitor)
-]
-"""
-Resource Monitor dependency.
-
-Automatically injects ResourceMonitor for capacity checking operations.
-
-Usage:
-    @router.get("/capacity")
-    async def get_capacity(
-        monitor: ResourceMonitorDep
-    ):
-        return await monitor.get_capacity_info()
-"""
+# ResourceMonitorDep removed - service doesn't exist
 
 MetricsServiceDep = Annotated[
     MetricsService,

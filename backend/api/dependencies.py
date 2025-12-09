@@ -39,10 +39,14 @@ from backend.services.dataset import DatasetService
 from backend.services.validation import ValidationService
 from backend.services.user import UserService
 from backend.services.storage import StorageService
-from backend.services.resource_monitor import ResourceMonitor
 from backend.services.metrics import MetricsService
 from backend.services.dashboard import DashboardService
 from backend.services.policy import PolicyService
+from backend.services.activity import ActivityLogService
+from backend.services.api_keys import APIKeyService
+from backend.services.notification import NotificationService
+from backend.services.project import ProjectService
+from backend.services.credits import CreditService
 from backend.repositories import ProjectRepository, DatasetRepository
 from backend.repositories.policy_repository import (
     ArchivalPolicyRepository,
@@ -475,24 +479,7 @@ def get_auth_service() -> SupabaseAuthService:
     return SupabaseAuthService()
 
 
-def get_resource_monitor(session: DBSession) -> ResourceMonitor:
-    """
-    Dependency injection for ResourceMonitor.
-
-    Creates resource monitor with required repository following the pattern:
-    get_monitor(session) -> Monitor where monitor receives repositories.
-
-    Args:
-        session: Database session (injected by FastAPI)
-
-    Returns:
-        ResourceMonitor instance with injected repositories
-    """
-    # Create repository instance
-    crawl_job_repo = CrawlJobRepository(session)
-
-    # Inject repository into monitor
-    return ResourceMonitor(crawl_job_repo=crawl_job_repo)
+# ResourceMonitor removed - service doesn't exist
 
 
 def get_metrics_service(session: DBSession) -> MetricsService:
