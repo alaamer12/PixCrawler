@@ -28,6 +28,19 @@ router = APIRouter(
     summary="Batch Delete Projects",
     description="Delete multiple projects in a single operation.",
     operation_id="batchDeleteProjects",
+    responses={
+        200: {
+            "description": "Batch delete completed",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "deleted_count": 5,
+                        "failed_ids": [3, 7]
+                    }
+                }
+            }
+        }
+    }
 )
 async def batch_delete_projects(
     request: BatchDeleteRequest,

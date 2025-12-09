@@ -1362,7 +1362,7 @@ class CrawlJobService(BaseService):
         except Exception as e:
             logger.error(f"Failed to log activity: {str(e)}")
 
-    async def list_jobs(self, user_id: str):
+    async def list_jobs(self, user_id: str) -> Any:
         """
         List all crawl jobs for a user with pagination.
 

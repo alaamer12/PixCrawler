@@ -74,6 +74,8 @@ __all__ = [
     'get_current_user',
     'get_current_user_optional',
     'get_supabase_auth_service',
+    'require_admin',
+    'require_role',
     # Core dependencies
     'get_session',
     'get_storage',
@@ -199,6 +201,99 @@ async def get_current_user_optional(
     except Exception:
         # Return None for any authentication errors in optional auth
         return None
+
+
+async def require_admin(
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Require admin role for endpoint access.
+
+    FastAPI dependency that verifies the current user has admin privileges.
+    Raises 403 Forbidden if the user is not an admin.
+
+    Args:
+        current_user: Current authenticated user (injected)
+
+    Returns:
+        Current user information if admin
+
+    Raises:
+        HTTPException: 403 if user is not an admin
+
+    Usage:
+        @router.post("/admin/action")
+        async def admin_action(admin_user: Annotated[Dict[str, Any], Depends(require_admin)]):
+            # Only admins can access this endpoint
+            pass
+    """
+    from backend.core.exceptions import AuthorizationError
+    
+    # Check if user has admin role
+    profile = current_user.get("profile", {})
+    role = profile.get("role", "user")
+    
+    if role not in ["admin", "superuser"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required"
+        )
+    
+    return current_user
+
+
+async def require_role(
+    required_role: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Require specific role for endpoint access.
+
+    FastAPI dependency factory that verifies the current user has the specified role.
+    Raises 403 Forbidden if the user doesn't have the required role.
+
+    Args:
+        required_role: Role name required (e.g., "admin", "superuser", "user")
+        current_user: Current authenticated user (injected)
+
+    Returns:
+        Current user information if role matches
+
+    Raises:
+        HTTPException: 403 if user doesn't have required role
+
+    Usage:
+        @router.post("/moderator/action")
+        async def moderator_action(
+            user: Annotated[Dict[str, Any], Depends(lambda: require_role("moderator"))]
+        ):
+            # Only moderators can access this endpoint
+            pass
+    """
+    from backend.core.exceptions import AuthorizationError
+    
+    # Check if user has required role
+    profile = current_user.get("profile", {})
+    user_role = profile.get("role", "user")
+    
+    # Define role hierarchy
+    role_hierarchy = {
+        "superuser": 3,
+        "admin": 2,
+        "moderator": 1,
+        "user": 0
+    }
+    
+    required_level = role_hierarchy.get(required_role, 0)
+    user_level = role_hierarchy.get(user_role, 0)
+    
+    if user_level < required_level:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Role '{required_role}' or higher required"
+        )
+    
+    return current_user
 
 def get_storage() -> Generator[StorageProvider, None, None]:
     """

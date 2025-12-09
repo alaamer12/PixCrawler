@@ -33,7 +33,8 @@ router = APIRouter(prefix="/metrics", tags=["metrics"])
     "/processing",
     response_model=List[ProcessingMetricResponse],
     summary="Get processing metrics",
-    description="Retrieve processing metrics with optional filters for job, user, time range, and operation type"
+    description="Retrieve processing metrics with optional filters for job, user, time range, and operation type",
+    operation_id="getProcessingMetrics"
 )
 async def get_processing_metrics(
     service: MetricsServiceDep,
@@ -91,7 +92,8 @@ async def get_processing_metrics(
     "/resources",
     response_model=List[ResourceMetricResponse],
     summary="Get resource metrics",
-    description="Retrieve system resource usage metrics including CPU, memory, disk, and network"
+    description="Retrieve system resource usage metrics including CPU, memory, disk, and network",
+    operation_id="getResourceMetrics"
 )
 async def get_resource_metrics(
     service: MetricsServiceDep,
@@ -140,7 +142,8 @@ async def get_resource_metrics(
     response_model=List[ResourceMetricResponse],
     summary="Collect current resource metrics",
     description="Trigger collection of current system resource metrics",
-    status_code=http_status.HTTP_201_CREATED
+    status_code=http_status.HTTP_201_CREATED,
+    operation_id="collectResourceMetrics"
 )
 async def collect_resource_metrics(
     service: MetricsServiceDep,
@@ -174,7 +177,8 @@ async def collect_resource_metrics(
     "/queue",
     response_model=List[QueueMetricResponse],
     summary="Get queue metrics",
-    description="Retrieve task queue depth and status metrics"
+    description="Retrieve task queue depth and status metrics",
+    operation_id="getQueueMetrics"
 )
 async def get_queue_metrics(
     service: MetricsServiceDep,
@@ -211,7 +215,8 @@ async def get_queue_metrics(
     "/queue/{queue_name}/latest",
     response_model=QueueMetricResponse,
     summary="Get latest queue status",
-    description="Retrieve the most recent status for a specific queue"
+    description="Retrieve the most recent status for a specific queue",
+    operation_id="getLatestQueueStatus"
 )
 async def get_latest_queue_status(
     queue_name: str,
@@ -249,7 +254,8 @@ async def get_latest_queue_status(
     "/summary",
     response_model=MetricsSummary,
     summary="Get metrics summary",
-    description="Retrieve comprehensive metrics summary with aggregated statistics"
+    description="Retrieve comprehensive metrics summary with aggregated statistics",
+    operation_id="getMetricsSummary"
 )
 async def get_metrics_summary(
     service: MetricsServiceDep,

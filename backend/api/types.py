@@ -38,6 +38,7 @@ from backend.api.dependencies import (
     get_metrics_service,
     get_dashboard_service,
     get_policy_service,
+    require_admin,
 )
 from backend.services.crawl_job import CrawlJobService
 from backend.services.dataset import DatasetService
@@ -53,6 +54,7 @@ from backend.services.policy import PolicyService
 __all__ = [
     # Auth & Session
     'CurrentUser',
+    'AdminUser',
     'DBSession',
     # Services
     'CrawlJobServiceDep',
@@ -95,6 +97,23 @@ Usage:
     @router.get("/profile")
     async def get_profile(user: CurrentUser):
         return {"user_id": user["user_id"]}
+"""
+
+AdminUser = Annotated[
+    Dict[str, Any],
+    Depends(require_admin)
+]
+"""
+Admin user dependency.
+
+Automatically injects the authenticated user and verifies admin privileges.
+Raises 401 if authentication fails, 403 if user is not an admin.
+
+Usage:
+    @router.post("/admin/action")
+    async def admin_action(admin: AdminUser):
+        # Only admins can access this endpoint
+        return {"message": "Admin action performed"}
 """
 
 DBSession = Annotated[

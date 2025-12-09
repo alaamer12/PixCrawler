@@ -20,6 +20,8 @@
 
 The PixCrawler backend follows a **three-layer architecture pattern** with clear separation of concerns:
 
+> **Note**: This document was updated in January 2025 to reflect architectural compliance improvements including HTTP status import patterns, repository method signatures, and PolicyService implementation.
+
 ```
 ┌─────────────────────────────────────────┐
 │         API Layer (Endpoints)           │
@@ -150,6 +152,29 @@ Each class has one reason to change:
 ❌ Direct session access  
 ❌ Creating service instances (use dependency injection)
 
+#### HTTP Status Import Pattern
+
+**IMPORTANT**: All endpoint files must use the `http_status` alias to avoid variable name collisions:
+
+```python
+# ✅ CORRECT - Import pattern
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi import status as http_status  # Alias to avoid collision
+
+from backend.schemas.notifications import NotificationStatus  # Schema enums unchanged
+
+# ✅ CORRECT - Usage in endpoint
+@router.post("/notifications", status_code=http_status.HTTP_201_CREATED)
+async def create_notification(...):
+    if error:
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail="Invalid request"
+        )
+```
+
+**Why**: Using `status` as a variable name (e.g., in function parameters) shadows the FastAPI status module import, causing reference errors.
+
 #### Example
 
 ```python
@@ -158,19 +183,30 @@ Each class has one reason to change:
     response_model=NotificationListResponse,
     summary="List Notifications",
     operation_id="listNotifications",
+    responses={
+        200: {"description": "Successfully retrieved notifications"},
+        **get_common_responses(401, 500),
+    },
 )
 async def list_notifications(
     current_user: CurrentUser,  # ✅ Authentication
     service: NotificationServiceDep,  # ✅ Injected service
 ) -> NotificationListResponse:  # ✅ Typed response
     """List all notifications for the current user."""
-    # ✅ Delegate to service layer
-    notifications = await service.get_notifications(
-        user_id=current_user["user_id"]
-    )
-    
-    # ✅ Serialize response
-    return NotificationListResponse(data=notifications)
+    try:
+        # ✅ Delegate to service layer
+        notifications = await service.get_notifications(
+            user_id=current_user["user_id"]
+        )
+        
+        # ✅ Serialize response
+        return NotificationListResponse(data=notifications)
+    except Exception as e:
+        logger.error(f"Failed to list notifications: {e}")
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve notifications"
+        )
 ```
 
 ---
@@ -253,6 +289,31 @@ class NotificationService:
 ❌ HTTP concerns  
 ❌ Workflow orchestration
 
+#### BaseRepository Method Signatures
+
+All repositories must follow the BaseRepository interface:
+
+```python
+class BaseRepository(Generic[ModelType]):
+    """Base repository with standard CRUD operations."""
+    
+    async def create(self, **kwargs) -> ModelType:
+        """Create new instance with keyword arguments."""
+        # ✅ Accepts **kwargs, not dict
+    
+    async def update(self, instance: ModelType, **kwargs) -> ModelType:
+        """Update instance with keyword arguments."""
+        # ✅ First param is instance, then **kwargs
+    
+    async def get_by_id(self, id: int) -> Optional[ModelType]:
+        """Get instance by integer ID."""
+        # ✅ Method name is get_by_id, not get
+    
+    async def get_by_uuid(self, uuid: UUID) -> Optional[ModelType]:
+        """Get instance by UUID."""
+        # ✅ Method name is get_by_uuid for UUID lookups
+```
+
 #### Example
 
 ```python
@@ -294,11 +355,145 @@ class NotificationRepository(BaseRepository[Notification]):
         await self.session.commit()
 ```
 
+#### Correct Repository Method Calls
+
+```python
+# ✅ CORRECT - create() with **kwargs
+data = {"title": "Test", "message": "Hello"}
+notification = await repository.create(**data)
+
+# ✅ CORRECT - update() with instance first
+notification = await repository.get_by_id(1)
+updated = await repository.update(notification, is_read=True)
+
+# ✅ CORRECT - get_by_id() for integer IDs
+notification = await repository.get_by_id(1)
+
+# ✅ CORRECT - get_by_uuid() for UUID lookups
+user = await repository.get_by_uuid(user_uuid)
+```
+
 ---
 
 ## Correct Patterns
 
-### Pattern 1: Service with Repository Dependency
+### Pattern 1: PolicyService Implementation Example
+
+The PolicyService demonstrates proper service layer architecture with multiple repository dependencies:
+
+```python
+# ✅ CORRECT - PolicyService with multiple repositories
+class PolicyService(BaseService):
+    """Service for dataset lifecycle policy management."""
+    
+    def __init__(
+        self,
+        archival_policy_repo: ArchivalPolicyRepository,
+        cleanup_policy_repo: CleanupPolicyRepository,
+        execution_log_repo: PolicyExecutionLogRepository,
+    ) -> None:
+        """Initialize with repository dependencies only."""
+        super().__init__()
+        self.archival_policy_repo = archival_policy_repo
+        self.cleanup_policy_repo = cleanup_policy_repo
+        self.execution_log_repo = execution_log_repo
+    
+    async def create_archival_policy(
+        self,
+        policy_data: dict,
+        user_id: UUID
+    ) -> ArchivalPolicy:
+        """Create archival policy with business validation."""
+        # ✅ Business rule: validate age_days
+        if policy_data.get("age_days", 0) < 1:
+            raise ValueError("age_days must be at least 1")
+        
+        # ✅ Business rule: set defaults
+        policy_data.setdefault("is_active", True)
+        policy_data["created_by"] = user_id
+        
+        # ✅ Delegate to repository
+        policy = await self.archival_policy_repo.create(**policy_data)
+        
+        # ✅ Business logic: log creation
+        await self.execution_log_repo.create(
+            policy_id=policy.id,
+            action="created",
+            user_id=user_id
+        )
+        
+        return policy
+    
+    async def execute_archival_policies(self) -> Dict[str, Any]:
+        """Execute all active archival policies."""
+        # ✅ Business logic: get active policies
+        policies = await self.archival_policy_repo.get_active()
+        
+        results = {"processed": 0, "archived": 0, "errors": 0}
+        
+        for policy in policies:
+            try:
+                # ✅ Business logic: execute policy
+                archived_count = await self._execute_single_policy(policy)
+                results["archived"] += archived_count
+                results["processed"] += 1
+            except Exception as e:
+                logger.error(f"Policy {policy.id} failed: {e}")
+                results["errors"] += 1
+        
+        return results
+
+# Dependency injection for PolicyService
+async def get_policy_service(
+    session: AsyncSession = Depends(get_session)
+) -> PolicyService:
+    """Create policy service with all dependencies."""
+    archival_repo = ArchivalPolicyRepository(session)
+    cleanup_repo = CleanupPolicyRepository(session)
+    execution_log_repo = PolicyExecutionLogRepository(session)
+    
+    return PolicyService(
+        archival_policy_repo=archival_repo,
+        cleanup_policy_repo=cleanup_repo,
+        execution_log_repo=execution_log_repo
+    )
+
+# Type alias for dependency injection
+PolicyServiceDep = Annotated[PolicyService, Depends(get_policy_service)]
+```
+
+### Pattern 2: SQLAlchemy Index Definitions
+
+**IMPORTANT**: Index definitions must use column objects, not string column names:
+
+```python
+# ✅ CORRECT - Using column objects
+class Dataset(Base, TimestampMixin):
+    __tablename__ = "datasets"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(SQLAlchemyUUID(as_uuid=True))
+    status: Mapped[str] = mapped_column(String(50))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    
+    __table_args__ = (
+        Index("ix_datasets_user_id", user_id),  # ✅ Column object
+        Index("ix_datasets_status", status),  # ✅ Column object
+        Index("ix_datasets_user_status", user_id, status),  # ✅ Multiple columns
+        Index("ix_datasets_created_at", created_at),  # ✅ Column object
+    )
+
+# ❌ WRONG - Using string column names
+class Dataset(Base, TimestampMixin):
+    __table_args__ = (
+        Index("ix_datasets_user_id", "user_id"),  # ❌ String
+        Index("ix_datasets_status", "status"),  # ❌ String
+    )
+```
+
+**Why**: SQLAlchemy requires column objects for proper type checking and schema generation. String column names cause type mismatch errors.
+
+### Pattern 3: Service with Repository Dependency
 
 ```python
 # ✅ CORRECT
@@ -330,19 +525,19 @@ class CrawlJobService:
         }
         
         # ✅ Delegate to repository
-        job = await self.crawl_job_repo.create(job_data)
+        job = await self.crawl_job_repo.create(**job_data)  # ✅ **kwargs
         
         # ✅ Business logic: log activity
-        await self.activity_log_repo.create({
-            "user_id": user_id,
-            "action": "create_job",
-            "resource_id": job.id
-        })
+        await self.activity_log_repo.create(
+            user_id=user_id,
+            action="create_job",
+            resource_id=job.id
+        )
         
         return job
 ```
 
-### Pattern 2: Repository with Simple Data Access
+### Pattern 4: Repository with Simple Data Access
 
 ```python
 # ✅ CORRECT
@@ -377,7 +572,7 @@ class ProjectRepository(BaseRepository[Project]):
         ]
 ```
 
-### Pattern 3: Endpoint with Service Dependency
+### Pattern 5: Endpoint with Service Dependency
 
 ```python
 # ✅ CORRECT
@@ -415,7 +610,7 @@ async def create_crawl_job(
         raise HTTPException(status_code=500, detail="Failed to create job")
 ```
 
-### Pattern 4: Dependency Injection Factory
+### Pattern 6: Dependency Injection Factory
 
 ```python
 # ✅ CORRECT - In backend/api/dependencies.py
@@ -724,6 +919,88 @@ def test_endpoints_dont_have_queries():
 ```
 
 ---
+
+## Authorization Helpers
+
+### Admin Authorization Pattern
+
+Use helper functions for consistent authorization checks:
+
+```python
+# In backend/api/dependencies.py
+async def require_admin(current_user: CurrentUser) -> dict:
+    """Require admin role for endpoint access.
+    
+    Args:
+        current_user: Current authenticated user
+    
+    Returns:
+        User dict if admin
+    
+    Raises:
+        HTTPException: 403 if user is not admin
+    """
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    return current_user
+
+# Type alias
+AdminUser = Annotated[dict, Depends(require_admin)]
+
+# Usage in endpoint
+@router.post("/policies", operation_id="createPolicy")
+async def create_policy(
+    policy_data: PolicyCreateRequest,
+    admin_user: AdminUser,  # ✅ Enforces admin check
+    service: PolicyServiceDep,
+) -> PolicyResponse:
+    """Create policy (admin only)."""
+    policy = await service.create_policy(policy_data.model_dump())
+    return PolicyResponse.model_validate(policy)
+```
+
+### Common Response Patterns
+
+Use helper functions for consistent OpenAPI documentation:
+
+```python
+# In backend/api/response_helpers.py
+def get_common_responses(*status_codes: int) -> dict[int, dict[str, Any]]:
+    """Get common response schemas for specified status codes.
+    
+    Args:
+        *status_codes: HTTP status codes to include
+    
+    Returns:
+        Dictionary mapping status codes to response schemas
+    
+    Example:
+        responses = get_common_responses(401, 404, 500)
+    """
+    _RESPONSE_MAP = {
+        401: {"description": "Unauthorized - Invalid or missing token"},
+        403: {"description": "Forbidden - Insufficient permissions"},
+        404: {"description": "Not Found - Resource does not exist"},
+        500: {"description": "Internal Server Error"},
+    }
+    return {code: _RESPONSE_MAP[code] for code in status_codes if code in _RESPONSE_MAP}
+
+# Usage in endpoint
+@router.get(
+    "/policies/{policy_id}",
+    response_model=PolicyResponse,
+    operation_id="getPolicy",
+    responses={
+        200: {"description": "Successfully retrieved policy"},
+        **get_common_responses(401, 404, 500),  # ✅ Consistent responses
+    },
+)
+async def get_policy(...):
+    pass
+```
 
 ## Best Practices
 
