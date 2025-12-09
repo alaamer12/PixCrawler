@@ -35,7 +35,6 @@ from backend.schemas.policy import (
     CleanupPolicyResponse,
     CleanupPolicyUpdate,
 )
-from backend.tasks.policy import execute_archival_policies, execute_cleanup_policies
 
 router = APIRouter(tags=["Policies"])
 
@@ -205,10 +204,11 @@ async def delete_cleanup_policy(
 async def trigger_archival_execution(
     background_tasks: BackgroundTasks,
     admin_user: AdminUser,
+    service: PolicyServiceDep,
 ):
     """Trigger archival policy execution manually."""
-    # Use Celery task
-    execute_archival_policies.delay()
+    # Execute in background
+    background_tasks.add_task(service.execute_archival_policies)
     return {"message": "Archival policy execution triggered"}
 
 
@@ -221,8 +221,9 @@ async def trigger_archival_execution(
 async def trigger_cleanup_execution(
     background_tasks: BackgroundTasks,
     admin_user: AdminUser,
+    service: PolicyServiceDep,
 ):
     """Trigger cleanup policy execution manually."""
-    # Use Celery task
-    execute_cleanup_policies.delay()
+    # Execute in background
+    background_tasks.add_task(service.execute_cleanup_policies)
     return {"message": "Cleanup policy execution triggered"}
