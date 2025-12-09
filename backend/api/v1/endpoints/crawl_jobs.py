@@ -14,7 +14,6 @@ from fastapi_pagination import Page
 from backend.api.types import CurrentUser, JobID, CrawlJobServiceDep
 from backend.api.v1.response_models import get_common_responses
 from backend.core.exceptions import ValidationError, NotFoundError
-from backend.models import CrawlJob
 from backend.schemas.crawl_jobs import (
     CrawlJobCreate,
     CrawlJobProgress,

@@ -4,13 +4,11 @@ This module provides API endpoints for image validation services,
 including single image analysis, batch validation, results retrieval,
 and validation statistics management."""
 
-from typing import Any, Dict
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-
-from backend.api.types import CurrentUser, DBSession, ValidationServiceDep
-from backend.core.exceptions import NotFoundError
+from backend.api.types import CurrentUser, ValidationServiceDep
 from backend.api.v1.response_models import get_common_responses
+from backend.core.exceptions import NotFoundError
 from backend.schemas.validation import (
     ValidationAnalyzeRequest,
     ValidationAnalyzeResponse,

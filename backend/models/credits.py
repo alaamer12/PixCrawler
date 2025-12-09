@@ -7,9 +7,10 @@ including credit accounts, transactions, and usage tracking.
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from uuid import UUID
 
+# noinspection PyPep8Naming
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -27,6 +28,9 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from database.models import Profile
 
 __all__ = [
     'CreditAccount',
@@ -156,7 +160,7 @@ class CreditTransaction(Base):
         id: UUID primary key
         account_id: Reference to credit_accounts.id
         user_id: Reference to profiles.id (denormalized for queries)
-        type: Transaction type (purchase, usage, refund, bonus)
+        type_: Transaction type (purchase, usage, refund, bonus)
         description: Human-readable description
         amount: Credit amount (positive for additions, negative for usage)
         balance_after: Account balance after transaction

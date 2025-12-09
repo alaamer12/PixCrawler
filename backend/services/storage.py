@@ -101,9 +101,9 @@ class StorageService(BaseService):
         """
         try:
             file_paths = self.storage.list_files(prefix)
-            
+
             self.log_operation("list_files", prefix=prefix, count=len(file_paths))
-            
+
             # This is a simplified implementation
             # In a real app, we'd get actual file metadata
             return [
@@ -134,8 +134,9 @@ class StorageService(BaseService):
         Clean up old files based on criteria.
 
         Args:
-            age_hours: Delete files older than this many hours
-            prefix: Optional prefix to filter files
+            days_old
+            storage_tier
+            dry_run
 
         Returns:
             CleanupResponse with cleanup results
@@ -216,13 +217,13 @@ class StorageService(BaseService):
 
         try:
             url = self.storage.generate_presigned_url(path, expires_in=expires_in)
-            
+
             self.log_operation(
                 "generate_presigned_url",
                 path=path,
                 expires_in=expires_in
             )
-            
+
             return {
                 "url": url,
                 "expires_at": datetime.utcnow() + timedelta(seconds=expires_in)

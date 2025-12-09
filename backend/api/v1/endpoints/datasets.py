@@ -9,6 +9,7 @@ from fastapi_pagination import Page
 from backend.api.types import CurrentUser, DBSession, DatasetID, DatasetServiceDep
 from backend.api.v1.response_models import get_common_responses
 from backend.schemas.dataset import DatasetCreate, DatasetResponse, DatasetStats, DatasetUpdate
+from backend.core.exceptions import NotFoundError, ValidationError
 
 router = APIRouter(
     tags=["Datasets"],

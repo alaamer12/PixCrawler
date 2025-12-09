@@ -7,10 +7,9 @@ task dependencies, and recovery information.
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Dict, Any
-from uuid import UUID
+from typing import Optional
 
-from sqlalchemy import DateTime, Integer, String, Text, func, UUID as SQLAlchemyUUID, CheckConstraint, Index, ForeignKey, JSON
+from sqlalchemy import DateTime, Integer, String, Text, Index, ForeignKey, JSON
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 

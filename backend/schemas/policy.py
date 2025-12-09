@@ -5,11 +5,11 @@ This module provides schemas for archival and cleanup policies,
 including validation and request/response models.
 """
 
-from enum import Enum
-from typing import Optional, Dict, Any, List
 from datetime import datetime
+from enum import Enum
+from typing import Optional, Dict, Any
 
-from pydantic import Field, model_validator
+from pydantic import Field
 
 from .base import BaseSchema, TimestampMixin
 
@@ -51,18 +51,18 @@ class CleanupTarget(str, Enum):
 
 class ArchivalPolicyBase(BaseSchema):
     """Base schema for archival policies."""
-    
+
     name: str = Field(
-        ..., 
-        min_length=1, 
+        ...,
+        min_length=1,
         max_length=100,
         description="Policy name"
     )
     description: Optional[str] = Field(None, description="Policy description")
     is_active: bool = Field(True, description="Whether policy is active")
     days_until_archive: int = Field(
-        ..., 
-        ge=1, 
+        ...,
+        ge=1,
         description="Days since creation/access before archiving"
     )
     target_tier: StorageTier = Field(
@@ -82,7 +82,7 @@ class ArchivalPolicyCreate(ArchivalPolicyBase):
 
 class ArchivalPolicyUpdate(BaseSchema):
     """Schema for updating an archival policy."""
-    
+
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = None
     is_active: Optional[bool] = None
@@ -93,7 +93,7 @@ class ArchivalPolicyUpdate(BaseSchema):
 
 class ArchivalPolicyResponse(ArchivalPolicyBase, TimestampMixin):
     """Response schema for archival policy."""
-    
+
     id: int = Field(..., description="Policy ID")
 
 
@@ -101,18 +101,18 @@ class ArchivalPolicyResponse(ArchivalPolicyBase, TimestampMixin):
 
 class CleanupPolicyBase(BaseSchema):
     """Base schema for cleanup policies."""
-    
+
     name: str = Field(
-        ..., 
-        min_length=1, 
+        ...,
+        min_length=1,
         max_length=100,
         description="Policy name"
     )
     description: Optional[str] = Field(None, description="Policy description")
     is_active: bool = Field(True, description="Whether policy is active")
     days_until_cleanup: int = Field(
-        ..., 
-        ge=1, 
+        ...,
+        ge=1,
         description="Days since creation/completion before cleanup"
     )
     cleanup_target: CleanupTarget = Field(
@@ -132,7 +132,7 @@ class CleanupPolicyCreate(CleanupPolicyBase):
 
 class CleanupPolicyUpdate(BaseSchema):
     """Schema for updating a cleanup policy."""
-    
+
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = None
     is_active: Optional[bool] = None
@@ -143,7 +143,7 @@ class CleanupPolicyUpdate(BaseSchema):
 
 class CleanupPolicyResponse(CleanupPolicyBase, TimestampMixin):
     """Response schema for cleanup policy."""
-    
+
     id: int = Field(..., description="Policy ID")
 
 
@@ -151,7 +151,7 @@ class CleanupPolicyResponse(CleanupPolicyBase, TimestampMixin):
 
 class PolicyExecutionLogResponse(BaseSchema):
     """Response schema for policy execution logs."""
-    
+
     id: int = Field(..., description="Log ID")
     policy_type: PolicyType = Field(..., description="Type of policy executed")
     policy_id: int = Field(..., description="ID of the policy executed")

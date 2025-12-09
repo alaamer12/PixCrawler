@@ -4,15 +4,11 @@ Project API endpoints.
 This module provides the API endpoints for Project management.
 """
 
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.dependencies import get_current_user, get_session
+from api.dependencies import get_project_service
 from backend.api.types import CurrentUser
 from backend.api.v1.response_models import get_common_responses
-from backend.repositories.project_repository import ProjectRepository
 from backend.schemas.project import (
     ProjectCreate,
     ProjectUpdate,
@@ -27,26 +23,6 @@ router = APIRouter(
     tags=["Projects"],
     responses=get_common_responses(401, 403, 404, 500),
 )
-
-
-def get_project_service(session: AsyncSession = Depends(get_session)) -> ProjectService:
-    """
-    Dependency injection for ProjectService.
-
-    Creates service with required repository following the pattern:
-    get_service(session) -> Service where service receives repository.
-
-    Args:
-        session: Database session (injected by FastAPI)
-
-    Returns:
-        ProjectService instance with injected repository
-    """
-    # Create repository instance
-    repository = ProjectRepository(session)
-    
-    # Inject repository into service
-    return ProjectService(repository)
 
 
 @router.get(
@@ -85,28 +61,28 @@ async def list_projects(
 ) -> ProjectListResponse:
     """
     List all projects for the current user.
-    
+
     Retrieves all projects owned by the authenticated user,
     ordered by creation date descending (most recent first).
-    
+
     **Authentication Required:** Bearer token
-    
+
     Args:
         current_user: Current authenticated user (injected)
         service: Project service instance (injected)
-        
+
     Returns:
         ProjectListResponse with list of projects and total count
-        
+
     Raises:
         HTTPException: 401 if authentication fails
         HTTPException: 500 if database query fails
     """
     projects = await service.get_projects(current_user["user_id"])
-    
+
     # Transform to response model (handling Pydantic v2 validation)
     project_responses = [ProjectResponse.model_validate(p) for p in projects]
-    
+
     return ProjectListResponse(
         data=project_responses,
         meta={"total": len(projects)}
@@ -146,21 +122,21 @@ async def create_project(
 ) -> ProjectResponse:
     """
     Create a new project for the current user.
-    
+
     Projects are used to organize related crawl jobs and datasets.
     Each project can contain multiple crawl jobs and helps maintain
     a logical grouping of related work.
-    
+
     **Authentication Required:** Bearer token
-    
+
     Args:
         project_in: Project creation data (name, description)
         current_user: Current authenticated user (injected)
         service: Project service instance (injected)
-        
+
     Returns:
         ProjectResponse with created project information
-        
+
     Raises:
         HTTPException: 401 if authentication fails
         HTTPException: 422 if validation fails
@@ -202,20 +178,20 @@ async def get_project(
 ) -> ProjectResponse:
     """
     Get a project by ID.
-    
+
     Retrieves detailed information about a specific project
     including its name, description, and timestamps.
-    
+
     **Authentication Required:** Bearer token
-    
+
     Args:
         project_id: Project ID
         current_user: Current authenticated user (injected)
         service: Project service instance (injected)
-        
+
     Returns:
         ProjectResponse with project details
-        
+
     Raises:
         HTTPException: 401 if authentication fails
         HTTPException: 404 if project not found or access denied
@@ -263,21 +239,21 @@ async def update_project(
 ) -> ProjectResponse:
     """
     Update a project's information.
-    
+
     Allows partial updates to project fields. Only provided
     fields will be updated, others remain unchanged.
-    
+
     **Authentication Required:** Bearer token
-    
+
     Args:
         project_id: Project ID
         project_in: Project update data (name, description)
         current_user: Current authenticated user (injected)
         service: Project service instance (injected)
-        
+
     Returns:
         ProjectResponse with updated project information
-        
+
     Raises:
         HTTPException: 401 if authentication fails
         HTTPException: 404 if project not found or access denied
@@ -319,22 +295,22 @@ async def delete_project(
 ) -> dict:
     """
     Delete a project permanently.
-    
+
     Deletes the project and all associated crawl jobs.
     This action cannot be undone.
-    
+
     **Warning:** This will delete all crawl jobs associated with this project.
-    
+
     **Authentication Required:** Bearer token
-    
+
     Args:
         project_id: Project ID
         current_user: Current authenticated user (injected)
         service: Project service instance (injected)
-        
+
     Returns:
         Success confirmation with null data
-        
+
     Raises:
         HTTPException: 401 if authentication fails
         HTTPException: 404 if project not found or access denied

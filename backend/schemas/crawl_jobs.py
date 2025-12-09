@@ -8,9 +8,6 @@ including creation, updates, and responses.
 from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
-from uuid import UUID
-from fastapi import Depends
-
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, computed_field
 
@@ -39,19 +36,19 @@ class CrawlJobStatus(str, Enum):
 
 class CrawlJobCreate(BaseModel):
     """Schema for creating a new crawl job."""
-    
+
     model_config = ConfigDict(
         str_strip_whitespace=True,
         validate_assignment=True,
         extra='forbid',
     )
-    
+
     project_id: int = Field(
         gt=0,
         description="Project ID",
         examples=[1, 42, 123],
     )
-    
+
     name: str = Field(
         min_length=1,
         max_length=100,
@@ -59,14 +56,14 @@ class CrawlJobCreate(BaseModel):
         description="Job name (alphanumeric, spaces, hyphens, underscores only)",
         examples=["Animal Photos Job", "car_images_crawl", "dataset-2024"],
     )
-    
+
     keywords: list[str] = Field(
         min_length=1,
         max_length=50,
         description="List of search keywords",
         examples=[["cat", "dog", "bird"], ["car", "vehicle"]],
     )
-    
+
     max_images: int = Field(
         default=1000,
         gt=0,
@@ -74,23 +71,23 @@ class CrawlJobCreate(BaseModel):
         description="Maximum number of images to collect",
         examples=[100, 1000, 5000],
     )
-    
+
     sources: list[str] = Field(
         default_factory=lambda: ["google", "bing"],
         description="Image sources to use",
         examples=[["google", "bing"], ["unsplash", "pixabay"]],
     )
-    
+
     @field_validator('keywords')
     @classmethod
     def validate_keywords(cls, v: list[str]) -> list[str]:
         """Validate and clean keywords."""
         # Remove empty strings and strip whitespace
         cleaned = [k.strip() for k in v if k.strip()]
-        
+
         if not cleaned:
             raise ValueError('At least one non-empty keyword is required')
-        
+
         # Remove duplicates while preserving order
         seen = set()
         unique_keywords = []
@@ -99,37 +96,37 @@ class CrawlJobCreate(BaseModel):
             if keyword_lower not in seen:
                 seen.add(keyword_lower)
                 unique_keywords.append(keyword)
-        
+
         return unique_keywords
-    
+
     @field_validator('sources')
     @classmethod
     def validate_sources(cls, v: list[str]) -> list[str]:
         """Validate image sources."""
         valid_sources = {"google", "bing", "duckduckgo", "unsplash", "pixabay"}
         invalid = set(v) - valid_sources
-        
+
         if invalid:
             raise ValueError(f"Invalid sources: {', '.join(invalid)}")
-        
+
         return list(set(v))  # Remove duplicates
 
 
 class CrawlJobUpdate(BaseModel):
     """Schema for updating crawl job."""
-    
+
     model_config = ConfigDict(
         str_strip_whitespace=True,
         validate_assignment=True,
     )
-    
+
     name: Optional[str] = Field(
         default=None,
         min_length=1,
         max_length=100,
         pattern=r'^[a-zA-Z0-9_\-\s]+$',
     )
-    
+
     status: Optional[CrawlJobStatus] = Field(
         default=None,
         description="Job status",
@@ -138,12 +135,12 @@ class CrawlJobUpdate(BaseModel):
 
 class CrawlJobResponse(BaseModel):
     """Schema for crawl job response."""
-    
+
     model_config = ConfigDict(
         from_attributes=True,
         use_enum_values=True,
     )
-    
+
     id: int = Field(description="Job ID")
     project_id: int = Field(description="Project ID")
     name: str = Field(description="Job name")
@@ -158,7 +155,7 @@ class CrawlJobResponse(BaseModel):
     completed_at: Optional[datetime] = Field(default=None, description="Completion timestamp")
     created_at: datetime = Field(description="Creation timestamp")
     updated_at: datetime = Field(description="Last update timestamp")
-    
+
     @computed_field
     @property
     def success_rate(self) -> Optional[float]:
@@ -166,13 +163,13 @@ class CrawlJobResponse(BaseModel):
         if self.downloaded_images == 0:
             return None
         return round((self.valid_images / self.downloaded_images) * 100, 2)
-    
+
     @computed_field
     @property
     def is_running(self) -> bool:
         """Check if job is running."""
         return self.status == "running"
-    
+
     @computed_field
     @property
     def is_completed(self) -> bool:
@@ -182,9 +179,9 @@ class CrawlJobResponse(BaseModel):
 
 class JobLogEntry(BaseModel):
     """Schema for a single job log entry."""
-    
+
     model_config = ConfigDict(str_strip_whitespace=True)
-    
+
     action: str = Field(description="Action performed")
     timestamp: datetime = Field(description="Timestamp")
     metadata: Optional[dict[str, Any]] = Field(default=None, description="Additional data")
@@ -192,9 +189,9 @@ class JobLogEntry(BaseModel):
 
 class CrawlJobListResponse(BaseModel):
     """Schema for crawl job list response."""
-    
+
     model_config = ConfigDict(from_attributes=True)
-    
+
     data: list[CrawlJobResponse] = Field(
         description="List of crawl jobs",
         examples=[[{
@@ -214,7 +211,7 @@ class CrawlJobListResponse(BaseModel):
             "updated_at": "2024-01-27T11:30:00Z"
         }]]
     )
-    
+
     meta: dict = Field(
         default_factory=lambda: {"total": 0, "skip": 0, "limit": 50},
         description="Pagination metadata",
@@ -224,9 +221,9 @@ class CrawlJobListResponse(BaseModel):
 
 class CrawlJobProgress(BaseModel):
     """Schema for crawl job progress response."""
-    
+
     model_config = ConfigDict(use_enum_values=True)
-    
+
     job_id: int = Field(description="Job ID")
     status: str = Field(description="Current status")
     progress: int = Field(ge=0, le=100, description="Progress percentage")
@@ -242,9 +239,9 @@ class CrawlJobProgress(BaseModel):
 
 class JobLogListResponse(BaseModel):
     """Schema for job log list response."""
-    
+
     model_config = ConfigDict(from_attributes=True)
-    
+
     data: list[JobLogEntry] = Field(
         description="List of job log entries",
         examples=[[{
@@ -253,7 +250,7 @@ class JobLogListResponse(BaseModel):
             "metadata": {"images_target": 1000}
         }]]
     )
-    
+
     meta: dict = Field(
         default_factory=lambda: {"total": 0},
         description="Metadata",
@@ -263,9 +260,9 @@ class JobLogListResponse(BaseModel):
 
 class JobStartResponse(BaseModel):
     """Schema for job start endpoint response."""
-    
+
     model_config = ConfigDict(use_enum_values=True)
-    
+
     job_id: int = Field(description="Job ID")
     status: str = Field(description="Job status (should be 'running')")
     task_ids: list[str] = Field(description="List of Celery task IDs dispatched")
@@ -275,9 +272,9 @@ class JobStartResponse(BaseModel):
 
 class JobStopResponse(BaseModel):
     """Schema for job stop endpoint response."""
-    
+
     model_config = ConfigDict(use_enum_values=True)
-    
+
     job_id: int = Field(description="Job ID")
     status: str = Field(description="Job status (should be 'cancelled')")
     revoked_tasks: int = Field(ge=0, description="Number of tasks revoked")

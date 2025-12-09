@@ -20,33 +20,34 @@ from .base import BaseRepository
 __all__ = ['UserRepository']
 
 
+# noinspection PyTypeChecker
 class UserRepository(BaseRepository[Profile]):
     """
     Repository for User (Profile) data access.
-    
+
     Provides database operations for user profiles.
-    
+
     Attributes:
         session: Database session
         model: Profile model class
     """
-    
+
     def __init__(self, session: AsyncSession):
         """
         Initialize User repository.
-        
+
         Args:
             session: Database session
         """
         super().__init__(session, Profile)
-    
+
     async def get_by_uuid(self, user_id: UUID) -> Optional[Profile]:
         """
         Get user by UUID.
-        
+
         Args:
             user_id: User UUID
-        
+
         Returns:
             Profile or None
         """
@@ -54,14 +55,14 @@ class UserRepository(BaseRepository[Profile]):
             select(Profile).where(Profile.id == user_id)
         )
         return result.scalar_one_or_none()
-    
+
     async def get_by_email(self, email: str) -> Optional[Profile]:
         """
         Get user by email.
-        
+
         Args:
             email: User email
-        
+
         Returns:
             Profile or None
         """
@@ -69,15 +70,15 @@ class UserRepository(BaseRepository[Profile]):
             select(Profile).where(Profile.email == email)
         )
         return result.scalar_one_or_none()
-    
+
     async def list_users(self, offset: int = 0, limit: int = 100) -> list[Profile]:
         """
         List users with pagination.
-        
+
         Args:
             offset: Number of records to skip
             limit: Maximum number of records to return
-        
+
         Returns:
             List of Profile objects
         """

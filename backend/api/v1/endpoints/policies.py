@@ -5,15 +5,8 @@ API endpoints for dataset lifecycle policies.
 from typing import List, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.dependencies import get_current_user as get_current_active_user, get_session as get_db
-from backend.repositories.dataset_repository import DatasetRepository
-from backend.repositories.policy_repository import (
-    ArchivalPolicyRepository,
-    CleanupPolicyRepository,
-    PolicyExecutionLogRepository,
-)
+from backend.api.dependencies import get_current_user as get_current_active_user
 from backend.schemas.policy import (
     ArchivalPolicyCreate,
     ArchivalPolicyResponse,
@@ -21,34 +14,13 @@ from backend.schemas.policy import (
     CleanupPolicyCreate,
     CleanupPolicyResponse,
     CleanupPolicyUpdate,
-    PolicyExecutionLogResponse,
 )
-from backend.services.policy import PolicyService, PolicyExecutionService
+from backend.services.policy import PolicyService
 from backend.tasks.policy import execute_archival_policies, execute_cleanup_policies
+from api.dependencies import get_policy_service
 
 router = APIRouter(tags=["Policies"])
 
-
-def get_policy_service(db: AsyncSession = Depends(get_db)) -> PolicyService:
-    """Dependency to get policy service."""
-    return PolicyService(
-        ArchivalPolicyRepository(db),
-        CleanupPolicyRepository(db),
-        PolicyExecutionLogRepository(db),
-    )
-
-
-def get_execution_service(db: AsyncSession = Depends(get_db)) -> PolicyExecutionService:
-    """Dependency to get policy execution service."""
-    return PolicyExecutionService(
-        DatasetRepository(db),
-        ArchivalPolicyRepository(db),
-        CleanupPolicyRepository(db),
-        PolicyExecutionLogRepository(db),
-    )
-
-
-# --- Archival Policies ---
 
 @router.post(
     "/archival",
@@ -228,7 +200,7 @@ async def trigger_archival_execution(
     """Trigger archival policy execution manually."""
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
-    
+
     # Use Celery task
     execute_archival_policies.delay()
     return {"message": "Archival policy execution triggered"}
@@ -246,7 +218,7 @@ async def trigger_cleanup_execution(
     """Trigger cleanup policy execution manually."""
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
-    
+
     # Use Celery task
     execute_cleanup_policies.delay()
     return {"message": "Cleanup policy execution triggered"}

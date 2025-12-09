@@ -5,13 +5,13 @@ This module provides services for collecting, storing, and querying
 operational metrics including processing times, resource usage, and queue depths.
 """
 
-import psutil
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 
-from backend.models import ProcessingMetric, ResourceMetric, QueueMetric
+import psutil
+
 from backend.repositories import (
     ProcessingMetricRepository,
     ResourceMetricRepository,
@@ -21,7 +21,6 @@ from backend.schemas.metrics import (
     ProcessingMetricCreate,
     ProcessingMetricUpdate,
     ProcessingMetricResponse,
-    ResourceMetricCreate,
     ResourceMetricResponse,
     QueueMetricCreate,
     QueueMetricResponse,
@@ -38,17 +37,17 @@ __all__ = [
 class MetricsService(BaseService):
     """
     Service for managing operational metrics.
-    
+
     Provides functionality for collecting, storing, and querying metrics
     related to processing performance, resource usage, and queue status.
-    
+
     Attributes:
         processing_repo: ProcessingMetric repository
         resource_repo: ResourceMetric repository
         queue_repo: QueueMetric repository
         session: Optional database session
     """
-    
+
     def __init__(
         self,
         processing_repo: ProcessingMetricRepository,
@@ -57,7 +56,7 @@ class MetricsService(BaseService):
     ) -> None:
         """
         Initialize metrics service with repositories.
-        
+
         Args:
             processing_repo: ProcessingMetric repository
             resource_repo: ResourceMetric repository
@@ -67,11 +66,11 @@ class MetricsService(BaseService):
         self.processing_repo = processing_repo
         self.resource_repo = resource_repo
         self.queue_repo = queue_repo
-    
+
     # ========================================================================
     # PROCESSING METRICS
     # ========================================================================
-    
+
     async def start_processing_metric(
         self,
         operation_type: str,
@@ -81,13 +80,13 @@ class MetricsService(BaseService):
     ) -> ProcessingMetricResponse:
         """
         Start tracking a processing operation.
-        
+
         Args:
             operation_type: Type of operation (download, validate, upload, full_job)
             job_id: Optional crawl job ID
             user_id: Optional user ID
             metadata: Optional additional metadata
-            
+
         Returns:
             Created processing metric
         """
@@ -97,7 +96,7 @@ class MetricsService(BaseService):
             job_id=job_id,
             user_id=str(user_id) if user_id else None
         )
-        
+
         metric_data = ProcessingMetricCreate(
             job_id=job_id,
             user_id=user_id,
@@ -105,10 +104,10 @@ class MetricsService(BaseService):
             started_at=datetime.utcnow(),
             metadata_=metadata or {}
         )
-        
+
         metric = await self.processing_repo.create(**metric_data.model_dump())
         return ProcessingMetricResponse.model_validate(metric)
-    
+
     async def complete_processing_metric(
         self,
         metric_id: UUID,
@@ -120,7 +119,7 @@ class MetricsService(BaseService):
     ) -> ProcessingMetricResponse:
         """
         Complete a processing operation and update metrics.
-        
+
         Args:
             metric_id: Processing metric ID
             status: Final status (success, failed, cancelled)
@@ -128,7 +127,7 @@ class MetricsService(BaseService):
             images_succeeded: Number of successful images
             images_failed: Number of failed images
             error_details: Optional error information
-            
+
         Returns:
             Updated processing metric
         """
@@ -138,16 +137,16 @@ class MetricsService(BaseService):
             status=status,
             images_processed=images_processed
         )
-        
+
         # Get the metric
         metric = await self.processing_repo.get_by_id(metric_id)
         if not metric:
             raise ValueError(f"Processing metric {metric_id} not found")
-        
+
         # Calculate duration
         completed_at = datetime.utcnow()
         duration_ms = int((completed_at - metric.started_at).total_seconds() * 1000)
-        
+
         # Update the metric
         update_data = ProcessingMetricUpdate(
             completed_at=completed_at,
@@ -158,13 +157,13 @@ class MetricsService(BaseService):
             images_failed=images_failed,
             error_details=error_details
         )
-        
+
         updated_metric = await self.processing_repo.update(
             metric,
             **update_data.model_dump(exclude_none=True)
         )
         return ProcessingMetricResponse.model_validate(updated_metric)
-    
+
     async def get_processing_metrics(
         self,
         job_id: Optional[int] = None,
@@ -178,7 +177,7 @@ class MetricsService(BaseService):
     ) -> List[ProcessingMetricResponse]:
         """
         Get processing metrics with optional filters.
-        
+
         Args:
             job_id: Optional filter by job ID
             user_id: Optional filter by user ID
@@ -188,7 +187,7 @@ class MetricsService(BaseService):
             status: Optional filter by status
             limit: Maximum number of records
             offset: Number of records to skip
-            
+
         Returns:
             List of processing metrics
         """
@@ -207,13 +206,13 @@ class MetricsService(BaseService):
             metrics = await self.processing_repo.get_by_time_range(
                 start_time, end_time, operation_type, status, limit, offset
             )
-        
+
         return [ProcessingMetricResponse.model_validate(m) for m in metrics]
-    
+
     # ========================================================================
     # RESOURCE METRICS
     # ========================================================================
-    
+
     async def collect_resource_metrics(
         self,
         job_id: Optional[int] = None,
@@ -221,19 +220,19 @@ class MetricsService(BaseService):
     ) -> List[ResourceMetricResponse]:
         """
         Collect current system resource metrics.
-        
+
         Args:
             job_id: Optional job ID to associate metrics with
             hostname: Optional hostname (defaults to current host)
-            
+
         Returns:
             List of collected resource metrics
         """
         self.log_operation("collect_resource_metrics", job_id=job_id, hostname=hostname)
-        
+
         timestamp = datetime.utcnow()
         collected_metrics = []
-        
+
         try:
             # CPU usage
             cpu_percent = psutil.cpu_percent(interval=0.1)
@@ -246,7 +245,7 @@ class MetricsService(BaseService):
                 hostname=hostname
             )
             collected_metrics.append(ResourceMetricResponse.model_validate(cpu_metric))
-            
+
             # Memory usage
             memory = psutil.virtual_memory()
             memory_mb = memory.used / (1024 * 1024)
@@ -263,7 +262,7 @@ class MetricsService(BaseService):
                 }
             )
             collected_metrics.append(ResourceMetricResponse.model_validate(memory_metric))
-            
+
             # Disk usage
             disk = psutil.disk_usage('/')
             disk_gb = disk.used / (1024 * 1024 * 1024)
@@ -280,14 +279,14 @@ class MetricsService(BaseService):
                 }
             )
             collected_metrics.append(ResourceMetricResponse.model_validate(disk_metric))
-            
+
             # Network I/O (if available)
             try:
                 net_io = psutil.net_io_counters()
                 # Convert bytes to MB
                 bytes_sent_mb = net_io.bytes_sent / (1024 * 1024)
                 bytes_recv_mb = net_io.bytes_recv / (1024 * 1024)
-                
+
                 network_metric = await self.resource_repo.create(
                     job_id=job_id,
                     metric_type="network",
@@ -305,13 +304,13 @@ class MetricsService(BaseService):
                 collected_metrics.append(ResourceMetricResponse.model_validate(network_metric))
             except Exception as e:
                 self.logger.warning(f"Failed to collect network metrics: {e}")
-        
+
         except Exception as e:
             self.logger.error(f"Error collecting resource metrics: {e}")
             raise
-        
+
         return collected_metrics
-    
+
     async def get_resource_metrics(
         self,
         job_id: Optional[int] = None,
@@ -324,7 +323,7 @@ class MetricsService(BaseService):
     ) -> List[ResourceMetricResponse]:
         """
         Get resource metrics with optional filters.
-        
+
         Args:
             job_id: Optional filter by job ID
             metric_type: Optional filter by metric type
@@ -333,7 +332,7 @@ class MetricsService(BaseService):
             hostname: Optional filter by hostname
             limit: Maximum number of records
             offset: Number of records to skip
-            
+
         Returns:
             List of resource metrics
         """
@@ -350,13 +349,13 @@ class MetricsService(BaseService):
             metrics = await self.resource_repo.get_by_time_range(
                 start_time, end_time, metric_type, hostname, limit, offset
             )
-        
+
         return [ResourceMetricResponse.model_validate(m) for m in metrics]
-    
+
     # ========================================================================
     # QUEUE METRICS
     # ========================================================================
-    
+
     async def collect_queue_metrics(
         self,
         queue_name: str,
@@ -370,7 +369,7 @@ class MetricsService(BaseService):
     ) -> QueueMetricResponse:
         """
         Collect queue depth and status metrics.
-        
+
         Args:
             queue_name: Name of the queue
             pending_tasks: Number of pending tasks
@@ -380,7 +379,7 @@ class MetricsService(BaseService):
             worker_count: Number of active workers
             avg_wait_time_ms: Average task wait time
             metadata: Optional additional metadata
-            
+
         Returns:
             Created queue metric
         """
@@ -391,7 +390,7 @@ class MetricsService(BaseService):
             active=active_tasks,
             workers=worker_count
         )
-        
+
         metric_data = QueueMetricCreate(
             queue_name=queue_name,
             timestamp=datetime.utcnow(),
@@ -403,10 +402,10 @@ class MetricsService(BaseService):
             avg_wait_time_ms=avg_wait_time_ms,
             metadata_=metadata or {}
         )
-        
+
         metric = await self.queue_repo.create(**metric_data.model_dump())
         return QueueMetricResponse.model_validate(metric)
-    
+
     async def get_queue_metrics(
         self,
         queue_name: Optional[str] = None,
@@ -417,14 +416,14 @@ class MetricsService(BaseService):
     ) -> List[QueueMetricResponse]:
         """
         Get queue metrics with optional filters.
-        
+
         Args:
             queue_name: Optional filter by queue name
             start_time: Optional start of time range
             end_time: Optional end of time range
             limit: Maximum number of records
             offset: Number of records to skip
-            
+
         Returns:
             List of queue metrics
         """
@@ -441,26 +440,26 @@ class MetricsService(BaseService):
             metrics = await self.queue_repo.get_by_time_range(
                 start_time, end_time, queue_name, limit, offset
             )
-        
+
         return [QueueMetricResponse.model_validate(m) for m in metrics]
-    
+
     async def get_latest_queue_status(self, queue_name: str) -> Optional[QueueMetricResponse]:
         """
         Get the latest status for a specific queue.
-        
+
         Args:
             queue_name: Queue name
-            
+
         Returns:
             Latest queue metric or None
         """
         metric = await self.queue_repo.get_latest_by_queue(queue_name)
         return QueueMetricResponse.model_validate(metric) if metric else None
-    
+
     # ========================================================================
     # AGGREGATED METRICS
     # ========================================================================
-    
+
     async def get_metrics_summary(
         self,
         start_time: datetime,
@@ -468,11 +467,11 @@ class MetricsService(BaseService):
     ) -> MetricsSummary:
         """
         Get comprehensive metrics summary for a time range.
-        
+
         Args:
             start_time: Start of time range
             end_time: End of time range
-            
+
         Returns:
             Comprehensive metrics summary
         """
@@ -481,11 +480,11 @@ class MetricsService(BaseService):
             start_time=start_time.isoformat(),
             end_time=end_time.isoformat()
         )
-        
+
         # Get processing stats for each operation type
         operation_types = ["download", "validate", "upload", "full_job"]
         processing_stats = []
-        
+
         for op_type in operation_types:
             stats = await self.processing_repo.get_aggregated_stats(
                 start_time, end_time, op_type
@@ -497,21 +496,21 @@ class MetricsService(BaseService):
                         **stats
                     )
                 )
-        
+
         # Get resource averages
         avg_cpu = await self.resource_repo.get_average_by_type(start_time, end_time, "cpu")
         avg_memory = await self.resource_repo.get_average_by_type(start_time, end_time, "memory")
         avg_disk = await self.resource_repo.get_average_by_type(start_time, end_time, "disk")
         avg_network = await self.resource_repo.get_average_by_type(start_time, end_time, "network")
-        
+
         # Get queue averages
         avg_queue_depth = await self.queue_repo.get_average_queue_depth(start_time, end_time)
-        
+
         # Calculate job statistics from full_job operations
         full_job_stats = await self.processing_repo.get_aggregated_stats(
             start_time, end_time, "full_job"
         )
-        
+
         return MetricsSummary(
             start_time=start_time,
             end_time=end_time,

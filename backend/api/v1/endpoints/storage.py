@@ -4,17 +4,15 @@ Handles storage operations including usage stats, file info, and cleanup
 """
 
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Dict, Optional, Union
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 
-from backend.api.dependencies import get_current_user
 from backend.api.types import StorageServiceDep, CurrentUser
 from backend.api.v1.response_models import get_common_responses
 from backend.schemas.storage import (
     CleanupRequest,
     CleanupResponse,
-    FileInfo,
     FileListResponse,
     StorageUsageResponse,
 )
@@ -236,6 +234,7 @@ async def get_presigned_url(
 
     Args:
         service: Storage service instance (injected)
+        current_user (CurrentUser): Current user instnce
         path: Path to the file in storage
         expires_in: URL expiration time in seconds (default: 3600 = 1 hour)
 

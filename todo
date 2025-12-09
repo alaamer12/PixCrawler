@@ -1,0 +1,58 @@
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve API keys: {str(e)}"
+        ) -> Cannot find reference 'HTTP_500_INTERNAL_SERVER_ERROR' in 'APIKeyStatus | None'
+
+
+Parameter 'user_id' unfilled (from ParamSpec 'P') at the file api/v1/endpoints/crawl_jobs.py
+
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve processing metrics: {str(e)}"
+        ) -> Cannot find reference 'HTTP_500_INTERNAL_SERVER_ERROR' api/v1/endpoints/crawl_jobs.py
+
+
+at the file backend/models/dataset.py Expected type 'str | Sequence[ColumnClause | _HasClauseElement | DMLColumnRole | Mapped] | () -> Sequence[ColumnClause | _HasClauseElement | DMLColumnRole | Mapped] | () -> ColumnClause | _HasClauseElement | DMLColumnRole | Mapped | ColumnClause | _HasClauseElement | DMLColumnRole | Mapped | None', got 'list[UUID]' instead
+
+ActivityLog models needs .created_at() method
+
+policy_repository file does not adhere our pattern in doctrings and module-doctring
+backend/api/v1/endpoints/policies.py endpoint does adhere our endpoints defining way
+
+missing repostories files and and services and models
+
+the file backend/services/crawl_job.py is totally useless, it should have used our builder packages instead of this crap
+
+the file backend/services/dataset.py has a lot of functions call with un-expected arguments
+
+
+Parameter 'category_name' unfilled (from ParamSpec '_P') and Parameter 'onerror' unfilled (from ParamSpec '_P') in backend/services/dataset_processing_pipeline.py
+
+Expected type 'int', got 'UUID' instead in backend/services/metrics.py
+
+Unexpected argument `return await self.repository.create(notification_in.model_dump())`  aand Unresolved attribute reference 'get' for class 'NotificationRepository'  backend/services/notification.py
+
+Expected type 'bool', got 'None' instead and Expected type 'Project' (matched generic type 'ModelT'), got 'int' instead and  Unexpected argument Unresolved attribute reference 'get' for class 'ProjectRepository' in the file backend/services/project.py
+
+Parameter 'instance' unfilled `            updated_user = await self.repository.update(
+                user_id=user_id,
+                email=email,
+                full_name=full_name,
+                role=role
+            )`  Expected type 'UUID', got 'str' instead
+
+
+
+result = await asyncio.to_thread(
+  validator.check_integrity,
+  directory=str(Path(image.storage_url).parent), backend/services/user.py
+  expected_count=1,
+  keyword=str(image_id)
+) Parameter 'category_name' unfilled (from ParamSpec '_P') in the file backend/services/validation.py
+
+Expected type 'RehydratePriority | None', got 'str' instead and Expected type 'RehydratePriority | None', got '() -> Any' instead and "metadata": properties.metadata_ in backend/storage/azure_blob_archive.py
+
+Unresolved reference 'PolicyExecutionService' in

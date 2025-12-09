@@ -24,13 +24,13 @@ Features:
     - Tier-based concurrent job rate limiting (Free: 1, Pro: 3, Enterprise: 10)
     - Server-Sent Events (SSE) for real-time progress updates
 """
-import uuid
-import json
 import asyncio
+import json
 import time
+import uuid
 from datetime import datetime
 from typing import Dict, Any, List, Optional, AsyncGenerator
-from fastapi import HTTPException
+
 from celery_core.app import celery_app
 
 # Optional SSE support
@@ -48,11 +48,7 @@ from backend.repositories import (
     ProjectRepository,
     ImageRepository,
     ActivityLogRepository,
-    ProcessingMetricRepository,
-    ResourceMetricRepository,
-    QueueMetricRepository,
 )
-from backend.services.metrics import MetricsService
 from .base import BaseService
 from backend.core.supabase import get_supabase_client
 from utility.logging_config import get_logger
@@ -359,7 +355,7 @@ class CrawlJobService(BaseService):
         self.log_operation("create_crawl_job", job_id=crawl_job.id,
                            project_id=project_id)
         return crawl_job
-    
+
     async def start_job(
         self,
         job_id: int,
@@ -368,7 +364,7 @@ class CrawlJobService(BaseService):
     ) -> Dict[str, Any]:
         """
         Start a crawl job by dispatching Celery tasks.
-        
+
         This method implements the complete job start workflow with idempotency:
         1. Retrieve and validate job exists
         2. Check job status for idempotency (return existing task_ids if already running)
@@ -378,19 +374,19 @@ class CrawlJobService(BaseService):
         6. Store task IDs in database
         7. Update job status to 'running' with total_chunks
         8. Create notification
-        
+
         Idempotency:
         - If job is already running, returns existing task_ids without dispatching new tasks
         - If job is not in pending status (and not running), returns 400 error
-        
+
         Args:
             job_id: ID of the job to start
             user_id: ID of the user starting the job
             engines: List of search engines to use (default: ['google', 'bing', 'duckduckgo'])
-        
+
         Returns:
             Dict with task_ids, status, total_chunks, and message
-        
+
         Raises:
             NotFoundError: If job not found
             ValidationError: If job status doesn't allow starting or user doesn't own job
@@ -401,12 +397,12 @@ class CrawlJobService(BaseService):
             task_download_baidu,
             task_download_duckduckgo
         )
-        
+
         # Step 1: Retrieve job
         job = await self.get_job(job_id)
         if not job:
             raise NotFoundError(f"Crawl job not found: {job_id}")
-        
+
         # Step 2: Check job status for idempotency
         # If job is already running, return existing task_ids (idempotent behavior)
         if job.status == 'running':
@@ -423,28 +419,28 @@ class CrawlJobService(BaseService):
                 "total_chunks": job.total_chunks or 0,
                 "message": f"Job is already running with {len(existing_task_ids)} tasks (idempotent response)"
             }
-        
+
         # If job is not pending (and not running), it cannot be started
         if job.status != 'pending':
             raise ValidationError(
                 f"Cannot start job with status '{job.status}'. "
                 f"Only pending jobs can be started."
             )
-        
+
         # Step 3: Validate ownership
         project = await self.project_repo.get_by_id(job.project_id)
         if not project or str(project.user_id) != str(user_id):
             raise ValidationError("You do not have permission to start this job")
-        
+
         # Step 4: Calculate total chunks
         keywords = job.keywords.get("keywords", [])
         if not keywords:
             raise ValidationError("Job has no keywords")
-        
+
         # Default engines if not specified
         if not engines:
             engines = ['google', 'bing', 'duckduckgo']
-        
+
         # Map engine names to task functions
         engine_tasks = {
             'google': task_download_google,
@@ -452,14 +448,14 @@ class CrawlJobService(BaseService):
             'baidu': task_download_baidu,
             'duckduckgo': task_download_duckduckgo
         }
-        
+
         # Calculate total chunks (one chunk per keyword-engine combination)
         total_chunks = len(keywords) * len(engines)
-        
+
         # Step 5: Dispatch tasks
         task_ids = []
         output_dir = f"/tmp/crawl_{job_id}"
-        
+
         logger.info(
             f"Starting job {job_id}: {len(keywords)} keywords × {len(engines)} engines = {total_chunks} chunks",
             job_id=job_id,
@@ -467,14 +463,14 @@ class CrawlJobService(BaseService):
             engines=engines,
             total_chunks=total_chunks
         )
-        
+
         for keyword in keywords:
             for engine in engines:
                 task_func = engine_tasks.get(engine.lower())
                 if not task_func:
                     logger.warning(f"Unknown engine '{engine}', skipping")
                     continue
-                
+
                 # Dispatch task with serializable arguments only
                 task = task_func.delay(
                     keyword=keyword,
@@ -483,12 +479,12 @@ class CrawlJobService(BaseService):
                     job_id=str(job_id),
                     user_id=user_id
                 )
-                
+
                 task_ids.append(task.id)
-                
+
                 # Store task ID in database
                 await self.crawl_job_repo.add_task_id(job_id, task.id)
-                
+
                 logger.debug(
                     f"Dispatched {engine} task for keyword '{keyword}': {task.id}",
                     job_id=job_id,
@@ -496,7 +492,7 @@ class CrawlJobService(BaseService):
                     engine=engine,
                     task_id=task.id
                 )
-        
+
         # Step 6: Update job status to 'running' with total_chunks
         await self.crawl_job_repo.update(
             job,
@@ -507,7 +503,7 @@ class CrawlJobService(BaseService):
             failed_chunks=0,
             started_at=datetime.utcnow()
         )
-        
+
         # Step 7: Log activity
         await self.activity_log_repo.create(
             user_id=uuid.UUID(user_id),
@@ -520,14 +516,14 @@ class CrawlJobService(BaseService):
                 "engines": engines
             }
         )
-        
+
         logger.info(
             f"Job {job_id} started successfully with {len(task_ids)} tasks",
             job_id=job_id,
             task_count=len(task_ids),
             total_chunks=total_chunks
         )
-        
+
         return {
             "job_id": job_id,
             "status": "running",
@@ -547,7 +543,7 @@ class CrawlJobService(BaseService):
             Crawl job or None if not found
         """
         return await self.crawl_job_repo.get_by_id(job_id)
-    
+
     async def handle_task_completion(
         self,
         job_id: int,
@@ -556,7 +552,7 @@ class CrawlJobService(BaseService):
     ) -> None:
         """
         Handle Celery task completion callback with result deduplication.
-        
+
         This method processes task completion results and updates the job state:
         1. Retrieve job from repository within a transaction
         2. Check if task has already been processed (deduplication)
@@ -567,12 +563,12 @@ class CrawlJobService(BaseService):
         7. Mark task as processed to prevent duplicate processing
         8. If all chunks complete, mark job as completed
         9. Create notification if job completed
-        
+
         Deduplication:
         - Uses database transaction to ensure atomic updates
         - Checks current chunk counts before updating to detect duplicates
         - Prevents race conditions through transaction isolation
-        
+
         Args:
             job_id: ID of the job
             task_id: ID of the completed task
@@ -581,7 +577,7 @@ class CrawlJobService(BaseService):
                 - downloaded: Number of images downloaded
                 - images: List of image metadata dicts (if successful)
                 - error: Error message (if failed)
-        
+
         Raises:
             NotFoundError: If job not found
         """
@@ -592,20 +588,20 @@ class CrawlJobService(BaseService):
             # This ensures no other transaction can modify the job until we're done
             from sqlalchemy import select
             from backend.models import CrawlJob
-            
+
             stmt = select(CrawlJob).where(CrawlJob.id == job_id).with_for_update()
             result_obj = await self.crawl_job_repo.session.execute(stmt)
             job = result_obj.scalar_one_or_none()
-            
+
             if not job:
                 raise NotFoundError(f"Crawl job not found: {job_id}")
-            
+
             # Step 2: Check for duplicate task result (deduplication)
             # If the sum of completed + failed chunks would exceed total_chunks,
             # this is likely a duplicate result
             current_processed = (job.completed_chunks or 0) + (job.failed_chunks or 0)
             total_chunks = job.total_chunks or 0
-            
+
             if current_processed >= total_chunks and total_chunks > 0:
                 logger.warning(
                     f"Task {task_id} for job {job_id} appears to be a duplicate. "
@@ -617,17 +613,17 @@ class CrawlJobService(BaseService):
                     total_chunks=total_chunks
                 )
                 return  # Idempotent - ignore duplicate
-            
+
             logger.info(
                 f"Processing task completion for job {job_id}, task {task_id}",
                 job_id=job_id,
                 task_id=task_id,
                 success=result.get('success', False)
             )
-        
+
         # Step 2: Update chunk counters
         success = result.get('success', False)
-        
+
         if success:
             # Increment completed_chunks, decrement active_chunks
             new_completed = (job.completed_chunks or 0) + 1
@@ -638,7 +634,7 @@ class CrawlJobService(BaseService):
             new_completed = job.completed_chunks or 0
             new_active = max((job.active_chunks or 0) - 1, 0)
             new_failed = (job.failed_chunks or 0) + 1
-            
+
             # Log error
             error_msg = result.get('error', 'Unknown error')
             logger.error(
@@ -647,7 +643,7 @@ class CrawlJobService(BaseService):
                 task_id=task_id,
                 error=error_msg
             )
-        
+
         # Update chunk counts
         await self.crawl_job_repo.update_chunk_counts(
             job_id=job_id,
@@ -655,12 +651,12 @@ class CrawlJobService(BaseService):
             completed_chunks=new_completed,
             failed_chunks=new_failed
         )
-        
+
         # Step 3: Calculate progress percentage
         total_chunks = job.total_chunks or 1
         progress = int(((new_completed + new_failed) / total_chunks) * 100)
         progress = min(progress, 100)
-        
+
         # Step 4: Create image records if successful
         if success and 'images' in result:
             images_data = result['images']
@@ -669,19 +665,19 @@ class CrawlJobService(BaseService):
                     # Add job_id to each image
                     for img_data in images_data:
                         img_data['crawl_job_id'] = job_id
-                    
+
                     await self.image_repo.bulk_create(images_data)
-                    
+
                     # Update downloaded_images count
                     downloaded_count = result.get('downloaded', len(images_data))
                     new_downloaded = (job.downloaded_images or 0) + downloaded_count
-                    
+
                     await self.crawl_job_repo.update_progress(
                         job_id=job_id,
                         progress=progress,
                         downloaded_images=new_downloaded
                     )
-                    
+
                     logger.info(
                         f"Created {len(images_data)} image records for job {job_id}",
                         job_id=job_id,
@@ -700,26 +696,26 @@ class CrawlJobService(BaseService):
                 progress=progress,
                 downloaded_images=job.downloaded_images or 0
             )
-        
+
         # Step 6: Check if all chunks are complete
         all_chunks_done = (new_completed + new_failed) >= total_chunks
-        
+
         if all_chunks_done:
             # Mark job as completed
             await self.crawl_job_repo.mark_completed(job_id)
-            
+
             logger.info(
                 f"Job {job_id} completed: {new_completed} successful, {new_failed} failed",
                 job_id=job_id,
                 completed_chunks=new_completed,
                 failed_chunks=new_failed
             )
-            
+
             # Step 7: Create completion notification
             try:
                 from backend.repositories import NotificationRepository
                 from backend.models import Notification
-                
+
                 # Get project to find user_id
                 project = await self.project_repo.get_by_id(job.project_id)
                 if project:
@@ -737,7 +733,7 @@ class CrawlJobService(BaseService):
                             'total_chunks': total_chunks
                         }
                     )
-                    
+
                     logger.info(
                         f"Created completion notification for job {job_id}",
                         job_id=job_id
@@ -1228,34 +1224,34 @@ class CrawlJobService(BaseService):
         - Pro: Keep hot indefinitely
         """
         from datetime import timedelta
-        
+
         results = {
             'archived': 0,
             'cold_storage': 0,
             'errors': 0
         }
-        
+
         try:
             # Get all completed jobs
             completed_jobs = await self.crawl_job_repo.get_by_status('completed')
-            
+
             now = datetime.utcnow()
-            
+
             for job in completed_jobs:
                 if not job.completed_at:
                     continue
-                    
+
                 # Calculate age
                 age = now - job.completed_at
-                
+
                 # Get user tier
                 # Note: We assume job.project.user is available via lazy='joined'
                 user_id = job.project.user_id if job.project else None
                 if not user_id:
                     continue
-                    
+
                 tier = await self._get_user_tier(user_id)
-                
+
                 if tier == 'free':
                     if age > timedelta(days=7):
                         await self.update_job_status(job.id, 'archived')
@@ -1265,49 +1261,49 @@ class CrawlJobService(BaseService):
                         await self.update_job_status(job.id, 'cold_storage')
                         results['cold_storage'] += 1
                 # Pro: do nothing
-                
+
         except Exception as e:
             logger.error(f"Error applying retention policy: {str(e)}")
             results['errors'] += 1
-            
+
         return results
 
     async def _get_user_tier(self, user_id: uuid.UUID) -> str:
         """
         Determine user's subscription tier based on credit account limits.
-        
+
         Uses CreditAccount.monthly_limit to infer tier:
         - < 2000: Free
         - 2000 - 500,000: Hobby
         - > 500,000: Pro
-        
+
         Args:
             user_id: User UUID
-            
+
         Returns:
             Tier name ('free', 'hobby', 'pro')
         """
         from sqlalchemy import select
         from backend.models import CreditAccount
-        
+
         try:
             # Query credit account for user
             query = select(CreditAccount).where(CreditAccount.user_id == user_id)
             result = await self.crawl_job_repo.session.execute(query)
             account = result.scalar_one_or_none()
-            
+
             if not account:
                 return 'free'
-                
+
             limit = account.monthly_limit
-            
+
             if limit > 500000:
                 return 'pro'
             elif limit > 2000:
                 return 'hobby'
             else:
                 return 'free'
-                
+
         except Exception as e:
             logger.error(f"Error determining user tier for {user_id}: {str(e)}")
             return 'free'
@@ -1496,16 +1492,16 @@ class CrawlJobService(BaseService):
         job.total_images = 0
         job.downloaded_images = 0
         job.valid_images = 0
-        
+
         # Reset chunk counters to 0 before dispatching new tasks
         job.total_chunks = 0
         job.active_chunks = 0
         job.completed_chunks = 0
         job.failed_chunks = 0
-        
+
         # Clear task IDs from previous attempt
         job.task_ids = []
-        
+
         # Clear timestamps
         job.started_at = None
         job.completed_at = None
@@ -1573,38 +1569,38 @@ class CrawlJobService(BaseService):
     async def _get_user_tier(self, user_id: UUID) -> str:
         """
         Get user's subscription tier from credit account.
-        
+
         Determines the user's tier based on their credit account balance.
         Used for rate limiting concurrent jobs.
-        
+
         Args:
             user_id: User UUID
-            
+
         Returns:
             Tier string: 'free', 'hobby', or 'pro'
         """
         from sqlalchemy import select
         from backend.models import CreditAccount
-        
+
         try:
             # Query credit account
             query = select(CreditAccount).where(CreditAccount.user_id == user_id)
             result = await self.crawl_job_repo.session.execute(query)
             credit_account = result.scalar_one_or_none()
-            
+
             if not credit_account:
                 return 'free'  # Default to free tier if no account
-            
+
             # Determine tier based on credit balance
             balance = credit_account.current_balance
-            
+
             if balance >= 10000:
                 return 'pro'
             elif balance >= 1000:
                 return 'hobby'
             else:
                 return 'free'
-                
+
         except Exception as e:
             logger.warning(f"Failed to determine user tier for {user_id}: {str(e)}")
             return 'free'  # Default to free on error
@@ -1733,7 +1729,6 @@ async def execute_crawl_job(
         The user_id and tier are stored in task kwargs so the RateLimiter
         can identify and count this user's active jobs across all workers.
     """
-    import asyncio
     from datetime import datetime
     from typing import Dict, Any, List
     from backend.core.exceptions import (
@@ -1937,7 +1932,7 @@ async def execute_crawl_job(
                 downloaded_images=processed_count,
                 valid_images=valid_count
             )
-        
+
         # Complete job metric
         await metrics_service.complete_processing_metric(
             metric_id=job_metric.id,
@@ -1961,14 +1956,14 @@ async def execute_crawl_job(
                     downloaded_images=processed_count if 'processed_count' in locals() else 0,
                     valid_images=valid_count if 'valid_count' in locals() else 0
                 )
-        
+
         if 'job_metric' in locals():
              await metrics_service.complete_processing_metric(
                 metric_id=job_metric.id,
                 status="failed",
                 error_message=str(e)
             )
-            
+
         raise ExternalServiceError(f"Job execution failed: {str(e)}") from e
     finally:
         if should_close_session and 'session' in locals():

@@ -17,9 +17,10 @@ Tables defined:
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from uuid import UUID
 
+# noinspection PyPep8Naming
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -28,7 +29,6 @@ from sqlalchemy import (
     Text,
     func,
     UUID as SQLAlchemyUUID,
-    CheckConstraint,
     Index,
     ForeignKey,
 )
@@ -44,6 +44,10 @@ __all__ = [
     'Image',
     'ActivityLog',
 ]
+
+if TYPE_CHECKING:
+    from models import APIKey, CreditAccount, Notification, NotificationPreference, \
+        UsageMetric, JobChunk
 
 
 class Profile(Base, TimestampMixin):
@@ -423,6 +427,7 @@ class CrawlJob(Base, TimestampMixin):
     )
 
 
+# noinspection PyTypeChecker
 class Image(Base):
     """
     Image model for storing crawled image metadata.
@@ -432,7 +437,6 @@ class Image(Base):
     Attributes:
         id: Serial primary key
         crawl_job_id: Reference to crawl_jobs.id
-        original_url: Original image URL
         filename: Stored filename
         storage_url: Supabase Storage URL
         width: Image width in pixels
@@ -441,11 +445,8 @@ class Image(Base):
         format_: Image format (jpg, png, webp, etc.) - mapped to 'format' column
         hash_: Image hash for duplicate detection - mapped to 'hash' column
         is_valid: Whether image passed validation
-        is_duplicate: Whether image is a duplicate
-        labels: JSON array of AI-generated labels
-        metadata: JSON object with additional metadata
+        metadata_: JSON object with additional metadata
         downloaded_at: Download timestamp
-        created_at: Record creation timestamp
 
     Relationships:
         crawl_job: Parent crawl job (many-to-one)
@@ -466,12 +467,6 @@ class Image(Base):
         ForeignKey("crawl_jobs.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
-    )
-
-    # Image URLs
-    original_url: Mapped[str] = mapped_column(
-        Text,
-        nullable=False,
     )
 
     filename: Mapped[str] = mapped_column(
@@ -524,20 +519,6 @@ class Image(Base):
         server_default="true",
     )
 
-    is_duplicate: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        default=False,
-        server_default="false",
-    )
-
-    # Metadata
-    labels: Mapped[Optional[dict]] = mapped_column(
-        JSONB,
-        nullable=True,
-        comment="AI-generated labels",
-    )
-    
     metadata_: Mapped[Optional[dict]] = mapped_column(
         "metadata",
         JSONB,
@@ -547,12 +528,6 @@ class Image(Base):
 
     # Timestamps
     downloaded_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-    )
-
-    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
@@ -571,22 +546,22 @@ class Image(Base):
         Index("ix_images_created_at", "created_at"),
         Index("ix_images_hash", "hash"),  # Column name in database
     )
-    
+
     @property
     def format(self) -> Optional[str]:
         """Property accessor for format field to support Pydantic serialization."""
         return self.format_
-    
+
     @format.setter
     def format(self, value: Optional[str]) -> None:
         """Property setter for format field."""
         self.format_ = value
-    
+
     @property
     def hash(self) -> Optional[str]:
         """Property accessor for hash field to support Pydantic serialization."""
         return self.hash_
-    
+
     @hash.setter
     def hash(self, value: Optional[str]) -> None:
         """Property setter for hash field."""
@@ -605,7 +580,7 @@ class ActivityLog(Base):
         action: Action description
         resource_type: Type of resource affected
         resource_id: ID of resource affected
-        metadata: Additional event metadata (JSON)
+        metadata_: Additional event metadata (JSON)
         timestamp: Event timestamp
 
     Relationships:

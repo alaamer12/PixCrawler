@@ -33,7 +33,7 @@ When running the backend server, you can access interactive API documentation:
 ### Related Documentation
 
 - **[Main API Documentation](../../.kiro/steering/API_DOCUMENTATION.md)** - Complete API reference
-- **[Architecture Overview](../../.kiro/steering/architecture.md)** - System architecture
+- **[Architecture Overview](../../.kiro/steering/overview)** - System architecture
 - **[Technology Stack](../../.kiro/steering/tech.md)** - Technology choices and stack
 - **[Project Structure](../../.kiro/steering/structure.md)** - Repository organization
 

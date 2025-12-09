@@ -31,6 +31,7 @@ logger = get_logger(__name__)
 
 # Try to import Azure SDK
 try:
+    # noinspection PyUnresolvedReferences
     from azure.storage.blob import (
         BlobServiceClient,
         BlobSasPermissions,
@@ -39,6 +40,8 @@ try:
         BlobProperties,
         ContentSettings,
     )
+    # noinspection PyUnresolvedReferences
+
     from azure.core.exceptions import (
         ResourceNotFoundError,
         ResourceExistsError,
@@ -219,17 +222,17 @@ class AzureBlobStorageProvider:
 
         # Determine access tier
         upload_tier = tier or self.default_tier
-        
+
         # Auto-detect content type if not provided
         if content_type is None:
             content_type = self._get_content_type(source)
 
         try:
             blob_client = self.container_client.get_blob_client(destination_path)
-            
+
             # Prepare content settings
             content_settings = ContentSettings(content_type=content_type) if content_type else None
-            
+
             # Upload with retry logic
             def _upload():
                 with open(source, "rb") as data:
@@ -242,20 +245,21 @@ class AzureBlobStorageProvider:
                         content_settings=content_settings,
                         timeout=self.timeout,
                     )
-            
+
             self._retry_operation(_upload)
-            
+
             file_size = source.stat().st_size
             logger.info(
                 f"Uploaded to Azure: {destination_path} "
                 f"({file_size / 1024 / 1024:.2f} MB, tier={upload_tier})"
             )
-            
+
         except Exception as e:
             logger.error(f"Failed to upload file {file_path} to Azure: {e}")
             raise IOError(f"Azure upload failed: {e}") from e
 
-    def _get_content_type(self, file_path: Path) -> str:
+    @staticmethod
+    def _get_content_type(file_path: Path) -> str:
         """Auto-detect content type from file extension."""
         content_types = {
             '.jpg': 'image/jpeg',
@@ -294,13 +298,13 @@ class AzureBlobStorageProvider:
             # Check if blob exists
             def _check_exists():
                 return blob_client.exists()
-            
+
             if not self._retry_operation(_check_exists):
                 raise FileNotFoundError(f"Blob not found in Azure: {file_path}")
 
             # Get blob properties to check tier
             properties = blob_client.get_blob_properties()
-            
+
             # Handle archived blobs
             if properties.blob_tier == StandardBlobTier.ARCHIVE:
                 if properties.archive_status == 'rehydrate-pending-to-hot':
@@ -331,15 +335,15 @@ class AzureBlobStorageProvider:
                 with open(destination, "wb") as file:
                     download_stream = blob_client.download_blob(timeout=self.timeout)
                     file.write(download_stream.readall())
-            
+
             self._retry_operation(_download)
-            
+
             file_size = destination.stat().st_size
             logger.info(
                 f"Downloaded from Azure: {file_path} -> {destination_path} "
                 f"({file_size / 1024 / 1024:.2f} MB)"
             )
-            
+
         except FileNotFoundError:
             raise
         except IOError:
@@ -365,7 +369,7 @@ class AzureBlobStorageProvider:
             # Check if blob exists
             def _check_exists():
                 return blob_client.exists()
-            
+
             if not self._retry_operation(_check_exists):
                 raise FileNotFoundError(f"Blob not found in Azure: {file_path}")
 
@@ -373,10 +377,10 @@ class AzureBlobStorageProvider:
             def _delete():
                 delete_mode = "include" if delete_snapshots else "only"
                 self.container_client.delete_blob(file_path, delete_snapshots=delete_mode)
-            
+
             self._retry_operation(_delete)
             logger.info(f"Deleted blob from Azure: {file_path}")
-            
+
         except FileNotFoundError:
             raise
         except Exception as e:
@@ -406,9 +410,9 @@ class AzureBlobStorageProvider:
                     name_starts_with=prefix or "",
                     timeout=self.timeout
                 ))
-            
+
             blobs = self._retry_operation(_list)
-            
+
             if include_metadata:
                 file_list = [
                     {
@@ -424,10 +428,10 @@ class AzureBlobStorageProvider:
                 ]
             else:
                 file_list = [blob.name for blob in blobs]
-            
+
             logger.debug(f"Listed {len(file_list)} blobs from Azure with prefix: {prefix}")
             return file_list
-            
+
         except Exception as e:
             logger.error(f"Failed to list blobs from Azure: {e}")
             raise IOError(f"Azure listing failed: {e}") from e
@@ -458,7 +462,7 @@ class AzureBlobStorageProvider:
             # Check if blob exists
             def _check_exists():
                 return blob_client.exists()
-            
+
             if not self._retry_operation(_check_exists):
                 raise FileNotFoundError(f"Blob not found in Azure: {file_path}")
 
@@ -484,7 +488,7 @@ class AzureBlobStorageProvider:
                 f"(expires in {expires_in}s)"
             )
             return url
-            
+
         except FileNotFoundError:
             raise
         except Exception as e:
@@ -508,17 +512,17 @@ class AzureBlobStorageProvider:
             # Check if blob exists
             def _check_exists():
                 return blob_client.exists()
-            
+
             if not self._retry_operation(_check_exists):
                 raise FileNotFoundError(f"Blob not found in Azure: {file_path}")
 
             # Set tier with retry logic
             def _set_tier():
                 blob_client.set_standard_blob_tier(tier)
-            
+
             self._retry_operation(_set_tier)
             logger.info(f"Changed blob tier to {tier}: {file_path}")
-            
+
         except FileNotFoundError:
             raise
         except Exception as e:
@@ -544,9 +548,9 @@ class AzureBlobStorageProvider:
             # Get properties with retry logic
             def _get_properties():
                 return blob_client.get_blob_properties()
-            
+
             properties = self._retry_operation(_get_properties)
-            
+
             return {
                 'name': file_path,
                 'size': properties.size,
@@ -558,7 +562,7 @@ class AzureBlobStorageProvider:
                 'metadata': properties.metadata,
                 'tags': properties.tag_count,
             }
-            
+
         except ResourceNotFoundError:
             raise FileNotFoundError(f"Blob not found in Azure: {file_path}")
         except Exception as e:
@@ -589,22 +593,22 @@ class AzureBlobStorageProvider:
             # Check if source exists
             def _check_exists():
                 return source_blob.exists()
-            
+
             if not self._retry_operation(_check_exists):
                 raise FileNotFoundError(f"Source blob not found in Azure: {source_path}")
 
             # Start copy operation
             def _copy():
                 dest_blob.start_copy_from_url(source_blob.url)
-            
+
             self._retry_operation(_copy)
-            
+
             # Set tier if specified
             if tier:
                 dest_blob.set_standard_blob_tier(tier)
-            
+
             logger.info(f"Copied blob: {source_path} -> {destination_path}")
-            
+
         except FileNotFoundError:
             raise
         except Exception as e:

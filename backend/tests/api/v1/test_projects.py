@@ -57,7 +57,7 @@ def sample_project(mock_user):
 @pytest.fixture
 def override_dependencies(app, mock_project_service, mock_user):
     """Override FastAPI dependencies for testing."""
-    from backend.api.v1.endpoints.projects import get_project_service
+    from api.dependencies import get_project_service
     from backend.api.dependencies import get_current_user
 
     app.dependency_overrides[get_project_service] = lambda: mock_project_service

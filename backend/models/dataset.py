@@ -24,6 +24,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import UUID as SQLAlchemyUUID
 
+from database.models import Profile, CrawlJob
 from .base import Base, TimestampMixin
 
 __all__ = ['Dataset']
@@ -32,11 +33,11 @@ __all__ = ['Dataset']
 class Dataset(Base, TimestampMixin):
     """
     Dataset model for image collection jobs.
-    
+
     Represents a dataset generation job that collects images based on
     keywords and search engines. Each dataset is associated with a
     CrawlJob that performs the actual image collection.
-    
+
     Attributes:
         id: Serial primary key
         user_id: UUID reference to profiles.id (FK)
@@ -51,14 +52,14 @@ class Dataset(Base, TimestampMixin):
         crawl_job_id: Reference to associated crawl_jobs.id (FK)
         download_url: URL for downloading completed dataset
         error_message: Error message if processing failed
-        
+
     Relationships:
         user: Profile owner (many-to-one)
         crawl_job: Associated crawl job (one-to-one)
     """
-    
+
     __tablename__ = "datasets"
-    
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[UUID] = mapped_column(
         SQLAlchemyUUID(as_uuid=True),
@@ -103,7 +104,7 @@ class Dataset(Base, TimestampMixin):
     )
     download_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    
+
     # Lifecycle management
     storage_tier: Mapped[str] = mapped_column(
         String(20),
@@ -113,20 +114,20 @@ class Dataset(Base, TimestampMixin):
         index=True,
         comment="Storage tier: hot, warm, cold"
     )
-    
+
     archived_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
         comment="Timestamp when dataset was archived"
     )
-    
+
     last_accessed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
         comment="Timestamp of last access"
     )
-    
+
     # Relationships
     user: Mapped["Profile"] = relationship(
         "Profile",
@@ -138,7 +139,7 @@ class Dataset(Base, TimestampMixin):
         foreign_keys=[crawl_job_id],
         lazy="joined",
     )
-    
+
     # Indexes and constraints
     __table_args__ = (
         Index("ix_datasets_user_id", "user_id"),

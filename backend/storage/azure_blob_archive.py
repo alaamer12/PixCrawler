@@ -28,6 +28,8 @@ logger = get_logger(__name__)
 
 # Try to import Azure SDK
 try:
+    # noinspection PyUnresolvedReferences
+
     from azure.storage.blob import (
         BlobServiceClient,
         BlobSasPermissions,

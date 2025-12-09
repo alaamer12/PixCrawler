@@ -5,10 +5,10 @@ This module provides the repository pattern implementation for workflow models,
 handling all database queries and data access logic for workflow state and tasks.
 """
 
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
 
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models import WorkflowState, WorkflowTask
@@ -17,6 +17,7 @@ from .base import BaseRepository
 __all__ = ['WorkflowStateRepository', 'WorkflowTaskRepository']
 
 
+# noinspection PyTypeChecker
 class WorkflowStateRepository(BaseRepository[WorkflowState]):
     """
     Repository for WorkflowState data access.

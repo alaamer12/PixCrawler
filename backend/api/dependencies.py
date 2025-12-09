@@ -42,6 +42,15 @@ from backend.services.storage import StorageService
 from backend.services.resource_monitor import ResourceMonitor
 from backend.services.metrics import MetricsService
 from backend.services.dashboard import DashboardService
+from repositories import ProjectRepository, DatasetRepository
+from repositories.policy_repository import ArchivalPolicyRepository, \
+    CleanupPolicyRepository, PolicyExecutionLogRepository
+from services.activity import ActivityLogService
+from services.api_keys import APIKeyService
+from services.credits import CreditService
+from services.policy import PolicyService, PolicyExecutionService
+from services.project import ProjectService
+
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """
@@ -283,7 +292,7 @@ def get_dataset_service(session: DBSession) -> DatasetService:
         DatasetService instance with injected repositories
     """
     from backend.repositories import DatasetRepository
-    
+
     # Create repository instances
     dataset_repo = DatasetRepository(session)
     crawl_job_repo = CrawlJobRepository(session)
@@ -309,7 +318,7 @@ def get_validation_service(session: DBSession) -> ValidationService:
         ValidationService instance with injected repositories
     """
     from backend.repositories import DatasetRepository
-    
+
     # Create repository instances
     image_repo = ImageRepository(session)
     dataset_repo = DatasetRepository(session)
@@ -409,12 +418,12 @@ def get_metrics_service(session: DBSession) -> MetricsService:
         ResourceMetricRepository,
         QueueMetricRepository,
     )
-    
+
     # Create repository instances
     processing_repo = ProcessingMetricRepository(session)
     resource_repo = ResourceMetricRepository(session)
     queue_repo = QueueMetricRepository(session)
-    
+
     # Inject repositories into service
     return MetricsService(
         processing_repo=processing_repo,
@@ -440,7 +449,7 @@ def get_dashboard_service(session: DBSession) -> DashboardService:
     project_repo = ProjectRepository(session)
     crawl_job_repo = CrawlJobRepository(session)
     image_repo = ImageRepository(session)
-    
+
     # Inject repositories into service
     return DashboardService(
         project_repo=project_repo,
@@ -448,3 +457,80 @@ def get_dashboard_service(session: DBSession) -> DashboardService:
         image_repo=image_repo
     )
 
+
+def get_activity_service(session: AsyncSession = Depends(get_session)) -> ActivityLogService:
+    """
+    Dependency injection for ActivityLogService.
+
+    Args:
+        session: Database session (injected by FastAPI)
+
+    Returns:
+        ActivityLogService instance
+    """
+    return ActivityLogService(session)
+
+
+def get_api_key_service(session: AsyncSession = Depends(get_session)) -> APIKeyService:
+    """
+    Dependency injection for APIKeyService.
+
+    Args:
+        session: Database session (injected by FastAPI)
+
+    Returns:
+        APIKeyService instance
+    """
+    return APIKeyService(session)
+
+
+def get_credit_service(session: AsyncSession = Depends(get_session)) -> CreditService:
+    """
+    Dependency injection for CreditService.
+
+    Args:
+        session: Database session (injected by FastAPI)
+
+    Returns:
+        CreditService instance
+    """
+    return CreditService(session)
+
+
+def get_project_service(session: AsyncSession = Depends(get_session)) -> ProjectService:
+    """
+    Dependency injection for ProjectService.
+
+    Creates service with required repository following the pattern:
+    get_service(session) -> Service where service receives repository.
+
+    Args:
+        session: Database session (injected by FastAPI)
+
+    Returns:
+        ProjectService instance with injected repository
+    """
+    # Create repository instance
+    repository = ProjectRepository(session)
+
+    # Inject repository into service
+    return ProjectService(repository)
+
+
+def get_policy_service(db: AsyncSession = Depends(get_db)) -> PolicyService:
+    """Dependency to get policy service."""
+    return PolicyService(
+        ArchivalPolicyRepository(db),
+        CleanupPolicyRepository(db),
+        PolicyExecutionLogRepository(db),
+    )
+
+
+def get_execution_service(db: AsyncSession = Depends(get_db)) -> PolicyExecutionService:
+    """Dependency to get policy execution service."""
+    return PolicyExecutionService(
+        DatasetRepository(db),
+        ArchivalPolicyRepository(db),
+        CleanupPolicyRepository(db),
+        PolicyExecutionLogRepository(db),
+    )
