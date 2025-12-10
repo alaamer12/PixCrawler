@@ -69,10 +69,11 @@ def upgrade() -> None:
     op.create_index(op.f('ix_policy_execution_logs_policy_id'), 'policy_execution_logs', ['policy_id'], unique=False)
 
     # Add columns to datasets table
-    op.add_column('datasets', sa.Column('storage_tier', sa.String(length=20), server_default='hot', nullable=False, comment='Storage tier: hot, warm, cold'))
-    op.add_column('datasets', sa.Column('archived_at', sa.DateTime(timezone=True), nullable=True, comment='Timestamp when dataset was archived'))
-    op.add_column('datasets', sa.Column('last_accessed_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False, comment='Timestamp of last access'))
-    op.create_index(op.f('ix_datasets_storage_tier'), 'datasets', ['storage_tier'], unique=False)
+    # NOTE: These columns are already created by Base.metadata.create_all() in the nuclear reset
+    # op.add_column('datasets', sa.Column('storage_tier', sa.String(length=20), server_default='hot', nullable=False, comment='Storage tier: hot, warm, cold'))
+    # op.add_column('datasets', sa.Column('archived_at', sa.DateTime(timezone=True), nullable=True, comment='Timestamp when dataset was archived'))
+    # op.add_column('datasets', sa.Column('last_accessed_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False, comment='Timestamp of last access'))
+    # op.create_index(op.f('ix_datasets_storage_tier'), 'datasets', ['storage_tier'], unique=False)
 
 
 def downgrade() -> None:
