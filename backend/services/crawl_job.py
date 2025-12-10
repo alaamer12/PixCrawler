@@ -790,7 +790,9 @@ class CrawlJobService(BaseService):
         if valid_images is not None:
             updates['valid_images'] = valid_images
 
-        job = await self.crawl_job_repo.update(job_id, **updates)
+        job = await self.crawl_job_repo.get_by_id(job_id)
+        if job:
+            job = await self.crawl_job_repo.update(job, **updates)
 
         if job:
             # Broadcast progress update via Supabase
@@ -917,7 +919,9 @@ class CrawlJobService(BaseService):
             updates['completed_at'] = datetime.utcnow()
             updates['progress'] = 100
 
-        job = await self.crawl_job_repo.update(job_id, **updates)
+        job = await self.crawl_job_repo.get_by_id(job_id)
+        if job:
+            job = await self.crawl_job_repo.update(job, **updates)
 
         if job:
             # Log activity (get project_id through dataset)
@@ -1757,7 +1761,7 @@ async def execute_crawl_job(
     from backend.core.exceptions import (
         NotFoundError, ExternalServiceError
     )
-    from backend.database.connection import AsyncSessionLocal
+    from backend.database.connection import get_session_maker
     from builder import Builder
     from backend.core.async_helpers import run_sync, run_in_threadpool
     from backend.services.metrics import MetricsService
@@ -1772,16 +1776,19 @@ async def execute_crawl_job(
     BATCH_SIZE = 50
 
     # Create a new session for this background task
-    session = AsyncSessionLocal()
+    session_maker = get_session_maker()
+    session = session_maker()
     should_close_session = True
 
     # Initialize service if not provided
     if job_service is None:
+        from backend.repositories.dataset_repository import DatasetRepository
         job_service = CrawlJobService(
             crawl_job_repo=CrawlJobRepository(session),
             project_repo=ProjectRepository(session),
             image_repo=ImageRepository(session),
-            activity_log_repo=ActivityLogRepository(session)
+            activity_log_repo=ActivityLogRepository(session),
+            dataset_repo=DatasetRepository(session)
         )
 
     # Initialize Metrics Service

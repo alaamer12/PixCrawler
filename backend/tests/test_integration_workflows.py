@@ -112,11 +112,12 @@ class TestBuilderBackendIntegration:
                 # 1. Create a Job manually in the DB (to skip API/Project complexity for this specific test)
                 # Or use the service to create it.
                 # We need a session.
-                from backend.database.connection import AsyncSessionLocal
+                from backend.database.connection import get_session_maker
                 from backend.repositories import CrawlJobRepository, ProjectRepository
                 from backend.services.crawl_job import CrawlJobService, execute_crawl_job
                 
-                async with AsyncSessionLocal() as session:
+                session_maker = get_session_maker()
+                async with session_maker() as session:
                     # Create a dummy project
                     project_repo = ProjectRepository(session)
                     # We need to create a project first. 
@@ -156,7 +157,8 @@ class TestBuilderBackendIntegration:
                 await execute_crawl_job(job_id, user_id=user_id, tier="free")
                 
                 # 3. Verify Job Status in DB
-                async with AsyncSessionLocal() as session:
+                session_maker = get_session_maker()
+                async with session_maker() as session:
                     job_repo = CrawlJobRepository(session)
                     updated_job = await job_repo.get_by_id(job_id)
                     
