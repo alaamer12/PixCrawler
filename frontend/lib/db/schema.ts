@@ -237,6 +237,33 @@ export const transactions = pgTable('transactions', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
+// Datasets table for managing image collections
+export const datasets = pgTable('datasets', {
+  id: serial('id').primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+  projectId: integer('project_id')
+    .references(() => projects.id, { onDelete: 'set null' }),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: text('description'),
+  keywords: jsonb('keywords').notNull(),
+  maxImages: integer('max_images').notNull().default(100),
+  searchEngines: jsonb('search_engines').notNull().default([]),
+  status: varchar('status', { length: 20 }).notNull().default('pending'),
+  progress: numeric('progress', { precision: 5, scale: 2 }).notNull().default('0.00'),
+  imagesCollected: integer('images_collected').notNull().default(0),
+  crawlJobId: integer('crawl_job_id')
+    .references(() => crawlJobs.id, { onDelete: 'set null' }),
+  downloadUrl: text('download_url'),
+  errorMessage: text('error_message'),
+  storageTier: varchar('storage_tier', { length: 20 }).notNull().default('hot'),
+  archivedAt: timestamp('archived_at'),
+  lastAccessedAt: timestamp('last_accessed_at').notNull().defaultNow(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
 // Relations
 export const profilesRelations = relations(profiles, ({ many, one }) => ({
   projects: many(projects),
@@ -248,6 +275,7 @@ export const profilesRelations = relations(profiles, ({ many, one }) => ({
   usageMetrics: many(usageMetrics),
   subscriptions: many(subscriptions),
   transactions: many(transactions),
+  datasets: many(datasets),
 }));
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
@@ -256,14 +284,24 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     references: [profiles.id],
   }),
   crawlJobs: many(crawlJobs),
+  datasets: many(datasets),
 }));
 
-export const crawlJobsRelations = relations(crawlJobs, ({ one, many }) => ({
+
+
+export const datasetsRelations = relations(datasets, ({ one }) => ({
+  user: one(profiles, {
+    fields: [datasets.userId],
+    references: [profiles.id],
+  }),
   project: one(projects, {
-    fields: [crawlJobs.projectId],
+    fields: [datasets.projectId],
     references: [projects.id],
   }),
-  images: many(images),
+  crawlJob: one(crawlJobs, {
+    fields: [datasets.crawlJobId],
+    references: [crawlJobs.id],
+  }),
 }));
 
 export const imagesRelations = relations(images, ({ one }) => ({
@@ -368,6 +406,8 @@ export type Subscription = typeof subscriptions.$inferSelect;
 export type NewSubscription = typeof subscriptions.$inferInsert;
 export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
+export type Dataset = typeof datasets.$inferSelect;
+export type NewDataset = typeof datasets.$inferInsert;
 
 // Enums
 export enum ProjectStatus {
@@ -395,3 +435,47 @@ export enum ActivityType {
   COMPLETE_CRAWL_JOB = 'COMPLETE_CRAWL_JOB',
   DOWNLOAD_IMAGES = 'DOWNLOAD_IMAGES',
 }
+
+// Job Chunks table for tracking processing chunks
+export const jobChunks = pgTable('job_chunks', {
+  id: serial('id').primaryKey(),
+  jobId: integer('job_id')
+    .notNull()
+    .references(() => crawlJobs.id, { onDelete: 'cascade' }),
+  chunkIndex: integer('chunk_index').notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('pending'),
+  priority: integer('priority').notNull().default(5),
+  imageRange: jsonb('image_range').notNull(), // { start: number, end: number }
+  errorMessage: text('error_message'),
+  retryCount: integer('retry_count').notNull().default(0),
+  taskId: varchar('task_id', { length: 255 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => {
+  return {
+    jobIdIdx: index('ix_job_chunks_job_id').on(table.jobId),
+    statusIdx: index('ix_job_chunks_status').on(table.status),
+    taskIdIdx: index('ix_job_chunks_task_id').on(table.taskId),
+  };
+});
+
+export const jobChunksRelations = relations(jobChunks, ({ one }) => ({
+  job: one(crawlJobs, {
+    fields: [jobChunks.jobId],
+    references: [crawlJobs.id],
+  }),
+}));
+
+// Update crawlJobs relations to include chunks
+export const crawlJobsRelations = relations(crawlJobs, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [crawlJobs.projectId],
+    references: [projects.id],
+  }),
+  images: many(images),
+  dataset: one(datasets, {
+    fields: [crawlJobs.id],
+    references: [datasets.crawlJobId],
+  }),
+  chunks: many(jobChunks),
+}));

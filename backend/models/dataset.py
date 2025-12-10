@@ -27,7 +27,7 @@ from sqlalchemy import UUID as SQLAlchemyUUID
 from .base import Base, TimestampMixin
 
 if TYPE_CHECKING:
-    from database.models import Profile, CrawlJob
+    from database.models import Profile, CrawlJob, Project
 
 __all__ = ['Dataset']
 
@@ -67,6 +67,11 @@ class Dataset(Base, TimestampMixin):
         SQLAlchemyUUID(as_uuid=True),
         ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
+    )
+    project_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("projects.id", ondelete="SET NULL"),
+        nullable=True,
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -130,6 +135,11 @@ class Dataset(Base, TimestampMixin):
     user: Mapped["Profile"] = relationship(
         "Profile",
         foreign_keys=[user_id],
+        lazy="joined",
+    )
+    project: Mapped[Optional["Project"]] = relationship(
+        "Project",
+        foreign_keys=[project_id],
         lazy="joined",
     )
     crawl_job: Mapped[Optional["CrawlJob"]] = relationship(

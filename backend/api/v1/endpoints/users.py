@@ -527,7 +527,7 @@ async def delete_user(
         )
     
     # Prevent self-deletion
-    if current_user["user_id"] == str(user_id):
+    if str(current_user["user_id"]) == str(user_id):
         raise HTTPException(
             status_code=http_status.HTTP_400_BAD_REQUEST,
             detail="Cannot delete your own account"

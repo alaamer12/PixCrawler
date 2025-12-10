@@ -114,6 +114,7 @@ class DatasetService(BaseService):
             "name": dataset_create.name,
             "description": dataset_create.description,
             "user_id": user_id,
+            "project_id": project_id,
             "status": DatasetStatus.PENDING,
             "keywords": dataset_create.keywords,
             "max_images": dataset_create.max_images,
@@ -145,12 +146,14 @@ class DatasetService(BaseService):
             updated_at=dataset.updated_at,
             keywords=dataset_create.keywords,
             max_images=dataset_create.max_images,
-            search_engines=dataset_create.search_engines
+            search_engines=dataset_create.search_engines,
+            project_id=project_id
         )
 
     async def list_datasets(
         self,
         user_id: UUID | str,
+        project_id: Optional[int] = None,
         skip: int = 0,
         limit: int = 20,
         status: Optional[DatasetStatus] = None
@@ -160,7 +163,8 @@ class DatasetService(BaseService):
 
         Args:
             user_id: User ID to filter datasets
-            skip: Number of records to skip (for pagination)
+            project_id: Optional project ID to filter by project
+            skip: Number of records to skip (pagination)
             limit: Maximum number of records to return
             status: Optional status filter
 
@@ -170,7 +174,7 @@ class DatasetService(BaseService):
         Raises:
             ValidationError: If pagination parameters are invalid
         """
-        self.log_operation("list_datasets", user_id=user_id, skip=skip, limit=limit, status=status)
+        self.log_operation("list_datasets", user_id=user_id, project_id=project_id, skip=skip, limit=limit, status=status)
         
         # Validate pagination parameters
         if skip < 0:
@@ -178,24 +182,23 @@ class DatasetService(BaseService):
         if limit < 1 or limit > 100:
             raise ValidationError("Limit must be between 1 and 100")
         
-        # Build filter criteria
         user_uuid = UUID(str(user_id)) if isinstance(user_id, (str, int)) else user_id
-        filters = {"user_id": user_uuid}
-        if status:
-            filters["status"] = status
         
         # Get datasets from repository
         datasets = await self.dataset_repo.list(
-            filters=filters,
+            user_id=user_uuid,
+            project_id=project_id,
             skip=skip,
-            limit=limit,
-            order_by="created_at",
-            order_desc=True
+            limit=limit
         )
         
         # Convert to response models
         responses = []
         for dataset in datasets:
+            # Filter by status if requested (since repo doesn't support it in list method yet)
+            if status and dataset.status != status:
+                continue
+                
             # Get crawl job progress if exists
             progress = 0.0
             images_collected = 0
@@ -218,7 +221,8 @@ class DatasetService(BaseService):
                 updated_at=dataset.updated_at,
                 keywords=dataset.keywords,
                 max_images=dataset.max_images,
-                search_engines=dataset.search_engines
+                search_engines=dataset.search_engines,
+                project_id=dataset.project_id
             ))
         
         return responses
@@ -283,7 +287,8 @@ class DatasetService(BaseService):
             updated_at=dataset.updated_at,
             keywords=dataset.keywords,
             max_images=dataset.max_images,
-            search_engines=dataset.search_engines
+            search_engines=dataset.search_engines,
+            project_id=dataset.project_id
         )
         
     async def update_dataset(

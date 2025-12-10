@@ -17,6 +17,7 @@ Features:
     - Comprehensive error handling
 """
 from typing import AsyncGenerator, Generator, Optional, Dict, Any, Annotated
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -155,6 +156,7 @@ async def get_current_user(
 
         return {
             **user_info,
+            "user_id": UUID(user_info["user_id"]),
             "profile": profile
         }
 

@@ -2,7 +2,8 @@
 Dataset management endpoints.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status as http_status
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, status as http_status
 from backend.core.rate_limiter import RateLimiter
 from fastapi_pagination import Page, paginate
 
@@ -89,7 +90,7 @@ async def create_dataset(
     "/",
     response_model=Page[DatasetResponse],
     summary="List Datasets",
-    description="Retrieve a paginated list of datasets for the authenticated user.",
+    description="Retrieve a paginated list of datasets for project {id} for the authenticated user.",
     response_description="Paginated list of datasets",
     operation_id="listDatasets",
     responses={
@@ -112,11 +113,15 @@ async def create_dataset(
 async def list_datasets(
     current_user: CurrentUser,
     dataset_service: DatasetServiceDep,
+    project_id: Optional[int] = Query(None, description="ID of the project to retrieve datasets for"),
+    page: int = Query(1, ge=1, description="Page number"),
+    size: int = Query(50, ge=1, le=100, description="Items per page"),
 ) -> Page[DatasetResponse]:
     """
     List datasets with pagination.
 
     **Query Parameters:**
+    - `project_id` (int, optional): ID of the project to retrieve datasets for
     - `page` (int): Page number (default: 1)
     - `size` (int): Items per page (default: 50, max: 100)
 
@@ -124,8 +129,10 @@ async def list_datasets(
 
     Args:
         current_user: Current authenticated user
-        session: Database session
         dataset_service: Dataset service dependency
+        project_id: Optional project ID filter
+        page: Page number
+        size: Items per page
 
     Returns:
         Paginated list of datasets
@@ -133,8 +140,9 @@ async def list_datasets(
     try:
         datasets = await dataset_service.list_datasets(
             user_id=current_user["user_id"],
-            skip=0,
-            limit=100
+            project_id=project_id,
+            skip=(page - 1) * size,
+            limit=size
         )
         return paginate(datasets)
     except Exception as e:

@@ -20,6 +20,7 @@ Best Practices:
 """
 
 from typing import Dict, Any, Optional
+from uuid import UUID
 
 from fastapi import Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -302,15 +303,14 @@ Usage:
 # ============================================================================
 
 UserID = Annotated[
-    int,
+    UUID,
     Path(
         title="User ID",
         description="Unique identifier for the user",
-        ge=1,
-        examples=[1, 42, 123]
+        examples=["123e4567-e89b-12d3-a456-426614174000"]
     )
 ]
-"""User ID path parameter with validation (must be >= 1)."""
+"""User ID path parameter with validation (must be a valid UUID)."""
 
 DatasetID = Annotated[
     int,

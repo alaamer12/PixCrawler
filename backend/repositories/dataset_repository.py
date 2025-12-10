@@ -177,14 +177,16 @@ class DatasetRepository(BaseRepository[Dataset]):
     async def list(
         self,
         user_id: Optional[UUID] = None,
+        project_id: Optional[int] = None,
         skip: int = 0,
         limit: int = 50
     ) -> List[Dataset]:
         """
-        List datasets with optional user filter.
+        List datasets with optional user and project filter.
 
         Args:
             user_id: Optional user UUID to filter by user
+            project_id: Optional project ID to filter by project
             skip: Number of records to skip (pagination)
             limit: Maximum number of records to return
 
@@ -195,6 +197,9 @@ class DatasetRepository(BaseRepository[Dataset]):
 
         if user_id:
             query = query.where(Dataset.user_id == user_id)
+            
+        if project_id:
+            query = query.where(Dataset.project_id == project_id)
 
         query = query.offset(skip).limit(limit)
 
