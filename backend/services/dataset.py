@@ -47,7 +47,7 @@ class DatasetService(BaseService):
     async def create_dataset(
         self, 
         dataset_create: DatasetCreate, 
-        user_id: int,
+        user_id: UUID | str,
         project_id: Optional[int] = None
     ) -> DatasetResponse:
         """
@@ -150,7 +150,7 @@ class DatasetService(BaseService):
 
     async def list_datasets(
         self,
-        user_id: int,
+        user_id: UUID | str,
         skip: int = 0,
         limit: int = 20,
         status: Optional[DatasetStatus] = None
@@ -179,7 +179,8 @@ class DatasetService(BaseService):
             raise ValidationError("Limit must be between 1 and 100")
         
         # Build filter criteria
-        filters = {"user_id": user_id}
+        user_uuid = UUID(str(user_id)) if isinstance(user_id, (str, int)) else user_id
+        filters = {"user_id": user_uuid}
         if status:
             filters["status"] = status
         
@@ -222,7 +223,7 @@ class DatasetService(BaseService):
         
         return responses
 
-    async def get_dataset_by_id(self, dataset_id: int, user_id: Optional[int] = None) -> DatasetResponse:
+    async def get_dataset_by_id(self, dataset_id: int, user_id: Optional[UUID | str] = None) -> DatasetResponse:
         """
         Get dataset by ID.
 
@@ -242,8 +243,10 @@ class DatasetService(BaseService):
         if not dataset:
             raise NotFoundError(f"Dataset not found: {dataset_id}")
             
-        if user_id and dataset.user_id != user_id:
-            raise PermissionError("Not authorized to access this dataset")
+        if user_id:
+            user_uuid = UUID(str(user_id)) if isinstance(user_id, (str, int)) else user_id
+            if dataset.user_id != user_uuid:
+                raise PermissionError("Not authorized to access this dataset")
             
         # Get crawl job progress if exists
         progress = 0.0
@@ -287,7 +290,7 @@ class DatasetService(BaseService):
         self,
         dataset_id: int,
         dataset_update: DatasetUpdate,
-        user_id: int,
+        user_id: UUID | str,
     ) -> DatasetResponse:
         """
         Update dataset information.
@@ -311,7 +314,8 @@ class DatasetService(BaseService):
         if not dataset:
             raise NotFoundError(f"Dataset not found: {dataset_id}")
             
-        if dataset.user_id != user_id:
+        user_uuid = UUID(str(user_id)) if isinstance(user_id, (str, int)) else user_id
+        if dataset.user_id != user_uuid:
             raise PermissionError("Not authorized to update this dataset")
             
         # Only allow updates if not in processing state
@@ -326,7 +330,7 @@ class DatasetService(BaseService):
         
         return await self.get_dataset_by_id(updated_dataset.id, user_id)
 
-    async def delete_dataset(self, dataset_id: int, user_id: int) -> None:
+    async def delete_dataset(self, dataset_id: int, user_id: UUID | str) -> None:
         """
         Delete dataset.
 
@@ -345,7 +349,8 @@ class DatasetService(BaseService):
         if not dataset:
             raise NotFoundError(f"Dataset not found: {dataset_id}")
             
-        if dataset.user_id != user_id:
+        user_uuid = UUID(str(user_id)) if isinstance(user_id, (str, int)) else user_id
+        if dataset.user_id != user_uuid:
             raise PermissionError("Not authorized to delete this dataset")
             
         # Cancel any running crawl job
@@ -360,7 +365,7 @@ class DatasetService(BaseService):
         # Delete dataset (cascade will handle related data)
         await self.dataset_repo.delete(dataset_id)
 
-    async def cancel_dataset(self, dataset_id: int, user_id: int) -> DatasetResponse:
+    async def cancel_dataset(self, dataset_id: int, user_id: UUID | str) -> DatasetResponse:
         """
         Cancel dataset processing.
 
@@ -382,7 +387,8 @@ class DatasetService(BaseService):
         if not dataset:
             raise NotFoundError(f"Dataset not found: {dataset_id}")
             
-        if dataset.user_id != user_id:
+        user_uuid = UUID(str(user_id)) if isinstance(user_id, (str, int)) else user_id
+        if dataset.user_id != user_uuid:
             raise PermissionError("Not authorized to cancel this dataset")
             
         # Check if dataset can be cancelled
@@ -406,7 +412,7 @@ class DatasetService(BaseService):
         
         return await self.get_dataset_by_id(updated_dataset.id, user_id)
 
-    async def get_dataset_stats(self, user_id: Optional[int] = None) -> DatasetStats:
+    async def get_dataset_stats(self, user_id: Optional[UUID | str] = None) -> DatasetStats:
         """
         Get dataset statistics.
 
@@ -475,7 +481,7 @@ class DatasetService(BaseService):
                 f"Failed to get dataset statistics: {str(e)}"
             ) from e
 
-    async def start_build_job(self, dataset_id: int, user_id: int) -> DatasetResponse:
+    async def start_build_job(self, dataset_id: int, user_id: UUID | str) -> DatasetResponse:
         """
         Start building a dataset (trigger Celery task for processing).
 
@@ -497,7 +503,8 @@ class DatasetService(BaseService):
         if not dataset:
             raise NotFoundError(f"Dataset not found: {dataset_id}")
             
-        if dataset.user_id != user_id:
+        user_uuid = UUID(str(user_id)) if isinstance(user_id, (str, int)) else user_id
+        if dataset.user_id != user_uuid:
             raise PermissionError("Not authorized to start this dataset")
             
         # Check if dataset can be started
@@ -526,7 +533,7 @@ class DatasetService(BaseService):
         
         return await self.get_dataset_by_id(dataset_id, user_id)
 
-    async def get_build_status(self, dataset_id: int, user_id: int) -> Dict[str, Any]:
+    async def get_build_status(self, dataset_id: int, user_id: UUID | str) -> Dict[str, Any]:
         """
         Get build status for a dataset.
 
@@ -547,7 +554,8 @@ class DatasetService(BaseService):
         if not dataset:
             raise NotFoundError(f"Dataset not found: {dataset_id}")
             
-        if dataset.user_id != user_id:
+        user_uuid = UUID(str(user_id)) if isinstance(user_id, (str, int)) else user_id
+        if dataset.user_id != user_uuid:
             raise PermissionError("Not authorized to access this dataset")
         
         # Get crawl job details
@@ -588,7 +596,7 @@ class DatasetService(BaseService):
             "updated_at": dataset.updated_at.isoformat()
         }
 
-    async def generate_download_link(self, dataset_id: int, user_id: int) -> Dict[str, str]:
+    async def generate_download_link(self, dataset_id: int, user_id: UUID | str) -> Dict[str, str]:
         """
         Generate a secure download link for a completed dataset.
 
@@ -610,7 +618,8 @@ class DatasetService(BaseService):
         if not dataset:
             raise NotFoundError(f"Dataset not found: {dataset_id}")
             
-        if dataset.user_id != user_id:
+        user_uuid = UUID(str(user_id)) if isinstance(user_id, (str, int)) else user_id
+        if dataset.user_id != user_uuid:
             raise PermissionError("Not authorized to download this dataset")
             
         # Check if dataset is completed

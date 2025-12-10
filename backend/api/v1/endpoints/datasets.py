@@ -4,7 +4,7 @@ Dataset management endpoints.
 
 from fastapi import APIRouter, Depends, HTTPException, status as http_status
 from backend.core.rate_limiter import RateLimiter
-from fastapi_pagination import Page
+from fastapi_pagination import Page, paginate
 
 from backend.api.types import CurrentUser, DBSession, DatasetID, DatasetServiceDep
 from backend.api.v1.response_models import get_common_responses
@@ -111,7 +111,6 @@ async def create_dataset(
 )
 async def list_datasets(
     current_user: CurrentUser,
-    session: DBSession,
     dataset_service: DatasetServiceDep,
 ) -> Page[DatasetResponse]:
     """
@@ -133,11 +132,11 @@ async def list_datasets(
     """
     try:
         datasets = await dataset_service.list_datasets(
-            user_id=current_user.id,
+            user_id=current_user["user_id"],
             skip=0,
             limit=100
         )
-        return datasets
+        return paginate(datasets)
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -392,7 +391,7 @@ async def start_build_job(
         HTTPException: If dataset not found, build start fails, or rate limit exceeded
     """
     try:
-        dataset = await dataset_service.start_build_job(dataset_id, current_user.id)
+        dataset = await dataset_service.start_build_job(dataset_id, current_user["user_id"])
         return dataset
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
@@ -450,7 +449,7 @@ async def get_dataset_status(
         HTTPException: If dataset not found or access denied
     """
     try:
-        status = await dataset_service.get_build_status(dataset_id, current_user.id)
+        status = await dataset_service.get_build_status(dataset_id, current_user["user_id"])
         return status
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
@@ -504,7 +503,7 @@ async def generate_download_link(
         HTTPException: If dataset not found, not completed, or link generation fails
     """
     try:
-        link_info = await dataset_service.generate_download_link(dataset_id, current_user.id)
+        link_info = await dataset_service.generate_download_link(dataset_id, current_user["user_id"])
         return link_info
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
