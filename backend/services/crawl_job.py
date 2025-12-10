@@ -433,8 +433,12 @@ class CrawlJobService(BaseService):
                 f"Only pending jobs can be started."
             )
 
-        # Step 3: Validate ownership
-        project = await self.project_repo.get_by_id(job.project_id)
+        # Step 3: Validate ownership (get project through dataset)
+        dataset = await self.dataset_repo.get_by_id(job.dataset_id)
+        if not dataset:
+            raise ValidationError("Dataset not found")
+        
+        project = await self.project_repo.get_by_id(dataset.project_id)
         if not project or str(project.user_id) != str(user_id):
             raise ValidationError("You do not have permission to start this job")
 
@@ -722,9 +726,11 @@ class CrawlJobService(BaseService):
                 from backend.repositories import NotificationRepository
                 from backend.models import Notification
 
-                # Get project to find user_id
-                project = await self.project_repo.get_by_id(job.project_id)
-                if project:
+                # Get project to find user_id (through dataset)
+                dataset = await self.dataset_repo.get_by_id(job.dataset_id)
+                if dataset:
+                    project = await self.project_repo.get_by_id(dataset.project_id)
+                if dataset and project:
                     notification_repo = NotificationRepository(self.crawl_job_repo.session)
                     await notification_repo.create(
                         user_id=project.user_id,
@@ -816,17 +822,17 @@ class CrawlJobService(BaseService):
 
         return job
 
-    async def get_jobs_by_project(self, project_id: int) -> List[CrawlJob]:
+    async def get_jobs_by_dataset(self, dataset_id: int) -> List[CrawlJob]:
         """
-        Get all jobs for a project.
+        Get all jobs for a dataset.
 
         Args:
-            project_id: Project ID
+            dataset_id: Dataset ID
 
         Returns:
             List of crawl jobs
         """
-        return await self.crawl_job_repo.get_by_project(project_id)
+        return await self.crawl_job_repo.get_by_dataset(dataset_id)
 
     async def get_active_jobs(self) -> List[CrawlJob]:
         """
@@ -914,14 +920,16 @@ class CrawlJobService(BaseService):
         job = await self.crawl_job_repo.update(job_id, **updates)
 
         if job:
-            # Log activity
-            await self._log_activity(
-                job.project_id,
-                f"Job {job_id} status updated to: {status}",
-                job_id=job_id,
-                status=status,
-                **{k: v for k, v in updates.items() if k != 'status'}
-            )
+            # Log activity (get project_id through dataset)
+            dataset = await self.dataset_repo.get_by_id(job.dataset_id)
+            if dataset:
+                await self._log_activity(
+                    dataset.project_id,
+                    f"Job {job_id} status updated to: {status}",
+                    job_id=job_id,
+                    status=status,
+                    **{k: v for k, v in updates.items() if k != 'status'}
+                )
 
             # Broadcast status change via Supabase
             supabase = get_supabase_client()
@@ -1411,7 +1419,7 @@ class CrawlJobService(BaseService):
 
         return CrawlJobResponse(
             id=job.id,
-            project_id=job.project_id,
+            dataset_id=job.dataset_id,
             name=job.name,
             keywords=job.keywords,
             max_images=job.max_images,
@@ -1453,8 +1461,13 @@ class CrawlJobService(BaseService):
         if not job:
             return None
 
-        # Verify ownership via project
-        owner_query = select(Project.user_id).where(Project.id == job.project_id)
+        # Verify ownership via project (through dataset)
+        from backend.models.dataset import Dataset
+        owner_query = (
+            select(Project.user_id)
+            .join(Dataset, Dataset.project_id == Project.id)
+            .where(Dataset.id == job.dataset_id)
+        )
         owner_result = await self.crawl_job_repo.session.execute(owner_query)
         owner_id = owner_result.scalar_one_or_none()
 

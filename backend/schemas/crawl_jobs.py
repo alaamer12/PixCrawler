@@ -137,7 +137,7 @@ class CrawlJobResponse(BaseModel):
     )
 
     id: int = Field(description="Job ID")
-    project_id: int = Field(description="Project ID")
+    dataset_id: int = Field(description="Dataset ID")
     name: str = Field(description="Job name")
     keywords: dict = Field(description="Search keywords (JSON)")
     max_images: int = Field(description="Maximum images to collect")
@@ -191,7 +191,7 @@ class CrawlJobListResponse(BaseModel):
         description="List of crawl jobs",
         examples=[[{
             "id": 1,
-            "project_id": 1,
+            "dataset_id": 1,
             "name": "Animal Photos Job",
             "keywords": {"categories": ["cat", "dog"]},
             "max_images": 1000,

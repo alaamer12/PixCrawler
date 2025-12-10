@@ -57,18 +57,26 @@ def mock_activity_log_repo():
 
 
 @pytest.fixture
+def mock_dataset_repo():
+    """Create mock dataset repository."""
+    return AsyncMock()
+
+
+@pytest.fixture
 def crawl_job_service(
     mock_crawl_job_repo,
     mock_project_repo,
     mock_image_repo,
-    mock_activity_log_repo
+    mock_activity_log_repo,
+    mock_dataset_repo
 ):
     """Create crawl job service with mocked repositories."""
     return CrawlJobService(
-        mock_crawl_job_repo,
-        mock_project_repo,
-        mock_image_repo,
-        mock_activity_log_repo
+        crawl_job_repo=mock_crawl_job_repo,
+        project_repo=mock_project_repo,
+        image_repo=mock_image_repo,
+        activity_log_repo=mock_activity_log_repo,
+        dataset_repo=mock_dataset_repo
     )
 
 
@@ -89,7 +97,7 @@ def sample_crawl_job():
     """Create sample crawl job for testing."""
     return CrawlJob(
         id=1,
-        project_id=1,
+        dataset_id=1,
         name="Test Crawl Job",
         keywords={"keywords": ["cat", "dog"]},
         max_images=100,
@@ -172,11 +180,14 @@ async def test_create_job_success(
     sample_crawl_job
 ):
     """Test successful job creation."""
-    mock_project_repo.get_by_id.return_value = sample_project
+    # Mock dataset repository to return a dataset (since service checks dataset existence)
+    from backend.models.dataset import Dataset
+    mock_dataset = Dataset(id=1, name="Test Dataset", user_id=uuid4())
+    crawl_job_service.dataset_repo.get_by_id.return_value = mock_dataset
     mock_crawl_job_repo.create.return_value = sample_crawl_job
     
     result = await crawl_job_service.create_job(
-        project_id=1,
+        dataset_id=1,
         name="Test Job",
         keywords=["cat", "dog"],
         max_images=100,
@@ -447,21 +458,21 @@ async def test_store_bulk_images(
 # ============================================================================
 
 @pytest.mark.asyncio
-async def test_get_jobs_by_project(
+async def test_get_jobs_by_dataset(
     crawl_job_service,
     mock_crawl_job_repo
 ):
-    """Test retrieving jobs by project."""
+    """Test retrieving jobs by dataset."""
     mock_jobs = [
-        CrawlJob(id=i, project_id=1, name=f"Job {i}")
+        CrawlJob(id=i, dataset_id=1, name=f"Job {i}")
         for i in range(3)
     ]
-    mock_crawl_job_repo.get_by_project.return_value = mock_jobs
+    mock_crawl_job_repo.get_by_dataset.return_value = mock_jobs
     
-    result = await crawl_job_service.get_jobs_by_project(1)
+    result = await crawl_job_service.get_jobs_by_dataset(1)
     
     assert len(result) == 3
-    mock_crawl_job_repo.get_by_project.assert_called_once_with(1)
+    mock_crawl_job_repo.get_by_dataset.assert_called_once_with(1)
 
 
 # ============================================================================
@@ -475,7 +486,7 @@ async def test_get_active_jobs(
 ):
     """Test retrieving active jobs."""
     mock_jobs = [
-        CrawlJob(id=i, project_id=1, name=f"Job {i}", status="running")
+        CrawlJob(id=i, dataset_id=1, name=f"Job {i}", status="running")
         for i in range(2)
     ]
     mock_crawl_job_repo.get_active_jobs.return_value = mock_jobs

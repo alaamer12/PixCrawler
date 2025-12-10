@@ -53,19 +53,19 @@ class CrawlJobRepository(BaseRepository[CrawlJob]):
         """
         super().__init__(session, CrawlJob)
 
-    async def get_by_project(self, project_id: int) -> List[CrawlJob]:
+    async def get_by_dataset(self, dataset_id: int) -> List[CrawlJob]:
         """
-        Get all jobs for a specific project.
+        Get all jobs for a specific dataset.
 
         Args:
-            project_id: Project ID
+            dataset_id: Dataset ID
 
         Returns:
             List of crawl jobs
         """
         result = await self.session.execute(
             select(CrawlJob)
-            .where(CrawlJob.project_id == project_id)
+            .where(CrawlJob.dataset_id == dataset_id)
             .order_by(CrawlJob.created_at.desc())
         )
         return list(result.scalars().all())

@@ -12,6 +12,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database.models import Project, CrawlJob, Image
+from backend.models.dataset import Dataset
 from backend.repositories import (
     ProjectRepository,
     CrawlJobRepository,
@@ -71,9 +72,14 @@ class DashboardService:
         total_projects = await session.scalar(total_projects_query) or 0
 
         # Count active jobs (pending or running)
+        # CrawlJob -> Dataset -> Project -> User
         active_jobs_query = select(func.count(CrawlJob.id)).where(
-            CrawlJob.project_id.in_(
-                select(Project.id).where(Project.user_id == user_id)
+            CrawlJob.dataset_id.in_(
+                select(Dataset.id).where(
+                    Dataset.project_id.in_(
+                        select(Project.id).where(Project.user_id == user_id)
+                    )
+                )
             ),
             CrawlJob.status.in_(['pending', 'running'])
         )
@@ -83,8 +89,12 @@ class DashboardService:
         total_images_query = select(func.count(Image.id)).where(
             Image.crawl_job_id.in_(
                 select(CrawlJob.id).where(
-                    CrawlJob.project_id.in_(
-                        select(Project.id).where(Project.user_id == user_id)
+                    CrawlJob.dataset_id.in_(
+                        select(Dataset.id).where(
+                            Dataset.project_id.in_(
+                                select(Project.id).where(Project.user_id == user_id)
+                            )
+                        )
                     )
                 )
             )
@@ -95,8 +105,12 @@ class DashboardService:
         storage_query = select(func.sum(Image.file_size)).where(
             Image.crawl_job_id.in_(
                 select(CrawlJob.id).where(
-                    CrawlJob.project_id.in_(
-                        select(Project.id).where(Project.user_id == user_id)
+                    CrawlJob.dataset_id.in_(
+                        select(Dataset.id).where(
+                            Dataset.project_id.in_(
+                                select(Project.id).where(Project.user_id == user_id)
+                            )
+                        )
                     )
                 )
             )
