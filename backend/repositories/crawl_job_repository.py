@@ -331,3 +331,34 @@ class CrawlJobRepository(BaseRepository[CrawlJob]):
             return []
 
         return job.task_ids if isinstance(job.task_ids, list) else []
+
+    async def get_image_stats(
+        self,
+        user_id: Optional[str] = None,
+        dataset_ids: Optional[List[int]] = None
+    ) -> dict:
+        """
+        Get aggregated image statistics from crawl jobs.
+
+        Args:
+            user_id: Optional user ID filter (not directly used as CrawlJob doesn't have user_id)
+            dataset_ids: Optional list of dataset IDs to filter by
+
+        Returns:
+            Dictionary with image statistics:
+                - total_images: Sum of downloaded_images across matching jobs
+        """
+        query = select(func.sum(CrawlJob.downloaded_images))
+        
+        # If dataset_ids provided, filter by them (assuming 1:1 mapping between dataset and job)
+        # Note: This is a simplification. Ideally we'd join with Dataset table, but 
+        # repositories should be independent. The service layer passes dataset_ids.
+        if dataset_ids:
+            query = query.where(CrawlJob.id.in_(dataset_ids))
+            
+        result = await self.session.execute(query)
+        total_images = result.scalar() or 0
+        
+        return {
+            "total_images": total_images
+        }

@@ -147,6 +147,13 @@ class Dataset(Base, TimestampMixin):
         foreign_keys=[crawl_job_id],
         lazy="joined",
     )
+    crawl_jobs: Mapped[list["CrawlJob"]] = relationship(
+        "CrawlJob",
+        foreign_keys="CrawlJob.dataset_id",
+        back_populates="dataset",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
     # Indexes and constraints
     __table_args__ = (

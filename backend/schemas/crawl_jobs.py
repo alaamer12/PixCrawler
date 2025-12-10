@@ -43,11 +43,6 @@ class CrawlJobCreate(BaseModel):
         extra='forbid',
     )
 
-    project_id: int = Field(
-        gt=0,
-        description="Project ID",
-        examples=[1, 42, 123],
-    )
 
     name: str = Field(
         min_length=1,

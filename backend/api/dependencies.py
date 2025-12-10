@@ -369,13 +369,15 @@ def get_crawl_job_service(session: DBSession) -> CrawlJobService:
     project_repo = ProjectRepository(session)
     image_repo = ImageRepository(session)
     activity_log_repo = ActivityLogRepository(session)
+    dataset_repo = DatasetRepository(session)
 
     # Inject repositories into service
     return CrawlJobService(
         crawl_job_repo=crawl_job_repo,
         project_repo=project_repo,
         image_repo=image_repo,
-        activity_log_repo=activity_log_repo
+        activity_log_repo=activity_log_repo,
+        dataset_repo=dataset_repo
     )
 
 

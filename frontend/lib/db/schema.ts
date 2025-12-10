@@ -30,9 +30,9 @@ export const projects = pgTable('projects', {
 // Crawl jobs table for tracking image crawling tasks with chunk tracking
 export const crawlJobs = pgTable('crawl_jobs', {
   id: serial('id').primaryKey(),
-  projectId: integer('project_id')
+  datasetId: integer('dataset_id')
     .notNull()
-    .references(() => projects.id),
+    .references(() => datasets.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 100 }).notNull(),
   keywords: jsonb('keywords').notNull(), // Array of search keywords
   maxImages: integer('max_images').notNull().default(1000),
@@ -283,7 +283,6 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     fields: [projects.userId],
     references: [profiles.id],
   }),
-  crawlJobs: many(crawlJobs),
   datasets: many(datasets),
 }));
 
@@ -302,6 +301,15 @@ export const datasetsRelations = relations(datasets, ({ one }) => ({
     fields: [datasets.crawlJobId],
     references: [crawlJobs.id],
   }),
+}));
+
+export const crawlJobsRelations = relations(crawlJobs, ({ one, many }) => ({
+  dataset: one(datasets, {
+    fields: [crawlJobs.datasetId],
+    references: [datasets.id],
+  }),
+  images: many(images),
+  chunks: many(jobChunks),
 }));
 
 export const imagesRelations = relations(images, ({ one }) => ({
@@ -466,16 +474,4 @@ export const jobChunksRelations = relations(jobChunks, ({ one }) => ({
   }),
 }));
 
-// Update crawlJobs relations to include chunks
-export const crawlJobsRelations = relations(crawlJobs, ({ one, many }) => ({
-  project: one(projects, {
-    fields: [crawlJobs.projectId],
-    references: [projects.id],
-  }),
-  images: many(images),
-  dataset: one(datasets, {
-    fields: [crawlJobs.id],
-    references: [datasets.crawlJobId],
-  }),
-  chunks: many(jobChunks),
-}));
+

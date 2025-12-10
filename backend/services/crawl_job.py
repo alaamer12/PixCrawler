@@ -29,7 +29,7 @@ import json
 import time
 import uuid
 from datetime import datetime
-from typing import Dict, Any, List, Optional, AsyncGenerator
+from typing import Dict, Any, List, Optional, AsyncGenerator, Union
 from uuid import UUID
 
 from celery_core.app import celery_app
@@ -49,6 +49,7 @@ from backend.repositories import (
     ProjectRepository,
     ImageRepository,
     ActivityLogRepository,
+    DatasetRepository,
 )
 from .base import BaseService
 from backend.core.supabase import get_supabase_client
@@ -273,7 +274,8 @@ class CrawlJobService(BaseService):
         crawl_job_repo: CrawlJobRepository,
         project_repo: ProjectRepository,
         image_repo: ImageRepository,
-        activity_log_repo: ActivityLogRepository
+        activity_log_repo: ActivityLogRepository,
+        dataset_repo: DatasetRepository
     ) -> None:
         """
         Initialize crawl job service with repositories.
@@ -283,16 +285,18 @@ class CrawlJobService(BaseService):
             project_repo: Project repository
             image_repo: Image repository
             activity_log_repo: ActivityLog repository
+            dataset_repo: Dataset repository
         """
         super().__init__()
         self.crawl_job_repo = crawl_job_repo
         self.project_repo = project_repo
         self.image_repo = image_repo
         self.activity_log_repo = activity_log_repo
+        self.dataset_repo = dataset_repo
 
     async def create_job(
         self,
-        project_id: int,
+        dataset_id: int,
         name: str,
         keywords: List[str],
         max_images: int = 100,
@@ -303,7 +307,7 @@ class CrawlJobService(BaseService):
         Create a new crawl job with rate limiting.
 
         Args:
-            project_id: ID of the project this job belongs to
+            dataset_id: ID of the dataset this job belongs to
             name: Name of the crawl job
             keywords: List of search keywords
             max_images: Maximum number of images to collect
@@ -314,7 +318,7 @@ class CrawlJobService(BaseService):
             Created crawl job
 
         Raises:
-            NotFoundError: If project is not found
+            NotFoundError: If dataset is not found
             ValidationError: If job data is invalid
             RateLimitExceeded: If user has reached concurrent job limit
         """
@@ -323,12 +327,13 @@ class CrawlJobService(BaseService):
         # and compares against their tier limit (Free: 1, Hobby: 3, Pro: 10)
         if user_id:
             # Determine actual user tier from credit account
-            real_tier = await self._get_user_tier(uuid.UUID(user_id))
+            real_tier = await self._get_user_tier(user_id)
             RateLimiter.check_concurrency(user_id, real_tier)
-        # Verify project exists using repository
-        project = await self.project_repo.get_by_id(project_id)
-        if not project:
-            raise NotFoundError(f"Project not found: {project_id}")
+        
+        # Verify dataset exists using repository
+        dataset = await self.dataset_repo.get_by_id(dataset_id)
+        if not dataset:
+            raise NotFoundError(f"Dataset not found: {dataset_id}")
 
         # Validate keywords
         if not keywords:
@@ -336,7 +341,7 @@ class CrawlJobService(BaseService):
 
         # Create crawl job using repository
         crawl_job = await self.crawl_job_repo.create(
-            project_id=project_id,
+            dataset_id=dataset_id,
             name=name,
             keywords={"keywords": keywords},
             max_images=max_images,
@@ -346,7 +351,7 @@ class CrawlJobService(BaseService):
         # Log activity
         if user_id:
             await self.activity_log_repo.create(
-                user_id=uuid.UUID(user_id),
+                user_id=user_id,
                 action="START_CRAWL_JOB",
                 resource_type="crawl_job",
                 resource_id=str(crawl_job.id),
@@ -354,7 +359,7 @@ class CrawlJobService(BaseService):
             )
 
         self.log_operation("create_crawl_job", job_id=crawl_job.id,
-                           project_id=project_id)
+                           dataset_id=dataset_id)
         return crawl_job
 
     async def start_job(
@@ -1269,7 +1274,7 @@ class CrawlJobService(BaseService):
 
         return results
 
-    async def _get_user_tier(self, user_id: uuid.UUID) -> str:
+    async def _get_user_tier(self, user_id: Union[uuid.UUID, str]) -> str:
         """
         Determine user's subscription tier based on credit account limits.
 
@@ -1363,25 +1368,29 @@ class CrawlJobService(BaseService):
         except Exception as e:
             logger.error(f"Failed to log activity: {str(e)}")
 
-    async def list_jobs(self, user_id: str) -> Any:
+    async def list_jobs(self, user_id: str, dataset_id: int) -> Any:
         """
-        List all crawl jobs for a user with pagination.
+        List all crawl jobs for a specific dataset.
 
         Args:
-            user_id: User ID to filter jobs
+            user_id: User ID for ownership verification
+            dataset_id: Dataset ID to retrieve jobs for
 
         Returns:
             Paginated list of crawl jobs
         """
         from fastapi_pagination.ext.sqlalchemy import paginate
         from sqlalchemy import select
-        from backend.models import Project
+        from backend.models import Project, Dataset
 
-        # Build query for user's crawl jobs
+        # Build query for dataset's crawl jobs with ownership verification
+        # Jobs belong to datasets, datasets belong to projects, projects belong to users
         query = (
             select(CrawlJob)
-            .join(Project, Project.id == CrawlJob.project_id)
-            .where(Project.user_id == uuid.UUID(user_id))
+            .join(Dataset, Dataset.id == CrawlJob.dataset_id)
+            .join(Project, Project.id == Dataset.project_id)
+            .where(CrawlJob.dataset_id == dataset_id)
+            .where(Project.user_id == user_id)
             .order_by(CrawlJob.created_at.desc())
         )
 

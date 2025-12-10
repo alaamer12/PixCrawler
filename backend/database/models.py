@@ -237,13 +237,6 @@ class Project(Base, TimestampMixin):
         lazy="joined",
     )
 
-    crawl_jobs: Mapped[list["CrawlJob"]] = relationship(
-        "CrawlJob",
-        back_populates="project",
-        cascade="all, delete-orphan",
-        lazy="selectin",
-    )
-
     datasets: Mapped[list["Dataset"]] = relationship(
         "Dataset",
         back_populates="project",
@@ -287,9 +280,9 @@ class CrawlJob(Base, TimestampMixin):
     )
 
     # Foreign key
-    project_id: Mapped[int] = mapped_column(
+    dataset_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("projects.id", ondelete="CASCADE"),
+        ForeignKey("datasets.id", ondelete="CASCADE"),
         nullable=False,
     )
 
@@ -398,8 +391,9 @@ class CrawlJob(Base, TimestampMixin):
     )
 
     # Relationships
-    project: Mapped["Project"] = relationship(
-        "Project",
+    dataset: Mapped["Dataset"] = relationship(
+        "Dataset",
+        foreign_keys=[dataset_id],
         back_populates="crawl_jobs",
         lazy="joined",
     )
@@ -420,9 +414,9 @@ class CrawlJob(Base, TimestampMixin):
 
     # Indexes
     __table_args__ = (
-        Index("ix_crawl_jobs_project_id", "project_id"),
+        Index("ix_crawl_jobs_dataset_id", "dataset_id"),
         Index("ix_crawl_jobs_status", "status"),
-        Index("ix_crawl_jobs_project_status", "project_id", "status"),
+        Index("ix_crawl_jobs_dataset_status", "dataset_id", "status"),
         Index("ix_crawl_jobs_created_at", "created_at"),
     )
 
