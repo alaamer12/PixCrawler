@@ -63,8 +63,16 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    # Get database URL from application settings
+    from backend.core.config import get_settings
+    settings = get_settings()
+    database_url = settings.database.get_connection_url()
+    
+    # Replace asyncpg with psycopg2 for Alembic (synchronous)
+    database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
+    
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = config.get_main_option("sqlalchemy.url")
+    configuration["sqlalchemy.url"] = database_url
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",

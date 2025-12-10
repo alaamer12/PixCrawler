@@ -69,7 +69,6 @@ class APIKey(Base, TimestampMixin):
         SQLAlchemyUUID(as_uuid=True),
         ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
 
     # Key identification
@@ -82,13 +81,11 @@ class APIKey(Base, TimestampMixin):
         String(255),
         nullable=False,
         unique=True,
-        index=True,
     )
 
     key_prefix: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
-        index=True,
     )
 
     # Status
@@ -97,7 +94,6 @@ class APIKey(Base, TimestampMixin):
         nullable=False,
         default="active",
         server_default="active",
-        index=True,
     )
 
     # Permissions and limits
@@ -126,7 +122,6 @@ class APIKey(Base, TimestampMixin):
     last_used_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
-        index=True,
     )
 
     last_used_ip: Mapped[Optional[str]] = mapped_column(
@@ -138,7 +133,6 @@ class APIKey(Base, TimestampMixin):
     expires_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
-        index=True,
     )
 
     # Relationships

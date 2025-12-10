@@ -67,14 +67,12 @@ class UsageMetric(Base):
         SQLAlchemyUUID(as_uuid=True),
         ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
 
     # Date
     metric_date: Mapped[date] = mapped_column(
         Date,
         nullable=False,
-        index=True,
     )
 
     # Image metrics

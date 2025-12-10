@@ -71,21 +71,18 @@ class ProcessingMetric(Base):
         Integer,
         ForeignKey("crawl_jobs.id", ondelete="CASCADE"),
         nullable=True,
-        index=True,
     )
     
     user_id: Mapped[Optional[UUID]] = mapped_column(
         SQLAlchemyUUID(as_uuid=True),
         ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=True,
-        index=True,
     )
     
     # Operation details
     operation_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
-        index=True,
         comment="Type: download, validate, upload, full_job",
     )
     
@@ -93,7 +90,6 @@ class ProcessingMetric(Base):
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        index=True,
     )
     
     completed_at: Mapped[Optional[datetime]] = mapped_column(
@@ -112,7 +108,6 @@ class ProcessingMetric(Base):
         String(20),
         nullable=False,
         default="running",
-        index=True,
         comment="Status: running, success, failed, cancelled",
     )
     
@@ -222,21 +217,18 @@ class ResourceMetric(Base):
         Integer,
         ForeignKey("crawl_jobs.id", ondelete="CASCADE"),
         nullable=True,
-        index=True,
     )
     
     # Resource details
     metric_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
-        index=True,
         comment="Type: cpu, memory, disk, network",
     )
     
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        index=True,
     )
     
     value: Mapped[Decimal] = mapped_column(
@@ -254,7 +246,6 @@ class ResourceMetric(Base):
     hostname: Mapped[Optional[str]] = mapped_column(
         String(255),
         nullable=True,
-        index=True,
         comment="Server/worker hostname",
     )
     
@@ -317,14 +308,12 @@ class QueueMetric(Base):
     queue_name: Mapped[str] = mapped_column(
         String(100),
         nullable=False,
-        index=True,
         comment="Queue name (e.g., celery, crawl_jobs)",
     )
     
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        index=True,
     )
     
     # Queue depths

@@ -67,7 +67,6 @@ class Dataset(Base, TimestampMixin):
         SQLAlchemyUUID(as_uuid=True),
         ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -86,7 +85,6 @@ class Dataset(Base, TimestampMixin):
         String(20),
         nullable=False,
         default="pending",
-        index=True,
     )
     progress: Mapped[float] = mapped_column(
         Integer,
@@ -102,7 +100,6 @@ class Dataset(Base, TimestampMixin):
         Integer,
         ForeignKey("crawl_jobs.id", ondelete="SET NULL"),
         nullable=True,
-        index=True,
     )
     download_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -113,7 +110,6 @@ class Dataset(Base, TimestampMixin):
         nullable=False,
         default="hot",
         server_default="hot",
-        index=True,
         comment="Storage tier: hot, warm, cold"
     )
 

@@ -33,6 +33,23 @@ class CommonSettings(BaseSettings):
         str_strip_whitespace=True
     )
     
+    # Application metadata
+    app_name: str = Field(
+        default="PixCrawler API",
+        description="Application name",
+        examples=["PixCrawler API", "WindX API"]
+    )
+    app_version: str = Field(
+        default="1.0.0",
+        description="Application version",
+        examples=["1.0.0", "2.1.3"]
+    )
+    api_v1_prefix: str = Field(
+        default="/api/v1",
+        description="API v1 route prefix",
+        examples=["/api/v1", "/v1"]
+    )
+    
     # Application settings
     environment: str = Field(
         default="development",

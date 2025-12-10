@@ -104,7 +104,9 @@ class DatasetService(BaseService):
             if not project:
                 raise NotFoundError(f"Project {project_id} not found")
             
-            if project.user_id != user_id:
+            # Convert user_id to UUID for comparison if it's a string
+            user_uuid = UUID(user_id) if isinstance(user_id, str) else user_id
+            if project.user_id != user_uuid:
                 raise PermissionError(f"Project {project_id} does not belong to user {user_id}")
 
         # Create dataset record

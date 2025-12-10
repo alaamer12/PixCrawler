@@ -3,7 +3,7 @@ Dataset management endpoints.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status as http_status
-from fastapi_limiter.depends import RateLimiter
+from backend.core.rate_limiter import RateLimiter
 from fastapi_pagination import Page
 
 from backend.api.types import CurrentUser, DBSession, DatasetID, DatasetServiceDep
@@ -73,10 +73,16 @@ async def create_dataset(
             project_id=dataset_create.project_id
         )
         return dataset
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
-        raise HTTPException(status_code=500, detail="Internal server error")
+    except Exception as e:
+        # Log the actual exception for debugging
+        import traceback
+        print(f"ERROR in create_dataset: {type(e).__name__}: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.get(

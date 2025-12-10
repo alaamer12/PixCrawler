@@ -71,7 +71,6 @@ class CreditAccount(Base, TimestampMixin):
         ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
         unique=True,
-        index=True,
     )
 
     # Balance tracking
@@ -183,14 +182,12 @@ class CreditTransaction(Base):
         SQLAlchemyUUID(as_uuid=True),
         ForeignKey("credit_accounts.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
 
     user_id: Mapped[UUID] = mapped_column(
         SQLAlchemyUUID(as_uuid=True),
         ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
 
     # Transaction details
@@ -198,7 +195,6 @@ class CreditTransaction(Base):
         "type",
         String(20),
         nullable=False,
-        index=True,
     )
 
     description: Mapped[str] = mapped_column(
@@ -221,7 +217,6 @@ class CreditTransaction(Base):
         nullable=False,
         default="completed",
         server_default="completed",
-        index=True,
     )
 
     metadata_: Mapped[Optional[dict]] = mapped_column(
@@ -235,7 +230,6 @@ class CreditTransaction(Base):
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
-        index=True,
     )
 
     # Relationships

@@ -26,6 +26,27 @@ class SecuritySettings(BaseSettings):
         extra="ignore",
     )
 
+    # JWT Authentication
+    secret_key: str = Field(
+        default="dev-secret-key-change-in-production-min-32-characters-long",
+        min_length=32,
+        description="Secret key for JWT token signing (MUST be changed in production)",
+        examples=["your-super-secret-key-min-32-chars"]
+    )
+    algorithm: str = Field(
+        default="HS256",
+        description="JWT signing algorithm",
+        examples=["HS256", "RS256"]
+    )
+    access_token_expire_minutes: int = Field(
+        default=30,
+        ge=1,
+        le=43200,  # Max 30 days
+        description="JWT access token expiration time in minutes",
+        examples=[30, 60, 1440]
+    )
+
+    # CORS Configuration
     allowed_origins: List[str] = Field(
         default=["http://localhost:3000"],
         min_length=1,

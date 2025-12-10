@@ -9,7 +9,7 @@ from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi import status as http_status
-from fastapi_limiter.depends import RateLimiter
+from backend.core.rate_limiter import RateLimiter
 from fastapi_pagination import Page
 
 from backend.api.types import CurrentUser, JobID, CrawlJobServiceDep

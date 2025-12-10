@@ -91,7 +91,6 @@ class Profile(Base, TimestampMixin):
         String(255),
         nullable=False,
         unique=True,
-        index=True,
     )
 
     full_name: Mapped[Optional[str]] = mapped_column(
@@ -110,7 +109,6 @@ class Profile(Base, TimestampMixin):
         nullable=False,
         default="user",
         server_default="user",
-        index=True,
     )
 
     onboarding_completed: Mapped[bool] = mapped_column(
@@ -173,7 +171,6 @@ class Profile(Base, TimestampMixin):
 
     # Indexes
     __table_args__ = (
-        Index("ix_profiles_email", "email"),
         Index("ix_profiles_role", "role"),
     )
 
@@ -223,7 +220,6 @@ class Project(Base, TimestampMixin):
         SQLAlchemyUUID(as_uuid=True),
         ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
 
     # Status
@@ -232,7 +228,6 @@ class Project(Base, TimestampMixin):
         nullable=False,
         default="active",
         server_default="active",
-        index=True,
     )
 
     # Relationships
@@ -289,7 +284,6 @@ class CrawlJob(Base, TimestampMixin):
         Integer,
         ForeignKey("projects.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
 
     # Job information
@@ -317,7 +311,6 @@ class CrawlJob(Base, TimestampMixin):
         nullable=False,
         default="pending",
         server_default="pending",
-        index=True,
     )
 
     progress: Mapped[int] = mapped_column(
@@ -466,7 +459,6 @@ class Image(Base):
         Integer,
         ForeignKey("crawl_jobs.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
 
     filename: Mapped[str] = mapped_column(
@@ -508,7 +500,6 @@ class Image(Base):
         "hash",
         String(64),
         nullable=True,
-        index=True,
         comment="Hash for duplicate detection",
     )
 
