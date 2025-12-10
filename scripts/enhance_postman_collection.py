@@ -30,7 +30,7 @@ def enhance_collection(collection_path: str, output_path: str):
     collection['variable'] = [
         {
             'key': 'baseUrl',
-            'value': 'http://localhost:8000/api/v1',
+            'value': 'http://localhost:8000',
             'type': 'string'
         },
         {
@@ -54,7 +54,7 @@ def create_environment(output_path: str):
         'values': [
             {
                 'key': 'baseUrl',
-                'value': 'http://localhost:8000/api/v1',
+                'value': 'http://localhost:8000',
                 'type': 'default',
                 'enabled': True
             },

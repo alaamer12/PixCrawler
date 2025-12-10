@@ -1,0 +1,156 @@
+{
+    "info": {
+        "name": "PixCrawler - Failed Endpoints Only",
+        "description": "Collection containing only the 5 failing endpoints for targeted testing",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{bearerToken}}",
+                "type": "string"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "Create Project",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"name\": \"Test Project\",\n  \"description\": \"Test project for debugging\"\n}"
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/v1/projects/",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "projects",
+                        ""
+                    ]
+                }
+            }
+        },
+        {
+            "name": "List Datasets with Pagination",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/v1/datasets/?page=1&size=50",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "datasets",
+                        ""
+                    ],
+                    "query": [
+                        {
+                            "key": "page",
+                            "value": "1"
+                        },
+                        {
+                            "key": "size",
+                            "value": "50"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Get Dataset Build Status",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/v1/datasets/1/status",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "datasets",
+                        "1",
+                        "status"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Get Crawl Job",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{baseUrl}}/api/v1/jobs/1",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "jobs",
+                        "1"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Batch Delete Projects",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"ids\": []\n}"
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/v1/batch/projects/batch-delete",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v1",
+                        "batch",
+                        "projects",
+                        "batch-delete"
+                    ]
+                }
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000",
+            "type": "string"
+        },
+        {
+            "key": "bearerToken",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}
