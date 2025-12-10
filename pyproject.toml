@@ -29,12 +29,8 @@ dependencies = [
     "pixcrawler-utility",
     "pixcrawler-celery-core",
     "pixcrawler-validator",
-    "pydantic>=2.0.0",
-    "pydantic-settings>=2.0.0",
-    "rich>=13.0.0",
-    "platformdirs>=4.0.0",
-    "psutil>=5.9.0",
-    "requests>=2.31.0",
+    "pydantic",
+    "pydantic-settings",
 ]
 
 [project.urls]
@@ -208,9 +204,13 @@ exclude_lines = [
 
 [dependency-groups]
 dev = [
-    "aiosqlite>=0.21.0",
-    "pytest>=8.4.1",
-    "pytest-asyncio>=1.2.0",
-    "pytest-cov>=7.0.0",
+    "aiosqlite",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
     "pixcrawler-sdk",
+    "rich",
+    "platformdirs",
+    "psutil",
+    "requests",
 ]

@@ -45,11 +45,7 @@ dev = [
   "pre-commit>=3.5.0",
 ]
 azure = [
-  "azure-storage-blob>=12.19.0",  # Already in main dependencies
-  "opencensus-ext-azure>=1.1.0",  # Application Insights
-  "opencensus-ext-fastapi>=0.1.0",  # FastAPI integration
-  "opencensus-ext-requests>=0.8.0",  # HTTP dependency tracking
-  "opencensus-ext-sqlalchemy>=0.1.0",  # Database dependency tracking
+  "azure-storage-blob",  # Already in main dependencies
 ]
 
 [project.scripts]
