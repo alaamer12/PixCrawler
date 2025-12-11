@@ -492,9 +492,6 @@ class CrawlJobService(BaseService):
 
                 task_ids.append(task.id)
 
-                # Store task ID in database
-                await self.crawl_job_repo.add_task_id(job_id, task.id)
-
                 logger.debug(
                     f"Dispatched {engine} task for keyword '{keyword}': {task.id}",
                     job_id=job_id,
@@ -503,16 +500,20 @@ class CrawlJobService(BaseService):
                     task_id=task.id
                 )
 
-        # Step 6: Update job status to 'running' with total_chunks
-        await self.crawl_job_repo.update(
-            job,
-            status='running',
-            total_chunks=total_chunks,
-            active_chunks=total_chunks,
-            completed_chunks=0,
-            failed_chunks=0,
-            started_at=datetime.utcnow()
-        )
+        # Step 6: Update job status to 'running' with total_chunks and task_ids
+        # Refetch job to avoid session issues
+        fresh_job = await self.crawl_job_repo.get_by_id(job_id)
+        if fresh_job:
+            await self.crawl_job_repo.update(
+                fresh_job,
+                status='running',
+                total_chunks=total_chunks,
+                active_chunks=total_chunks,
+                completed_chunks=0,
+                failed_chunks=0,
+                task_ids=task_ids,
+                started_at=datetime.utcnow()
+            )
 
         # Step 7: Log activity
         await self.activity_log_repo.create(
@@ -920,12 +921,22 @@ class CrawlJobService(BaseService):
             updates['progress'] = 100
 
         job = await self.crawl_job_repo.get_by_id(job_id)
-        if job:
-            job = await self.crawl_job_repo.update(job, **updates)
+        if not job:
+            return None
 
-        if job:
-            # Log activity (get project_id through dataset)
-            dataset = await self.dataset_repo.get_by_id(job.dataset_id)
+        # Store values before updating (to avoid lazy loading issues)
+        dataset_id = job.dataset_id
+        original_progress = job.progress or 0
+        original_downloaded = job.downloaded_images or 0
+        original_valid = job.valid_images or 0
+        max_images = job.max_images
+        
+        # Update the job
+        job = await self.crawl_job_repo.update(job, **updates)
+
+        # Log activity using the stored dataset_id
+        if dataset_id:
+            dataset = await self.dataset_repo.get_by_id(dataset_id)
             if dataset:
                 await self._log_activity(
                     dataset.project_id,
@@ -935,28 +946,28 @@ class CrawlJobService(BaseService):
                     **{k: v for k, v in updates.items() if k != 'status'}
                 )
 
-            # Broadcast status change via Supabase
-            supabase = get_supabase_client()
-            if supabase:
-                channel = supabase.channel(f'crawl_job_{job_id}')
-                update_data = {
-                    'job_id': job_id,
-                    'status': status,
-                    'progress': job.progress or 0,
-                    'downloaded_images': job.downloaded_images or 0,
-                    'valid_images': job.valid_images or 0,
-                    'total_images': job.max_images,
-                    'timestamp': datetime.utcnow().isoformat()
-                }
+        # Broadcast status change via Supabase
+        supabase = get_supabase_client()
+        if supabase:
+            channel = supabase.channel(f'crawl_job_{job_id}')
+            update_data = {
+                'job_id': job_id,
+                'status': status,
+                'progress': updates.get('progress', original_progress),
+                'downloaded_images': updates.get('downloaded_images', original_downloaded),
+                'valid_images': updates.get('valid_images', original_valid),
+                'total_images': max_images,
+                'timestamp': datetime.utcnow().isoformat()
+            }
 
-                if error:
-                    update_data['error'] = error
+            if error:
+                update_data['error'] = error
 
-                await channel.send({
-                    'type': 'broadcast',
-                    'event': 'status_update',
-                    'payload': update_data
-                })
+            await channel.send({
+                'type': 'broadcast',
+                'event': 'status_update',
+                'payload': update_data
+            })
 
         return job
 
@@ -1809,11 +1820,13 @@ async def execute_crawl_job(
                 if not job:
                     raise NotFoundError(f"Crawl job not found: {job_id}")
 
-                await job_service.update_job(
-                    job_id,
-                    status="running",
-                    started_at=datetime.utcnow()
-                )
+                # Simple update without accessing relationships
+                job = await job_service.crawl_job_repo.get_by_id(job_id)
+                if job:
+                    await job_service.crawl_job_repo.update(job, 
+                        status="running",
+                        started_at=datetime.utcnow()
+                    )
 
         # Start job metric with fresh session
         async with session_maker() as session:
@@ -1874,12 +1887,15 @@ async def execute_crawl_job(
                         else:
                             progress = 0
 
-                        await batch_job_service.update_job_progress(
-                            job_id=job_id,
-                            progress=progress,
-                            downloaded_images=processed_count,
-                            valid_images=valid_count
-                        )
+                        # Direct repository update to avoid session issues
+                        job_to_update = await batch_job_service.crawl_job_repo.get_by_id(job_id)
+                        if job_to_update:
+                            await batch_job_service.crawl_job_repo.update(job_to_update,
+                                progress=progress,
+                                downloaded_images=processed_count,
+                                valid_images=valid_count,
+                                last_activity=datetime.utcnow()
+                            )
 
                         if valid_batch:
                             await batch_job_service.store_bulk_images(job_id, valid_batch)
@@ -1927,12 +1943,15 @@ async def execute_crawl_job(
                     async with session_maker() as progress_session:
                         async with progress_session.begin():
                             progress_job_service, _ = create_services_with_session(progress_session)
-                            await progress_job_service.update_job_progress(
-                                job_id=job_id,
-                                progress=progress,
-                                downloaded_images=processed_count,
-                                valid_images=valid_count
-                            )
+                            # Direct repository update to avoid session issues
+                            job_to_update = await progress_job_service.crawl_job_repo.get_by_id(job_id)
+                            if job_to_update:
+                                await progress_job_service.crawl_job_repo.update(job_to_update,
+                                    progress=progress,
+                                    downloaded_images=processed_count,
+                                    valid_images=valid_count,
+                                    last_activity=datetime.utcnow()
+                                )
 
                 except StopAsyncIteration:
                     break
@@ -1944,23 +1963,28 @@ async def execute_crawl_job(
             async with session_maker() as final_session:
                 async with final_session.begin():
                     final_job_service, _ = create_services_with_session(final_session)
-                    await final_job_service.update_job_progress(
-                        job_id=job_id,
-                        progress=progress,
-                        downloaded_images=processed_count,
-                        valid_images=valid_count
-                    )
+                    # Direct repository update to avoid session issues
+                    job_to_update = await final_job_service.crawl_job_repo.get_by_id(job_id)
+                    if job_to_update:
+                        await final_job_service.crawl_job_repo.update(job_to_update,
+                            progress=progress,
+                            downloaded_images=processed_count,
+                            valid_images=valid_count,
+                            last_activity=datetime.utcnow()
+                        )
 
         except Exception as e:
             # Update job status to failed in case of errors with fresh session
             async with session_maker() as error_session:
                 async with error_session.begin():
                     error_job_service, _ = create_services_with_session(error_session)
-                    await error_job_service.update_job_status(
-                        job_id=job_id,
-                        status="failed",
-                        error=str(e)
-                    )
+                    # Direct repository update to avoid session issues
+                    job = await error_job_service.crawl_job_repo.get_by_id(job_id)
+                    if job:
+                        await error_job_service.crawl_job_repo.update(job,
+                            status="failed",
+                            error=str(e)
+                        )
             raise ExternalServiceError(
                 f"Error during batch processing: {str(e)}") from e
         finally:
@@ -1975,14 +1999,16 @@ async def execute_crawl_job(
             async with completion_session.begin():
                 completion_job_service, completion_metrics_service = create_services_with_session(completion_session)
                 
-                await completion_job_service.update_job_status(
-                    job_id=job_id,
-                    status="completed",
-                    progress=100,
-                    completed_at=datetime.utcnow(),
-                    downloaded_images=processed_count,
-                    valid_images=valid_count
-                )
+                # Direct repository update to avoid session issues
+                job = await completion_job_service.crawl_job_repo.get_by_id(job_id)
+                if job:
+                    await completion_job_service.crawl_job_repo.update(job,
+                        status="completed",
+                        progress=100,
+                        completed_at=datetime.utcnow(),
+                        downloaded_images=processed_count,
+                        valid_images=valid_count
+                    )
 
                 # Complete job metric
                 await completion_metrics_service.complete_processing_metric(
@@ -2000,15 +2026,16 @@ async def execute_crawl_job(
                 async with failure_session.begin():
                     failure_job_service, failure_metrics_service = create_services_with_session(failure_session)
                     
-                    # Update job status to failed
-                    await failure_job_service.update_job(
-                        job_id,
-                        status="failed",
-                        error=str(e),
-                        completed_at=datetime.utcnow(),
-                        downloaded_images=processed_count if 'processed_count' in locals() else 0,
-                        valid_images=valid_count if 'valid_count' in locals() else 0
-                    )
+                    # Direct repository update to avoid session issues
+                    job = await failure_job_service.crawl_job_repo.get_by_id(job_id)
+                    if job:
+                        await failure_job_service.crawl_job_repo.update(job,
+                            status="failed",
+                            error=str(e),
+                            completed_at=datetime.utcnow(),
+                            downloaded_images=processed_count if 'processed_count' in locals() else 0,
+                            valid_images=valid_count if 'valid_count' in locals() else 0
+                        )
 
                     # Complete job metric if it exists
                     if 'job_metric' in locals():

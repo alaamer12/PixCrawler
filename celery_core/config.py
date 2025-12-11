@@ -17,8 +17,10 @@ Features:
     - Environment variable support with PIXCRAWLER_CELERY_ prefix
     - Production-ready defaults with development overrides
     - Monitoring and performance optimization settings
+    - Platform-aware pool selection (solo for Windows, prefork for Linux)
 """
 
+import platform
 from functools import lru_cache
 from typing import List, Dict, Any, Optional
 
@@ -128,6 +130,11 @@ class CelerySettings(BaseSettings):
     )
 
     # Worker Settings
+    worker_pool: Optional[str] = Field(
+        default=None,
+        description="Worker pool implementation (auto-detected if None)",
+        examples=["prefork", "solo", "threads", "gevent"]
+    )
     worker_concurrency: int = Field(
         default=35,
         ge=1,
@@ -371,6 +378,18 @@ class CelerySettings(BaseSettings):
             raise ValueError("At least one content type must be specified")
         return cleaned
 
+    @field_validator('worker_pool')
+    @classmethod
+    def validate_worker_pool(cls, v: Optional[str]) -> Optional[str]:
+        """Validate worker pool type."""
+        if v is None:
+            return v
+        v = v.strip().lower()
+        valid_pools = ['prefork', 'solo', 'threads', 'gevent', 'eventlet']
+        if v not in valid_pools:
+            raise ValueError(f'Worker pool must be one of {valid_pools}')
+        return v
+
     @model_validator(mode='after')
     def validate_configuration_consistency(self) -> 'CelerySettings':
         """Validate configuration consistency and relationships."""
@@ -403,6 +422,31 @@ class CelerySettings(BaseSettings):
 
         return self
 
+    def get_worker_pool(self) -> str:
+        """
+        Get the appropriate worker pool for the current platform.
+        
+        Returns:
+            Worker pool type based on platform and configuration
+            
+        Platform defaults:
+            - Windows: 'solo' (prefork doesn't work well on Windows)
+            - Linux/Unix: 'prefork' (best performance for CPU-bound tasks)
+            - macOS: 'prefork' (Unix-based, supports prefork)
+        """
+        if self.worker_pool:
+            return self.worker_pool
+            
+        # Auto-detect based on platform
+        system = platform.system().lower()
+        if system == 'windows':
+            return 'solo'
+        elif system in ['linux', 'darwin']:  # Linux or macOS
+            return 'prefork'
+        else:
+            # Fallback for other platforms
+            return 'solo'
+
     def get_celery_config(self) -> Dict[str, Any]:
         """
         Generate Celery configuration dictionary.
@@ -434,6 +478,7 @@ class CelerySettings(BaseSettings):
             'task_max_retries': self.task_max_retries,
 
             # Worker settings
+            'worker_pool': self.get_worker_pool(),
             'worker_prefetch_multiplier': self.worker_prefetch_multiplier,
             'worker_max_tasks_per_child': self.worker_max_tasks_per_child,
             'worker_max_memory_per_child': self.worker_max_memory_per_child,
@@ -470,6 +515,7 @@ class CelerySettings(BaseSettings):
             Dict containing worker configuration
         """
         return {
+            'pool': self.get_worker_pool(),
             'concurrency': self.worker_concurrency,
             'prefetch_multiplier': self.worker_prefetch_multiplier,
             'max_tasks_per_child': self.worker_max_tasks_per_child,

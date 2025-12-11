@@ -58,7 +58,16 @@ def get_celery_app() -> Celery:
     app = Celery('pixcrawler')
 
     # Configure from settings
-    app.config_from_object(settings.get_celery_config())
+    config = settings.get_celery_config()
+    
+    # Add task imports to ensure tasks are registered
+    config['imports'] = [
+        'builder.tasks',
+        'celery_core.tasks',
+        'validator.tasks',
+    ]
+    
+    app.config_from_object(config)
 
     # Setup priority queues
     setup_task_queues(app)

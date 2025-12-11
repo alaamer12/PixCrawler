@@ -644,63 +644,66 @@ def task_download_duckduckgo(
 
 def task_generate_keywords_basic_impl(
     base_keywords: List[str],
-    ai_model: str = "gpt4-mini",
+    ai_model: str = "disabled",  # AI disabled by default
     count: int = 10,
     job_id: Optional[str] = None,
     user_id: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Implementation for basic keyword generation (CURRENT WORKING)."""
+    """Implementation for basic keyword generation (AI DISABLED - uses predefined variations)."""
     # Add structured logging context
     log_context = logger.bind(
-        operation="keyword_generation",
+        operation="keyword_generation_no_ai",
         base_keywords=base_keywords,
-        ai_model=ai_model,
         count=count,
         job_id=job_id,
         user_id=user_id
     )
-    log_context.info(f"Starting keyword generation for: {base_keywords}")
+    log_context.info(f"Starting non-AI keyword generation for: {base_keywords}")
 
     try:
-        # KeywordManagement.generate_keywords() only takes category parameter
-        # The ai_model is set during KeywordManagement initialization
-        keyword_manager = KeywordManagement(
-            ai_model=ai_model
-        )
-
+        # Use predefined variations instead of AI
+        from builder._predefined_variations import get_search_variations
+        
         generated_keywords = []
-        errors = []
-
+        variation_templates = list(get_search_variations())  # Convert set to list
+        
         for base_keyword in base_keywords:
-            try:
-                # generate_keywords() only takes category (the keyword itself)
-                new_keywords = keyword_manager.generate_keywords(base_keyword)
-                generated_keywords.extend(new_keywords)
-            except Exception as e:
-                error_msg = f"Failed to generate keywords for '{base_keyword}': {str(e)}"
-                log_context.error(error_msg, base_keyword=base_keyword, error_type=type(e).__name__)
-                errors.append(error_msg)
-
-        # Remove duplicates
-        generated_keywords = list(set(generated_keywords))
+            # Add the base keyword itself
+            generated_keywords.append(base_keyword)
+            
+            # Generate variations using predefined templates
+            keyword_variations = []
+            for template in variation_templates[:count]:  # Limit to requested count
+                try:
+                    variation = template.format(keyword=base_keyword)
+                    keyword_variations.append(variation)
+                except (KeyError, ValueError):
+                    # Skip templates that don't work with this keyword
+                    continue
+            
+            generated_keywords.extend(keyword_variations)
+        
+        # Remove duplicates and limit to count
+        unique_keywords = list(set(generated_keywords))
+        generated_keywords = unique_keywords[:count]
 
         log_context.info(
-            f"Keyword generation completed: {len(generated_keywords)} keywords",
-            generated_count=len(generated_keywords),
-            error_count=len(errors)
+            f"Non-AI keyword generation completed: {len(generated_keywords)} keywords",
+            generated_count=len(generated_keywords)
         )
 
         return {
-            'success': len(generated_keywords) > 0,
+            'success': True,  # Always successful if no exception
             'base_keywords': base_keywords,
             'generated_keywords': generated_keywords,
             'count': len(generated_keywords),
-            'errors': errors
+            'errors': [],
+            'method': 'predefined_variations'
         }
 
     except Exception as e:
         log_context.error(
-            f"Keyword generation failed: {str(e)}",
+            f"Non-AI keyword generation failed: {str(e)}",
             error=str(e),
             error_type=type(e).__name__
         )
@@ -708,7 +711,8 @@ def task_generate_keywords_basic_impl(
             'success': False,
             'base_keywords': base_keywords,
             'error': str(e),
-            'generated_keywords': []
+            'generated_keywords': [],
+            'method': 'predefined_variations'
         }
 
 
@@ -734,17 +738,19 @@ def task_generate_keywords_basic_impl(
 def task_generate_keywords(
     self,
     base_keywords: List[str],
-    ai_model: str = "gpt4-mini",
+    ai_model: str = "disabled",  # AI disabled for performance
     count: int = 10,
     job_id: Optional[str] = None,
     user_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Celery task for basic keyword generation.
+    Celery task for keyword generation (AI DISABLED - uses predefined variations).
+    
+    This task generates keyword variations using predefined templates instead of AI
+    for faster, more reliable performance.
     
     Retry Strategy:
         - Infrastructure failures: Retry up to 3 times with 60s delay
-        - Network failures: Delegated to operation layer (Tenacity)
         - Permanent errors: Fail immediately
     """
     try:
