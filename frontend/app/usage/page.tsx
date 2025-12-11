@@ -11,7 +11,7 @@ function UsageContent() {
     const router = useRouter()
     const jobId = searchParams.get('jobId') || 'flow_xxxxxxxx'
     const isDemo = jobId.startsWith('demo_')
-    
+
     const [apiKey, setApiKey] = useState<string>('Loading...')
     const [copiedInstall, setCopiedInstall] = useState(false)
     const [copiedCode, setCopiedCode] = useState(false)
@@ -28,9 +28,9 @@ function UsageContent() {
                         'Content-Type': 'application/json',
                     },
                 })
-                
+
                 console.log('📥 Token response status:', response.status)
-                
+
                 if (response.ok) {
                     const data = await response.json()
                     console.log('✅ Token generated successfully')
@@ -44,11 +44,11 @@ function UsageContent() {
                 setApiKey('pk_live_demo_token_please_start_backend_server')
             }
         }
-        
+
         fetchToken()
     }, [])
 
-    const installCommand = 'pip install pixcrawler'
+    const installCommand = 'pip install pixcrawler-sdk'
     const pythonCode = `import pixcrawler as pix
 
 # Set authentication (PIXCRAWLER_SERVICE_KEY)
