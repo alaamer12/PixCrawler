@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pixcrawler-sdk"
-version = "0.1.0"
-description = "Image Dataset SDK - "
+version = "0.2.0"
+description = "Python SDK for PixCrawler image dataset platform - simple, lightweight, ML-ready"
 authors = [{ name = "PixCrawler Team", email = "team@pixcrawler.com" }]
 readme = "README.md"
 license = "MIT"
@@ -25,7 +25,7 @@ classifiers = [
   "Topic :: Multimedia :: Graphics",
 ]
 dependencies = [
-  "requests"
+  "requests>=2.25.0"
 ]
 
 [tool.hatch.build.targets.wheel]

@@ -1,12 +1,17 @@
 from .core import (
     # Core classes
     Dataset,
+    Project,
     # Functions
     auth,
-    load_dataset,
-    list_datasets,
+    dataset,
+    datasets,
+    project,
     get_dataset_info,
     download_dataset,
+    # Legacy functions (for backward compatibility)
+    load_dataset,
+    list_datasets,
     # Exceptions
     PixCrawlerError,
     APIError,
@@ -19,12 +24,17 @@ from .core import (
 __all__ = [
     # Core classes
     "Dataset",
+    "Project",
     # Functions
     "auth",
-    "load_dataset",
-    "list_datasets",
+    "dataset",
+    "datasets", 
+    "project",
     "get_dataset_info",
     "download_dataset",
+    # Legacy functions (for backward compatibility)
+    "load_dataset",
+    "list_datasets",
     # Exceptions
     "PixCrawlerError",
     "APIError",
