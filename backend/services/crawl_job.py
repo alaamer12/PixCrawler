@@ -1756,6 +1756,7 @@ async def execute_crawl_job(
         The user_id and tier are stored in task kwargs so the RateLimiter
         can identify and count this user's active jobs across all workers.
     """
+    import uuid
     from datetime import datetime
     from typing import Dict, Any, List
     from backend.core.exceptions import (
@@ -1775,14 +1776,13 @@ async def execute_crawl_job(
     RETRY_DELAY = 5  # seconds
     BATCH_SIZE = 50
 
-    # Create a new session for this background task
+    # Create session maker for this background task
     session_maker = get_session_maker()
-    session = session_maker()
-    should_close_session = True
 
-    # Initialize service if not provided
-    if job_service is None:
+    def create_services_with_session(session):
+        """Create fresh services with provided session."""
         from backend.repositories.dataset_repository import DatasetRepository
+        
         job_service = CrawlJobService(
             crawl_job_repo=CrawlJobRepository(session),
             project_repo=ProjectRepository(session),
@@ -1790,32 +1790,40 @@ async def execute_crawl_job(
             activity_log_repo=ActivityLogRepository(session),
             dataset_repo=DatasetRepository(session)
         )
-
-    # Initialize Metrics Service
-    metrics_service = MetricsService(
-        processing_repo=ProcessingMetricRepository(session),
-        resource_repo=ResourceMetricRepository(session),
-        queue_repo=QueueMetricRepository(session)
-    )
+        
+        metrics_service = MetricsService(
+            processing_repo=ProcessingMetricRepository(session),
+            resource_repo=ResourceMetricRepository(session),
+            queue_repo=QueueMetricRepository(session)
+        )
+        
+        return job_service, metrics_service
 
     try:
-        async with session.begin():
-            job = await job_service.get_job(job_id)
-            if not job:
-                raise NotFoundError(f"Crawl job not found: {job_id}")
+        # Initialize job and start processing
+        async with session_maker() as session:
+            async with session.begin():
+                job_service, metrics_service = create_services_with_session(session)
+                
+                job = await job_service.get_job(job_id)
+                if not job:
+                    raise NotFoundError(f"Crawl job not found: {job_id}")
 
-            await job_service.update_job(
-                job_id,
-                status="running",
-                started_at=datetime.utcnow()
-            )
+                await job_service.update_job(
+                    job_id,
+                    status="running",
+                    started_at=datetime.utcnow()
+                )
 
-        # Start job metric
-        job_metric = await metrics_service.start_processing_metric(
-            operation_type="full_job",
-            job_id=job_id,
-            user_id=uuid.UUID(user_id) if user_id else None
-        )
+        # Start job metric with fresh session
+        async with session_maker() as session:
+            async with session.begin():
+                _, metrics_service = create_services_with_session(session)
+                job_metric = await metrics_service.start_processing_metric(
+                    operation_type="full_job",
+                    job_id=job_id,
+                    user_id=uuid.UUID(user_id) if user_id else None
+                )
 
         # Initialize builder with async support
         builder_config = {
@@ -1841,61 +1849,62 @@ async def execute_crawl_job(
             if not batch:
                 return
 
-            # Track batch metric
-            batch_metric = await metrics_service.start_processing_metric(
-                operation_type="batch_processing",
-                job_id=job_id,
-                user_id=uuid.UUID(user_id) if user_id else None
-            )
+            # Use fresh session for batch processing
+            async with session_maker() as batch_session:
+                async with batch_session.begin():
+                    batch_job_service, batch_metrics_service = create_services_with_session(batch_session)
+                    
+                    # Track batch metric
+                    batch_metric = await batch_metrics_service.start_processing_metric(
+                        operation_type="batch_processing",
+                        job_id=job_id,
+                        user_id=uuid.UUID(user_id) if user_id else None
+                    )
 
-            try:
-                processed_count += len(batch)
-                valid_batch = [img for img in batch if img.get("is_valid", True)]
-                valid_count += len(valid_batch)
-                current_chunk = min(current_chunk + 1, total_chunks)
+                    try:
+                        processed_count += len(batch)
+                        valid_batch = [img for img in batch if img.get("is_valid", True)]
+                        valid_count += len(valid_batch)
+                        current_chunk = min(current_chunk + 1, total_chunks)
 
-                # Calculate overall progress (0-100)
-                if job.max_images > 0:
-                    progress = min(
-                        int((processed_count / job.max_images) * 100), 100)
-                else:
-                    progress = 0
+                        # Calculate overall progress (0-100)
+                        if job.max_images > 0:
+                            progress = min(
+                                int((processed_count / job.max_images) * 100), 100)
+                        else:
+                            progress = 0
 
-                # Calculate chunk progress (0-100)
-                chunk_progress = min(
-                    int((current_chunk / total_chunks) * 100), 100) if total_chunks > 0 else 0
+                        await batch_job_service.update_job_progress(
+                            job_id=job_id,
+                            progress=progress,
+                            downloaded_images=processed_count,
+                            valid_images=valid_count
+                        )
 
-                await job_service.update_job_progress(
-                    job_id=job_id,
-                    progress=progress,
-                    downloaded_images=processed_count,
-                    valid_images=valid_count
-                )
+                        if valid_batch:
+                            await batch_job_service.store_bulk_images(job_id, valid_batch)
 
-                if valid_batch:
-                    await job_service.store_bulk_images(job_id, valid_batch)
+                        # Complete batch metric
+                        await batch_metrics_service.complete_processing_metric(
+                            metric_id=batch_metric.id,
+                            status="completed",
+                            images_processed=len(batch),
+                            images_succeeded=len(valid_batch),
+                            images_failed=len(batch) - len(valid_batch)
+                        )
 
-                # Complete batch metric
-                await metrics_service.complete_processing_metric(
-                    metric_id=batch_metric.id,
-                    status="completed",
-                    images_processed=len(batch),
-                    images_succeeded=len(valid_batch),
-                    images_failed=len(batch) - len(valid_batch)
-                )
+                        # Collect resource metrics periodically (every 5 chunks)
+                        if current_chunk % 5 == 0:
+                            await batch_metrics_service.collect_resource_metrics(job_id=job_id)
 
-                # Collect resource metrics periodically (every 5 chunks)
-                if current_chunk % 5 == 0:
-                    await metrics_service.collect_resource_metrics(job_id=job_id)
-
-            except Exception as e:
-                # Fail batch metric
-                await metrics_service.complete_processing_metric(
-                    metric_id=batch_metric.id,
-                    status="failed",
-                    error_message=str(e)
-                )
-                raise
+                    except Exception as e:
+                        # Fail batch metric
+                        await batch_metrics_service.complete_processing_metric(
+                            metric_id=batch_metric.id,
+                            status="failed",
+                            error_message=str(e)
+                        )
+                        raise
 
         # Process results as they come using async generator
         try:
@@ -1911,38 +1920,47 @@ async def execute_crawl_job(
                     batch = await run_in_threadpool(next, async_gen)
                     await process_batch(batch)
 
-                    # Send progress update after each batch
+                    # Send progress update after each batch with fresh session
                     progress = min(
                         int((processed_count / job.max_images) * 100), 100) if job.max_images > 0 else 0
 
-                    # Update job progress with more detailed information
-                    await job_service.update_job_progress(
+                    async with session_maker() as progress_session:
+                        async with progress_session.begin():
+                            progress_job_service, _ = create_services_with_session(progress_session)
+                            await progress_job_service.update_job_progress(
+                                job_id=job_id,
+                                progress=progress,
+                                downloaded_images=processed_count,
+                                valid_images=valid_count
+                            )
+
+                except StopAsyncIteration:
+                    break
+
+            # Final progress update with fresh session
+            progress = 100 if processed_count >= job.max_images else min(
+                int((processed_count / job.max_images) * 100), 99)
+            
+            async with session_maker() as final_session:
+                async with final_session.begin():
+                    final_job_service, _ = create_services_with_session(final_session)
+                    await final_job_service.update_job_progress(
                         job_id=job_id,
                         progress=progress,
                         downloaded_images=processed_count,
                         valid_images=valid_count
                     )
 
-                except StopAsyncIteration:
-                    break
-
-            # Final progress update
-            progress = 100 if processed_count >= job.max_images else min(
-                int((processed_count / job.max_images) * 100), 99)
-            await job_service.update_job_progress(
-                job_id=job_id,
-                progress=progress,
-                downloaded_images=processed_count,
-                valid_images=valid_count
-            )
-
         except Exception as e:
-            # Update job status to failed in case of errors
-            await job_service.update_job_status(
-                job_id=job_id,
-                status="failed",
-                error=str(e)
-            )
+            # Update job status to failed in case of errors with fresh session
+            async with session_maker() as error_session:
+                async with error_session.begin():
+                    error_job_service, _ = create_services_with_session(error_session)
+                    await error_job_service.update_job_status(
+                        job_id=job_id,
+                        status="failed",
+                        error=str(e)
+                    )
             raise ExternalServiceError(
                 f"Error during batch processing: {str(e)}") from e
         finally:
@@ -1952,49 +1970,54 @@ async def execute_crawl_job(
             except Exception as cleanup_error:
                 logger.error(f"Error during cleanup: {str(cleanup_error)}")
 
-        # Final update with completion status
-        async with session.begin():
-            await job_service.update_job_status(
-                job_id=job_id,
-                status="completed",
-                progress=100,
-                completed_at=datetime.utcnow(),
-                downloaded_images=processed_count,
-                valid_images=valid_count
-            )
-
-        # Complete job metric
-        await metrics_service.complete_processing_metric(
-            metric_id=job_metric.id,
-            status="completed",
-            images_processed=processed_count,
-            images_succeeded=valid_count,
-            images_failed=processed_count - valid_count
-        )
-
-    except Exception as e:
-        if 'session' in locals() and session.in_transaction():
-            await session.rollback()
-
-        if 'job_service' in locals() and 'job_id' in locals():
-            async with session.begin():
-                await job_service.update_job(
-                    job_id,
-                    status="failed",
-                    error=str(e),
+        # Final update with completion status using fresh session
+        async with session_maker() as completion_session:
+            async with completion_session.begin():
+                completion_job_service, completion_metrics_service = create_services_with_session(completion_session)
+                
+                await completion_job_service.update_job_status(
+                    job_id=job_id,
+                    status="completed",
+                    progress=100,
                     completed_at=datetime.utcnow(),
-                    downloaded_images=processed_count if 'processed_count' in locals() else 0,
-                    valid_images=valid_count if 'valid_count' in locals() else 0
+                    downloaded_images=processed_count,
+                    valid_images=valid_count
                 )
 
-        if 'job_metric' in locals():
-             await metrics_service.complete_processing_metric(
-                metric_id=job_metric.id,
-                status="failed",
-                error_message=str(e)
-            )
+                # Complete job metric
+                await completion_metrics_service.complete_processing_metric(
+                    metric_id=job_metric.id,
+                    status="completed",
+                    images_processed=processed_count,
+                    images_succeeded=valid_count,
+                    images_failed=processed_count - valid_count
+                )
+
+    except Exception as e:
+        # Handle failure with fresh session
+        try:
+            async with session_maker() as failure_session:
+                async with failure_session.begin():
+                    failure_job_service, failure_metrics_service = create_services_with_session(failure_session)
+                    
+                    # Update job status to failed
+                    await failure_job_service.update_job(
+                        job_id,
+                        status="failed",
+                        error=str(e),
+                        completed_at=datetime.utcnow(),
+                        downloaded_images=processed_count if 'processed_count' in locals() else 0,
+                        valid_images=valid_count if 'valid_count' in locals() else 0
+                    )
+
+                    # Complete job metric if it exists
+                    if 'job_metric' in locals():
+                        await failure_metrics_service.complete_processing_metric(
+                            metric_id=job_metric.id,
+                            status="failed",
+                            error_message=str(e)
+                        )
+        except Exception as cleanup_error:
+            logger.error(f"Error during failure cleanup: {cleanup_error}")
 
         raise ExternalServiceError(f"Job execution failed: {str(e)}") from e
-    finally:
-        if should_close_session and 'session' in locals():
-            await session.close()

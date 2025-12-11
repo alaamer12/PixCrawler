@@ -18,6 +18,9 @@ Features:
 
 from abc import ABC
 from typing import Any, Generic, TypeVar, Optional
+from utility.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -146,7 +149,15 @@ class BaseRepository(ABC, Generic[ModelT]):
         for key, value in kwargs.items():
             setattr(instance, key, value)
         await self.session.commit()
-        await self.session.refresh(instance)
+        
+        # Try to refresh, but handle closed session gracefully
+        try:
+            await self.session.refresh(instance)
+        except Exception as e:
+            # If refresh fails (e.g., session closed), log warning but continue
+            # The instance still has the updated values from setattr above
+            logger.warning(f"Could not refresh instance after update: {e}")
+        
         return instance
 
     async def delete(self, instance: ModelT) -> None:
