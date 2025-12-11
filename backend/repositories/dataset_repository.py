@@ -26,32 +26,33 @@ from .base import BaseRepository
 __all__ = ['DatasetRepository']
 
 
+# noinspection PyTypeChecker
 class DatasetRepository(BaseRepository[Dataset]):
     """
     Repository for Dataset data access.
-    
+
     Provides database operations for datasets including CRUD,
     filtering by user and status, and statistics queries.
-    
+
     Attributes:
         session: Database session
         model: Dataset model class
-    
+
     Example:
         >>> repo = DatasetRepository(session)
         >>> dataset = await repo.create(user_id=user_uuid, name="My Dataset")
         >>> datasets = await repo.get_by_user(user_id=user_uuid)
     """
-    
+
     def __init__(self, session: AsyncSession):
         """
         Initialize Dataset repository.
-        
+
         Args:
             session: Database session
         """
         super().__init__(session, Dataset)
-    
+
     async def get_by_user(
         self,
         user_id: UUID,
@@ -60,12 +61,12 @@ class DatasetRepository(BaseRepository[Dataset]):
     ) -> List[Dataset]:
         """
         Get all datasets for a specific user.
-        
+
         Args:
             user_id: User UUID
             skip: Number of records to skip (pagination)
             limit: Maximum number of records to return
-        
+
         Returns:
             List of datasets
         """
@@ -77,7 +78,7 @@ class DatasetRepository(BaseRepository[Dataset]):
             .limit(limit)
         )
         return list(result.scalars().all())
-    
+
     async def get_by_status(
         self,
         status: str,
@@ -85,29 +86,29 @@ class DatasetRepository(BaseRepository[Dataset]):
     ) -> List[Dataset]:
         """
         Get all datasets with specific status.
-        
+
         Args:
             status: Dataset status (pending, processing, completed, failed, cancelled)
             user_id: Optional user UUID to filter by user
-        
+
         Returns:
             List of datasets
         """
         query = select(Dataset).where(Dataset.status == status)
-        
+
         if user_id:
             query = query.where(Dataset.user_id == user_id)
-        
+
         result = await self.session.execute(query)
         return list(result.scalars().all())
-    
+
     async def count_by_user(self, user_id: UUID) -> int:
         """
         Count total datasets for a user.
-        
+
         Args:
             user_id: User UUID
-        
+
         Returns:
             Total number of datasets
         """
@@ -116,17 +117,17 @@ class DatasetRepository(BaseRepository[Dataset]):
             .where(Dataset.user_id == user_id)
         )
         return result.scalar() or 0
-    
+
     async def get_stats(self, user_id: Optional[UUID] = None) -> dict:
         """
         Get dataset statistics.
-        
+
         Returns aggregate statistics about datasets, optionally
         filtered by user.
-        
+
         Args:
             user_id: Optional user UUID to filter statistics
-        
+
         Returns:
             Dictionary with statistics:
                 - total: Total number of datasets
@@ -140,14 +141,14 @@ class DatasetRepository(BaseRepository[Dataset]):
         base_query = select(Dataset)
         if user_id:
             base_query = base_query.where(Dataset.user_id == user_id)
-        
+
         # Count total
         total_result = await self.session.execute(
             select(func.count(Dataset.id))
             .select_from(base_query.subquery())
         )
         total = total_result.scalar() or 0
-        
+
         # Count by status
         stats = {
             "total": total,
@@ -157,45 +158,50 @@ class DatasetRepository(BaseRepository[Dataset]):
             "pending": 0,
             "cancelled": 0,
         }
-        
+
         # Get counts for each status
         for status in ["processing", "completed", "failed", "pending", "cancelled"]:
             query = select(func.count(Dataset.id)).where(Dataset.status == status)
             if user_id:
                 query = query.where(Dataset.user_id == user_id)
-            
+
             result = await self.session.execute(query)
             count = result.scalar() or 0
-            
+
             # Map 'processing' to 'active' for consistency
             key = "active" if status == "processing" else status
             stats[key] = count
-        
+
         return stats
-    
+
     async def list(
         self,
         user_id: Optional[UUID] = None,
+        project_id: Optional[int] = None,
         skip: int = 0,
         limit: int = 50
     ) -> List[Dataset]:
         """
-        List datasets with optional user filter.
-        
+        List datasets with optional user and project filter.
+
         Args:
             user_id: Optional user UUID to filter by user
+            project_id: Optional project ID to filter by project
             skip: Number of records to skip (pagination)
             limit: Maximum number of records to return
-        
+
         Returns:
             List of datasets
         """
         query = select(Dataset).order_by(Dataset.created_at.desc())
-        
+
         if user_id:
             query = query.where(Dataset.user_id == user_id)
-        
+            
+        if project_id:
+            query = query.where(Dataset.project_id == project_id)
+
         query = query.offset(skip).limit(limit)
-        
+
         result = await self.session.execute(query)
         return list(result.scalars().all())

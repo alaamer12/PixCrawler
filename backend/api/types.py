@@ -20,6 +20,7 @@ Best Practices:
 """
 
 from typing import Dict, Any, Optional
+from uuid import UUID
 
 from fastapi import Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,9 +35,10 @@ from backend.api.dependencies import (
     get_user_service,
     get_storage_service,
     get_auth_service,
-    get_resource_monitor,
     get_metrics_service,
     get_dashboard_service,
+    get_policy_service,
+    require_admin,
 )
 from backend.services.crawl_job import CrawlJobService
 from backend.services.dataset import DatasetService
@@ -44,13 +46,14 @@ from backend.services.storage import StorageService
 from backend.services.supabase_auth import SupabaseAuthService
 from backend.services.user import UserService
 from backend.services.validation import ValidationService
-from backend.services.resource_monitor import ResourceMonitor
 from backend.services.metrics import MetricsService
 from backend.services.dashboard import DashboardService
+from backend.services.policy import PolicyService
 
 __all__ = [
     # Auth & Session
     'CurrentUser',
+    'AdminUser',
     'DBSession',
     # Services
     'CrawlJobServiceDep',
@@ -59,9 +62,9 @@ __all__ = [
     'UserServiceDep',
     'StorageServiceDep',
     'SupabaseAuthServiceDep',
-    'ResourceMonitorDep',
     'MetricsServiceDep',
     'DashboardServiceDep',
+    'PolicyServiceDep',
     # Path Parameters
     'UserID',
     'DatasetID',
@@ -92,6 +95,23 @@ Usage:
     @router.get("/profile")
     async def get_profile(user: CurrentUser):
         return {"user_id": user["user_id"]}
+"""
+
+AdminUser = Annotated[
+    Dict[str, Any],
+    Depends(require_admin)
+]
+"""
+Admin user dependency.
+
+Automatically injects the authenticated user and verifies admin privileges.
+Raises 401 if authentication fails, 403 if user is not an admin.
+
+Usage:
+    @router.post("/admin/action")
+    async def admin_action(admin: AdminUser):
+        # Only admins can access this endpoint
+        return {"message": "Admin action performed"}
 """
 
 DBSession = Annotated[
@@ -223,22 +243,7 @@ Usage:
         return await auth_service.sync_user_profile(...)
 """
 
-ResourceMonitorDep = Annotated[
-    ResourceMonitor,
-    Depends(get_resource_monitor)
-]
-"""
-Resource Monitor dependency.
-
-Automatically injects ResourceMonitor for capacity checking operations.
-
-Usage:
-    @router.get("/capacity")
-    async def get_capacity(
-        monitor: ResourceMonitorDep
-    ):
-        return await monitor.get_capacity_info()
-"""
+# ResourceMonitorDep removed - service doesn't exist
 
 MetricsServiceDep = Annotated[
     MetricsService,
@@ -274,21 +279,38 @@ Usage:
         return await service.get_dashboard_stats(...)
 """
 
+PolicyServiceDep = Annotated[
+    PolicyService,
+    Depends(get_policy_service)
+]
+"""
+Policy service dependency.
+
+Automatically injects PolicyService for dataset lifecycle policy management.
+
+Usage:
+    @router.post("/policies/archival")
+    async def create_archival_policy(
+        policy_data: ArchivalPolicyCreate,
+        service: PolicyServiceDep
+    ):
+        return await service.create_archival_policy(policy_data)
+"""
+
 
 # ============================================================================
 # Path Parameter Type Aliases
 # ============================================================================
 
 UserID = Annotated[
-    int,
+    UUID,
     Path(
         title="User ID",
         description="Unique identifier for the user",
-        ge=1,
-        examples=[1, 42, 123]
+        examples=["123e4567-e89b-12d3-a456-426614174000"]
     )
 ]
-"""User ID path parameter with validation (must be >= 1)."""
+"""User ID path parameter with validation (must be a valid UUID)."""
 
 DatasetID = Annotated[
     int,

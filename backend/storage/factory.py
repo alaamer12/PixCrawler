@@ -16,11 +16,11 @@ Features:
 
 from typing import Union
 
-from backend.storage.config import StorageSettings
-from utility.logging_config import get_logger
-from backend.storage.local import LocalStorageProvider
 from backend.storage.azure_blob import AzureBlobStorageProvider
-from backend.storage.azure_blob_archive import AzureBlobArchiveProvider, AccessTier
+from backend.storage.azure_blob_archive import AzureBlobArchiveProvider
+from backend.storage.config import StorageSettings
+from backend.storage.local import LocalStorageProvider
+from utility.logging_config import get_logger
 
 __all__ = ['create_storage_provider', 'create_archive_enabled_provider']
 
@@ -105,14 +105,22 @@ def _handle_azure(settings: StorageSettings) -> Union[AzureBlobStorageProvider, 
                     "Archive tier support not available, falling back to standard Azure provider"
                 )
 
-        # Fallback to standard Azure provider
+        # Create standard Azure provider with comprehensive settings
         provider = AzureBlobStorageProvider(
             connection_string=settings.azure_connection_string,
             container_name=settings.azure_container_name,
-            max_retries=settings.azure_max_retries
+            max_retries=settings.azure_max_retries,
+            timeout=getattr(settings, 'azure_timeout', 300),
+            default_tier=settings.azure_default_tier,
+            max_single_get_size=getattr(settings, 'azure_max_single_get_size', 32 * 1024 * 1024),
+            max_chunk_get_size=getattr(settings, 'azure_max_chunk_get_size', 4 * 1024 * 1024),
         )
 
-        logger.info("Created standard Azure Blob Storage provider")
+        logger.info(
+            f"Created Azure Blob Storage provider: "
+            f"container={settings.azure_container_name}, "
+            f"tier={settings.azure_default_tier}"
+        )
         return provider
 
     except ImportError as e:

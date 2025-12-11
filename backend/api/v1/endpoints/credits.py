@@ -8,13 +8,12 @@ including balance checking, transaction history, and usage metrics.
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, Query, status as http_status
 
-from backend.api.dependencies import get_session, get_current_user
+from api.dependencies import get_credit_service
 from backend.api.types import CurrentUser
 from backend.api.v1.response_models import get_common_responses
-from backend.core.exceptions import NotFoundError, ValidationError
+from backend.core.exceptions import ValidationError
 from backend.schemas.credits import (
     CreditAccountResponse,
     CreditTransactionResponse,
@@ -29,19 +28,6 @@ router = APIRouter(
     tags=["Credits & Billing"],
     responses=get_common_responses(401, 404, 500),
 )
-
-
-def get_credit_service(session: AsyncSession = Depends(get_session)) -> CreditService:
-    """
-    Dependency injection for CreditService.
-    
-    Args:
-        session: Database session (injected by FastAPI)
-        
-    Returns:
-        CreditService instance
-    """
-    return CreditService(session)
 
 
 @router.get(
@@ -83,23 +69,23 @@ async def get_credit_balance(
 ) -> CreditAccountResponse:
     """
     Get credit balance for the current user.
-    
+
     Returns the user's credit account information including:
     - Current balance
     - Monthly usage
     - Average daily usage
     - Auto-refill settings
     - Computed fields (is_low_balance, days_until_depleted)
-    
+
     **Authentication Required:** Bearer token
-    
+
     Args:
         current_user: Current authenticated user (injected)
         service: Credit service instance (injected)
-        
+
     Returns:
         Credit account information
-        
+
     Raises:
         HTTPException: 401 if authentication fails
         HTTPException: 500 if query fails
@@ -108,10 +94,10 @@ async def get_credit_balance(
         user_id = UUID(current_user["user_id"])
         balance = await service.get_balance(user_id)
         return balance
-        
+
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve credit balance: {str(e)}"
         )
 
@@ -162,34 +148,34 @@ async def get_credit_transactions(
     service: CreditService = Depends(get_credit_service),
     skip: int = Query(0, ge=0, description="Number of items to skip for pagination"),
     limit: int = Query(50, ge=1, le=100, description="Maximum items to return (max: 100)"),
-    type: Optional[TransactionType] = Query(None, description="Filter by transaction type"),
+    type_: Optional[TransactionType] = Query(None, description="Filter by transaction type"),
 ) -> CreditTransactionListResponse:
     """
     Get credit transaction history for the current user.
-    
+
     Returns a paginated list of all credit transactions including:
     - Purchases (credit additions)
     - Usage (credit deductions)
     - Refunds
     - Bonuses
-    
+
     **Query Parameters:**
     - `skip` (int): Pagination offset (default: 0)
     - `limit` (int): Items per page (default: 50, max: 100)
     - `type` (str): Filter by type (purchase, usage, refund, bonus)
-    
+
     **Authentication Required:** Bearer token
-    
+
     Args:
         current_user: Current authenticated user (injected)
         service: Credit service instance (injected)
         skip: Number of items to skip
         limit: Maximum items to return
-        type: Transaction type filter
-        
+        type_: Transaction type filter
+
     Returns:
         Paginated list of credit transactions
-        
+
     Raises:
         HTTPException: 401 if authentication fails
         HTTPException: 500 if query fails
@@ -200,20 +186,20 @@ async def get_credit_transactions(
             user_id=user_id,
             skip=skip,
             limit=limit,
-            transaction_type=type,
+            transaction_type=type_,
         )
-        
+
         # Transform to response model
         data = [CreditTransactionResponse.model_validate(t) for t in transactions]
-        
+
         return CreditTransactionListResponse(
             data=data,
             meta={"total": total, "skip": skip, "limit": limit}
         )
-        
+
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve transactions: {str(e)}"
         )
 
@@ -221,7 +207,7 @@ async def get_credit_transactions(
 @router.post(
     "/purchase",
     response_model=CreditTransactionResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=http_status.HTTP_201_CREATED,
     summary="Purchase Credits",
     description="Purchase credits via payment integration (Lemon Squeezy). This endpoint creates a transaction record.",
     response_description="Created transaction record",
@@ -257,30 +243,30 @@ async def purchase_credits(
 ) -> CreditTransactionResponse:
     """
     Purchase credits for the current user.
-    
+
     Creates a credit transaction record for a successful payment.
     In production, this should be called after Lemon Squeezy payment confirmation.
-    
+
     **Note:** This is a simplified implementation. In production:
     1. Frontend initiates Lemon Squeezy payment
     2. Lemon Squeezy webhook confirms payment
     3. Backend creates transaction via this endpoint
-    
+
     **Query Parameters:**
     - `amount` (int): Credits to purchase (1-50000)
     - `payment_id` (str): Lemon Squeezy order ID for reference
-    
+
     **Authentication Required:** Bearer token
-    
+
     Args:
         current_user: Current authenticated user (injected)
         service: Credit service instance (injected)
         amount: Amount of credits to purchase
         payment_id: Payment provider transaction ID
-        
+
     Returns:
         Created transaction record
-        
+
     Raises:
         HTTPException: 401 if authentication fails
         HTTPException: 422 if validation fails
@@ -288,7 +274,7 @@ async def purchase_credits(
     """
     try:
         user_id = UUID(current_user["user_id"])
-        
+
         # Create purchase transaction
         transaction = await service.create_transaction(
             user_id=user_id,
@@ -297,17 +283,17 @@ async def purchase_credits(
             description=f"Credit purchase of {amount} credits",
             metadata={"payment_id": payment_id} if payment_id else None,
         )
-        
+
         return CreditTransactionResponse.model_validate(transaction)
-        
+
     except ValidationError as e:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e)
         )
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to purchase credits: {str(e)}"
         )
 
@@ -347,7 +333,7 @@ async def get_credit_usage(
 ) -> dict:
     """
     Get credit usage metrics for the current user.
-    
+
     Returns usage statistics over a specified period including:
     - Current balance
     - Monthly usage
@@ -355,20 +341,20 @@ async def get_credit_usage(
     - Average daily usage
     - Transaction count
     - Auto-refill settings
-    
+
     **Query Parameters:**
     - `days` (int): Analysis period in days (default: 30, max: 365)
-    
+
     **Authentication Required:** Bearer token
-    
+
     Args:
         current_user: Current authenticated user (injected)
         service: Credit service instance (injected)
         days: Number of days to analyze
-        
+
     Returns:
         Usage metrics dictionary
-        
+
     Raises:
         HTTPException: 401 if authentication fails
         HTTPException: 500 if query fails
@@ -377,9 +363,9 @@ async def get_credit_usage(
         user_id = UUID(current_user["user_id"])
         metrics = await service.get_usage_metrics(user_id, days)
         return metrics
-        
+
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve usage metrics: {str(e)}"
         )

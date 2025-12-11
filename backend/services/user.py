@@ -198,7 +198,7 @@ class UserService(BaseService):
 
             # Update user using repository
             updated_user = await self.repository.update(
-                user_id=user_id,
+                user,
                 email=email,
                 full_name=full_name,
                 role=role

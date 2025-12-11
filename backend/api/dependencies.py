@@ -17,6 +17,7 @@ Features:
     - Comprehensive error handling
 """
 from typing import AsyncGenerator, Generator, Optional, Dict, Any, Annotated
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -39,9 +40,21 @@ from backend.services.dataset import DatasetService
 from backend.services.validation import ValidationService
 from backend.services.user import UserService
 from backend.services.storage import StorageService
-from backend.services.resource_monitor import ResourceMonitor
 from backend.services.metrics import MetricsService
 from backend.services.dashboard import DashboardService
+from backend.services.policy import PolicyService
+from backend.services.activity import ActivityLogService
+from backend.services.api_keys import APIKeyService
+from backend.services.notification import NotificationService
+from backend.services.project import ProjectService
+from backend.services.credits import CreditService
+from backend.repositories import ProjectRepository, DatasetRepository
+from backend.repositories.policy_repository import (
+    ArchivalPolicyRepository,
+    CleanupPolicyRepository,
+    PolicyExecutionLogRepository
+)
+
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """
@@ -66,6 +79,8 @@ __all__ = [
     'get_current_user',
     'get_current_user_optional',
     'get_supabase_auth_service',
+    'require_admin',
+    'require_role',
     # Core dependencies
     'get_session',
     'get_storage',
@@ -86,6 +101,7 @@ __all__ = [
     'get_resource_monitor',
     'get_metrics_service',
     'get_dashboard_service',
+    'get_policy_service',
 ]
 
 # HTTP Bearer token scheme
@@ -140,6 +156,7 @@ async def get_current_user(
 
         return {
             **user_info,
+            "user_id": UUID(user_info["user_id"]),
             "profile": profile
         }
 
@@ -190,6 +207,99 @@ async def get_current_user_optional(
     except Exception:
         # Return None for any authentication errors in optional auth
         return None
+
+
+async def require_admin(
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Require admin role for endpoint access.
+
+    FastAPI dependency that verifies the current user has admin privileges.
+    Raises 403 Forbidden if the user is not an admin.
+
+    Args:
+        current_user: Current authenticated user (injected)
+
+    Returns:
+        Current user information if admin
+
+    Raises:
+        HTTPException: 403 if user is not an admin
+
+    Usage:
+        @router.post("/admin/action")
+        async def admin_action(admin_user: Annotated[Dict[str, Any], Depends(require_admin)]):
+            # Only admins can access this endpoint
+            pass
+    """
+    from backend.core.exceptions import AuthorizationError
+    
+    # Check if user has admin role
+    profile = current_user.get("profile", {})
+    role = profile.get("role", "user")
+    
+    if role not in ["admin", "superuser"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required"
+        )
+    
+    return current_user
+
+
+async def require_role(
+    required_role: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    Require specific role for endpoint access.
+
+    FastAPI dependency factory that verifies the current user has the specified role.
+    Raises 403 Forbidden if the user doesn't have the required role.
+
+    Args:
+        required_role: Role name required (e.g., "admin", "superuser", "user")
+        current_user: Current authenticated user (injected)
+
+    Returns:
+        Current user information if role matches
+
+    Raises:
+        HTTPException: 403 if user doesn't have required role
+
+    Usage:
+        @router.post("/moderator/action")
+        async def moderator_action(
+            user: Annotated[Dict[str, Any], Depends(lambda: require_role("moderator"))]
+        ):
+            # Only moderators can access this endpoint
+            pass
+    """
+    from backend.core.exceptions import AuthorizationError
+    
+    # Check if user has required role
+    profile = current_user.get("profile", {})
+    user_role = profile.get("role", "user")
+    
+    # Define role hierarchy
+    role_hierarchy = {
+        "superuser": 3,
+        "admin": 2,
+        "moderator": 1,
+        "user": 0
+    }
+    
+    required_level = role_hierarchy.get(required_role, 0)
+    user_level = role_hierarchy.get(user_role, 0)
+    
+    if user_level < required_level:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Role '{required_role}' or higher required"
+        )
+    
+    return current_user
 
 def get_storage() -> Generator[StorageProvider, None, None]:
     """
@@ -259,13 +369,15 @@ def get_crawl_job_service(session: DBSession) -> CrawlJobService:
     project_repo = ProjectRepository(session)
     image_repo = ImageRepository(session)
     activity_log_repo = ActivityLogRepository(session)
+    dataset_repo = DatasetRepository(session)
 
     # Inject repositories into service
     return CrawlJobService(
         crawl_job_repo=crawl_job_repo,
         project_repo=project_repo,
         image_repo=image_repo,
-        activity_log_repo=activity_log_repo
+        activity_log_repo=activity_log_repo,
+        dataset_repo=dataset_repo
     )
 
 
@@ -283,7 +395,7 @@ def get_dataset_service(session: DBSession) -> DatasetService:
         DatasetService instance with injected repositories
     """
     from backend.repositories import DatasetRepository
-    
+
     # Create repository instances
     dataset_repo = DatasetRepository(session)
     crawl_job_repo = CrawlJobRepository(session)
@@ -309,7 +421,7 @@ def get_validation_service(session: DBSession) -> ValidationService:
         ValidationService instance with injected repositories
     """
     from backend.repositories import DatasetRepository
-    
+
     # Create repository instances
     image_repo = ImageRepository(session)
     dataset_repo = DatasetRepository(session)
@@ -371,24 +483,7 @@ def get_auth_service() -> SupabaseAuthService:
     return SupabaseAuthService()
 
 
-def get_resource_monitor(session: DBSession) -> ResourceMonitor:
-    """
-    Dependency injection for ResourceMonitor.
-
-    Creates resource monitor with required repository following the pattern:
-    get_monitor(session) -> Monitor where monitor receives repositories.
-
-    Args:
-        session: Database session (injected by FastAPI)
-
-    Returns:
-        ResourceMonitor instance with injected repositories
-    """
-    # Create repository instance
-    crawl_job_repo = CrawlJobRepository(session)
-
-    # Inject repository into monitor
-    return ResourceMonitor(crawl_job_repo=crawl_job_repo)
+# ResourceMonitor removed - service doesn't exist
 
 
 def get_metrics_service(session: DBSession) -> MetricsService:
@@ -409,12 +504,12 @@ def get_metrics_service(session: DBSession) -> MetricsService:
         ResourceMetricRepository,
         QueueMetricRepository,
     )
-    
+
     # Create repository instances
     processing_repo = ProcessingMetricRepository(session)
     resource_repo = ResourceMetricRepository(session)
     queue_repo = QueueMetricRepository(session)
-    
+
     # Inject repositories into service
     return MetricsService(
         processing_repo=processing_repo,
@@ -440,7 +535,7 @@ def get_dashboard_service(session: DBSession) -> DashboardService:
     project_repo = ProjectRepository(session)
     crawl_job_repo = CrawlJobRepository(session)
     image_repo = ImageRepository(session)
-    
+
     # Inject repositories into service
     return DashboardService(
         project_repo=project_repo,
@@ -448,3 +543,87 @@ def get_dashboard_service(session: DBSession) -> DashboardService:
         image_repo=image_repo
     )
 
+
+def get_activity_service(session: AsyncSession = Depends(get_session)) -> ActivityLogService:
+    """
+    Dependency injection for ActivityLogService.
+
+    Args:
+        session: Database session (injected by FastAPI)
+
+    Returns:
+        ActivityLogService instance
+    """
+    return ActivityLogService(session)
+
+
+def get_api_key_service(session: AsyncSession = Depends(get_session)) -> APIKeyService:
+    """
+    Dependency injection for APIKeyService.
+
+    Args:
+        session: Database session (injected by FastAPI)
+
+    Returns:
+        APIKeyService instance
+    """
+    return APIKeyService(session)
+
+
+def get_credit_service(session: AsyncSession = Depends(get_session)) -> CreditService:
+    """
+    Dependency injection for CreditService.
+
+    Args:
+        session: Database session (injected by FastAPI)
+
+    Returns:
+        CreditService instance
+    """
+    return CreditService(session)
+
+
+def get_project_service(session: AsyncSession = Depends(get_session)) -> ProjectService:
+    """
+    Dependency injection for ProjectService.
+
+    Creates service with required repository following the pattern:
+    get_service(session) -> Service where service receives repository.
+
+    Args:
+        session: Database session (injected by FastAPI)
+
+    Returns:
+        ProjectService instance with injected repository
+    """
+    # Create repository instance
+    repository = ProjectRepository(session)
+
+    # Inject repository into service
+    return ProjectService(repository)
+
+
+def get_policy_service(session: DBSession) -> PolicyService:
+    """
+    Dependency injection for PolicyService.
+
+    Creates service with all required repositories following the pattern:
+    get_service(session) -> Service where service receives repositories.
+
+    Args:
+        session: Database session (injected by FastAPI)
+
+    Returns:
+        PolicyService instance with injected repositories
+    """
+    # Create repository instances
+    archival_repo = ArchivalPolicyRepository(session)
+    cleanup_repo = CleanupPolicyRepository(session)
+    execution_log_repo = PolicyExecutionLogRepository(session)
+
+    # Inject repositories into service
+    return PolicyService(
+        archival_repo=archival_repo,
+        cleanup_repo=cleanup_repo,
+        execution_log_repo=execution_log_repo
+    )

@@ -6,17 +6,12 @@ chunks within crawl jobs, enabling fine-grained progress tracking and
 distributed processing.
 """
 
-from datetime import datetime
-from typing import Optional
-from uuid import UUID
+from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import (
-    DateTime,
     Integer,
     String,
     Text,
-    func,
-    UUID as SQLAlchemyUUID,
     CheckConstraint,
     Index,
     ForeignKey,
@@ -25,6 +20,9 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from database.models import CrawlJob
 
 __all__ = [
     "JobChunk",
@@ -62,7 +60,6 @@ class JobChunk(Base, TimestampMixin):
         Integer,
         ForeignKey("crawl_jobs.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
 
     # Chunk identification
@@ -77,7 +74,6 @@ class JobChunk(Base, TimestampMixin):
         nullable=False,
         default="pending",
         server_default="pending",
-        index=True,
     )
 
     priority: Mapped[int] = mapped_column(
@@ -111,9 +107,8 @@ class JobChunk(Base, TimestampMixin):
     task_id: Mapped[Optional[str]] = mapped_column(
         String(255),
         nullable=True,
-        index=True,
     )
-    
+
     # Relationships
     job: Mapped["CrawlJob"] = relationship(
         "CrawlJob",

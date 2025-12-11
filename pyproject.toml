@@ -29,8 +29,9 @@ dependencies = [
     "pixcrawler-utility",
     "pixcrawler-celery-core",
     "pixcrawler-validator",
-    "pydantic>=2.0.0",
-    "pydantic-settings>=2.0.0",
+    "pydantic",
+    "pydantic-settings",
+    "psycopg2-binary>=2.9.11",
 ]
 
 [project.urls]
@@ -204,9 +205,22 @@ exclude_lines = [
 
 [dependency-groups]
 dev = [
-    "aiosqlite>=0.21.0",
-    "pytest>=8.4.1",
-    "pytest-asyncio>=1.2.0",
-    "pytest-cov>=7.0.0",
+    "aiosqlite",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
     "pixcrawler-sdk",
+    "rich",
+    "platformdirs",
+    "psutil",
+    "requests",
+    "poethepoet",
 ]
+
+# Simple Flow System - requires Redis + Backend + Celery Worker
+[tool.poe.tasks]
+server = "redis-server"
+backend = ".venv/scripts/uvicorn backend.main:app --reload"
+worker = ".venv/scripts/celery -A celery_core.app worker --loglevel=info --pool=solo"
+dev = { parallel = ["backend", "worker"] }
+test-flow = ".venv/scripts/python test_complete_system.py"

@@ -19,8 +19,8 @@ Features:
     - Row Level Security (RLS) support
 """
 
+from datetime import datetime
 from typing import Optional, Dict, Any, Tuple
-from datetime import datetime, timedelta
 
 import jwt
 from supabase import create_client, Client
@@ -57,8 +57,9 @@ class SupabaseAuthService(BaseService):
             self.settings.supabase.url,
             self.settings.supabase.service_role_key
         )
-        
-    def _get_tier_limits(self, tier: str) -> Dict[str, Any]:
+
+    @staticmethod
+    def _get_tier_limits(tier: str) -> Dict[str, Any]:
         """
         Get the limits for a specific user tier.
 
@@ -69,7 +70,7 @@ class SupabaseAuthService(BaseService):
             Dictionary containing the limits for the tier
         """
         tier = tier.upper()
-        
+
         # Define limits for each tier
         limits = {
             'FREE': {
@@ -94,7 +95,7 @@ class SupabaseAuthService(BaseService):
                 'max_team_members': 50
             }
         }
-        
+
         # Default to FREE tier if tier is not found
         return limits.get(tier, limits['FREE'])
 
@@ -234,19 +235,19 @@ class SupabaseAuthService(BaseService):
     ) -> str:
         """
         Synchronize user profile between Supabase Auth and profiles table.
-        
+
         Creates a new profile if one doesn't exist, otherwise updates the existing one.
         This method is called by the auth endpoint to ensure profile data is in sync
         with Supabase Auth after login or OAuth authentication.
-        
+
         Args:
             user_id: Supabase user ID
             email: User email address
             user_metadata: User metadata from Supabase Auth (contains full_name, avatar_url, etc.)
-        
+
         Returns:
             Action performed: 'created' or 'updated'
-        
+
         Raises:
             Exception: If sync operation fails
         """
@@ -254,7 +255,7 @@ class SupabaseAuthService(BaseService):
             # Try to get existing profile
             try:
                 existing_profile = await self.get_user_profile(user_id)
-                
+
                 #  Profile exists - update it
                 update_data = {
                     "email": email,
@@ -262,14 +263,14 @@ class SupabaseAuthService(BaseService):
                     "avatar_url": user_metadata.get("avatar_url"),
                     "updated_at": datetime.utcnow().isoformat()
                 }
-                
+
                 # Remove None values
                 update_data = {k: v for k, v in update_data.items() if v is not None}
-                
+
                 await self.update_user_profile(user_id, update_data)
                 self.log_operation("sync_profile_update", user_id=user_id)
                 return "updated"
-                
+
             except NotFoundError:
                 # Profile doesn't exist - create it
                 profile_data = {
@@ -281,14 +282,14 @@ class SupabaseAuthService(BaseService):
                     "created_at": datetime.utcnow().isoformat(),
                     "updated_at": datetime.utcnow().isoformat()
                 }
-                
+
                 # Remove None values
                 profile_data = {k: v for k, v in profile_data.items() if v is not None}
-                
+
                 await self.create_user_profile(profile_data)
                 self.log_operation("sync_profile_create", user_id=user_id)
                 return "created"
-                
+
         except Exception as e:
             self.logger.error(f"Profile sync failed: {str(e)}")
             raise
@@ -308,12 +309,12 @@ class SupabaseAuthService(BaseService):
         """
         try:
             response = self.supabase.table("profiles").select("user_tier").eq("id", user_id).execute()
-            
+
             if not response.data:
                 raise NotFoundError(f"User profile not found for ID: {user_id}")
-                
+
             return response.data[0].get("user_tier", "FREE").upper()
-            
+
         except Exception as e:
             self.logger.error(f"Failed to get user tier: {str(e)}")
             raise
@@ -331,7 +332,7 @@ class SupabaseAuthService(BaseService):
         try:
             # Get current date in UTC
             today = datetime.utcnow().date()
-            
+
             # Get concurrent jobs
             concurrent_jobs = (
                 self.supabase.table("crawl_jobs")
@@ -340,7 +341,7 @@ class SupabaseAuthService(BaseService):
                 .in_("status", ["pending", "in_progress"])
                 .execute()
             ).count or 0
-            
+
             # Get today's jobs
             today_jobs = (
                 self.supabase.table("crawl_jobs")
@@ -349,7 +350,7 @@ class SupabaseAuthService(BaseService):
                 .gte("created_at", f"{today.isoformat()}T00:00:00")
                 .execute()
             ).count or 0
-            
+
             # Get total projects
             total_projects = (
                 self.supabase.table("projects")
@@ -357,7 +358,7 @@ class SupabaseAuthService(BaseService):
                 .eq("owner_id", user_id)
                 .execute()
             ).count or 0
-            
+
             # Get team members (if applicable)
             total_team_members = 0
             team_response = (
@@ -366,7 +367,7 @@ class SupabaseAuthService(BaseService):
                 .eq("owner_id", user_id)
                 .execute()
             )
-            
+
             if team_response.data:
                 team_id = team_response.data[0].get("id")
                 if team_id:
@@ -376,14 +377,14 @@ class SupabaseAuthService(BaseService):
                         .eq("team_id", team_id)
                         .execute()
                     ).count or 0
-            
+
             return {
                 "concurrent_jobs": concurrent_jobs,
                 "jobs_today": today_jobs,
                 "total_projects": total_projects,
                 "team_members": total_team_members
             }
-            
+
         except Exception as e:
             self.logger.error(f"Failed to get user metrics: {str(e)}")
             return {}
@@ -407,7 +408,7 @@ class SupabaseAuthService(BaseService):
                 .execute()
             )
             return response.count == 0
-            
+
         except Exception as e:
             self.logger.error(f"Failed to check if user is new: {str(e)}")
             return True
@@ -440,28 +441,28 @@ class SupabaseAuthService(BaseService):
         try:
             # Get user profile to check for existing tier
             profile = await self.get_user_profile(user_id)
-            
+
             # If user has a tier set, return it
             if profile and profile.get('user_tier'):
                 return profile['user_tier'].upper()
-                
+
             # Check if this is a new user (no completed jobs)
             is_new_user = await self.is_new_user(user_id)
-            
+
             # Default to FREE tier for new users
             if is_new_user:
                 # Update profile with default tier
                 await self.update_user_profile(user_id, {"user_tier": "FREE"})
                 return "FREE"
-                
+
             # For existing users without a tier, default to FREE
             await self.update_user_profile(user_id, {"user_tier": "FREE"})
             return "FREE"
-            
+
         except Exception as e:
             self.logger.error(f"Failed to detect user tier: {str(e)}")
             return "FREE"
-            
+
     async def get_user_limits(self, user_id: str) -> Dict[str, Any]:
         """
         Get user's tier limits based on their current tier.
@@ -474,7 +475,7 @@ class SupabaseAuthService(BaseService):
         """
         tier = await self.detect_user_tier(user_id)
         return self._get_tier_limits(tier)
-        
+
     async def check_limit(self, user_id: str, limit_type: str, value: int = 1) -> bool:
         """
         Check if a specific limit would be exceeded for the user.
@@ -542,7 +543,7 @@ class SupabaseAuthService(BaseService):
             tier = await self.detect_user_tier(user_id)
             limits = await self.get_user_limits(user_id)
             usage = await self.get_user_usage_metrics(user_id)
-            
+
             if request_type == 'crawl_job':
                 # Check concurrent jobs limit
                 if not await self.check_limit(user_id, 'concurrent_jobs'):
@@ -551,7 +552,7 @@ class SupabaseAuthService(BaseService):
                         active_jobs=usage['concurrent_jobs'],
                         limit=limits['max_concurrent_jobs']
                     )
-                
+
                 # Check daily job limit
                 if not await self.check_limit(user_id, 'jobs_today'):
                     raise RateLimitExceeded(
@@ -559,7 +560,7 @@ class SupabaseAuthService(BaseService):
                         active_jobs=usage['jobs_today'],
                         limit=limits['max_jobs_per_day']
                     )
-                
+
                 # Check images per job limit if provided
                 if 'image_count' in kwargs and kwargs['image_count'] > limits['max_images_per_job']:
                     raise RateLimitExceeded(
@@ -567,7 +568,7 @@ class SupabaseAuthService(BaseService):
                         active_jobs=kwargs['image_count'],
                         limit=limits['max_images_per_job']
                     )
-            
+
             elif request_type == 'create_project':
                 if usage['total_projects'] >= limits['max_projects']:
                     raise RateLimitExceeded(
@@ -575,7 +576,7 @@ class SupabaseAuthService(BaseService):
                         active_jobs=usage['total_projects'],
                         limit=limits['max_projects']
                     )
-            
+
             elif request_type == 'add_team_member':
                 if usage['team_members'] >= limits['max_team_members']:
                     raise RateLimitExceeded(
@@ -583,9 +584,9 @@ class SupabaseAuthService(BaseService):
                         active_jobs=usage['team_members'],
                         limit=limits['max_team_members']
                     )
-            
+
             return True
-            
+
         except RateLimitExceeded:
             raise
         except Exception as e:

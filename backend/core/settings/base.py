@@ -11,6 +11,7 @@ from .redis import RedisSettings
 from .security import SecuritySettings
 from .storage import StorageSettings
 from .supabase import SupabaseSettings
+from .azure import AzureSettings
 
 __all__ = ["CommonSettings"]
 
@@ -30,6 +31,23 @@ class CommonSettings(BaseSettings):
         extra="ignore",
         validate_default=True,
         str_strip_whitespace=True
+    )
+    
+    # Application metadata
+    app_name: str = Field(
+        default="PixCrawler API",
+        description="Application name",
+        examples=["PixCrawler API", "WindX API"]
+    )
+    app_version: str = Field(
+        default="1.0.0",
+        description="Application version",
+        examples=["1.0.0", "2.1.3"]
+    )
+    api_v1_prefix: str = Field(
+        default="/api/v1",
+        description="API v1 route prefix",
+        examples=["/api/v1", "/v1"]
     )
     
     # Application settings
@@ -72,3 +90,4 @@ class CommonSettings(BaseSettings):
     security: SecuritySettings = Field(default_factory=SecuritySettings)
     rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
+    azure: AzureSettings = Field(default_factory=AzureSettings)

@@ -1,235 +1,123 @@
 """
-OpenAPI response models for consistent error handling across all endpoints.
+Common response models and helpers for OpenAPI documentation.
 
-This module defines reusable response schemas for common HTTP status codes
-to improve API documentation and maintain consistency.
+This module provides reusable response schemas and helper functions for
+consistent API documentation across all endpoints.
+
+Functions:
+    get_common_responses: Get common response schemas for specified status codes
+
+Features:
+    - Standardized error response schemas
+    - Consistent OpenAPI documentation
+    - Reusable response patterns
 """
+from typing import Any, Dict
 
-from typing import Any, Dict, Optional
-from typing_extensions import Final
+__all__ = ['get_common_responses']
 
-from pydantic import BaseModel, Field, PositiveInt
-
-
-class ErrorDetail(BaseModel):
-    """Standard error detail model."""
-
-    detail: str = Field(
-        ...,
-        description="Error message describing what went wrong",
-        min_length=1,
-        max_length=500,
-        examples=["Invalid email format_", "Field is required", "Value must be greater than 0"]
-    )
-    error_code: Optional[str] = Field(
-        None,
-        description="Machine-readable error code for programmatic handling",
-        pattern=r"^[A-Z_]+$",
-        examples=["VALIDATION_ERROR", "NOT_FOUND", "UNAUTHORIZED"],
-        max_length=50
-    )
-    field: Optional[str] = Field(
-        None,
-        description="Field name if validation error (dot notation for nested fields)",
-        pattern=r"^[a-zA-Z_][a-zA-Z0-9_.]*$",
-        examples=["email", "user.profile.name", "items.0.quantity"],
-        max_length=100
-    )
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "detail": "Email address is already registered",
-                    "error_code": "DUPLICATE_EMAIL",
-                    "field": "email"
-                },
-                {
-                    "detail": "Value must be between 1 and 100",
-                    "error_code": "VALUE_OUT_OF_RANGE",
-                    "field": "max_images"
+# Common response schemas mapped by status code
+_RESPONSE_MAP: Dict[int, Dict[str, Any]] = {
+    400: {
+        "description": "Bad Request - Invalid input data",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Invalid request parameters"
                 }
-            ]
+            }
         }
-    }
-
-
-class ErrorResponse(BaseModel):
-    """Standard error response model."""
-
-    message: str = Field(
-        ...,
-        description="Human-readable error message",
-        min_length=1,
-        max_length=200,
-        examples=[
-            "Validation Error",
-            "Resource Not Found",
-            "Authentication Required",
-            "Internal Server Error"
-        ]
-    )
-    details: Optional[list[ErrorDetail]] = Field(
-        None,
-        description="Detailed error information for debugging",
-        max_length=10,
-        examples=[
-            [
-                {
-                    "detail": "Field is required",
-                    "error_code": "VALUE_ERROR_MISSING",
-                    "field": "email"
+    },
+    401: {
+        "description": "Unauthorized - Invalid or missing authentication token",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Not authenticated"
                 }
-            ]
-        ]
-    )
-    request_id: Optional[str] = Field(
-        None,
-        description="Unique request ID for tracking and debugging",
-        pattern=r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
-        examples=["550e8400-e29b-41d4-a716-446655440000"],
-        max_length=36
-    )
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "message": "Validation Error",
-                    "details": [
+            }
+        }
+    },
+    403: {
+        "description": "Forbidden - Insufficient permissions",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Not enough permissions"
+                }
+            }
+        }
+    },
+    404: {
+        "description": "Not Found - Resource does not exist",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Resource not found"
+                }
+            }
+        }
+    },
+    409: {
+        "description": "Conflict - Resource already exists or state conflict",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Resource already exists"
+                }
+            }
+        }
+    },
+    422: {
+        "description": "Unprocessable Entity - Validation error",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": [
                         {
-                            "detail": "Email address is required",
-                            "error_code": "VALUE_ERROR_MISSING",
-                            "field": "email"
-                        },
-                        {
-                            "detail": "Password must be at least 8 characters",
-                            "error_code": "VALUE_ERROR_TOO_SHORT",
-                            "field": "password"
+                            "loc": ["body", "field_name"],
+                            "msg": "field required",
+                            "type": "value_error.missing"
                         }
-                    ],
-                    "request_id": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                {
-                    "message": "Resource Not Found",
-                    "details": [
-                        {
-                            "detail": "User with ID 123 does not exist",
-                            "error_code": "NOT_FOUND"
-                        }
-                    ],
-                    "request_id": "660e8400-e29b-41d4-a716-446655440001"
+                    ]
                 }
-            ]
-        }
-    }
-
-
-# Common OpenAPI response schemas
-RESPONSES_401: Final[Dict] = {
-    "description": "Authentication required or invalid token",
-    "content": {
-        "application/json": {
-            "example": {
-                "message": "Could not validate credentials",
-                "details": [{"detail": "Invalid or expired authentication token"}]
             }
         }
-    }
-}
-
-RESPONSES_403: Final[Dict] = {
-    "description": "Insufficient permissions",
-    "content": {
-        "application/json": {
-            "example": {
-                "message": "Forbidden",
-                "details": [{"detail": "You don't have permission to access this resource"}]
+    },
+    429: {
+        "description": "Too Many Requests - Rate limit exceeded",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Rate limit exceeded"
+                }
             }
         }
-    }
-}
-
-RESPONSES_404: Final[Dict] = {
-    "description": "Resource not found",
-    "content": {
-        "application/json": {
-            "example": {
-                "message": "Not Found",
-                "details": [{"detail": "The requested resource does not exist"}]
+    },
+    500: {
+        "description": "Internal Server Error - Unexpected server error",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Internal server error"
+                }
             }
         }
-    }
-}
-
-RESPONSES_422: Final[Dict] = {
-    "description": "Validation error",
-    "content": {
-        "application/json": {
-            "example": {
-                "message": "Validation Error",
-                "details": [
-                    {
-                        "detail": "Field is required",
-                        "field": "email",
-                        "error_code": "value_error.missing"
-                    }
-                ]
-            }
-        }
-    }
-}
-
-RESPONSES_429: Final[Dict] = {
-    "description": "Rate limit exceeded",
-    "content": {
-        "application/json": {
-            "example": {
-                "message": "Too Many Requests",
-                "details": [{"detail": "Rate limit exceeded. Please try again later."}]
-            }
-        }
-    }
-}
-
-RESPONSES_500: Final[Dict] = {
-    "description": "Internal server error",
-    "content": {
-        "application/json": {
-            "example": {
-                "message": "Internal Server Error",
-                "details": [{"detail": "An unexpected error occurred. Please try again later."}]
-            }
-        }
-    }
-}
-
-RESPONSES_503: Final[Dict] = {
-    "description": "Service unavailable",
-    "content": {
-        "application/json": {
-            "example": {
-                "message": "Service Unavailable",
-                "details": [{"detail": "The service is temporarily unavailable. Please try again later."}]
+    },
+    503: {
+        "description": "Service Unavailable - Service temporarily unavailable",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Service temporarily unavailable"
+                }
             }
         }
     }
 }
 
 
-# Response map is a module-level constant
-_RESPONSE_MAP: Final[Dict[int, Dict[str, Any]]] = {
-    401: RESPONSES_401,
-    403: RESPONSES_403,
-    404: RESPONSES_404,
-    422: RESPONSES_422,
-    429: RESPONSES_429,
-    500: RESPONSES_500,
-    503: RESPONSES_503,
-}
-
-
-def get_common_responses(*status_codes: PositiveInt) -> Dict[int, Dict[str, Any]]:
+def get_common_responses(*status_codes: int) -> Dict[int, Dict[str, Any]]:
     """
     Get common response schemas for specified status codes.
 
@@ -240,12 +128,26 @@ def get_common_responses(*status_codes: PositiveInt) -> Dict[int, Dict[str, Any]
     4. Caching would add overhead without meaningful performance gain
 
     Args:
-        *status_codes: HTTP status codes to include
+        *status_codes: HTTP status codes to include (e.g., 401, 404, 500)
 
     Returns:
         Dictionary mapping status codes to response schemas
 
     Example:
-        responses = get_common_responses(401, 404, 500)
+        ```python
+        @router.get(
+            "/resource",
+            responses={
+                200: {"description": "Success"},
+                **get_common_responses(401, 404, 500)
+            }
+        )
+        async def get_resource():
+            pass
+        ```
     """
-    return {code: _RESPONSE_MAP[code] for code in status_codes if code in _RESPONSE_MAP}
+    return {
+        code: _RESPONSE_MAP[code]
+        for code in status_codes
+        if code in _RESPONSE_MAP
+    }

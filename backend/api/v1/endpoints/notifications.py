@@ -4,13 +4,12 @@ Notification API endpoints.
 This module provides the API endpoints for Notification management.
 """
 
-from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status as http_status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.api.dependencies import get_current_user, get_session
+from backend.api.dependencies import get_session
 from backend.api.types import CurrentUser
 from backend.api.v1.response_models import get_common_responses
 from backend.repositories.notification_repository import NotificationRepository
@@ -46,7 +45,7 @@ def get_notification_service(session: AsyncSession = Depends(get_session)) -> No
     """
     # Create repository instance
     repository = NotificationRepository(session)
-    
+
     # Inject repository into service
     return NotificationService(repository)
 
@@ -103,28 +102,28 @@ async def list_notifications(
 ) -> NotificationListResponse:
     """
     List all notifications for the current user with pagination.
-    
+
     Retrieves notifications filtered by user ownership with optional
     filtering by read status. Results are ordered by creation date
     descending for most recent first.
-    
+
     **Authentication Required:** Bearer token
-    
+
     **Query Parameters:**
     - `skip` (int): Pagination offset (default: 0)
     - `limit` (int): Items per page (default: 50, max: 100)
     - `unread_only` (bool): Show only unread notifications (default: false)
-    
+
     Args:
         skip: Number of items to skip for pagination
         limit: Maximum number of items to return
         unread_only: Filter by unread status
         current_user: Current authenticated user (injected)
         service: Notification service instance (injected)
-    
+
     Returns:
         NotificationListResponse with list of notifications and pagination metadata
-    
+
     Raises:
         HTTPException: 401 if authentication fails
         HTTPException: 500 if database query fails
@@ -132,31 +131,31 @@ async def list_notifications(
     try:
         user_id = UUID(current_user["user_id"])
         notifications = await service.get_notifications(
-            user_id, 
-            skip, 
-            limit, 
+            user_id,
+            skip,
+            limit,
             unread_only
         )
-        
+
         # Get total count for pagination metadata
         total = await service.count_notifications(
             user_id,
             unread_only
         )
-        
+
         # Transform to response model
         data = [NotificationResponse.model_validate(n) for n in notifications]
-        
+
         return NotificationListResponse(
             data=data,
             meta={"total": total, "skip": skip, "limit": limit}
         )
-    
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve notifications"
         )
 
@@ -193,21 +192,21 @@ async def mark_as_read(
 ) -> NotificationMarkReadResponse:
     """
     Mark a specific notification as read.
-    
+
     Updates the read status of a notification belonging to the current user.
     Only the notification owner can mark their notifications as read.
-    
+
     **Authentication Required:** Bearer token
-    
+
     Args:
         notification_id: Notification ID to mark as read
         notification_in: Update data containing is_read status
         current_user: Current authenticated user (injected)
         service: Notification service instance (injected)
-    
+
     Returns:
         NotificationMarkReadResponse with updated notification status
-    
+
     Raises:
         HTTPException: 401 if authentication fails
         HTTPException: 404 if notification not found or access denied
@@ -217,16 +216,16 @@ async def mark_as_read(
         if notification_in.is_read:
             user_id = UUID(current_user["user_id"])
             await service.mark_as_read(notification_id, user_id)
-            
+
         return NotificationMarkReadResponse(
             data={"id": notification_id, "is_read": True}
         )
-    
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to mark notification as read"
         )
 
@@ -261,20 +260,20 @@ async def mark_all_read(
 ) -> NotificationMarkAllReadResponse:
     """
     Mark all notifications as read for the current user.
-    
+
     Performs a bulk update operation to mark all unread notifications
     as read for the authenticated user. This is useful for clearing
     notification badges and marking everything as acknowledged.
-    
+
     **Authentication Required:** Bearer token
-    
+
     Args:
         current_user: Current authenticated user (injected)
         service: Notification service instance (injected)
-    
+
     Returns:
         NotificationMarkAllReadResponse with success status and count of updated notifications
-    
+
     Raises:
         HTTPException: 401 if authentication fails
         HTTPException: 500 if bulk update fails
@@ -285,11 +284,11 @@ async def mark_all_read(
         return NotificationMarkAllReadResponse(
             data={"success": True, "count": count}
         )
-    
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to mark all notifications as read"
         )

@@ -15,6 +15,13 @@
       "when": 1764535729339,
       "tag": "0001_polite_micromax",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765401360055,
+      "tag": "0002_white_sauron",
+      "breakpoints": true
     }
   ]
 }

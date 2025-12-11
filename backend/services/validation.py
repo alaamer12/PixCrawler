@@ -72,7 +72,7 @@ class ValidationService(BaseService):
 
     Provides methods for validating images, managing validation jobs,
     and tracking validation statistics.
-    
+
     Note: This service currently uses repositories for data access.
     When ValidationJob and ValidationResult models are created,
     a ValidationRepository should be added.
@@ -265,18 +265,18 @@ class ValidationService(BaseService):
 
             # Start background task using Celery
             from validator.tasks import check_all_task
-            
+
             # Assuming dataset images are in a specific directory
             # This logic needs to be adapted based on actual storage structure
             # For now, we'll use a placeholder directory path based on dataset_id
             dataset_dir = f"/tmp/dataset_{dataset_id}"
-            
+
             check_all_task.delay(
                 directory=dataset_dir,
                 expected_count=total_images,
                 mode=validation_level.value if validation_level != ValidationLevel.STANDARD else "lenient"
             )
-            
+
             self.logger.info(f"Started validation task for job {job_id}")
 
             return job_info
@@ -463,7 +463,7 @@ class ValidationService(BaseService):
             validate_image_medium_task,
             validate_image_slow_task
         )
-        
+
         self.log_operation(
             "validate_job_images",
             job_id=job_id,
@@ -474,7 +474,7 @@ class ValidationService(BaseService):
         try:
             # Get all images for the job
             images = await self.image_repo.get_by_crawl_job(job_id)
-            
+
             if not images:
                 raise NotFoundError(f"No images found for job {job_id}")
 
@@ -484,19 +484,19 @@ class ValidationService(BaseService):
                 ValidationLevel.STANDARD: validate_image_medium_task,
                 ValidationLevel.STRICT: validate_image_slow_task
             }
-            
+
             validation_task = task_map.get(validation_level)
             if not validation_task:
                 raise ValidationError(f"Invalid validation level: {validation_level}")
-            
+
             # Dispatch validation tasks
             task_ids = []
-            
+
             self.logger.info(
                 f"Dispatching {len(images)} validation tasks for job {job_id} "
                 f"at level {validation_level.value}"
             )
-            
+
             for image in images:
                 # Dispatch task with image path
                 task = validation_task.delay(
@@ -504,9 +504,9 @@ class ValidationService(BaseService):
                     job_id=str(job_id),
                     image_id=str(image.id)
                 )
-                
+
                 task_ids.append(task.id)
-                
+
                 self.logger.debug(
                     f"Dispatched validation task for image {image.id}: {task.id}",
                     job_id=job_id,
@@ -514,7 +514,7 @@ class ValidationService(BaseService):
                     task_id=task.id,
                     validation_level=validation_level.value
                 )
-            
+
             self.logger.info(
                 f"Successfully dispatched {len(task_ids)} validation tasks for job {job_id}",
                 job_id=job_id,
@@ -546,14 +546,14 @@ class ValidationService(BaseService):
     ) -> None:
         """
         Handle validation task result callback.
-        
+
         This method processes validation task completion results and updates
         the image record with validation status:
         1. Retrieve image from repository
         2. Update validation status using mark_validated()
         3. Update is_valid and is_duplicate flags
         4. Store validation metadata
-        
+
         Args:
             image_id: ID of the image
             result: Validation result dictionary containing:
@@ -562,7 +562,7 @@ class ValidationService(BaseService):
                 - quality_score: Float quality score (optional)
                 - issues: List of validation issues (optional)
                 - metadata: Additional validation metadata (optional)
-        
+
         Raises:
             NotFoundError: If image not found
         """
@@ -571,19 +571,19 @@ class ValidationService(BaseService):
             image_id=image_id,
             is_valid=result.get('is_valid', False)
         )
-        
+
         try:
             # Retrieve image
             image = await self.image_repo.get_by_id(image_id)
             if not image:
                 raise NotFoundError(f"Image with ID {image_id} not found")
-            
+
             # Prepare validation result for storage
             validation_data = {
                 'is_valid': result.get('is_valid', False),
                 'is_duplicate': result.get('is_duplicate', False)
             }
-            
+
             # Build metadata from validation result
             metadata = {}
             if 'quality_score' in result:
@@ -592,20 +592,20 @@ class ValidationService(BaseService):
                 metadata['validation_issues'] = result['issues']
             if 'metadata' in result:
                 metadata.update(result['metadata'])
-            
+
             if metadata:
                 validation_data['metadata'] = metadata
-            
+
             # Update image with validation results
             await self.image_repo.mark_validated(image_id, validation_data)
-            
+
             self.logger.info(
                 f"Updated validation results for image {image_id}",
                 image_id=image_id,
                 is_valid=validation_data['is_valid'],
                 is_duplicate=validation_data['is_duplicate']
             )
-            
+
         except Exception as e:
             if not isinstance(e, NotFoundError):
                 self.logger.error(
@@ -613,7 +613,7 @@ class ValidationService(BaseService):
                     exc_info=True
                 )
             raise
-    
+
     async def _process_validation_job(
         self,
         job_id: str,
@@ -640,11 +640,11 @@ class ValidationService(BaseService):
             # 3. Process each image with validator
             # 4. Store results using ValidationRepository
             # 5. Update job status using ValidationRepository
-            
+
             self.logger.info(
                 f"Validation job {job_id} processing started (placeholder implementation)"
             )
-            
+
             # Placeholder: Log that this needs implementation
             self.logger.warning(
                 "Validation job processing not fully implemented. "
@@ -654,8 +654,8 @@ class ValidationService(BaseService):
         except Exception as e:
             self.logger.error(f"Error processing validation job {job_id}: {str(e)}")
 
+    @staticmethod
     def _calculate_quality_score(
-        self,
         validation_level: ValidationLevel,
         is_valid: bool
     ) -> float:
@@ -671,7 +671,7 @@ class ValidationService(BaseService):
         """
         if not is_valid:
             return 0.0
-        
+
         # Base score on validation level
         scores = {
             ValidationLevel.BASIC: 0.6,
@@ -680,7 +680,8 @@ class ValidationService(BaseService):
         }
         return scores.get(validation_level, 0.7)
 
-    def _get_threshold(self, validation_level: ValidationLevel) -> float:
+    @staticmethod
+    def _get_threshold(validation_level: ValidationLevel) -> float:
         """
         Get quality threshold for validation level.
 
@@ -697,7 +698,8 @@ class ValidationService(BaseService):
         }
         return thresholds.get(validation_level, 0.7)
 
-    def _get_validation_issues(self, validation_level: ValidationLevel) -> List[str]:
+    @staticmethod
+    def _get_validation_issues(validation_level: ValidationLevel) -> List[str]:
         """
         Get validation issues based on level.
 

@@ -6,7 +6,7 @@ image dataset generation jobs and their metadata.
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
@@ -26,17 +26,20 @@ from sqlalchemy import UUID as SQLAlchemyUUID
 
 from .base import Base, TimestampMixin
 
+if TYPE_CHECKING:
+    from database.models import Profile, CrawlJob, Project
+
 __all__ = ['Dataset']
 
 
 class Dataset(Base, TimestampMixin):
     """
     Dataset model for image collection jobs.
-    
+
     Represents a dataset generation job that collects images based on
     keywords and search engines. Each dataset is associated with a
     CrawlJob that performs the actual image collection.
-    
+
     Attributes:
         id: Serial primary key
         user_id: UUID reference to profiles.id (FK)
@@ -51,20 +54,24 @@ class Dataset(Base, TimestampMixin):
         crawl_job_id: Reference to associated crawl_jobs.id (FK)
         download_url: URL for downloading completed dataset
         error_message: Error message if processing failed
-        
+
     Relationships:
         user: Profile owner (many-to-one)
         crawl_job: Associated crawl job (one-to-one)
     """
-    
+
     __tablename__ = "datasets"
-    
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[UUID] = mapped_column(
         SQLAlchemyUUID(as_uuid=True),
         ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
+    )
+    project_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("projects.id", ondelete="SET NULL"),
+        nullable=True,
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -83,7 +90,6 @@ class Dataset(Base, TimestampMixin):
         String(20),
         nullable=False,
         default="pending",
-        index=True,
     )
     progress: Mapped[float] = mapped_column(
         Integer,
@@ -99,38 +105,41 @@ class Dataset(Base, TimestampMixin):
         Integer,
         ForeignKey("crawl_jobs.id", ondelete="SET NULL"),
         nullable=True,
-        index=True,
     )
     download_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    
+
     # Lifecycle management
     storage_tier: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
         default="hot",
         server_default="hot",
-        index=True,
         comment="Storage tier: hot, warm, cold"
     )
-    
+
     archived_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
         comment="Timestamp when dataset was archived"
     )
-    
+
     last_accessed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
         comment="Timestamp of last access"
     )
-    
+
     # Relationships
     user: Mapped["Profile"] = relationship(
         "Profile",
         foreign_keys=[user_id],
+        lazy="joined",
+    )
+    project: Mapped[Optional["Project"]] = relationship(
+        "Project",
+        foreign_keys=[project_id],
         lazy="joined",
     )
     crawl_job: Mapped[Optional["CrawlJob"]] = relationship(
@@ -138,13 +147,20 @@ class Dataset(Base, TimestampMixin):
         foreign_keys=[crawl_job_id],
         lazy="joined",
     )
-    
+    crawl_jobs: Mapped[list["CrawlJob"]] = relationship(
+        "CrawlJob",
+        foreign_keys="CrawlJob.dataset_id",
+        back_populates="dataset",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
     # Indexes and constraints
     __table_args__ = (
         Index("ix_datasets_user_id", "user_id"),
         Index("ix_datasets_status", "status"),
         Index("ix_datasets_user_status", "user_id", "status"),
-        Index("ix_datasets_created_at", "created_at"),
+        Index("ix_datasets_created_at", "created_at"),  # created_at from TimestampMixin
         CheckConstraint(
             "progress >= 0 AND progress <= 100",
             name="ck_datasets_progress_range"

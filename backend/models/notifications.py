@@ -71,7 +71,6 @@ class Notification(Base):
         SQLAlchemyUUID(as_uuid=True),
         ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     
     # Content
@@ -90,13 +89,11 @@ class Notification(Base):
         "type",
         String(50),
         nullable=False,
-        index=True,
     )
     
     category: Mapped[Optional[str]] = mapped_column(
         String(50),
         nullable=True,
-        index=True,
     )
     
     # Display properties
@@ -127,7 +124,6 @@ class Notification(Base):
         nullable=False,
         default=False,
         server_default="false",
-        index=True,
     )
     
     read_at: Mapped[Optional[datetime]] = mapped_column(
@@ -147,7 +143,6 @@ class Notification(Base):
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
-        index=True,
     )
     
     # Constraints
@@ -219,7 +214,6 @@ class NotificationPreference(Base, TimestampMixin):
         ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
         unique=True,
-        index=True,
     )
     
     # Channel preferences

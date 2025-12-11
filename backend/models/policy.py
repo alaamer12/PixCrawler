@@ -6,8 +6,7 @@ archival and cleanup policies for datasets.
 """
 
 from datetime import datetime
-from typing import Optional
-from uuid import UUID
+from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
@@ -17,13 +16,13 @@ from sqlalchemy import (
     Text,
     ForeignKey,
     Index,
-    Enum as SQLAlchemyEnum,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import UUID as SQLAlchemyUUID
 
 from .base import Base, TimestampMixin
+if TYPE_CHECKING:
+    from . import Dataset
 
 __all__ = [
     'ArchivalPolicy',
@@ -52,30 +51,30 @@ class ArchivalPolicy(Base, TimestampMixin):
     __tablename__ = "archival_policies"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    
+
     name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    
+
     is_active: Mapped[bool] = mapped_column(
-        Boolean, 
-        nullable=False, 
+        Boolean,
+        nullable=False,
         default=True,
         server_default="true"
     )
-    
+
     days_until_archive: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         comment="Days since creation or last access before archiving"
     )
-    
+
     target_tier: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
         default="cold",
         comment="Target storage tier: hot, warm, cold"
     )
-    
+
     filter_criteria: Mapped[Optional[dict]] = mapped_column(
         JSONB,
         nullable=True,
@@ -108,30 +107,30 @@ class CleanupPolicy(Base, TimestampMixin):
     __tablename__ = "cleanup_policies"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    
+
     name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    
+
     is_active: Mapped[bool] = mapped_column(
-        Boolean, 
-        nullable=False, 
+        Boolean,
+        nullable=False,
         default=True,
         server_default="true"
     )
-    
+
     days_until_cleanup: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         comment="Days since creation/completion before cleanup"
     )
-    
+
     cleanup_target: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
         default="temp_files",
         comment="Target: full_dataset, temp_files, failed_jobs"
     )
-    
+
     filter_criteria: Mapped[Optional[dict]] = mapped_column(
         JSONB,
         nullable=True,
@@ -163,33 +162,33 @@ class PolicyExecutionLog(Base):
     __tablename__ = "policy_execution_logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    
+
     policy_type: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
         comment="archival or cleanup"
     )
-    
+
     policy_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    
+
     dataset_id: Mapped[Optional[int]] = mapped_column(
-        Integer, 
+        Integer,
         ForeignKey("datasets.id", ondelete="SET NULL"),
         nullable=True,
         index=True
     )
-    
+
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
         default="success"
     )
-    
+
     details: Mapped[Optional[dict]] = mapped_column(
         JSONB,
         nullable=True
     )
-    
+
     executed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

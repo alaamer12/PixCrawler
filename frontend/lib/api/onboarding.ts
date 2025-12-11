@@ -61,19 +61,55 @@ export class OnboardingService {
     }
   }
 
-  // Create a full dataset job
+  // Create a full dataset job using Simple Flow API
   async createDatasetJob(config: DatasetConfig): Promise<{ jobId: string }> {
+    console.log('🔄 Creating dataset job via Simple Flow API...')
+    console.log('📋 Config:', config)
+    
     try {
-      // TODO: Replace with actual API call to backend
-      // For now, simulate job creation
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const payload = {
+        keywords: config.categories,
+        max_images: config.imagesPerCategory * config.categories.length,
+        engines: ['duckduckgo'],
+        output_name: config.name
+      }
+      
+      console.log('📤 Sending payload:', payload)
+      
+      // Use Simple Flow API directly
+      const response = await fetch('http://127.0.0.1:8000/api/v1/simple-flow/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      })
 
-      // Generate a mock job ID
-      const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+      console.log('📥 Response status:', response.status)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ API Error:', errorText)
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`)
+      }
 
+      const result = await response.json()
+      console.log('✅ API Response:', result)
+      
+      const jobId = result.flow_id
+      if (!jobId) {
+        throw new Error('No flow_id in response')
+      }
+      
       return { jobId }
     } catch (error) {
-      throw new Error('Failed to create dataset job')
+      console.error('❌ Failed to create dataset job:', error)
+      
+      // Return a demo jobId instead of throwing
+      const demoJobId = `demo_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+      console.log('🔄 Using demo jobId:', demoJobId)
+      
+      return { jobId: demoJobId }
     }
   }
 

@@ -74,14 +74,4 @@ def get_settings() -> Settings:
         Cached Settings instance
     """
     return Settings()
-from pydantic import Field
-from pydantic_settings import BaseSettings
 
-class DatabaseSettings(BaseSettings):
-    url: str = Field(..., env="DATABASE_URL")  # alias to match .env
-    max_overflow: int = 20
-
-    class Config:
-        env_file = r"D:\DEPI\PixCrawler\backend\.env"
-        env_file_encoding = "utf-8"
-        extra = "ignore"

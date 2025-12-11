@@ -13,6 +13,7 @@ requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.104.0",
   "uvicorn[standard]>=0.24.0",
+  "gunicorn>=21.2.0",  # Production WSGI server
   "pydantic[email]>=2.5.0",
   "pydantic-settings>=2.1.0",
   "sqlalchemy>=2.0.0",
@@ -42,6 +43,9 @@ dev = [
   "ruff>=0.1.0",
   "mypy>=1.7.0",
   "pre-commit>=3.5.0",
+]
+azure = [
+  "azure-storage-blob",  # Already in main dependencies
 ]
 
 [project.scripts]

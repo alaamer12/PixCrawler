@@ -7,10 +7,9 @@ task dependencies, and recovery information.
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Dict, Any
-from uuid import UUID
+from typing import Optional
 
-from sqlalchemy import DateTime, Integer, String, Text, func, UUID as SQLAlchemyUUID, CheckConstraint, Index, ForeignKey, JSON
+from sqlalchemy import DateTime, Integer, String, Text, Index, ForeignKey, JSON
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -79,13 +78,11 @@ class WorkflowState(Base, TimestampMixin):
         Integer,
         ForeignKey("crawl_jobs.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
         default="pending",
-        index=True,
     )
     current_step: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     total_steps: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -163,7 +160,6 @@ class WorkflowTask(Base, TimestampMixin):
         Integer,
         ForeignKey("workflow_states.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     task_name: Mapped[str] = mapped_column(String(100), nullable=False)
     task_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
@@ -171,10 +167,9 @@ class WorkflowTask(Base, TimestampMixin):
         String(20),
         nullable=False,
         default="pending",
-        index=True,
     )
     step_index: Mapped[int] = mapped_column(Integer, nullable=False)
-    celery_task_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    celery_task_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     max_retries: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
     dependencies: Mapped[list] = mapped_column(JSON, nullable=False, default=list)

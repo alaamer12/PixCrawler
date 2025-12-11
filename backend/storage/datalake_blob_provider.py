@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO, Iterable, Optional, Union, List, Dict, Any
+from typing import BinaryIO, Optional, Union, List, Dict, Any
 
 from azure.core.exceptions import ResourceNotFoundError
 from azure.storage.blob import (
@@ -18,9 +18,8 @@ from azure.storage.blob import (
     ContainerClient,
 )
 
-from .storage_settings import StorageSettings
 from utility.logging_config import get_logger
-
+from .storage_settings import StorageSettings
 
 logger = get_logger(__name__)
 

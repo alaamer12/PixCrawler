@@ -11,7 +11,7 @@ import zipfile
 from pathlib import Path
 from typing import Dict, Any, AsyncIterator
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status as http_status
 from starlette.responses import StreamingResponse, FileResponse
 from starlette.concurrency import run_in_threadpool
 
@@ -208,7 +208,7 @@ async def export_dataset_json(
     except NotFoundError:
         log_context.warning(f"Dataset {dataset_id} not found")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Dataset {dataset_id} not found"
         )
 
@@ -287,7 +287,7 @@ async def export_dataset_csv(
     except NotFoundError:
         log_context.warning(f"Dataset {dataset_id} not found")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Dataset {dataset_id} not found"
         )
 
@@ -383,7 +383,7 @@ async def export_dataset_zip(
     except NotFoundError:
         log_context.warning(f"Dataset {dataset_id} not found")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=f"Dataset {dataset_id} not found"
         )
 
@@ -488,6 +488,6 @@ async def download_image(
     except NotFoundError as e:
         log_context.warning(f"Image or dataset not found: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=str(e)
         )

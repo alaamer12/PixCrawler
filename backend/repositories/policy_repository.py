@@ -11,6 +11,7 @@ from backend.models.policy import ArchivalPolicy, CleanupPolicy, PolicyExecution
 from .base import BaseRepository
 
 
+# noinspection PyTypeChecker
 class ArchivalPolicyRepository(BaseRepository[ArchivalPolicy]):
     """Repository for archival policies."""
 

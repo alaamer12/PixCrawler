@@ -8,10 +8,9 @@ including listing and filtering user activity logs.
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, Query, status as http_status
 
-from backend.api.dependencies import get_session, get_current_user
+from api.dependencies import get_activity_service
 from backend.api.types import CurrentUser
 from backend.api.v1.response_models import get_common_responses
 from backend.schemas.activity import (
@@ -26,19 +25,6 @@ router = APIRouter(
     tags=["Activity Logs"],
     responses=get_common_responses(401, 500),
 )
-
-
-def get_activity_service(session: AsyncSession = Depends(get_session)) -> ActivityLogService:
-    """
-    Dependency injection for ActivityLogService.
-    
-    Args:
-        session: Database session (injected by FastAPI)
-        
-    Returns:
-        ActivityLogService instance
-    """
-    return ActivityLogService(session)
 
 
 @router.get(
@@ -105,7 +91,7 @@ async def list_activity_logs(
 ) -> ActivityLogListResponse:
     """
     List activity logs for the current user.
-    
+
     Returns a paginated list of all user actions including:
     - Project creation/updates/deletion
     - Crawl job operations
@@ -113,27 +99,27 @@ async def list_activity_logs(
     - API key management
     - Credit transactions
     - And more
-    
+
     Activity logs provide an audit trail of all user actions
     for debugging, compliance, and user transparency.
-    
+
     **Query Parameters:**
     - `skip` (int): Pagination offset (default: 0)
     - `limit` (int): Items per page (default: 50, max: 100)
     - `resource_type` (str): Filter by resource type (optional)
-    
+
     **Authentication Required:** Bearer token
-    
+
     Args:
         current_user: Current authenticated user (injected)
         service: Activity log service instance (injected)
         skip: Number of items to skip
         limit: Maximum items to return
         resource_type: Resource type filter
-        
+
     Returns:
         Paginated list of activity logs
-        
+
     Raises:
         HTTPException: 401 if authentication fails
         HTTPException: 500 if query fails
@@ -146,17 +132,17 @@ async def list_activity_logs(
             limit=limit,
             resource_type=resource_type,
         )
-        
+
         # Transform to response model
         data = [ActivityLogResponse.model_validate(log) for log in logs]
-        
+
         return ActivityLogListResponse(
             data=data,
             meta={"total": total, "skip": skip, "limit": limit}
         )
-        
+
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve activity logs: {str(e)}"
         )

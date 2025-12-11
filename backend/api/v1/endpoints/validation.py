@@ -4,13 +4,11 @@ This module provides API endpoints for image validation services,
 including single image analysis, batch validation, results retrieval,
 and validation statistics management."""
 
-from typing import Any, Dict
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status as http_status
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-
-from backend.api.types import CurrentUser, DBSession, ValidationServiceDep
-from backend.core.exceptions import NotFoundError
+from backend.api.types import CurrentUser, ValidationServiceDep
 from backend.api.v1.response_models import get_common_responses
+from backend.core.exceptions import NotFoundError
 from backend.schemas.validation import (
     ValidationAnalyzeRequest,
     ValidationAnalyzeResponse,
@@ -36,7 +34,7 @@ router = APIRouter(
 @router.post(
     "/analyze/",
     response_model=ValidationAnalyzeResponse,
-    status_code=status.HTTP_200_OK,
+    status_code=http_status.HTTP_200_OK,
     summary="Analyze Single Image",
     description="Perform quality and content validation on a single image.",
     response_description="Validation analysis results with quality score",
@@ -93,7 +91,7 @@ async def analyze_single_image(
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to analyze image: {str(e)}"
         )
 
@@ -101,7 +99,7 @@ async def analyze_single_image(
 @router.post(
     "/batch/",
     response_model=ValidationJobResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=http_status.HTTP_201_CREATED,
     summary="Create Batch Validation",
     description="Create a batch validation job for multiple images.",
     response_description="Created validation job with status",
@@ -164,7 +162,7 @@ async def create_batch_validation(
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create batch validation job: {str(e)}"
         )
 
@@ -172,7 +170,7 @@ async def create_batch_validation(
 @router.post(
     "/job/{job_id}/",
     response_model=ValidationResponse,
-    status_code=status.HTTP_200_OK,
+    status_code=http_status.HTTP_200_OK,
     summary="Validate Job Images",
     description="Validate all images in a crawl job.",
     response_description="Validation job started with task IDs",
@@ -232,12 +230,12 @@ async def validate_job_images(
 
     except NotFoundError as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=str(e)
         )
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to start validation: {str(e)}"
         )
 
@@ -299,11 +297,11 @@ async def get_validation_results(
     except Exception as e:
         if "not found" in str(e).lower():
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=http_status.HTTP_404_NOT_FOUND,
                 detail=f"Validation job not found: {job_id}"
             )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve validation results: {str(e)}"
         )
 
@@ -364,11 +362,11 @@ async def get_dataset_validation_stats(
     except Exception as e:
         if "not found" in str(e).lower():
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=http_status.HTTP_404_NOT_FOUND,
                 detail=f"Dataset not found: {dataset_id}"
             )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve validation statistics: {str(e)}"
         )
 
@@ -432,10 +430,10 @@ async def update_validation_level(
     except Exception as e:
         if "not found" in str(e).lower():
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=http_status.HTTP_404_NOT_FOUND,
                 detail=f"Dataset not found: {request.dataset_id}"
             )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update validation level: {str(e)}"
         )

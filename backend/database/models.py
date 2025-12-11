@@ -17,9 +17,10 @@ Tables defined:
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from uuid import UUID
 
+# noinspection PyPep8Naming
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -28,7 +29,6 @@ from sqlalchemy import (
     Text,
     func,
     UUID as SQLAlchemyUUID,
-    CheckConstraint,
     Index,
     ForeignKey,
 )
@@ -44,6 +44,10 @@ __all__ = [
     'Image',
     'ActivityLog',
 ]
+
+if TYPE_CHECKING:
+    from models import APIKey, CreditAccount, Notification, NotificationPreference, \
+        UsageMetric, JobChunk
 
 
 class Profile(Base, TimestampMixin):
@@ -87,7 +91,6 @@ class Profile(Base, TimestampMixin):
         String(255),
         nullable=False,
         unique=True,
-        index=True,
     )
 
     full_name: Mapped[Optional[str]] = mapped_column(
@@ -106,7 +109,6 @@ class Profile(Base, TimestampMixin):
         nullable=False,
         default="user",
         server_default="user",
-        index=True,
     )
 
     onboarding_completed: Mapped[bool] = mapped_column(
@@ -169,7 +171,6 @@ class Profile(Base, TimestampMixin):
 
     # Indexes
     __table_args__ = (
-        Index("ix_profiles_email", "email"),
         Index("ix_profiles_role", "role"),
     )
 
@@ -219,7 +220,6 @@ class Project(Base, TimestampMixin):
         SQLAlchemyUUID(as_uuid=True),
         ForeignKey("profiles.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
 
     # Status
@@ -228,7 +228,6 @@ class Project(Base, TimestampMixin):
         nullable=False,
         default="active",
         server_default="active",
-        index=True,
     )
 
     # Relationships
@@ -238,8 +237,8 @@ class Project(Base, TimestampMixin):
         lazy="joined",
     )
 
-    crawl_jobs: Mapped[list["CrawlJob"]] = relationship(
-        "CrawlJob",
+    datasets: Mapped[list["Dataset"]] = relationship(
+        "Dataset",
         back_populates="project",
         cascade="all, delete-orphan",
         lazy="selectin",
@@ -281,11 +280,10 @@ class CrawlJob(Base, TimestampMixin):
     )
 
     # Foreign key
-    project_id: Mapped[int] = mapped_column(
+    dataset_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("projects.id", ondelete="CASCADE"),
+        ForeignKey("datasets.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
 
     # Job information
@@ -313,7 +311,6 @@ class CrawlJob(Base, TimestampMixin):
         nullable=False,
         default="pending",
         server_default="pending",
-        index=True,
     )
 
     progress: Mapped[int] = mapped_column(
@@ -394,8 +391,9 @@ class CrawlJob(Base, TimestampMixin):
     )
 
     # Relationships
-    project: Mapped["Project"] = relationship(
-        "Project",
+    dataset: Mapped["Dataset"] = relationship(
+        "Dataset",
+        foreign_keys=[dataset_id],
         back_populates="crawl_jobs",
         lazy="joined",
     )
@@ -416,13 +414,14 @@ class CrawlJob(Base, TimestampMixin):
 
     # Indexes
     __table_args__ = (
-        Index("ix_crawl_jobs_project_id", "project_id"),
+        Index("ix_crawl_jobs_dataset_id", "dataset_id"),
         Index("ix_crawl_jobs_status", "status"),
-        Index("ix_crawl_jobs_project_status", "project_id", "status"),
+        Index("ix_crawl_jobs_dataset_status", "dataset_id", "status"),
         Index("ix_crawl_jobs_created_at", "created_at"),
     )
 
 
+# noinspection PyTypeChecker
 class Image(Base):
     """
     Image model for storing crawled image metadata.
@@ -432,7 +431,6 @@ class Image(Base):
     Attributes:
         id: Serial primary key
         crawl_job_id: Reference to crawl_jobs.id
-        original_url: Original image URL
         filename: Stored filename
         storage_url: Supabase Storage URL
         width: Image width in pixels
@@ -441,11 +439,8 @@ class Image(Base):
         format_: Image format (jpg, png, webp, etc.) - mapped to 'format' column
         hash_: Image hash for duplicate detection - mapped to 'hash' column
         is_valid: Whether image passed validation
-        is_duplicate: Whether image is a duplicate
-        labels: JSON array of AI-generated labels
-        metadata: JSON object with additional metadata
+        metadata_: JSON object with additional metadata
         downloaded_at: Download timestamp
-        created_at: Record creation timestamp
 
     Relationships:
         crawl_job: Parent crawl job (many-to-one)
@@ -464,13 +459,6 @@ class Image(Base):
     crawl_job_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("crawl_jobs.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-
-    # Image URLs
-    original_url: Mapped[str] = mapped_column(
-        Text,
         nullable=False,
     )
 
@@ -513,7 +501,6 @@ class Image(Base):
         "hash",
         String(64),
         nullable=True,
-        index=True,
         comment="Hash for duplicate detection",
     )
 
@@ -524,20 +511,6 @@ class Image(Base):
         server_default="true",
     )
 
-    is_duplicate: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        default=False,
-        server_default="false",
-    )
-
-    # Metadata
-    labels: Mapped[Optional[dict]] = mapped_column(
-        JSONB,
-        nullable=True,
-        comment="AI-generated labels",
-    )
-    
     metadata_: Mapped[Optional[dict]] = mapped_column(
         "metadata",
         JSONB,
@@ -547,12 +520,6 @@ class Image(Base):
 
     # Timestamps
     downloaded_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-    )
-
-    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
@@ -568,25 +535,25 @@ class Image(Base):
     # Indexes
     __table_args__ = (
         Index("ix_images_crawl_job_id", "crawl_job_id"),
-        Index("ix_images_created_at", "created_at"),
+        Index("ix_images_downloaded_at", "downloaded_at"),
         Index("ix_images_hash", "hash"),  # Column name in database
     )
-    
+
     @property
     def format(self) -> Optional[str]:
         """Property accessor for format field to support Pydantic serialization."""
         return self.format_
-    
+
     @format.setter
     def format(self, value: Optional[str]) -> None:
         """Property setter for format field."""
         self.format_ = value
-    
+
     @property
     def hash(self) -> Optional[str]:
         """Property accessor for hash field to support Pydantic serialization."""
         return self.hash_
-    
+
     @hash.setter
     def hash(self, value: Optional[str]) -> None:
         """Property setter for hash field."""
@@ -605,7 +572,7 @@ class ActivityLog(Base):
         action: Action description
         resource_type: Type of resource affected
         resource_id: ID of resource affected
-        metadata: Additional event metadata (JSON)
+        metadata_: Additional event metadata (JSON)
         timestamp: Event timestamp
 
     Relationships:

@@ -133,6 +133,12 @@ class DatasetBase(BaseSchema):
         description="Search engines to use",
         examples=[[SearchEngine.GOOGLE], [SearchEngine.GOOGLE, SearchEngine.BING]]
     )
+    project_id: Optional[int] = Field(
+        None,
+        ge=1,
+        description="Project ID (uses user's default project if not provided)",
+        examples=[1, 42, None]
+    )
 
     @field_validator('keywords')
     @classmethod
