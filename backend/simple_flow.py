@@ -146,16 +146,34 @@ class SimpleFlowManager:
             
             for keyword in flow.keywords:
                 for engine in flow.engines:
-                    # Use the existing crawl task from builder
+                    # Use the correct engine-specific task
+                    if engine == "google":
+                        task_name = 'builder.download_google'
+                    elif engine == "bing":
+                        task_name = 'builder.download_bing'
+                    elif engine == "baidu":
+                        task_name = 'builder.download_baidu'
+                    elif engine == "duckduckgo":
+                        task_name = 'builder.download_duckduckgo'
+                    else:
+                        # Default to duckduckgo
+                        task_name = 'builder.download_duckduckgo'
+                    
+                    # Calculate images per keyword
+                    images_per_keyword = max(1, flow.max_images // len(flow.keywords))
+                    
+                    # Create keyword-specific output directory
+                    keyword_output_dir = os.path.join(flow.output_path, keyword.replace(' ', '_'))
+                    
                     task = self.celery_app.send_task(
-                        'builder.tasks.crawl_images',
-                        args=[{
-                            'keywords': [keyword],
-                            'max_images': flow.max_images // len(flow.keywords),
-                            'engines': [engine],
-                            'output_dir': flow.output_path,
-                            'validate_images': True
-                        }],
+                        task_name,
+                        args=[
+                            keyword,                # keyword: str
+                            keyword_output_dir,     # output_dir: str  
+                            images_per_keyword,     # max_images: int
+                            flow.flow_id,          # job_id: Optional[str]
+                            None                    # user_id: Optional[str]
+                        ],
                         queue='crawl'
                     )
                     task_ids.append(task.id)

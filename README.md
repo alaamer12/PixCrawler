@@ -42,12 +42,29 @@ PixCrawler is a powerful, scalable SaaS platform that automates the creation of 
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start - Simple Flow System
+
+```bash
+# 1. Install
+uv sync --all-extras
+uv add --group dev poethepoet
+
+# 2. Start Redis server (required)
+redis-server
+
+# 3. Start backend + worker
+poe dev
+
+# 4. Test
+poe test-flow
+```
+
+Images saved to `datasets/` directory. API at http://127.0.0.1:8000/docs
 
 ### Prerequisites
 
 - **Python**: 3.11 or higher
-- **Node.js**: 18.0 or higher
+- **Redis**: For task queue
 - **Bun**: Latest version (primary package manager for frontend)
 - **Redis**: 5.0 or higher
 - **PostgreSQL**: 14 or higher (via Supabase)

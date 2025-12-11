@@ -214,4 +214,13 @@ dev = [
     "platformdirs",
     "psutil",
     "requests",
+    "poethepoet",
 ]
+
+# Simple Flow System - requires Redis + Backend + Celery Worker
+[tool.poe.tasks]
+server = "redis-server"
+backend = ".venv/scripts/uvicorn backend.main:app --reload"
+worker = ".venv/scripts/celery -A celery_core.app worker --loglevel=info --pool=solo"
+dev = { parallel = ["backend", "worker"] }
+test-flow = ".venv/scripts/python test_complete_system.py"
