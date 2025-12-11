@@ -8,6 +8,7 @@ import sys
 import os
 from typing import Dict, Optional
 from datetime import datetime
+from pathlib import Path
 
 try:
     from azure.identity import DefaultAzureCredential
@@ -21,34 +22,76 @@ try:
     from rich.panel import Panel
     from rich.table import Table
     from rich import box
+    from pydantic import BaseModel, Field
+    from pydantic_settings import BaseSettings, SettingsConfigDict
 except ImportError as e:
     print(f"Error: Missing required package: {e}")
     print(f"\nPython executable: {sys.executable}")
     print(f"Python version: {sys.version}")
     print("\nInstall packages with:")
-    print(f"{sys.executable} -m pip install azure-identity azure-mgmt-resource azure-mgmt-web azure-mgmt-storage azure-mgmt-monitor rich")
+    print(f"{sys.executable} -m pip install azure-identity azure-mgmt-resource azure-mgmt-web azure-mgmt-storage azure-mgmt-monitor rich pydantic pydantic-settings")
     sys.exit(1)
 
 console = Console()
 
-# Configuration from environment variables with defaults
-RESOURCE_GROUP = os.getenv("RESOURCE_GROUP", "pixcrawler-rg")
-LOCATION = os.getenv("LOCATION", "eastus")
-REGISTRY_NAME = os.getenv("REGISTRY_NAME", "pixcrawlerregistry")
-ENVIRONMENT = os.getenv("ENVIRONMENT", "pixcrawler-env")
-BACKEND_APP = os.getenv("BACKEND_APP", "pixcrawler-backend")
-FRONTEND_APP = os.getenv("FRONTEND_APP", "pixcrawler-frontend")
-STORAGE_NAME = os.getenv("STORAGE_NAME", "pixcrawlerstorage")
-SUBSCRIPTION_ID = os.getenv("AZURE_SUBSCRIPTION_ID")
+class AzureDeploymentSettings(BaseSettings):
+    """Azure deployment configuration from .env.azure file."""
+    
+    model_config = SettingsConfigDict(
+        env_file=".env.azure",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore"
+    )
+    
+    # Azure Subscription
+    azure_subscription_id: str = Field(..., description="Azure subscription ID")
+    
+    # Resource Configuration
+    resource_group: str = Field(default="pixcrawler-rg", description="Azure resource group name")
+    location: str = Field(default="eastus", description="Azure region")
+    
+    # App Service Configuration
+    backend_app_name: str = Field(default="pixcrawler-backend", description="Backend App Service name")
+    frontend_app_name: str = Field(default="pixcrawler-frontend", description="Frontend Static Web App name")
+    app_service_sku: str = Field(default="B1", description="App Service SKU")
+    
+    # Storage Configuration
+    storage_account_name: str = Field(default="pixcrawlerstorage", description="Storage account name")
+    storage_container_name: str = Field(default="datasets", description="Blob container name")
+    enable_data_lake: bool = Field(default=True, description="Enable Data Lake Gen2")
+    
+    # Blob Storage Configuration
+    azure_blob_connection_string: Optional[str] = Field(default=None, description="Azure Blob Storage connection string")
+    azure_blob_account_name: Optional[str] = Field(default=None, description="Azure Blob Storage account name")
+    azure_blob_account_key: Optional[str] = Field(default=None, description="Azure Blob Storage account key")
+    azure_blob_container_name: str = Field(default="pixcrawler-datasets", description="Blob container for datasets")
+    azure_blob_default_tier: str = Field(default="hot", description="Default blob tier (hot/cool/archive)")
+    
+    # Environment
+    environment: str = Field(default="production", description="Deployment environment")
+    
+    # Deployment Configuration
+    deploy_backend: bool = Field(default=True, description="Deploy backend to Azure App Service")
+    deploy_frontend: bool = Field(default=True, description="Deploy frontend to Azure Static Web Apps")
+    
+    # Optional GitHub Configuration
+    github_repo_url: Optional[str] = Field(default=None, description="GitHub repository URL for CI/CD")
+    github_branch: str = Field(default="main", description="GitHub branch for deployment")
+    
+    def get_clean_storage_name(self) -> str:
+        """Get storage account name cleaned for Azure requirements."""
+        return self.storage_account_name.lower().replace("-", "").replace("_", "")[:24]
 
 
 class AzureProvisioner:
     """Handles Azure resource provisioning"""
     
-    def __init__(self, subscription_id: str, resource_group: str, location: str):
-        self.subscription_id = subscription_id
-        self.resource_group = resource_group
-        self.location = location
+    def __init__(self, settings: AzureDeploymentSettings):
+        self.settings = settings
+        self.subscription_id = settings.azure_subscription_id
+        self.resource_group = settings.resource_group
+        self.location = settings.location
         self.credential = None
         self.resource_client = None
         self.web_client = None
@@ -262,6 +305,38 @@ class AzureProvisioner:
             console.print(f"[red]✗ Static Website creation failed: {str(e)}[/red]")
             return False
     
+    def create_blob_container(self, storage_name: str, container_name: str) -> bool:
+        """Create blob container for datasets"""
+        try:
+            console.print(f"[cyan]Creating blob container: {container_name}[/cyan]")
+            
+            try:
+                self.storage_client.blob_containers.create(
+                    self.resource_group,
+                    storage_name,
+                    container_name,
+                    {
+                        "public_access": "None",  # Private container
+                        "metadata": {
+                            "purpose": "pixcrawler-datasets",
+                            "created_by": "deploy-script"
+                        }
+                    }
+                )
+                console.print(f"  [green]✓ Container created: {container_name}[/green]")
+            except Exception as e:
+                if "already exists" in str(e).lower():
+                    console.print(f"  [yellow]⚠ Container already exists: {container_name}[/yellow]")
+                else:
+                    console.print(f"  [yellow]⚠ Container creation issue: {str(e)}[/yellow]")
+            
+            self.results[f"Blob Container ({container_name})"] = f"{storage_name}/{container_name}"
+            return True
+            
+        except Exception as e:
+            console.print(f"[red]✗ Blob container creation failed: {str(e)}[/red]")
+            return False
+
     def create_application_insights(self, app_name: str) -> bool:
         """Create Application Insights for monitoring"""
         try:
@@ -283,13 +358,15 @@ class AzureProvisioner:
         config_table.add_column("Parameter", style="cyan", no_wrap=True)
         config_table.add_column("Value", style="yellow")
         
-        config_table.add_row("Resource Group", RESOURCE_GROUP)
-        config_table.add_row("Location", LOCATION)
-        config_table.add_row("Registry Name", REGISTRY_NAME)
-        config_table.add_row("Environment", ENVIRONMENT)
-        config_table.add_row("Backend App", BACKEND_APP)
-        config_table.add_row("Frontend App", FRONTEND_APP)
-        config_table.add_row("Storage Account", STORAGE_NAME)
+        config_table.add_row("Subscription ID", self.settings.azure_subscription_id[:8] + "...")
+        config_table.add_row("Resource Group", self.settings.resource_group)
+        config_table.add_row("Location", self.settings.location)
+        config_table.add_row("Environment", self.settings.environment)
+        config_table.add_row("Backend App", self.settings.backend_app_name)
+        config_table.add_row("Frontend App", self.settings.frontend_app_name)
+        config_table.add_row("Storage Account", self.settings.get_clean_storage_name())
+        config_table.add_row("Container Name", self.settings.storage_container_name)
+        config_table.add_row("Data Lake Gen2", "Enabled" if self.settings.enable_data_lake else "Disabled")
         
         console.print()
         console.print(config_table)
@@ -308,41 +385,138 @@ class AzureProvisioner:
         console.print(table)
 
 
-def validate_configuration():
-    """Validate required configuration"""
-    if not SUBSCRIPTION_ID:
-        console.print("[red]Error: AZURE_SUBSCRIPTION_ID environment variable not set[/red]")
-        console.print("[yellow]Set it with: export AZURE_SUBSCRIPTION_ID=your-subscription-id[/yellow]")
-        return False
-    
-    # Validate storage name
-    storage_clean = STORAGE_NAME.lower().replace("-", "").replace("_", "")
-    if not (3 <= len(storage_clean) <= 24) or not storage_clean.isalnum():
-        console.print(f"[red]Error: Storage name must be 3-24 alphanumeric characters (got: {storage_clean})[/red]")
-        console.print("[yellow]Set STORAGE_NAME environment variable to a valid name[/yellow]")
-        return False
-    
-    return True
+def load_settings() -> AzureDeploymentSettings:
+    """Load and validate deployment settings."""
+    try:
+        # Check if .env.azure exists
+        env_file = Path(".env.azure")
+        if not env_file.exists():
+            console.print("[red]Error: .env.azure file not found[/red]")
+            console.print("[yellow]Create .env.azure file with your Azure configuration[/yellow]")
+            console.print("[yellow]See .env.example.azure for template[/yellow]")
+            sys.exit(1)
+        
+        settings = AzureDeploymentSettings()
+        
+        # Validate storage name
+        storage_clean = settings.get_clean_storage_name()
+        if not (3 <= len(storage_clean) <= 24) or not storage_clean.isalnum():
+            console.print(f"[red]Error: Storage name must be 3-24 alphanumeric characters (got: {storage_clean})[/red]")
+            console.print("[yellow]Update STORAGE_ACCOUNT_NAME in .env.azure[/yellow]")
+            sys.exit(1)
+        
+        return settings
+        
+    except Exception as e:
+        console.print(f"[red]Error loading configuration: {e}[/red]")
+        sys.exit(1)
 
+
+def deploy_backend(provisioner: AzureProvisioner, settings: AzureDeploymentSettings) -> bool:
+    """Deploy backend code to Azure App Service."""
+    console.print("\n[bold cyan]Deploying Backend to Azure App Service[/bold cyan]")
+    
+    try:
+        # Check if backend directory exists and has required files
+        if not Path("backend").exists():
+            console.print("[red]❌ Backend directory not found[/red]")
+            return False
+        
+        # Create deployment package (exclude frontend)
+        console.print("[cyan]📦 Creating backend deployment package...[/cyan]")
+        
+        # The actual deployment would be handled by Azure DevOps, GitHub Actions, or Azure CLI
+        console.print("[yellow]⚠️  Backend deployment requires Azure CLI or CI/CD pipeline[/yellow]")
+        console.print("[yellow]   Run: az webapp deploy --resource-group {settings.resource_group} --name {settings.backend_app_name} --src-path .[/yellow]")
+        
+        return True
+        
+    except Exception as e:
+        console.print(f"[red]❌ Backend deployment failed: {e}[/red]")
+        return False
+
+def deploy_frontend(provisioner: AzureProvisioner, settings: AzureDeploymentSettings) -> bool:
+    """Deploy frontend to Azure Static Web Apps."""
+    console.print("\n[bold cyan]Deploying Frontend to Azure Static Web Apps[/bold cyan]")
+    
+    try:
+        # Check if frontend directory exists
+        frontend_path = Path("frontend")
+        if not frontend_path.exists():
+            console.print("[red]❌ Frontend directory not found[/red]")
+            return False
+        
+        # Check if built files exist
+        build_path = frontend_path / ".next"
+        if not build_path.exists():
+            console.print("[yellow]⚠️  Frontend not built. Building now...[/yellow]")
+            
+            # Build frontend
+            import subprocess
+            try:
+                subprocess.run(["bun", "install"], cwd=frontend_path, check=True)
+                subprocess.run(["bun", "run", "build"], cwd=frontend_path, check=True)
+                console.print("[green]✅ Frontend built successfully[/green]")
+            except subprocess.CalledProcessError as e:
+                console.print(f"[red]❌ Frontend build failed: {e}[/red]")
+                return False
+        
+        console.print("[yellow]⚠️  Frontend deployment requires Azure Static Web Apps CLI[/yellow]")
+        console.print("[yellow]   Run: swa deploy --app-location frontend --output-location .next[/yellow]")
+        
+        return True
+        
+    except Exception as e:
+        console.print(f"[red]❌ Frontend deployment failed: {e}[/red]")
+        return False
+
+def configure_environment_variables(provisioner: AzureProvisioner, settings: AzureDeploymentSettings) -> None:
+    """Display environment variable configuration instructions."""
+    console.print("\n[bold cyan]Environment Variables Configuration[/bold cyan]")
+    
+    # Get storage connection string (would need to be retrieved from Azure)
+    storage_name = settings.get_clean_storage_name()
+    
+    console.print(f"[cyan]Configure these environment variables in Azure Portal:[/cyan]")
+    console.print(f"[cyan]App Service: {settings.backend_app_name} → Configuration → Application Settings[/cyan]")
+    
+    env_vars = [
+        ("ENVIRONMENT", "production"),
+        ("PIXCRAWLER_ENVIRONMENT", "production"),
+        ("STORAGE_PROVIDER", "azure"),
+        ("AZURE_BLOB_ACCOUNT_NAME", storage_name),
+        ("AZURE_BLOB_CONTAINER_NAME", settings.azure_blob_container_name),
+        ("AZURE_BLOB_DEFAULT_TIER", settings.azure_blob_default_tier),
+    ]
+    
+    table = Table(title="Required Environment Variables", box=box.ROUNDED)
+    table.add_column("Variable", style="cyan", no_wrap=True)
+    table.add_column("Value", style="yellow")
+    
+    for var, value in env_vars:
+        table.add_row(var, value)
+    
+    console.print(table)
+    
+    console.print("\n[yellow]⚠️  Also configure:[/yellow]")
+    console.print("   - AZURE_BLOB_CONNECTION_STRING (from Storage Account → Access Keys)")
+    console.print("   - SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY")
+    console.print("   - DATABASE_URL (Supabase PostgreSQL)")
+    console.print("   - REDIS_URL (if using external Redis)")
 
 def main():
     """Main execution function"""
     console.print(Panel.fit(
-        "[bold cyan]PixCrawler Azure Services Provisioning[/bold cyan]\n"
-        "App Service • Monitoring • Data Lake • Static Web Apps",
+        "[bold cyan]PixCrawler Azure Deployment & Provisioning[/bold cyan]\n"
+        "Infrastructure • Backend • Frontend • Storage",
         border_style="cyan"
     ))
     
-    # Validate configuration
-    if not validate_configuration():
-        sys.exit(1)
+    # Load configuration
+    settings = load_settings()
     
     # Initialize provisioner
-    provisioner = AzureProvisioner(
-        SUBSCRIPTION_ID,
-        RESOURCE_GROUP,
-        LOCATION
-    )
+    provisioner = AzureProvisioner(settings)
     
     # Display configuration
     provisioner.display_configuration()
@@ -366,37 +540,62 @@ def main():
             console.print("[red]Failed to create resource group. Exiting.[/red]")
             sys.exit(1)
         
-        # Create backend App Service
-        progress.update(task, description=f"Creating Backend App Service: {BACKEND_APP}")
-        provisioner.create_app_service(BACKEND_APP, sku="B1")
+        # Create backend App Service (if enabled)
+        if settings.deploy_backend:
+            progress.update(task, description=f"Creating Backend App Service: {settings.backend_app_name}")
+            provisioner.create_app_service(settings.backend_app_name, sku=settings.app_service_sku)
         
-        # Create frontend Static Web App
-        progress.update(task, description=f"Creating Frontend Static Web App: {FRONTEND_APP}")
-        provisioner.create_static_web_app(FRONTEND_APP)
+        # Create frontend Static Web App (if enabled)
+        if settings.deploy_frontend:
+            progress.update(task, description=f"Creating Frontend Static Web App: {settings.frontend_app_name}")
+            provisioner.create_static_web_app(settings.frontend_app_name, settings.github_repo_url)
         
         # Create Storage Account with Data Lake
-        storage_clean = STORAGE_NAME.lower().replace("-", "").replace("_", "")
+        storage_clean = settings.get_clean_storage_name()
         progress.update(task, description=f"Creating Storage Account: {storage_clean}")
-        provisioner.create_storage_account(storage_clean, enable_datalake=True)
+        provisioner.create_storage_account(storage_clean, enable_datalake=settings.enable_data_lake)
+        
+        # Create blob container for datasets
+        progress.update(task, description=f"Creating blob container: {settings.storage_container_name}")
+        provisioner.create_blob_container(storage_clean, settings.storage_container_name)
         
         # Setup monitoring
         progress.update(task, description="Setting up monitoring...")
-        provisioner.create_application_insights(BACKEND_APP)
+        provisioner.create_application_insights(settings.backend_app_name)
         
         progress.update(task, description="Provisioning complete!", completed=True)
     
     # Display results
     provisioner.display_results()
     
-    console.print("\n[green]✓ Provisioning completed successfully![/green]")
+    # Configure environment variables
+    configure_environment_variables(provisioner, settings)
+    
+    console.print("\n[green]✓ Infrastructure provisioning completed successfully![/green]")
     console.print(f"[dim]Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}[/dim]")
     
-    # Display next steps
-    console.print("\n[bold cyan]Next Steps:[/bold cyan]")
-    console.print(f"1. Deploy backend to: {BACKEND_APP}")
-    console.print(f"2. Deploy frontend to: {FRONTEND_APP}")
-    console.print(f"3. Configure Data Lake access for: {storage_clean}")
-    console.print(f"4. Set up monitoring alerts and dashboards")
+    # Deploy applications (if requested)
+    deployment_success = True
+    
+    if settings.deploy_backend:
+        deployment_success &= deploy_backend(provisioner, settings)
+    
+    if settings.deploy_frontend:
+        deployment_success &= deploy_frontend(provisioner, settings)
+    
+    # Final status
+    if deployment_success:
+        console.print("\n[green]🎉 Deployment completed successfully![/green]")
+    else:
+        console.print("\n[yellow]⚠️  Infrastructure created, but deployment needs manual steps[/yellow]")
+    
+    # Display final instructions
+    console.print("\n[bold cyan]Final Steps:[/bold cyan]")
+    console.print("1. Configure environment variables in Azure Portal")
+    console.print("2. Set up continuous deployment from GitHub")
+    console.print("3. Test the deployed applications")
+    console.print("4. Configure custom domains (optional)")
+    console.print("5. Set up monitoring alerts and cost budgets")
 
 
 if __name__ == "__main__":

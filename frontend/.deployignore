@@ -1,14 +1,28 @@
 # =============================================================================
-# AZURE BACKEND DEPLOYMENT IGNORE FILE
+# AZURE FRONTEND DEPLOYMENT IGNORE FILE
 # =============================================================================
-# Files and directories listed here will NOT be deployed to Azure App Service
-# This file is for BACKEND deployment only - frontend is deployed separately
+# Files and directories listed here will NOT be deployed to Azure Static Web Apps
+# This file is for FRONTEND deployment only - backend is deployed separately
 
 # =============================================================================
-# FRONTEND (deployed separately to Azure Static Web Apps or Vercel)
+# BACKEND (deployed separately to Azure App Service)
 # =============================================================================
-frontend/
-frontend/**/*
+../backend/
+../builder/
+../celery_core/
+../utility/
+../validator/
+../sdk/
+../tests/
+../alembic/
+
+# Root level backend files
+../*.py
+../pyproject.toml
+../uv.lock
+../alembic.ini
+../config.py
+../start_celery_worker.py
 
 # =============================================================================
 # DEVELOPMENT & BUILD FILES
@@ -22,37 +36,36 @@ frontend/**/*
 .windsurf/
 *.code-workspace
 
-# Python cache and build artifacts
-*.pyc
-__pycache__/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-*.egg-info/
-dist/
+# Node.js
+node_modules/
+.next/
+out/
 build/
-*.egg
-*.whl
+dist/
 
-# Test coverage
-.coverage
-htmlcov/
-coverage.xml
+# Package managers
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # =============================================================================
 # ENVIRONMENT & CONFIGURATION
 # =============================================================================
-# Local environment files (keep only .env.azure for production)
+# Local environment files
 .env
 .env.local
 .env.development
 .env.test
-!.env.azure
+!.env.production
 
 # Development configuration
-.pre-commit-config.yaml
-pyproject.toml
-uv.lock
+.eslintrc*
+.prettierrc*
+tailwind.config.js
+postcss.config.*
+next.config.*
+tsconfig.json
+drizzle.config.ts
 
 # =============================================================================
 # DOCUMENTATION & TESTS
@@ -62,22 +75,17 @@ docs/
 !README.md
 
 # Test files
-tests/
-**/tests/
-test_*.py
-*_test.py
-**/test_*.py
-**/*_test.py
+__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+jest.config.*
+vitest.config.*
 
 # =============================================================================
-# DATASETS & TEMPORARY FILES
+# TEMPORARY FILES
 # =============================================================================
-# Local datasets (will be stored in Azure Blob)
-datasets/
-flows_data/
-test_dataset*/
-
-# Temporary files
 *.log
 *.tmp
 *.swp
@@ -86,14 +94,7 @@ test_dataset*/
 Thumbs.db
 
 # =============================================================================
-# DEPLOYMENT SCRIPTS & TOOLS
+# AZURE STATIC WEB APPS SPECIFIC
 # =============================================================================
-deploy-azure.py
-test_*.py
-**/demo.py
-
-# =============================================================================
-# AZURE SPECIFIC EXCLUSIONS
-# =============================================================================
-# Keep only essential files for Azure App Service
-# Exclude local development tools and configurations
+# Keep only built static files for deployment
+# Exclude source code and development tools

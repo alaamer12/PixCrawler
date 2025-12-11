@@ -21,6 +21,13 @@ from dataclasses import dataclass, asdict
 from celery_core.app import get_celery_app
 from utility.logging_config import get_logger
 
+# Optional Azure Blob Storage support
+try:
+    from backend.storage.azure_blob import create_azure_blob_provider
+    AZURE_AVAILABLE = True
+except ImportError:
+    AZURE_AVAILABLE = False
+
 logger = get_logger(__name__)
 
 @dataclass
@@ -47,7 +54,7 @@ class SimpleFlow:
             self.task_ids = []
 
 class SimpleFlowManager:
-    """Manager for simple flows using file system storage."""
+    """Manager for simple flows with local and Azure storage support."""
     
     def __init__(self):
         self.flows_dir = Path("flows_data")
@@ -55,6 +62,24 @@ class SimpleFlowManager:
         self.datasets_dir = Path("datasets")
         self.datasets_dir.mkdir(exist_ok=True)
         self.celery_app = get_celery_app()
+        
+        # Initialize Azure Blob Storage if configured
+        self.azure_storage = None
+        self.use_azure = False
+        
+        if AZURE_AVAILABLE and (
+            os.getenv("AZURE_BLOB_CONNECTION_STRING") or 
+            (os.getenv("AZURE_BLOB_ACCOUNT_NAME") and os.getenv("AZURE_BLOB_ACCOUNT_KEY"))
+        ):
+            try:
+                self.azure_storage = create_azure_blob_provider()
+                self.use_azure = True
+                logger.info("Azure Blob Storage enabled for dataset storage")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Azure Blob Storage: {e}")
+                logger.info("Falling back to local file storage")
+        else:
+            logger.info("Using local file storage (Azure not configured)")
     
     def _get_flow_file(self, flow_id: str) -> Path:
         """Get flow data file path."""
@@ -308,6 +333,76 @@ class SimpleFlowManager:
             "error_message": flow.error_message
         }
     
+    async def upload_to_azure(self, flow_id: str) -> Dict[str, Any]:
+        """Upload completed dataset to Azure Blob Storage."""
+        
+        if not self.use_azure or not self.azure_storage:
+            return {"success": False, "error": "Azure Blob Storage not configured"}
+        
+        flow = self._load_flow(flow_id)
+        if not flow:
+            return {"success": False, "error": f"Flow {flow_id} not found"}
+        
+        if not os.path.exists(flow.output_path):
+            return {"success": False, "error": f"Dataset directory not found: {flow.output_path}"}
+        
+        try:
+            logger.info(f"Uploading dataset {flow_id} to Azure Blob Storage...")
+            
+            # Upload directory to Azure with flow_id as prefix
+            blob_prefix = f"datasets/{flow_id}"
+            uploaded_urls = await self.azure_storage.upload_directory(
+                flow.output_path,
+                blob_prefix,
+                tier="hot"  # Use hot tier for immediate access
+            )
+            
+            # Generate download URL for the dataset
+            download_url = None
+            if uploaded_urls:
+                # Create a manifest file listing all uploaded files
+                manifest = {
+                    "flow_id": flow_id,
+                    "dataset_name": flow.output_name,
+                    "keywords": flow.keywords,
+                    "total_files": len(uploaded_urls),
+                    "uploaded_at": datetime.utcnow().isoformat(),
+                    "files": uploaded_urls
+                }
+                
+                # Upload manifest
+                manifest_blob = f"{blob_prefix}/manifest.json"
+                manifest_path = os.path.join(flow.output_path, "manifest.json")
+                
+                with open(manifest_path, 'w') as f:
+                    json.dump(manifest, f, indent=2)
+                
+                await self.azure_storage.upload_file(
+                    manifest_path,
+                    manifest_blob,
+                    metadata={"type": "manifest", "flow_id": flow_id}
+                )
+                
+                # Generate download URL for manifest
+                download_url = await self.azure_storage.get_download_url(
+                    manifest_blob,
+                    expiry_hours=24
+                )
+            
+            logger.info(f"Successfully uploaded dataset {flow_id} to Azure: {len(uploaded_urls)} files")
+            
+            return {
+                "success": True,
+                "uploaded_files": len(uploaded_urls),
+                "blob_prefix": blob_prefix,
+                "download_url": download_url,
+                "manifest_url": download_url
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to upload dataset {flow_id} to Azure: {e}")
+            return {"success": False, "error": str(e)}
+
     def list_flows(self) -> List[Dict[str, Any]]:
         """List all flows."""
         

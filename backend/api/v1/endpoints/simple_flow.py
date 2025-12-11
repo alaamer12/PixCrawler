@@ -116,6 +116,36 @@ async def get_simple_flow_result(flow_id: str) -> Dict[str, Any]:
             detail=f"Failed to get flow result: {str(e)}"
         )
 
+@router.post(
+    "/{flow_id}/upload-azure",
+    summary="Upload to Azure",
+    description="Upload completed flow dataset to Azure Blob Storage.",
+)
+async def upload_flow_to_azure(flow_id: str) -> Dict[str, Any]:
+    """Upload flow dataset to Azure Blob Storage."""
+    try:
+        result = await flow_manager.upload_to_azure(flow_id)
+        
+        if result.get("success"):
+            return result
+        else:
+            raise HTTPException(
+                status_code=http_status.HTTP_400_BAD_REQUEST,
+                detail=result.get("error", "Upload failed")
+            )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Failed to upload flow to Azure: {e}")
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload to Azure: {str(e)}"
+        )
+
 @router.get(
     "/",
     summary="List All Flows",
