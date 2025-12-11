@@ -1,5 +1,6 @@
 'use client'
 
+import {useState} from 'react'
 import {useAuth} from '@/lib/auth/hooks'
 import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar'
 import {
@@ -15,11 +16,24 @@ import Link from 'next/link'
 
 export function UserMenu() {
   const {user, signOut, loading} = useAuth()
+  const [isSigningOut, setIsSigningOut] = useState(false)
 
   if (loading || !user) {
     return (
       <div className="w-8 h-8 rounded-full bg-muted animate-pulse"/>
     )
+  }
+
+  const handleSignOut = async () => {
+    if (isSigningOut) return // Prevent multiple clicks
+    
+    setIsSigningOut(true)
+    try {
+      await signOut()
+    } catch (error) {
+      console.error('Logout failed:', error)
+      setIsSigningOut(false)
+    }
   }
 
   const initials = user.profile?.fullName
@@ -75,10 +89,11 @@ export function UserMenu() {
         <DropdownMenuSeparator/>
         <DropdownMenuItem
           className="text-red-600 focus:text-red-600"
-          onClick={signOut}
+          onClick={handleSignOut}
+          disabled={isSigningOut}
         >
-          <LogOut className="mr-2 h-4 w-4"/>
-          <span>Log out</span>
+          <LogOut className={`mr-2 h-4 w-4 ${isSigningOut ? 'animate-spin' : ''}`}/>
+          <span>{isSigningOut ? 'Signing out...' : 'Log out'}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
