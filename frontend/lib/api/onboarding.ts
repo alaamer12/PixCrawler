@@ -76,8 +76,8 @@ export class OnboardingService {
       
       console.log('📤 Sending payload:', payload)
       
-      // Use Simple Flow API directly
-      const response = await fetch('http://127.0.0.1:8000/api/v1/simple-flow/start', {
+      // Use Next.js API proxy (works in both dev and production)
+      const response = await fetch('/api/v1/simple-flow/start', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

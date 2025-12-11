@@ -22,7 +22,7 @@ function UsageContent() {
         const fetchToken = async () => {
             try {
                 console.log('🔑 Fetching API token...')
-                const response = await fetch('http://127.0.0.1:8000/api/v1/tokens/generate', {
+                const response = await fetch('/api/v1/tokens/generate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

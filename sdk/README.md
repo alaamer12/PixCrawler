@@ -24,7 +24,9 @@ import pixcrawler as pix
 pix.auth(token="your_api_key")
 
 # Load dataset into memory
-dataset = pix.load_dataset("dataset-id-123")
+project = pix.project("project-id")
+dataset = project.dataset("dataset-id-123")
+data = dataset.load()
 
 # Iterate over items
 for item in dataset:
@@ -52,12 +54,12 @@ export PIXCRAWLER_SERVICE_KEY="your_api_key"
 ### 3. Per-Request Configuration
 
 ```python
-from pixcrawler import load_dataset
+import pixcrawler as pix
 
-dataset = load_dataset(
+dataset = pix.dataset(
     "dataset-id-123",
-    config={"api_key": "your_api_key"}
-)
+    config={"api_key": "your_api_key", "project_id": "project-id-123"}
+).load()
 ```
 
 ## API Reference
@@ -74,13 +76,13 @@ Set global authentication token for the session.
 ```python
 import pixcrawler as pix
 
-pix.auth(token="your_api_key")
+pix.auth(token="your_api_key", project_id="project-id-123")
 # All subsequent calls will use this token
 ```
 
 ---
 
-### `load_dataset(dataset_id, config=None)`
+### `dataset(dataset_id, config=None)`
 
 Load dataset into memory for iteration.
 
@@ -112,13 +114,11 @@ for item in dataset:
 
 ---
 
-### `list_datasets(page=1, size=20, config=None)`
+### `datasets(config=None)`
 
 List user's datasets with pagination.
 
 **Parameters:**
-- `page` (int): Page number (default: 1)
-- `size` (int): Items per page (default: 20, max: 100)
 - `config` (dict, optional): Configuration with 'api_key' and 'base_url'
 
 **Returns:**
@@ -135,7 +135,8 @@ import pixcrawler as pix
 pix.auth(token="your_api_key")
 
 # List all datasets
-datasets = pix.list_datasets(page=1, size=50)
+project = pix.project(project_id="")
+datasets = project.datasets()
 
 for dataset in datasets:
     print(f"{dataset['id']}: {dataset['name']} ({dataset['image_count']} images)")
@@ -165,9 +166,9 @@ import pixcrawler as pix
 # Get metadata
 dataset = pix.dataset("dataset-id-123")
 
-print(f"Name: {dataset.name]}")
-print(f"Images: {dataset.image_count]}")
-print(f"Size: {dataset.size_mb}MB")
+print(f"Name: {dataset.name}")
+print(f"Images: {dataset.image_count}")
+print(f"Size: {dataset.size_mb} MB")
 ```
 
 ---
@@ -196,7 +197,7 @@ import pixcrawler as pix
 pix.auth(token="your_api_key")
 
 # Download to file (doesn't load into memory)
-path = pix.download_dataset("dataset-id-123", "./my_dataset.zip")
+path = pix.dataset("dataset-id-123").download("./my_dataset.zip")
 print(f"Downloaded to: {path}")
 ```
 
@@ -209,26 +210,25 @@ The SDK provides custom exceptions for different error scenarios:
 ```python
 import pixcrawler as pix
 from pixcrawler import (
-    PixCrawlerError,      # Base exception
-    APIError,             # API returned error
-    AuthenticationError,  # Auth failed
-    ValidationError,      # Validation failed
-    NotFoundError,        # Resource not found
-    RateLimitError,       # Rate limit exceeded
+  PixCrawlerError,  # Base exception
+  APIError,  # API returned error
+  AuthenticationError,  # Auth failed
+  NotFoundError,  # Resource not found
+  RateLimitError,  # Rate limit exceeded
 )
 
 try:
-    dataset = pix.load_dataset("dataset-id-123")
+  dataset = pix.dataset("dataset-id-123")
 except AuthenticationError:
-    print("Authentication failed. Check your API key.")
+  print("Authentication failed. Check your API key.")
 except NotFoundError:
-    print("Dataset not found.")
+  print("Dataset not found.")
 except RateLimitError:
-    print("Rate limit exceeded. Please try again later.")
+  print("Rate limit exceeded. Please try again later.")
 except APIError as e:
-    print(f"API error {e.status_code}: {e.message}")
+  print(f"API error {e.status_code}: {e.message}")
 except PixCrawlerError as e:
-    print(f"SDK error: {e}")
+  print(f"SDK error: {e}")
 ```
 
 ## Complete Examples
@@ -242,7 +242,7 @@ import pixcrawler as pix
 pix.auth(token="your_api_key")
 
 # Load dataset
-dataset = pix.load_dataset("dataset-id-123")
+dataset = pix.dataset("dataset-id-123")
 
 # Process items
 for item in dataset:
@@ -260,7 +260,7 @@ import pixcrawler as pix
 pix.auth(token="your_api_key")
 
 # List all datasets
-datasets = pix.list_datasets()
+datasets = pix.datasets()
 
 # Find specific dataset
 target_dataset = next(
@@ -270,7 +270,7 @@ target_dataset = next(
 
 if target_dataset:
     # Get detailed info
-    info = pix.get_dataset_info(target_dataset['id'])
+    info = pix.dataset(target_dataset['id']).info()
     print(f"Found dataset: {info['name']} ({info['image_count']} images)")
     
     # Download to file
@@ -287,7 +287,7 @@ if target_dataset:
 import pixcrawler as pix
 
 # No need to call auth() - uses environment variable
-dataset = pix.load_dataset("dataset-id-123")
+dataset = pix.dataset("dataset-id-123")
 
 for item in dataset:
     print(item)
@@ -301,17 +301,16 @@ import pixcrawler as pix
 # Use custom API URL (e.g., for testing)
 pix.auth(
     token="your_api_key",
-    base_url="http://localhost:8000/api/v1"
 )
 
-datasets = pix.list_datasets()
+datasets = pix.datasets()
 ```
 
 ## Memory Considerations
 
-The `load_dataset()` function loads data into memory and has a **300MB limit** to prevent memory issues. For larger datasets:
+The `dataset()` function loads data into memory and has a **300MB limit** to prevent memory issues. For larger datasets:
 
-1. Use `download_dataset()` to save to disk
+1. Use `dataset().download()` to save to disk
 2. Process the downloaded file in chunks
 3. Or use the API directly for streaming
 
@@ -319,7 +318,7 @@ The `load_dataset()` function loads data into memory and has a **300MB limit** t
 import pixcrawler as pix
 
 # For large datasets, download to file instead
-path = pix.download_dataset("large-dataset-id", "./large_dataset.zip")
+path = pix.dataset("large-dataset-id", "./large_dataset.zip").download()
 
 # Then process the ZIP file in chunks
 import zipfile
