@@ -48,7 +48,7 @@ function UsageContent() {
         fetchToken()
     }, [])
 
-    const installCommand = 'pip install pixcrawler-sdk'
+    const installCommand = 'pip install pixcrawler'
     const pythonCode = `import pixcrawler as pix
 
 # Set authentication (PIXCRAWLER_SERVICE_KEY)
