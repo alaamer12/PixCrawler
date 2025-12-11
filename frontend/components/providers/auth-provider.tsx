@@ -64,11 +64,15 @@ function AuthProviderContent({ children }: { children: React.ReactNode }) {
 
     const signOut = async () => {
         try {
+            setLoading(true)
             await authService.signOut()
-            router.push('/')
-            router.refresh()
+            // Clear user state immediately
+            setUser(null)
+            // Use replace instead of push to avoid back button issues
+            router.replace('/')
         } catch (error) {
             console.error('Error signing out:', error)
+            setLoading(false)
         }
     }
 
