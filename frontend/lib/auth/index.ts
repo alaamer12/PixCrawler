@@ -66,6 +66,9 @@ export class AuthService {
   async signOut() {
     const { error } = await this.supabase.auth.signOut()
     if (error) throw error
+    
+    // Small delay to ensure auth state is properly cleared
+    await new Promise(resolve => setTimeout(resolve, 100))
   }
 
   // Reset password

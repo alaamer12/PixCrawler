@@ -35,6 +35,7 @@ export function WelcomeFlow({ user }: WelcomeFlowProps) {
     imagesPerCategory: 100,
   })
   const [testResult, setTestResult] = useState<TestResult | null>(null)
+  const [isLaunching, setIsLaunching] = useState(false)
 
   const handleSkip = () => {
     router.push('/dashboard')
@@ -61,33 +62,36 @@ export function WelcomeFlow({ user }: WelcomeFlowProps) {
   }
 
   const handleLaunch = async () => {
+    if (isLaunching) return // Prevent multiple clicks
+    
+    setIsLaunching(true)
     console.log('🚀 Starting dataset creation...')
+    
+    let jobId: string
     
     try {
       // Create dataset job
       const { onboardingService } = await import('@/lib/api/onboarding')
       console.log('📋 Creating dataset job with config:', config)
       
-      const { jobId } = await onboardingService.createDatasetJob(config)
+      const result = await onboardingService.createDatasetJob(config)
+      jobId = result.jobId
       console.log('✅ Dataset job created:', jobId)
 
       // Mark onboarding as completed (handles dev mode gracefully)
       await onboardingService.completeOnboarding()
       console.log('✅ Onboarding completed')
-
-      // Always redirect to usage page with jobId
-      console.log('🔄 Redirecting to usage page...')
-      router.push(`/usage?jobId=${jobId}`)
       
     } catch (error) {
       console.error('❌ Failed to launch dataset:', error)
 
-      // Create a demo jobId and redirect anyway
-      const demoJobId = `demo_${Date.now()}`
-      console.log('🔄 Redirecting with demo jobId:', demoJobId)
-      
-      // Always redirect to usage page, even on error
-      router.push(`/usage?jobId=${demoJobId}`)
+      // Create a demo jobId for fallback
+      jobId = `demo_${Date.now()}`
+      console.log('🔄 Using demo jobId:', jobId)
+    } finally {
+      // Always redirect to usage page with jobId (after all async operations complete)
+      console.log('🔄 Redirecting to usage page...')
+      router.push(`/usage?jobId=${jobId}`)
     }
   }
 
@@ -123,6 +127,7 @@ export function WelcomeFlow({ user }: WelcomeFlowProps) {
           config={config}
           onLaunch={handleLaunch}
           onBack={handleBack}
+          isLaunching={isLaunching}
         />
       )}
     </OnboardingLayout>

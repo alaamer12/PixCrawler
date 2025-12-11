@@ -1,6 +1,6 @@
 'use client'
 
-import {ArrowLeft, Clock, DollarSign, Lightbulb, Rocket, Sparkles} from 'lucide-react'
+import {ArrowLeft, Clock, DollarSign, Lightbulb, Rocket, Sparkles, Loader2} from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import type {DatasetConfig} from '@/app/welcome/welcome-flow'
 
@@ -8,9 +8,10 @@ interface LaunchStepProps {
   config: DatasetConfig
   onLaunch: () => void
   onBack: () => void
+  isLaunching?: boolean
 }
 
-export function LaunchStep({config, onLaunch, onBack}: LaunchStepProps) {
+export function LaunchStep({config, onLaunch, onBack, isLaunching = false}: LaunchStepProps) {
   const totalImages = config.categories.length * config.imagesPerCategory
   const estimatedTime = Math.ceil(totalImages / 60) // Rough estimate: 1 image per second
   const estimatedCost = totalImages > 500 ? '$0.50' : 'Free tier'
@@ -114,6 +115,7 @@ export function LaunchStep({config, onLaunch, onBack}: LaunchStepProps) {
           onClick={onBack}
           variant="outline"
           size="lg"
+          disabled={isLaunching}
           leftIcon={<ArrowLeft className="w-4 h-4"/>}
         >
           Adjust Settings
@@ -124,9 +126,10 @@ export function LaunchStep({config, onLaunch, onBack}: LaunchStepProps) {
           variant="brand"
           size="lg"
           className="flex-1"
-          rightIcon={<Sparkles className="w-4 h-4"/>}
+          disabled={isLaunching}
+          rightIcon={isLaunching ? <Loader2 className="w-4 h-4 animate-spin"/> : <Sparkles className="w-4 h-4"/>}
         >
-          Create Full Dataset
+          {isLaunching ? 'Creating Dataset...' : 'Create Full Dataset'}
         </Button>
       </div>
 
