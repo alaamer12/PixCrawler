@@ -9,7 +9,7 @@ from fastapi import APIRouter
 from starlette.responses import JSONResponse
 
 from backend.api.v1.response_models import get_common_responses
-from .endpoints import auth, crawl_jobs, datasets, exports, health, storage, users, validation, projects, notifications, metrics, credits, api_keys, activity, dashboard, batch, policies
+from .endpoints import auth, crawl_jobs, datasets, exports, health, storage, users, validation, projects, notifications, metrics, credits, api_keys, activity, dashboard, batch, policies, simple_flow
 
 __all__ = ['api_router']
 
@@ -137,5 +137,11 @@ api_router.include_router(
 api_router.include_router(
     policies.router,
     prefix="/policies",
+    include_in_schema=True,
+)
+
+# Simple Flow - Standalone flow system (no database dependencies)
+api_router.include_router(
+    simple_flow.router,
     include_in_schema=True,
 )
