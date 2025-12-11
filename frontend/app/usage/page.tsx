@@ -4,30 +4,56 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Check, Copy, Terminal, ArrowLeft, ExternalLink } from 'lucide-react'
-import { useState, Suspense } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 
 function UsageContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
-    const jobId = searchParams.get('jobId') || 'your_job_id'
-    // TODO: implement this
-    const apiKey = 'your_api_key' // In a real app, fetch this securely
-
+    const jobId = searchParams.get('jobId') || 'flow_xxxxxxxx'
+    
+    const [apiKey, setApiKey] = useState<string>('Loading...')
     const [copiedInstall, setCopiedInstall] = useState(false)
     const [copiedCode, setCopiedCode] = useState(false)
+    const [copiedToken, setCopiedToken] = useState(false)
+
+    // Fetch API token on component mount
+    useEffect(() => {
+        const fetchToken = async () => {
+            try {
+                const response = await fetch('/api/v1/tokens/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                
+                if (response.ok) {
+                    const data = await response.json()
+                    setApiKey(data.token)
+                } else {
+                    setApiKey('pk_live_demo_token_please_login')
+                }
+            } catch (error) {
+                console.error('Failed to fetch token:', error)
+                setApiKey('pk_live_demo_token_please_login')
+            }
+        }
+        
+        fetchToken()
+    }, [])
 
     const installCommand = 'pip install pixcrawler-sdk'
-    const pythonCode = `from pixcrawler import load_dataset
+    const pythonCode = `import pixcrawler as pix
 
-# Load your dataset
-dataset = load_dataset(
-    job_id="${jobId}",
-    api_key="${apiKey}"
-)
+# Set authentication (PIXCRAWLER_SERVICE_KEY)
+pix.auth(token="${apiKey}")
 
-# Iterate through images
-for image, label in dataset:
-    print(f"Image shape: {image.shape}, Label: {label}")`
+# Load dataset into memory
+dataset = pix.load_dataset("${jobId}")
+
+# Iterate over items
+for item in dataset:
+    print(item)`
 
     const copyToClipboard = (text: string, setCopied: (val: boolean) => void) => {
         navigator.clipboard.writeText(text)
@@ -67,6 +93,38 @@ for image, label in dataset:
                     </CardHeader>
 
                     <CardContent className="space-y-6">
+                        {/* Step 0: API Token */}
+                        <div className="space-y-3">
+                            <h3 className="font-semibold text-lg flex items-center gap-2">
+                                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white">
+                                    🔑
+                                </span>
+                                Your API Token
+                            </h3>
+                            <div className="rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 p-4">
+                                <p className="text-sm text-orange-800 dark:text-orange-200 mb-3">
+                                    Keep this token secure! You'll need it to access your datasets via the SDK.
+                                </p>
+                                <div className="relative rounded-lg bg-slate-950 p-4 font-mono text-sm border">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-slate-100 break-all">{apiKey}</span>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 hover:bg-slate-800 ml-2 flex-shrink-0"
+                                            onClick={() => copyToClipboard(apiKey, setCopiedToken)}
+                                        >
+                                            {copiedToken ? (
+                                                <Check className="h-4 w-4 text-green-400" />
+                                            ) : (
+                                                <Copy className="h-4 w-4 text-slate-400" />
+                                            )}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Step 1: Install */}
                         <div className="space-y-3">
                             <h3 className="font-semibold text-lg flex items-center gap-2">

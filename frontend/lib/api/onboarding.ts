@@ -61,18 +61,32 @@ export class OnboardingService {
     }
   }
 
-  // Create a full dataset job
+  // Create a full dataset job using Simple Flow API
   async createDatasetJob(config: DatasetConfig): Promise<{ jobId: string }> {
     try {
-      // TODO: Replace with actual API call to backend
-      // For now, simulate job creation
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Use Simple Flow API via Next.js proxy
+      const response = await fetch('/api/v1/simple-flow/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          keywords: config.categories,
+          max_images: config.imagesPerCategory * config.categories.length,
+          engines: ['duckduckgo'],
+          output_name: config.name
+        })
+      })
 
-      // Generate a mock job ID
-      const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
 
-      return { jobId }
+      const result = await response.json()
+      
+      return { jobId: result.flow_id }
     } catch (error) {
+      console.error('Failed to create dataset job:', error)
       throw new Error('Failed to create dataset job')
     }
   }

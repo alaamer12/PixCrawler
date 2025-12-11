@@ -46,9 +46,7 @@ pix.auth(token="your_api_key")
 ### 2. Environment Variables (Recommended for Production)
 
 ```bash
-export SERVICE_API_KEY="your_api_key"
-# or
-export SERVICE_API_TOKEN="your_jwt_token"
+export PIXCRAWLER_SERVICE_KEY="your_api_key"
 ```
 
 ### 3. Per-Request Configuration
