@@ -10,6 +10,7 @@ function UsageContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const jobId = searchParams.get('jobId') || 'flow_xxxxxxxx'
+    const isDemo = jobId.startsWith('demo_')
     
     const [apiKey, setApiKey] = useState<string>('Loading...')
     const [copiedInstall, setCopiedInstall] = useState(false)
@@ -20,22 +21,27 @@ function UsageContent() {
     useEffect(() => {
         const fetchToken = async () => {
             try {
-                const response = await fetch('/api/v1/tokens/generate', {
+                console.log('🔑 Fetching API token...')
+                const response = await fetch('http://127.0.0.1:8000/api/v1/tokens/generate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                 })
                 
+                console.log('📥 Token response status:', response.status)
+                
                 if (response.ok) {
                     const data = await response.json()
+                    console.log('✅ Token generated successfully')
                     setApiKey(data.token)
                 } else {
-                    setApiKey('pk_live_demo_token_please_login')
+                    console.log('❌ Token generation failed, using demo token')
+                    setApiKey('pk_live_demo_token_please_start_backend_server')
                 }
             } catch (error) {
-                console.error('Failed to fetch token:', error)
-                setApiKey('pk_live_demo_token_please_login')
+                console.error('❌ Failed to fetch token:', error)
+                setApiKey('pk_live_demo_token_please_start_backend_server')
             }
         }
         
@@ -90,6 +96,13 @@ for item in dataset:
                         <p className="text-muted-foreground">
                             Your dataset is ready to use. Follow the steps below to integrate it into your Python projects.
                         </p>
+                        {isDemo && (
+                            <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 p-3 mt-3">
+                                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                                    ⚠️ <strong>Demo Mode:</strong> Backend server not running. Start the backend to create real datasets.
+                                </p>
+                            </div>
+                        )}
                     </CardHeader>
 
                     <CardContent className="space-y-6">

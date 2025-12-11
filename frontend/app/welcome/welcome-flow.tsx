@@ -61,35 +61,33 @@ export function WelcomeFlow({ user }: WelcomeFlowProps) {
   }
 
   const handleLaunch = async () => {
+    console.log('🚀 Starting dataset creation...')
+    
     try {
       // Create dataset job
       const { onboardingService } = await import('@/lib/api/onboarding')
+      console.log('📋 Creating dataset job with config:', config)
+      
       const { jobId } = await onboardingService.createDatasetJob(config)
+      console.log('✅ Dataset job created:', jobId)
 
       // Mark onboarding as completed (handles dev mode gracefully)
       await onboardingService.completeOnboarding()
+      console.log('✅ Onboarding completed')
 
-      // Check if we're in dev mode by checking user ID
-      const isDevMode = user.id === 'dev-user-123'
-
-      if (isDevMode) {
-        // In dev mode, redirect to dashboard with dev_bypass param
-        router.push('/dashboard?dev_bypass=true')
-      } else {
-        // In production, redirect to usage page
-        router.push(`/usage?jobId=${jobId}`)
-      }
+      // Always redirect to usage page with jobId
+      console.log('🔄 Redirecting to usage page...')
+      router.push(`/usage?jobId=${jobId}`)
+      
     } catch (error) {
-      console.error('Failed to launch dataset:', error)
+      console.error('❌ Failed to launch dataset:', error)
 
-      // Check if we're in dev mode for error handling
-      const isDevMode = user.id === 'dev-user-123'
-
-      if (isDevMode) {
-        router.push('/dashboard?dev_bypass=true')
-      } else {
-        router.push('/dashboard')
-      }
+      // Create a demo jobId and redirect anyway
+      const demoJobId = `demo_${Date.now()}`
+      console.log('🔄 Redirecting with demo jobId:', demoJobId)
+      
+      // Always redirect to usage page, even on error
+      router.push(`/usage?jobId=${demoJobId}`)
     }
   }
 
